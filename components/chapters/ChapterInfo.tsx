@@ -1,5 +1,3 @@
-"use client";
-
 // Components
 import { Heading, Text, Card, Divider, Button } from "@/components/global";
 import NextLink from "next/link";

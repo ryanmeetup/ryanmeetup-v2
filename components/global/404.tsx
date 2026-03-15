@@ -1,5 +1,3 @@
-"use client";
-
 // Components
 import { Heading, Text, Button } from "@/components/global";
 import { FaHome as Home } from "react-icons/fa";

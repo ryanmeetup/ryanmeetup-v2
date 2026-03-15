@@ -1,7 +1,3 @@
-"use client";
-
-import { useMemo } from "react";
-
 // Components
 import { Sponsor } from "@/components/sponsors";
 import { Heading, Text, Kicker } from "@/components/global";
@@ -17,9 +13,8 @@ type SponsorSectionProps = {
 const SponsorSection = (props: SponsorSectionProps) => {
   const { sponsors, tier } = props;
 
-  const sorted = useMemo(
-    () => [...sponsors].sort((a, b) => b.eventsSponsored - a.eventsSponsored),
-    [sponsors],
+  const sorted = [...sponsors].sort(
+    (a, b) => b.eventsSponsored - a.eventsSponsored,
   );
 
   return (
