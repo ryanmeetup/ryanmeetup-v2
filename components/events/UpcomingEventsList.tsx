@@ -1,8 +1,8 @@
 "use client";
 
 import { Transition } from "@headlessui/react";
-import { Heading, Kicker } from "@/components/global";
-import { EventRow } from "@/components/events";
+import { Card } from "@/components/global";
+import { EventRow, EventsSectionHeader } from "@/components/events";
 import { formatEventCount, sortEventsByDate } from "@/utils/date";
 
 import type { RyanEvent } from "@/lib/types";
@@ -30,7 +30,7 @@ const UpcomingEventsList = (props: UpcomingEventsListProps) => {
 
   if (isLoading) {
     return (
-      <div className="mb-10 rounded-2xl border border-black/10 bg-white/90 p-5 shadow-sm dark:border-white/10 dark:bg-white/5">
+      <Card variant="solid" size="md" className="mb-10">
         <div className="mb-4 flex flex-col gap-2 text-center lg:flex-row lg:items-end lg:justify-between lg:text-left">
           <div className="h-9 w-56 rounded-full bg-black/10 animate-pulse dark:bg-white/10" />
           <div className="h-4 w-24 rounded-full bg-black/10 animate-pulse dark:bg-white/10" />
@@ -52,7 +52,7 @@ const UpcomingEventsList = (props: UpcomingEventsListProps) => {
             </div>
           ))}
         </div>
-      </div>
+      </Card>
     );
   }
 
@@ -60,17 +60,12 @@ const UpcomingEventsList = (props: UpcomingEventsListProps) => {
   const sortedEvents = sortEventsByDate(events, sortOrder);
 
   return (
-    <div className="mb-10 rounded-2xl border border-black/10 bg-white/90 p-5 shadow-sm dark:border-white/10 dark:bg-white/5">
-      <div className="mb-4 flex flex-col gap-2 text-center lg:flex-row lg:items-end lg:justify-between lg:text-left">
-        <Heading className="text-3xl title lg:text-4xl" size="h2">
-          {title}
-        </Heading>
-        <div className="flex justify-center lg:justify-end">
-          {headerMeta ?? (
-            <Kicker>{formatEventCount(events.length)}</Kicker>
-          )}
-        </div>
-      </div>
+    <Card variant="solid" size="md" className="mb-10">
+      <EventsSectionHeader
+        className="mb-4"
+        title={title}
+        meta={headerMeta ?? formatEventCount(events.length)}
+      />
       <div className="grid gap-3">
         {sortedEvents.map((event, index) => {
           const delayClass =
@@ -102,7 +97,7 @@ const UpcomingEventsList = (props: UpcomingEventsListProps) => {
       {footerAction && (
         <div className="mt-4 flex justify-end">{footerAction}</div>
       )}
-    </div>
+    </Card>
   );
 };
 

@@ -10,3 +10,4 @@ export * from "./EventsEmptyTable";
 export * from "./ResultsPerPage";
 export * from "./DoubleHeader";
 export * from "./Chapters";
+export * from "./EventsSectionHeader";

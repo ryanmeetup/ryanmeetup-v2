@@ -42,26 +42,31 @@ export const socials = [
     href: "https://www.instagram.com/ryanmeetup/",
     icon: <Instagram className="title" />,
     text: "Instagram",
+    ctaVerb: "Follow",
   },
   {
     href: 'https://partiful.com/u/sJG4HpH0wS3ZA3YkzaL5',
     icon: <Party className="title" />,
     text: 'Partiful',
+    ctaVerb: "Follow",
   },
   {
     href: "https://www.youtube.com/@ryanmeetup",
     icon: <YouTube className="title" />,
     text: "YouTube",
+    ctaVerb: "Subscribe to",
   },
   {
     icon: <TikTok className="title" />,
     text: "TikTok",
     href: "https://www.tiktok.com/@ryanmeetup/",
+    ctaVerb: "Follow",
   },
   {
     icon: <Threads className="title" />,
     text: "Threads",
     href: "https://www.threads.net/@ryanmeetup",
+    ctaVerb: "Follow",
   },
   // {
   //   icon: <Whatsapp className="title" />,

@@ -1,8 +1,7 @@
 "use client";
 
 // Components
-import { Heading, Kicker } from "@/components/global";
-import { Event, Chapters } from "@/components/events";
+import { Event, Chapters, EventsSectionHeader } from "@/components/events";
 import {
   Disclosure,
   DisclosureButton,
@@ -95,14 +94,12 @@ const EventsSection = (props: EventsSectionProps) => {
           {({ open }) => (
             <>
               <DisclosureButton className="gap-x-4 mb-2 w-full flex items-center hover:underline hover:scale-102 timing">
-                <div className="flex flex-1 flex-col gap-2 text-center lg:flex-row lg:items-end lg:justify-between lg:text-left">
-                  <Heading className="text-3xl title lg:text-4xl" size="h2">
-                    {title}
-                  </Heading>
-                  <div className="flex flex-wrap items-center justify-center gap-3 lg:justify-end">
-                    <Kicker>{eventCountLabel}</Kicker>
-                    {headerAction}
-                  </div>
+                <div className="flex-1">
+                  <EventsSectionHeader
+                    title={title}
+                    meta={eventCountLabel}
+                    action={headerAction}
+                  />
                 </div>
 
                 <div className="flex justify-end">
@@ -134,15 +131,12 @@ const EventsSection = (props: EventsSectionProps) => {
         </Disclosure>
       ) : (
         <div>
-          <div className="mb-4 flex flex-col gap-2 text-center lg:flex-row lg:items-end lg:justify-between lg:text-left">
-            <Heading className="text-3xl title lg:text-4xl" size="h2">
-              {title}
-            </Heading>
-            <div className="flex flex-wrap items-center justify-center gap-3 lg:justify-end">
-              <Kicker>{eventCountLabel}</Kicker>
-              {headerAction}
-            </div>
-          </div>
+          <EventsSectionHeader
+            className="mb-4"
+            title={title}
+            meta={eventCountLabel}
+            action={headerAction}
+          />
 
           <Container
             eventType={eventType}

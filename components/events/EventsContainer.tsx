@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import type { ReactNode } from "react";
 
 // Components
-import { FilterBar, Text, Divider, Heading, Input } from "@/components/global";
+import { FilterBar, Text, Divider, Heading, Input, Card } from "@/components/global";
 import { EventsSection } from "@/components/events";
 import NextLink from "next/link";
 
@@ -212,7 +212,11 @@ const EventsContainer = (props: EventsContainerProps) => {
       )}
 
       {inactiveEvents.length === 0 && activeEvents.length === 0 && (
-        <div className="rounded-2xl border -mt-8 border-black/10 bg-white/90 p-6 text-center shadow-sm dark:border-white/10 dark:bg-white/5 lg:text-left">
+        <Card
+          variant="solid"
+          size="lg"
+          className="-mt-8 text-center lg:text-left"
+        >
           <div className="space-y-3">
             <Text className="text-lg secondary">
               There have not been any local Ryan Meetups in {eventType} yet.
@@ -221,7 +225,7 @@ const EventsContainer = (props: EventsContainerProps) => {
               Check back later once we officially launch this chapter!
             </Text>
           </div>
-        </div>
+        </Card>
       )}
     </div>
   );

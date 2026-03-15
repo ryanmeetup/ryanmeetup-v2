@@ -1,7 +1,7 @@
 "use client";
 
 // Components
-import { Heading, Text } from "@/components/global";
+import { Heading, Text, Card } from "@/components/global";
 import {
   Disclosure,
   DisclosureButton,
@@ -45,13 +45,9 @@ const FAQ = (props: FAQProps) => {
                   ?.filter((_, index) => index % 2 === column)
                   .map((pair, index) =>
                     toggleable ? (
-                      <Disclosure
-                        as="div"
-                        className="rounded-2xl border border-black/10 bg-white/80 p-4 shadow-sm dark:border-white/10 dark:bg-white/5"
-                        key={`${column}-${index}`}
-                      >
+                      <Disclosure as="div" key={`${column}-${index}`}>
                         {({ open }) => (
-                          <>
+                          <Card variant="soft" size="sm">
                             <DisclosureButton className="flex w-full items-center justify-between gap-4 text-left text-lg font-semibold tracking-wider text-black transition hover:opacity-80 dark:text-white">
                               <span>{pair.question}</span>
                               <ChevronDown
@@ -74,13 +70,14 @@ const FAQ = (props: FAQProps) => {
                                 </DisclosurePanel>
                               </Transition>
                             </div>
-                          </>
+                          </Card>
                         )}
                       </Disclosure>
                     ) : (
-                      <div
+                      <Card
                         key={`${column}-${index}`}
-                        className="rounded-2xl border border-black/10 bg-white/80 p-5 shadow-sm dark:border-white/10 dark:bg-white/5"
+                        variant="soft"
+                        size="md"
                       >
                         <div className="text-base font-semibold tracking-wider text-black dark:text-white sm:text-lg">
                           {pair.question}
@@ -88,7 +85,7 @@ const FAQ = (props: FAQProps) => {
                         <div className="mt-2 text-sm text-black/70 dark:text-white/70 sm:text-base">
                           {pair.answer}
                         </div>
-                      </div>
+                      </Card>
                     ),
                   )}
               </div>
@@ -98,13 +95,9 @@ const FAQ = (props: FAQProps) => {
           <div className="space-y-4">
             {data?.map((pair, index) =>
               toggleable ? (
-                <Disclosure
-                  as="div"
-                  className="rounded-2xl border border-black/10 bg-white/80 p-4 shadow-sm dark:border-white/10 dark:bg-white/5"
-                  key={index}
-                >
+                <Disclosure as="div" key={index}>
                   {({ open }) => (
-                    <>
+                    <Card variant="soft" size="sm">
                       <DisclosureButton className="flex w-full items-center justify-between gap-4 text-left text-lg font-semibold tracking-wider text-black transition hover:opacity-80 dark:text-white">
                         <span>{pair.question}</span>
                         <ChevronDown
@@ -127,21 +120,18 @@ const FAQ = (props: FAQProps) => {
                           </DisclosurePanel>
                         </Transition>
                       </div>
-                    </>
+                    </Card>
                   )}
                 </Disclosure>
               ) : (
-                <div
-                  key={index}
-                  className="rounded-2xl border border-black/10 bg-white/80 p-5 shadow-sm dark:border-white/10 dark:bg-white/5"
-                >
+                <Card key={index} variant="soft" size="md">
                   <div className="text-base font-semibold tracking-wider text-black dark:text-white sm:text-lg">
                     {pair.question}
                   </div>
                   <div className="mt-2 text-sm text-black/70 dark:text-white/70 sm:text-base">
                     {pair.answer}
                   </div>
-                </div>
+                </Card>
               ),
             )}
           </div>
