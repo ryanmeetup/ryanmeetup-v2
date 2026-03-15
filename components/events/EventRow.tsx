@@ -2,7 +2,7 @@
 
 import NextImage from "next/image";
 import NextLink from "next/link";
-import { Heading, Text } from "@/components/global";
+import { Heading, Text, Kicker } from "@/components/global";
 import { FaArrowRight as ArrowRight } from "react-icons/fa6";
 import { formatEventLocationLabel, formatMonthDay } from "@/utils/date";
 import type { RyanEvent } from "@/lib/types";
@@ -68,10 +68,10 @@ const EventRow = (props: EventRowProps) => {
               </div>
             )}
           </div>
-          <Text className="text-xs uppercase tracking-[0.14em] text-black/70 dark:text-white/70 sm:tracking-[0.2em]">
+          <Kicker className="tracking-[0.14em] sm:tracking-[0.2em]">
             {formatEventLocationLabel(event, "en-US", false)}
             <span className="hidden sm:inline"> • {event.venue}</span>
-          </Text>
+          </Kicker>
         </div>
       </div>
       <span className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-black/20 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-black transition group-hover:border-black/40 group-hover:bg-black/5 dark:border-white/20 dark:text-white dark:group-hover:border-white/40 dark:group-hover:bg-white/10 sm:w-auto">

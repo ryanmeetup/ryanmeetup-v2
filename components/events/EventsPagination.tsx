@@ -17,6 +17,16 @@ type EventsPaginationProps = {
   lastIcon: ReactNode;
 };
 
+const getNavButtonClasses = (disabled: boolean) =>
+  [
+    "inline-flex h-9 w-9 items-center justify-center rounded-full border border-black/20 text-black/70 transition",
+    "hover:border-black/40 hover:text-black",
+    "dark:border-white/20 dark:text-white/70 dark:hover:border-white/40 dark:hover:text-white",
+    disabled ? "opacity-60" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
 const EventsPagination = (props: EventsPaginationProps) => {
   const {
     currentPage,
@@ -35,15 +45,18 @@ const EventsPagination = (props: EventsPaginationProps) => {
 
   if (totalPages <= 1) return null;
 
+  const isFirstPage = currentPage === 1;
+  const isLastPage = currentPage === totalPages;
+
   return (
     <div className="mt-4 flex items-center justify-center">
       <div className="mx-2 inline-flex items-center gap-1.5">
         <button
           type="button"
           onClick={onFirst}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-black/20 text-black/70 transition hover:border-black/40 hover:text-black dark:border-white/20 dark:text-white/70 dark:hover:border-white/40 dark:hover:text-white"
-          disabled={currentPage === 1}
-          aria-disabled={currentPage === 1}
+          className={getNavButtonClasses(isFirstPage)}
+          disabled={isFirstPage}
+          aria-disabled={isFirstPage}
           aria-label="First page"
         >
           {firstIcon}
@@ -51,9 +64,9 @@ const EventsPagination = (props: EventsPaginationProps) => {
         <button
           type="button"
           onClick={onPrevious}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-black/20 text-black/70 transition hover:border-black/40 hover:text-black dark:border-white/20 dark:text-white/70 dark:hover:border-white/40 dark:hover:text-white"
-          disabled={currentPage === 1}
-          aria-disabled={currentPage === 1}
+          className={getNavButtonClasses(isFirstPage)}
+          disabled={isFirstPage}
+          aria-disabled={isFirstPage}
           aria-label="Previous page"
         >
           {previousIcon}
@@ -87,9 +100,9 @@ const EventsPagination = (props: EventsPaginationProps) => {
         <button
           type="button"
           onClick={onNext}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-black/20 text-black/70 transition hover:border-black/40 hover:text-black dark:border-white/20 dark:text-white/70 dark:hover:border-white/40 dark:hover:text-white"
-          disabled={currentPage === totalPages}
-          aria-disabled={currentPage === totalPages}
+          className={getNavButtonClasses(isLastPage)}
+          disabled={isLastPage}
+          aria-disabled={isLastPage}
           aria-label="Next page"
         >
           {nextIcon}
@@ -97,9 +110,9 @@ const EventsPagination = (props: EventsPaginationProps) => {
         <button
           type="button"
           onClick={onLast}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-black/20 text-black/70 transition hover:border-black/40 hover:text-black dark:border-white/20 dark:text-white/70 dark:hover:border-white/40 dark:hover:text-white"
-          disabled={currentPage === totalPages}
-          aria-disabled={currentPage === totalPages}
+          className={getNavButtonClasses(isLastPage)}
+          disabled={isLastPage}
+          aria-disabled={isLastPage}
           aria-label="Last page"
         >
           {lastIcon}

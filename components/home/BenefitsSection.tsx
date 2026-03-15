@@ -1,5 +1,5 @@
 // Components
-import { Heading, Text, Card } from "@/components/global";
+import { Heading, Text, Card, Kicker } from "@/components/global";
 
 const BenefitsSection = () => {
   const benefits = [
@@ -20,9 +20,7 @@ const BenefitsSection = () => {
       <Card className="p-6 lg:p-8" hover={false} size="md" variant="soft">
         <div className="space-y-4">
           <div className="space-y-2">
-            <Text className="text-xs uppercase tracking-[0.3em] text-black/70 dark:text-white/70">
-              Why join
-            </Text>
+            <Kicker>Why join</Kicker>
             <Heading className="text-4xl title" size="h3">
               More than just a meetup.
             </Heading>

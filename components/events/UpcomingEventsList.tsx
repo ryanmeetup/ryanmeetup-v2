@@ -1,7 +1,7 @@
 "use client";
 
 import { Transition } from "@headlessui/react";
-import { Heading, Text } from "@/components/global";
+import { Heading, Kicker } from "@/components/global";
 import { EventRow } from "@/components/events";
 import { formatEventCount, sortEventsByDate } from "@/utils/date";
 
@@ -67,9 +67,7 @@ const UpcomingEventsList = (props: UpcomingEventsListProps) => {
         </Heading>
         <div className="flex justify-center lg:justify-end">
           {headerMeta ?? (
-            <Text className="text-xs uppercase tracking-[0.3em] text-black/70 dark:text-white/70">
-              {formatEventCount(events.length)}
-            </Text>
+            <Kicker>{formatEventCount(events.length)}</Kicker>
           )}
         </div>
       </div>

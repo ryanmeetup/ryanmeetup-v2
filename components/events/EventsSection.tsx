@@ -1,7 +1,7 @@
 "use client";
 
 // Components
-import { Heading, Text } from "@/components/global";
+import { Heading, Kicker } from "@/components/global";
 import { Event, Chapters } from "@/components/events";
 import {
   Disclosure,
@@ -100,9 +100,7 @@ const EventsSection = (props: EventsSectionProps) => {
                     {title}
                   </Heading>
                   <div className="flex flex-wrap items-center justify-center gap-3 lg:justify-end">
-                    <Text className="text-xs uppercase tracking-[0.3em] text-black/70 dark:text-white/70">
-                      {eventCountLabel}
-                    </Text>
+                    <Kicker>{eventCountLabel}</Kicker>
                     {headerAction}
                   </div>
                 </div>
@@ -141,9 +139,7 @@ const EventsSection = (props: EventsSectionProps) => {
               {title}
             </Heading>
             <div className="flex flex-wrap items-center justify-center gap-3 lg:justify-end">
-              <Text className="text-xs uppercase tracking-[0.3em] text-black/70 dark:text-white/70">
-                {eventCountLabel}
-              </Text>
+              <Kicker>{eventCountLabel}</Kicker>
               {headerAction}
             </div>
           </div>

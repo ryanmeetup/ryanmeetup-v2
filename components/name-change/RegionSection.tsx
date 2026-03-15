@@ -1,5 +1,5 @@
 // Components
-import { Heading, Text } from "@/components/global";
+import { Heading, Kicker } from "@/components/global";
 import { RegionGrid } from "@/components/name-change/RegionGrid";
 
 // Types
@@ -22,9 +22,7 @@ const RegionSection = (props: RegionSectionProps) => {
         <Heading className="text-2xl title sm:text-3xl" size="h2">
           {title}
         </Heading>
-        <Text className="text-xs uppercase tracking-[0.2em] text-black/70 dark:text-white/70">
-          {subtitle}
-        </Text>
+        <Kicker className="tracking-[0.2em]">{subtitle}</Kicker>
       </div>
       <RegionGrid items={items} region={region} />
     </section>

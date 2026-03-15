@@ -21,3 +21,4 @@ export * from "./HeroCard";
 export * from "./Badge";
 export * from "./Card";
 export * from "./AnchorNav";
+export * from "./Kicker";

@@ -1,6 +1,6 @@
 "use client";
 
-import { EmptyState, Heading, Text } from "@/components/global";
+import { EmptyState, Heading, Kicker } from "@/components/global";
 
 type EventsEmptyTableProps = {
   title: string;
@@ -17,9 +17,7 @@ const EventsEmptyTable = (props: EventsEmptyTableProps) => {
         <Heading className="text-3xl title lg:text-4xl" size="h2">
           {title}
         </Heading>
-        <Text className="text-xs uppercase tracking-[0.3em] text-black/70 dark:text-white/70">
-          {countLabel}
-        </Text>
+        <Kicker>{countLabel}</Kicker>
       </div>
       <EmptyState message={message} />
     </div>

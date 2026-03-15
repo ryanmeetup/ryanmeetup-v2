@@ -1,6 +1,6 @@
 // Components
 import { Layout } from "@/components/navigation";
-import { Heading, Text, Pill, Card, Button } from "@/components/global";
+import { Heading, Text, Pill, Card, Button, Kicker } from "@/components/global";
 import QRCode from "react-qr-code";
 import NextLink from "next/link";
 import NextImage from "next/image";
@@ -66,9 +66,7 @@ const DonateOptionCard = (props: DonateOptionCardProps) => {
           {value}
         </Text>
       )}
-      <Text className="mt-1 text-xs uppercase tracking-[0.3em] text-black/70 dark:text-white/70">
-        {method}
-      </Text>
+      <Kicker className="mt-1">{method}</Kicker>
     </Card>
   );
 };

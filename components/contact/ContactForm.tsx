@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 
 // Components
-import { Input, Text, Textarea, Button } from "@/components/global";
+import { Input, Text, Textarea, Button, Kicker } from "@/components/global";
 import { BiMailSend as Send } from "react-icons/bi";
 import { Loader } from "@/components/contact";
 import toast, { Toaster } from "react-hot-toast";
@@ -46,11 +46,11 @@ const ContactForm = () => {
     }
 
     setTimeout(() => {
-      // const templateId = process.env.NEXT_PUBLIC_EMAIL_TEMPLATE_ID;
-      // const userId = process.env.NEXT_PUBLIC_EMAIL_USER_ID;
-      // const serviceId = process.env.NEXT_PUBLIC_EMAIL_SERVICE_ID;
+      const templateId = process.env.NEXT_PUBLIC_EMAIL_TEMPLATE_ID;
+      const userId = process.env.NEXT_PUBLIC_EMAIL_USER_ID;
+      const serviceId = process.env.NEXT_PUBLIC_EMAIL_SERVICE_ID;
 
-      // emailjs.send(serviceId as string, templateId as string, form, userId);
+      emailjs.send(serviceId as string, templateId as string, form, userId);
       completeSend();
     }, 1000);
   };
@@ -180,9 +180,7 @@ const ContactForm = () => {
         </div>
 
         <div className="col-span-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <Text className="text-xs uppercase tracking-[0.3em] text-black/70 dark:text-white/70">
-            All fields required
-          </Text>
+          <Kicker>All fields required</Kicker>
           <Button
             className="w-full sm:w-auto sm:min-w-[180px]"
             leftIcon={loading ? <Loader /> : <Send />}

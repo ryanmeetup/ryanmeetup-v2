@@ -1,5 +1,5 @@
 // Components
-import { Heading, Text, Card, Pill } from "@/components/global";
+import { Heading, Text, Card, Pill, Kicker } from "@/components/global";
 import NextLink from "next/link";
 import { getCountryFromLocation } from "@/utils/stats";
 
@@ -100,9 +100,7 @@ const Info = (props: InfoProps) => {
               >
                 {stat.value}
               </Heading>
-              <Text className="text-xs uppercase tracking-[0.3em] text-black/70 dark:text-white/70">
-                {stat.label}
-              </Text>
+              <Kicker>{stat.label}</Kicker>
             </Card>
           ))}
         </div>
