@@ -13,7 +13,11 @@ const FollowUs = () => {
 
   const renderIcon = (icon: React.ReactNode) => {
     if (!isValidElement(icon)) return null;
-    return cloneElement(icon, { className: iconStyle });
+    const element = icon as React.ReactElement<{ className?: string }>;
+    const mergedClassName = element.props.className
+      ? `${element.props.className} ${iconStyle}`
+      : iconStyle;
+    return cloneElement(element, { className: mergedClassName });
   };
 
   return (
