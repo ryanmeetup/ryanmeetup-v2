@@ -2,6 +2,7 @@ import { forwardRef } from "react";
 
 // Types
 import type { ChangeEvent } from "react";
+import { fieldControlBaseClasses, getFieldLabelClasses } from "./fieldStyles";
 
 type TextareaProps = {
   id: string;
@@ -28,17 +29,14 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
 
     return (
       <div className="flex flex-col gap-2">
-        <label
-          className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.2em] text-black/70 dark:text-white/70 sm:tracking-[0.3em]"
-          htmlFor={name}
-        >
+        <label className={getFieldLabelClasses()} htmlFor={id}>
           <span>{label}</span>
           {required && <span className="shrink-0 text-red-500">*</span>}
         </label>
         <textarea
-          className="w-full rounded-lg border border-black/20 bg-white px-4 py-2.5 text-sm text-black shadow-sm transition placeholder:text-black/70 focus:border-black/40 focus:outline-none focus:ring-2 focus:ring-black/20 dark:border-white/20 dark:bg-white/10 dark:text-white dark:placeholder:text-white/70 dark:focus:border-white/50 dark:focus:ring-white/20"
+          className={fieldControlBaseClasses}
           id={id}
-          name={id}
+          name={name}
           placeholder={placeholder}
           onChange={onChange}
           required={required}

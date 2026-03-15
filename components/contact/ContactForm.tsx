@@ -46,11 +46,11 @@ const ContactForm = () => {
     }
 
     setTimeout(() => {
-      const templateId = process.env.NEXT_PUBLIC_EMAIL_TEMPLATE_ID;
-      const userId = process.env.NEXT_PUBLIC_EMAIL_USER_ID;
-      const serviceId = process.env.NEXT_PUBLIC_EMAIL_SERVICE_ID;
+      // const templateId = process.env.NEXT_PUBLIC_EMAIL_TEMPLATE_ID;
+      // const userId = process.env.NEXT_PUBLIC_EMAIL_USER_ID;
+      // const serviceId = process.env.NEXT_PUBLIC_EMAIL_SERVICE_ID;
 
-      emailjs.send(serviceId as string, templateId as string, form, userId);
+      // emailjs.send(serviceId as string, templateId as string, form, userId);
       completeSend();
     }, 1000);
   };
@@ -75,20 +75,22 @@ const ContactForm = () => {
   }, []);
 
   const sendSuccessAlert = () =>
-    toast((t) => (
+    toast.custom((t) => (
       <div
         className={`${
           t.visible ? "animate-enter" : "animate-leave"
-        } max-w-md w-full rounded-2xl bg-white/95 text-black shadow-lg pointer-events-auto grid grid-cols-12 p-4 dark:bg-black/80 dark:text-white`}
+        } pointer-events-auto w-full max-w-md`}
       >
-        <div className="col-span-1 flex items-center justify-center">
-          <Check className="h-7 w-7 fill-emerald-500 shrink-0" />
-        </div>
-        <div className="col-span-10 pl-4 pr-6">
-          <h1 className="text-lg font-cooper">Email sent!</h1>
-          <Text className="text-sm text-black/70 dark:text-white/70">
-            Expect an email back from Ryan soon!
-          </Text>
+        <div className="grid grid-cols-12 gap-4 rounded-2xl border border-black/10 bg-white/85 p-4 text-black shadow-[0_20px_50px_-30px_rgba(0,0,0,0.7)] backdrop-blur dark:border-white/15 dark:bg-white/10 dark:text-white">
+          <div className="col-span-1 flex items-center justify-center">
+            <Check className="h-6 w-6 shrink-0 fill-emerald-500" />
+          </div>
+          <div className="col-span-11">
+            <h1 className="text-lg font-cooper">Email sent!</h1>
+            <Text className="text-sm text-black/70 dark:text-white/70">
+              Expect an email back from Ryan soon!
+            </Text>
+          </div>
         </div>
       </div>
     ));
