@@ -41,6 +41,10 @@ const EventTag = (props: EventTagProps) => {
         return "border-blue-500";
       case "Ryans Own Manhattan":
         return "#1d1b7a";
+      case "St. Ryan's Day III":
+        return "border-[#011024]";
+      case "Ryan Baseball Classic":
+        return "border-green-500";
       default:
         return "border-gray-700 secondary";
     }

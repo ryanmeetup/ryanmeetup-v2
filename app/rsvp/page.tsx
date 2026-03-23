@@ -14,7 +14,7 @@ import { splitEventsByTime } from "@/utils/date";
 
 export const metadata = buildPageMetadata({
   title: "Ryan Meetup - RSVP",
-  description: "Ryan Meetup is coming to Philadelphia! RSVP to St. Ryan's Day III today.",
+  description: "Ryan Meetup is coming to Minneapolis! RSVP to the Ryan Baseball Classic today.",
   canonical: "https://ryanmeetup.com/rsvp",
   image: {
     url: "https://ryanmeetup.com/logos/stryan3.PNG",
@@ -26,6 +26,7 @@ export const metadata = buildPageMetadata({
     "ryan meetup tickets",
     "ryan meetup event registration",
     "ryan meetup signup",
+    "ryan baseball classic",
   ],
 });
 
@@ -37,12 +38,12 @@ const RSVPPage = async () => {
   return (
     <Layout>
       <Blurb
-        fullHeadline="Join us in Philadelphia!"
-        smallHeadline="Join us in Philadelphia!"
+        fullHeadline="Join us in Minneapolis!"
+        smallHeadline="Join us in Minneapolis!"
         tag="RSVP"
       >
         <Text className="secondary text-lg mb-6 xl:mx-32">
-          We&apos;re taking this year&apos;s St. Ryan&apos;s Day celebration to Philadelphia! See you there, Ryan.
+          See you at this year&apos;s Ryan Baseball Classic, Ryan. In partnership with the Minnesota Twins.
         </Text>
       </Blurb>
 
