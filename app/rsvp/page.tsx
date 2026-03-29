@@ -17,9 +17,9 @@ export const metadata = buildPageMetadata({
   description: "Ryan Meetup is coming to Minneapolis! RSVP to the Ryan Baseball Classic today.",
   canonical: "https://ryanmeetup.com/rsvp",
   image: {
-    url: "https://ryanmeetup.com/logos/stryan3.PNG",
-    width: 5761,
-    height: 3240,
+    url: "https://ryanmeetup.com/logos/2026RyanBaseballClassic.jpg",
+    width: 1147,
+    height: 655,
   },
   keywords: [
     "ryan meetup rsvp",
