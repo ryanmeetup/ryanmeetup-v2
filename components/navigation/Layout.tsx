@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 // Components
 import { Banner, Header, NewFooter } from "@/components/navigation";
 import { FloatingCta } from "@/components/global";
-import { PiBaseball as Baseball } from "react-icons/pi";
+import { IoBaseball as Baseball } from "react-icons/io5";
 import { useTheme } from "next-themes";
 import { layoutPaddingX } from "@/lib/constants";
 
@@ -45,11 +45,11 @@ const Layout = (props: LayoutProps) => {
         id="rsvp"
         href="/rsvp"
         label="RSVP"
-        sublabel="To the Ryan Baseball Classic"
-        secondarySublabel="7/25/26 &nbsp;•&nbsp; Minneapolis"
+        sublabel="Ryan Baseball Classic"
+        secondarySublabel="7/25/26 &nbsp;•&nbsp; Minneapolis, MN"
         ariaLabel="RSVP to upcoming events"
         hiddenRoutes={["/rsvp", "/awards", "/name-change"]}
-        icon={<Baseball className="fill-[#d31145] w-4 h-4 lg:w-8 lg:h-8" />}
+        icon={<Baseball className="fill-[#d31145] w-8 h-8" />}
       />
 
       <NewFooter />
