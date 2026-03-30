@@ -30,7 +30,7 @@ const Layout = (props: LayoutProps) => {
 
   return (
     <main>
-      {<Banner />}
+      <Banner />
       <Header />
       <section
         className={`${className} 
@@ -41,7 +41,7 @@ const Layout = (props: LayoutProps) => {
         {children}
       </section>
 
-      {<FloatingCta
+      <FloatingCta
         id="rsvp"
         href="/rsvp"
         label="RSVP"
@@ -50,7 +50,7 @@ const Layout = (props: LayoutProps) => {
         ariaLabel="RSVP to upcoming events"
         hiddenRoutes={["/rsvp", "/awards", "/name-change"]}
         icon={<Clover className="fill-[#ad8f4f] w-4 h-4 lg:w-8 lg:h-8" />}
-      />}
+      />
 
       <NewFooter />
     </main>
