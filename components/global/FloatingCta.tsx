@@ -74,25 +74,25 @@ const FloatingCta = (props: FloatingCtaProps) => {
           <div className="relative">
             <div className="absolute -inset-2 rounded-3xl bg-[radial-gradient(circle_at_top,_rgba(0,0,0,0.2),_transparent_60%)] opacity-0 blur-xl transition-opacity duration-300 group-hover:opacity-100 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.25),_transparent_60%)]" />
             <div className="absolute -inset-1 rounded-3xl bg-[conic-gradient(from_180deg,_rgba(0,0,0,0.35),_rgba(0,0,0,0.05),_rgba(0,0,0,0.35))] opacity-40 blur-md dark:bg-[conic-gradient(from_180deg,_rgba(255,255,255,0.35),_rgba(255,255,255,0.05),_rgba(255,255,255,0.35))]" />
-            <div className="relative inline-flex items-center gap-2 rounded-2xl border border-[#ad8f4f] bg-[#073326] px-2 py-1.5 text-white shadow-[0_12px_30px_-25px_rgba(0,0,0,0.65)] transition group-hover:-translate-y-1 hover:-translate-y-1 hover:border-[#c8a45a] sm:gap-4 sm:px-5 sm:py-4 sm:shadow-[0_25px_60px_-35px_rgba(0,0,0,0.65)]">
+            <div className="relative inline-flex items-center gap-2 rounded-2xl border border-[#d31145] bg-[#0f2741] px-2 py-1.5 text-white shadow-[0_12px_30px_-25px_rgba(0,0,0,0.65)] transition group-hover:-translate-y-1 hover:-translate-y-1 hover:border-[#d31145] sm:gap-4 sm:px-5 sm:py-4 sm:shadow-[0_25px_60px_-35px_rgba(0,0,0,0.65)]">
               {icon && (
-                <div className="flex h-6 w-6 items-center justify-center rounded-2xl bg-[#002414] text-[#ad8f4f] shadow-md sm:h-11 sm:w-11">
+                <div className="flex h-6 w-6 items-center justify-center rounded-2xl bg-[#0f2741] text-[#d31145] shadow-md sm:h-11 sm:w-11">
                   {icon}
                 </div>
               )}
               <div>
-                <Heading className="text-lg text-[#f4e7c1] sm:text-2xl" size="h4">
+                <Heading className="text-lg text-[#edf3f0] sm:text-2xl" size="h4">
                   {label}
                 </Heading>
                 {(sublabel || secondarySublabel) && (
                   <div className="space-y-0.5">
                     {sublabel && (
-                      <Text className="text-xs md:text-sm uppercase text-white dark:text-[#ad8f4f]/90">
+                      <Text className="text-xs md:text-sm uppercase text-white dark:text-[#d31145]/90">
                         {sublabel}
                       </Text>
                     )}
                     {secondarySublabel && (
-                      <Text className="text-xs md:text-sm uppercase text-white dark:text-[#ad8f4f]/90">
+                      <Text className="text-xs md:text-sm uppercase text-white dark:text-[#d31145]/90">
                         {secondarySublabel}
                       </Text>
                     )}
@@ -113,7 +113,7 @@ const FloatingCta = (props: FloatingCtaProps) => {
               // Ignore storage access errors.
             }
           }}
-          className="absolute -top-1.5 -right-1.5 flex h-7 w-7 items-center justify-center rounded-full border border-[#ad8f4f] bg-[#073326] text-[10px] font-semibold text-[#f4e7c1] shadow-md transition group-hover:-translate-y-1 hover:-translate-y-0.5 hover:border-[#c8a45a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f4e7c1]/70 sm:-top-2 sm:-right-2 sm:h-8 sm:w-8 sm:text-xs"
+          className="absolute -top-1.5 -right-1.5 flex h-7 w-7 items-center justify-center rounded-full border border-[#d31145] bg-[#0f2741] text-[10px] font-semibold text-[#edf3f0] shadow-md transition group-hover:-translate-y-1 hover:-translate-y-0.5 hover:border-[#d31145] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d31145]/70 sm:-top-2 sm:-right-2 sm:h-8 sm:w-8 sm:text-xs"
           aria-label="Dismiss"
         >
           ×

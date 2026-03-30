@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 // Components
 import { Banner, Header, NewFooter } from "@/components/navigation";
 import { FloatingCta } from "@/components/global";
-import { PiCloverFill as Clover } from "react-icons/pi";
+import { PiBaseball as Baseball } from "react-icons/pi";
 import { useTheme } from "next-themes";
 import { layoutPaddingX } from "@/lib/constants";
 
@@ -49,7 +49,7 @@ const Layout = (props: LayoutProps) => {
         secondarySublabel="7/25/26 &nbsp;•&nbsp; Minneapolis"
         ariaLabel="RSVP to upcoming events"
         hiddenRoutes={["/rsvp", "/awards", "/name-change"]}
-        icon={<Clover className="fill-[#ad8f4f] w-4 h-4 lg:w-8 lg:h-8" />}
+        icon={<Baseball className="fill-[#d31145] w-4 h-4 lg:w-8 lg:h-8" />}
       />
 
       <NewFooter />
