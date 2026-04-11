@@ -64,12 +64,16 @@ const ChapterPage = async ({
   const content = fixture?.chapter ?? (await fetchSingleChapter(params.slug));
   const events = fixture?.events ?? (await fetchEvents());
 
-  // @ts-ignore
-  const leaders = content?.chapterLeads;
-  const city = content?.city;
-  const instagram = content?.instagram;
-  const avatar = content?.avatar;
-  const isActive = content?.active;
+  
+
+  const {
+    chapterLeads: leaders,
+    city,
+    instagram,
+    avatar, 
+    active: isActive,
+    whatsAppLink,
+  } = content || {};
 
   const iconStyle = "mr-2 fill-black h-4 w-4 shrink-0 dark:fill-white";
 
@@ -100,6 +104,7 @@ const ChapterPage = async ({
                 avatar={avatar as ContentfulImage}
                 city={city as string}
                 isActive={isActive as boolean}
+                whatsApp={whatsAppLink as string}
               />
             </div>
           </div>

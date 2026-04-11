@@ -67,8 +67,8 @@ const ChaptersPage = async ({
 
   const upcomingEvents = new Set(
     chapterEvents
-      .map((event) => event.city?.split(",")[0].trim())
-      .filter(Boolean),
+      .flatMap((event) => event.chapter ?? [])
+      .filter((chapterName) => chapterName && chapterName !== "Main"),
   );
 
   const structuredData = {

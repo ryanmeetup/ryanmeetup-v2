@@ -4,6 +4,7 @@ import NextLink from "next/link";
 import NextImage from "next/image";
 import { FaInstagram as Instagram } from "react-icons/fa";
 import { FaEnvelope as Email } from "react-icons/fa6";
+import { IoLogoWhatsapp as WhatsApp } from "react-icons/io";
 
 // Types
 import type { ContentfulImage } from "@/lib/types";
@@ -17,10 +18,11 @@ type ChapterInfoProps = {
   avatar: ContentfulImage;
   city: string;
   isActive?: boolean;
+  whatsApp?: string;
 };
 
 const ChapterInfo = (props: ChapterInfoProps) => {
-  const { leaders, instagram, avatar, city, isActive } = props;
+  const { leaders, instagram, avatar, city, isActive, whatsApp } = props;
 
   return (
     <Card variant="soft" size="lg" className="relative overflow-hidden">
@@ -92,6 +94,30 @@ const ChapterInfo = (props: ChapterInfoProps) => {
             </NextLink>
           </div>
         </div>
+
+        {whatsApp && (
+          <div className="grid grid-cols-7 gap-3 flex items-center">
+            <div className="col-span-3">
+              <Text className="text-sm font-semibold uppercase tracking-[0.3em] text-black/70 dark:text-white/70">
+                WhatsApp
+              </Text>
+            </div>
+
+            <div className="col-span-4">
+              <NextLink
+                href={whatsApp}
+                target="_blank"
+                rel="noreferrer"
+                className="relative inline-flex w-full items-center justify-start gap-2 overflow-hidden rounded-lg bg-transparent p-2 text-xs font-semibold uppercase tracking-[0.2em] text-black transition hover:text-black/70 dark:text-white dark:hover:text-white/70 hover:underline"
+              >
+                <span className="text-base">
+                  <WhatsApp className="h-4 w-4" />
+                </span>
+                <span className="truncate">Join Group</span>
+              </NextLink>
+            </div>
+          </div>
+        )}
 
         <div className="rounded-2xl border border-black/10 bg-white/90 p-4 text-center shadow-sm dark:border-white/10 dark:bg-white/5">
           <Heading className="text-lg title" size="h4">
