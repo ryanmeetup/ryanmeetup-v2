@@ -174,7 +174,11 @@ type RyanChapter = {
 type Sponsor = {
   name: string;
   href: string;
-  eventsSponsored: number;
+  active?: boolean;
+  partnershipType?:
+    | "Recurring Sponsor"
+    | "Featured Brand Partner"
+    | "Community Supporter";
   darkModeImage: ContentfulImage;
   lightModeImage: ContentfulImage;
 };

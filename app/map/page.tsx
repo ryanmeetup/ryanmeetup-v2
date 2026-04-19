@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 // Components
 import { Layout } from "@/components/navigation";
 import { Mapbox, Info } from "@/components/map";
@@ -74,15 +76,17 @@ const MapPage = async ({ searchParams }: MapPageProps) => {
 
   return (
     <Layout fullscreen>
-      <Mapbox
-        locations={locations as unknown as Location[]}
-        showLegend={showLegend}
-        initialShowMeetups={showMeetups}
-        initialShowRyans={showRyans}
-        initialShowNamedBusinesses={showNamedBusinesses}
-        initialShowOwnedBusinesses={showOwnedBusinesses}
-        initialShowChapters={showChapters}
-      />
+      <Suspense fallback={null}>
+        <Mapbox
+          locations={locations as unknown as Location[]}
+          showLegend={showLegend}
+          initialShowMeetups={showMeetups}
+          initialShowRyans={showRyans}
+          initialShowNamedBusinesses={showNamedBusinesses}
+          initialShowOwnedBusinesses={showOwnedBusinesses}
+          initialShowChapters={showChapters}
+        />
+      </Suspense>
       <Info locations={locations as unknown as Location[]} />
     </Layout>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 
 // Components
 import { Input, Text, Textarea, Button, Kicker } from "@/components/global";
@@ -17,15 +18,35 @@ import { useForm } from "react-hook-form";
 import { validateEmail } from "@/utils/validate";
 import emailjs from "@emailjs/browser";
 
-const ContactForm = () => {
+type ContactFormProps = {
+  initialSubject?: string;
+  initialMessage?: string;
+};
+
+const ContactForm = (props: ContactFormProps) => {
+  const { initialSubject = "", initialMessage = "" } = props;
+  const searchParams = useSearchParams();
+  const searchSubject = searchParams.get("subject") ?? initialSubject;
+  const searchMessage = searchParams.get("message") ?? initialMessage;
+  const defaultValues: ContactFormFields = {
+    firstName: "",
+    lastName: "",
+    email: "",
+    subject: searchSubject,
+    message: searchMessage,
+  };
+
   const {
     register,
     handleSubmit,
     reset,
+    getValues,
     formState: { errors },
     setError,
     clearErrors,
-  } = useForm();
+  } = useForm<ContactFormFields>({
+    defaultValues,
+  });
 
   const [loading, setLoading] = useState<boolean>(false);
   const isTestMode = process.env.NEXT_PUBLIC_E2E_TESTS === "true";
@@ -36,7 +57,7 @@ const ContactForm = () => {
     const completeSend = () => {
       sendSuccessAlert();
       setLoading(false);
-      reset();
+      reset(defaultValues);
       toggleErrorFlags();
     };
 
@@ -63,16 +84,38 @@ const ContactForm = () => {
   };
 
   const toggleErrorFlags = () => {
-    setError("firstName", { message: "Error: must provide a first name" });
-    setError("lastName", { message: "Error: must provide a last name" });
-    setError("subject", { message: "Error: must provide a subject" });
-    setError("message", { message: "Error: must provide a message" });
+    const values = getValues();
+
+    if (values.firstName === "") {
+      setError("firstName", { message: "Error: must provide a first name" });
+    } else {
+      clearErrors("firstName");
+    }
+
+    if (values.lastName === "") {
+      setError("lastName", { message: "Error: must provide a last name" });
+    } else {
+      clearErrors("lastName");
+    }
+
+    if (values.subject === "") {
+      setError("subject", { message: "Error: must provide a subject" });
+    } else {
+      clearErrors("subject");
+    }
+
+    if (values.message === "") {
+      setError("message", { message: "Error: must provide a message" });
+    } else {
+      clearErrors("message");
+    }
   };
 
   useEffect(() => {
+    reset(defaultValues);
     toggleErrorFlags();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [searchSubject, searchMessage, reset]);
 
   const sendSuccessAlert = () =>
     toast.custom((t) => (

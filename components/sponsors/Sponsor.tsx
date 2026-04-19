@@ -16,28 +16,32 @@ type SponsorProps = {
   sponsor: Sponsor;
   className?: string;
   imageWrapperClassName?: string;
+  size?: "default" | "featured" | "compact";
 };
 
 const Sponsor = (props: SponsorProps) => {
   const { name, darkModeImage, lightModeImage, href } = props.sponsor;
-  const { className, imageWrapperClassName } = props;
+  const { className, imageWrapperClassName, size = "default" } = props;
 
   const { resolvedTheme } = useTheme();
   const isLight = (resolvedTheme ?? "dark") === "light";
-  
+
   return (
-    <NextLink
-      href={href}
-      className={`group flex w-full ${className}`}
-    >
+    <NextLink href={href} className={`group flex w-full ${className}`}>
       <Card
         variant="soft"
-        size="md"
+        size={size === "default" ? "md" : "sm"}
         hover
         className="w-full text-center"
       >
         <div
-          className={`relative mx-auto h-48 w-full max-w-[660px] sm:h-[216px] ${imageWrapperClassName ?? ""}`}
+          className={`relative mx-auto w-full max-w-[660px] ${
+            size === "default"
+              ? "h-48 sm:h-[216px]"
+              : size === "featured"
+                ? "h-32 sm:h-36"
+                : "h-24 sm:h-28"
+          } ${imageWrapperClassName ?? ""}`}
         >
           <NextImage
             src={

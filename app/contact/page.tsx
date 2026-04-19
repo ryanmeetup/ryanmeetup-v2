@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 // Components
 import { Layout } from "@/components/navigation";
 import { Text, Divider, Pill, Heading, Card } from "@/components/global";
@@ -5,6 +7,13 @@ import { ContactForm, FollowUs } from "@/components/contact";
 
 // Types
 import { buildPageMetadata } from "@/utils/metadata";
+
+type ContactPageProps = {
+  searchParams?: {
+    subject?: string;
+    message?: string;
+  };
+};
 
 export const metadata = buildPageMetadata({
   title: "Ryan Meetup - Contact Us",
@@ -29,7 +38,12 @@ export const metadata = buildPageMetadata({
   ],
 });
 
-const ContactPage = async () => {
+const ContactPage = async ({ searchParams }: ContactPageProps) => {
+  const initialSubject =
+    typeof searchParams?.subject === "string" ? searchParams.subject : "";
+  const initialMessage =
+    typeof searchParams?.message === "string" ? searchParams.message : "";
+
   return (
     <Layout className="space-y-12">
       <section className="relative overflow-hidden rounded-3xl border border-black/10 bg-white/80 p-6 shadow-[0_35px_70px_-50px_rgba(0,0,0,0.6)] dark:border-white/10 dark:bg-white/5 lg:p-10">
@@ -60,7 +74,12 @@ const ContactPage = async () => {
               We read every note, even if a Ryan takes a moment to reply.
             </Text>
             <div className="mt-6">
-              <ContactForm />
+              <Suspense fallback={null}>
+                <ContactForm
+                  initialSubject={initialSubject}
+                  initialMessage={initialMessage}
+                />
+              </Suspense>
             </div>
           </Card>
         </div>

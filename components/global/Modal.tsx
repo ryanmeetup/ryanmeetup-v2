@@ -1,3 +1,5 @@
+"use client";
+
 // Components
 import { Dialog, DialogPanel, DialogTitle } from "@headlessui/react";
 import { MdClose as Close } from "react-icons/md";

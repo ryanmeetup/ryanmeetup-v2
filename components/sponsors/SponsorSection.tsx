@@ -1,49 +1,70 @@
 // Components
 import { Sponsor } from "@/components/sponsors";
-import { Heading, Text, Kicker } from "@/components/global";
+import { EmptyState, Heading, Text, Kicker } from "@/components/global";
 
 // Types
 import type { Sponsor as SponsorType } from "@/lib/types";
 
 type SponsorSectionProps = {
+  id: string;
+  title: string;
+  description: string;
   sponsors: SponsorType[];
-  tier: string;
+  kicker?: string;
+  emptyMessage?: string;
+  sponsorSize?: "default" | "featured" | "compact";
 };
 
 const SponsorSection = (props: SponsorSectionProps) => {
-  const { sponsors, tier } = props;
-
-  const sorted = [...sponsors].sort(
-    (a, b) => b.eventsSponsored - a.eventsSponsored,
-  );
+  const {
+    sponsors,
+    id,
+    title,
+    description,
+    kicker,
+    emptyMessage,
+    sponsorSize = "default",
+  } = props;
+  const sorted = [...sponsors].sort((a, b) => a.name.localeCompare(b.name));
 
   return (
-    <section className="space-y-6" id={tier.toLowerCase()}>
+    <section className="space-y-6" id={id}>
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <Heading className="text-3xl title sm:text-4xl lg:text-5xl" size="h2">
-          {tier} Sponsors
+          {title}
         </Heading>
-        <Kicker>{sorted.length} partners</Kicker>
+        <Kicker>{kicker ?? `${sorted.length} partners`}</Kicker>
       </div>
 
       <Text className="text-base text-black/70 dark:text-white/70">
-        {tier === "Founding" &&
-          "Founding sponsors have gone above and beyond to support the Ryan Meetup with essential resources, funding, and visibility."}
-        {tier === "Core" &&
-          "Core sponsors show consistent support across multiple Ryan Meetups, helping us keep the momentum growing."}
-        {tier === "Contributing" &&
-          "Contributing sponsors help individual Ryan Meetups come to life with timely support and resources."}
+        {description}
       </Text>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {sorted.map((sponsor) => (
-          <Sponsor
-            key={sponsor.name as string}
-            sponsor={sponsor as SponsorType}
-            className="w-full"
-          />
-        ))}
-      </div>
+      {sorted.length > 0 ? (
+        <div
+          className={`grid gap-4 ${
+            sponsorSize === "default"
+              ? "sm:grid-cols-2 xl:grid-cols-3"
+              : sponsorSize === "featured"
+                ? "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                : "grid-cols-2 md:grid-cols-3 xl:grid-cols-5"
+          }`}
+        >
+          {sorted.map((sponsor) => (
+            <Sponsor
+              key={sponsor.name as string}
+              sponsor={sponsor as SponsorType}
+              className="w-full"
+              size={sponsorSize}
+            />
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          message={emptyMessage ?? "Nothing to show here yet."}
+          className="text-left"
+        />
+      )}
     </section>
   );
 };

@@ -4,35 +4,45 @@ import {
   FaBullhorn as Megaphone,
   FaHandshake as Handshake,
   FaChartLine as Growth,
-  FaUsers as Community,
-  FaMicrophoneAlt as Mic,
+  FaInstagram as Instagram,
   FaMapMarkedAlt as Footprint,
+  FaMicrophoneAlt as Mic,
+  FaTshirt as Merch,
+  FaVideo as Video,
 } from "react-icons/fa";
 
 const partnershipPerks = [
   {
     icon: <Megaphone className="h-4 w-4" />,
-    text: "Brand visibility at unforgettable events.",
+    text: "Logo placement across Ryan Meetup web properties for consistent public-facing visibility.",
+  },
+  {
+    icon: <Merch className="h-4 w-4" />,
+    text: "On-site signage, branded materials, and merch opportunities to put your brand in front of event attendees.",
   },
   {
     icon: <Footprint className="h-4 w-4" />,
-    text: "Local activations that connect with Ryans.",
+    text: "City and chapter-specific sponsorship that help build local brand awareness for your business.",
   },
   {
-    icon: <Community className="h-4 w-4" />,
-    text: "Community goodwill with a viral movement.",
+    icon: <Instagram className="h-4 w-4" />,
+    text: "Visibility across our Instagram audience of 105k+ followers and 3M+ monthly views.",
   },
   {
-    icon: <Handshake className="h-4 w-4" />,
-    text: "Partnered storytelling across press and social.",
-  },
-  {
-    icon: <Mic className="h-4 w-4" />,
-    text: "On-site shoutouts and event integrations.",
+    icon: <Video className="h-4 w-4" />,
+    text: "Mentions in recap videos and post-event storytelling that extend visibility beyond the event itself.",
   },
   {
     icon: <Growth className="h-4 w-4" />,
-    text: "Audience growth through regional momentum.",
+    text: "Ongoing partnerships that create more persistent brand visibility than a one-off event placement.",
+  },
+  {
+    icon: <Handshake className="h-4 w-4" />,
+    text: "Custom partnership ideas shaped around the right brand, event, or local activation.",
+  },
+  {
+    icon: <Mic className="h-4 w-4" />,
+    text: "Sponsor mentions and live event recognition when the format makes sense.",
   },
 ];
 
@@ -70,17 +80,17 @@ const PartnershipPerks = () => {
       <Card
         variant="soft"
         size="md"
-        className="mx-auto hidden w-full gap-4 text-left sm:grid sm:grid-cols-2 lg:grid-cols-3"
+        className="mx-auto hidden w-full gap-4 text-left sm:grid sm:grid-cols-2 xl:grid-cols-4"
       >
-        <div className="sm:col-span-3">
+        <div className="sm:col-span-2 xl:col-span-4">
           <Text className="text-xs font-semibold uppercase tracking-[0.3em] text-black/70 dark:text-white/70">
-            Partnership perks
+            Sponsor opportunities may include...
           </Text>
         </div>
         {partnershipPerks.map((item) => (
           <Card key={item.text} variant="solid" size="sm">
-            <div className="flex items-center gap-3">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-black/10 bg-black text-white dark:border-white/10 dark:bg-white dark:text-black">
+            <div className="flex items-start gap-3">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-black/10 bg-black text-white dark:border-white/10 dark:bg-white dark:text-black">
                 {item.icon}
               </span>
               <Text className="text-sm text-black/70 dark:text-white/70">
@@ -99,7 +109,7 @@ const PartnershipPerks = () => {
           fullWidth
           newTab={false}
         >
-          Partner with us
+          Talk sponsorship with us
         </Button.Link>
       </div>
     </>

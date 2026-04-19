@@ -7,6 +7,8 @@ import type { ReactNode } from "react";
 type BlurbProps = {
   fullHeadline: string;
   smallHeadline?: string;
+  fullHeadlineNode?: ReactNode;
+  smallHeadlineNode?: ReactNode;
   children: ReactNode;
   href?: string;
   icon?: ReactNode;
@@ -21,6 +23,8 @@ const Blurb = (props: BlurbProps) => {
   const {
     fullHeadline,
     smallHeadline = fullHeadline,
+    fullHeadlineNode,
+    smallHeadlineNode,
     children,
     href,
     icon,
@@ -40,13 +44,13 @@ const Blurb = (props: BlurbProps) => {
       )}
       <div className="hidden xl:block">
         <Heading className="mb-6 text-center text-7xl title" size="h1">
-          {fullHeadline}
+          {fullHeadlineNode ?? fullHeadline}
         </Heading>
       </div>
 
       <div className="block xl:hidden">
         <Heading className="mb-6 text-center text-5xl title" size="h1">
-          {smallHeadline}
+          {smallHeadlineNode ?? smallHeadline}
         </Heading>
       </div>
 
