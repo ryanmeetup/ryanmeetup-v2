@@ -58,6 +58,9 @@ Create a `.env.local` file with:
 - `NEXT_PUBLIC_EMAIL_SERVICE_ID`
 - `CONTENTFUL_SPACE_ID`
 - `CONTENTFUL_ACCESS_TOKEN`
+- `SHOPIFY_STORE_DOMAIN`
+- `SHOPIFY_STOREFRONT_ACCESS_TOKEN`
+- `SHOPIFY_STOREFRONT_API_VERSION` (optional, defaults to `2025-10`)
 - `NEXT_PUBLIC_E2E_TESTS` (optional, set to `true` for test mode)
 
 ## Useful Scripts

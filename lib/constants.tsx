@@ -129,7 +129,7 @@ export const routes = [
   {
     icon: <Shirt />,
     text: "Merch",
-    href: "https://ryanmeetup.etsy.com",
+    href: "/merch",
     description: "Official Ryan Meetup merch and essentials.",
   },
   {
