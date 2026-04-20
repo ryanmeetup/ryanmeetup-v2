@@ -18,13 +18,15 @@ import { getChapterSlugFixture } from "@/lib/test-fixtures/chapters";
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }> | { slug: string };
 }) {
+  const resolvedParams = await Promise.resolve(params);
   const fixture =
     process.env.E2E_TESTS === "true"
-      ? getChapterSlugFixture(params.slug)
+      ? getChapterSlugFixture(resolvedParams.slug)
       : null;
-  const content = fixture?.chapter ?? (await fetchSingleChapter(params.slug));
+  const content =
+    fixture?.chapter ?? (await fetchSingleChapter(resolvedParams.slug));
 
   if (content) {
     const { city, state } = content;
@@ -32,9 +34,9 @@ export async function generateMetadata({
     return buildPageMetadata({
       title: `Ryan Meetup - ${city} Chapter`,
       description: `Keep up to date with Ryan Meetups in ${city}, ${state}.`,
-      canonical: `https://ryanmeetup.com/chapters/${params.slug}`,
+      canonical: `https://ryanmeetup.com/chapters/${resolvedParams.slug}`,
       image: {
-        url: `https://ryanmeetup.com/chapters/${params.slug}.png`,
+        url: `https://ryanmeetup.com/chapters/${resolvedParams.slug}.png`,
         width: 3360,
         height: 1854,
       },
@@ -54,14 +56,17 @@ const ChapterPage = async ({
   params,
   searchParams,
 }: {
-  params: { slug: string };
-  searchParams?: { fixture?: string };
+  params: Promise<{ slug: string }> | { slug: string };
+  searchParams?: Promise<{ fixture?: string }> | { fixture?: string };
 }) => {
+  const resolvedParams = await Promise.resolve(params);
+  const resolvedSearchParams = await Promise.resolve(searchParams);
   const fixture =
     process.env.E2E_TESTS === "true"
-      ? getChapterSlugFixture(params.slug, searchParams?.fixture)
+      ? getChapterSlugFixture(resolvedParams.slug, resolvedSearchParams?.fixture)
       : null;
-  const content = fixture?.chapter ?? (await fetchSingleChapter(params.slug));
+  const content =
+    fixture?.chapter ?? (await fetchSingleChapter(resolvedParams.slug));
   const events = fixture?.events ?? (await fetchEvents());
 
   
@@ -85,7 +90,7 @@ const ChapterPage = async ({
     },
     {
       icon: <City className={iconStyle} />,
-      href: `/chapters/${params.slug}`,
+      href: `/chapters/${resolvedParams.slug}`,
       title: city as string,
     },
   ];
@@ -116,7 +121,7 @@ const ChapterPage = async ({
             <div className="space-y-4 mt-4">
               <EventsContainer
                 events={events as unknown as RyanEvent[]}
-                eventType={convertSlug(params.slug)}
+                eventType={convertSlug(resolvedParams.slug)}
                 showUpcomingSection
                 showSearch={false}
               />

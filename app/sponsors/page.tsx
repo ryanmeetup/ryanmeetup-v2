@@ -4,7 +4,6 @@ import { Blurb, Text, Divider } from "@/components/global";
 import {
   SponsorSection,
   PartnershipPerks,
-  SponsorshipInfo,
 } from "@/components/sponsors";
 
 // Types
@@ -80,7 +79,7 @@ const SponsorsPage = async () => {
             want to support the community on a recurring basis or help bring
             specific events to life.
           </Text>
-          <PartnershipPerks />
+          <PartnershipPerks detailsHref="/sponsors/partnerships" />
         </div>
       </Blurb>
 
@@ -120,8 +119,6 @@ const SponsorsPage = async () => {
       />
 
       <Divider margins="xl" />
-
-      <SponsorshipInfo />
     </Layout>
   );
 };

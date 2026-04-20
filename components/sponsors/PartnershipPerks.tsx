@@ -1,5 +1,6 @@
 import { Card, Text, Button } from "@/components/global";
 import { BiMailSend as Send } from "react-icons/bi";
+import { GoSponsorTiers as SponsorDetails } from "react-icons/go";
 import {
   FaBullhorn as Megaphone,
   FaHandshake as Handshake,
@@ -26,19 +27,11 @@ const partnershipPerks = [
   },
   {
     icon: <Instagram className="h-4 w-4" />,
-    text: "Visibility across our Instagram audience of 105k+ followers and 3M+ monthly views.",
+    text: "Visibility across Ryan Meetup social channels, including 105k+ Instagram followers and more than 3M monthly views across Instagram and TikTok.",
   },
   {
     icon: <Video className="h-4 w-4" />,
     text: "Mentions in recap videos and post-event storytelling that extend visibility beyond the event itself.",
-  },
-  {
-    icon: <Growth className="h-4 w-4" />,
-    text: "Ongoing partnerships that create more persistent brand visibility than a one-off event placement.",
-  },
-  {
-    icon: <Handshake className="h-4 w-4" />,
-    text: "Custom partnership ideas shaped around the right brand, event, or local activation.",
   },
   {
     icon: <Mic className="h-4 w-4" />,
@@ -46,7 +39,17 @@ const partnershipPerks = [
   },
 ];
 
-const PartnershipPerks = () => {
+type PartnershipPerksProps = {
+  detailsHref?: string;
+  showDetailsLink?: boolean;
+};
+
+const PartnershipPerks = (props: PartnershipPerksProps) => {
+  const {
+    detailsHref = "#sponsorship-info",
+    showDetailsLink = true,
+  } = props;
+
   return (
     <>
       <div className="sm:hidden">
@@ -80,9 +83,9 @@ const PartnershipPerks = () => {
       <Card
         variant="soft"
         size="md"
-        className="mx-auto hidden w-full gap-4 text-left sm:grid sm:grid-cols-2 xl:grid-cols-4"
+        className="mx-auto hidden w-full gap-4 text-left sm:grid sm:grid-cols-2 xl:grid-cols-3"
       >
-        <div className="sm:col-span-2 xl:col-span-4">
+        <div className="sm:col-span-2 xl:col-span-3">
           <Text className="text-xs font-semibold uppercase tracking-[0.3em] text-black/70 dark:text-white/70">
             Sponsor opportunities may include...
           </Text>
@@ -100,7 +103,19 @@ const PartnershipPerks = () => {
           </Card>
         ))}
       </Card>
-      <div className="flex justify-center">
+      <div className="flex flex-col justify-center gap-3 sm:flex-row">
+        {showDetailsLink && (
+          <Button.Link
+            href={detailsHref}
+            leftIcon={<SponsorDetails className="h-4 w-4" />}
+            variant="secondary"
+            size="md"
+            fullWidth
+            newTab={false}
+          >
+            View sponsorship details
+          </Button.Link>
+        )}
         <Button.Link
           href="/contact"
           leftIcon={<Send className="h-4 w-4" />}

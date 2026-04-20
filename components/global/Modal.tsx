@@ -14,6 +14,8 @@ type ModalProps = {
   title: string;
   closable: boolean;
   children: ReactNode;
+  hideActions?: boolean;
+  panelClassName?: string;
   cancelButtonText: string;
   continueButtonText: string;
   isContinueDisabled: boolean;
@@ -28,6 +30,8 @@ const Modal = (props: ModalProps) => {
     title,
     closable,
     children,
+    hideActions = false,
+    panelClassName,
     cancelButtonText,
     continueButtonText,
     isContinueDisabled,
@@ -40,7 +44,14 @@ const Modal = (props: ModalProps) => {
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
 
       <div className="fixed inset-0 flex items-center justify-center p-4 w-screen">
-        <DialogPanel className="mx-auto w-full max-w-lg rounded-2xl border border-black/10 bg-white/95 p-6 shadow-2xl dark:border-white/15 dark:bg-black/85">
+        <DialogPanel
+          className={[
+            "mx-auto w-full max-w-lg rounded-2xl border border-black/10 bg-white/95 p-6 shadow-2xl dark:border-white/15 dark:bg-black/85",
+            panelClassName ?? "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
           <div className="flex justify-between w-full mb-4 items-start gap-4">
             <DialogTitle className="text-xl font-cooper text-black md:text-2xl dark:text-white">
               {title}
@@ -59,19 +70,21 @@ const Modal = (props: ModalProps) => {
           <div>
             {children}
 
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <Button variant="secondary" fullWidth onClick={cancelAction}>
-                {cancelButtonText}
-              </Button>
-              <Button
-                variant="primary"
-                fullWidth
-                disabled={isContinueDisabled}
-                onClick={continueAction}
-              >
-                {continueButtonText}
-              </Button>
-            </div>
+            {!hideActions && (
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <Button variant="secondary" fullWidth onClick={cancelAction}>
+                  {cancelButtonText}
+                </Button>
+                <Button
+                  variant="primary"
+                  fullWidth
+                  disabled={isContinueDisabled}
+                  onClick={continueAction}
+                >
+                  {continueButtonText}
+                </Button>
+              </div>
+            )}
           </div>
         </DialogPanel>
       </div>
