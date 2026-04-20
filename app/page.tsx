@@ -184,9 +184,7 @@ const HomePage = async () => {
             View all sponsors
           </Button.Link>
           <Button.Link 
-            href={`/contact?subject=${encodeURIComponent("Sponsorship Inquiry")}&message=${encodeURIComponent(
-              "Hi Ryan Meetup,\n\nI'm interested in learning more about becoming a sponsor. I'd love to hear more about recurring sponsorships, event sponsorships, and what partnership opportunities could look like for our brand.\n",
-            )}`}
+            href="/sponsors/partnerships"
             variant="primary" 
             size="sm" 
             className="w-full"
