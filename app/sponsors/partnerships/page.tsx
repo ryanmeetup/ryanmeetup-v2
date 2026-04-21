@@ -187,50 +187,38 @@ const SponsorPartnershipsPage = () => {
       <div className="flex flex-wrap gap-y-8">
         <div className="w-full xl:w-5/12 xl:pr-6">
           <div className="space-y-4 xl:sticky xl:top-28">
-            <Breadcrumbs
-              crumbs={[
-                {
-                  icon: <SponsorsIcon className="mr-2 h-4 w-4" />,
-                  href: "/sponsors",
-                  title: "Sponsors",
-                },
-                {
-                  icon: <Details className="mr-2 h-4 w-4" />,
-                  href: "/sponsors/partnerships",
-                  title: "Sponsorship Details",
-                },
-              ]}
-            />
             <Card variant="soft" size="lg" className="space-y-5">
               <div className="space-y-3">
-                <Badge variant="secondary">Packages</Badge>
+                {/* <Badge variant="secondary">Packages</Badge> */}
                 <Heading className="text-3xl title sm:text-4xl" size="h2">
                   Sponsorship Options
                 </Heading>
               </div>
 
-              <div className="space-y-4">
-                {partnershipFormats.map((item) => (
-                  <Card key={item.title} variant="solid" size="md" className="space-y-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-black/10 bg-black text-white dark:border-white/10 dark:bg-white dark:text-black">
-                          {item.icon}
-                        </span>
-                        <div className="space-y-1">
-                          <Heading className="text-2xl title" size="h3">
-                            {item.title}
-                          </Heading>
-                        </div>
-                      </div>
+              <div className="rounded-3xl border border-black/10 bg-black/5 dark:border-white/10 dark:bg-white/[0.03]">
+                {partnershipFormats.map((item, index) => (
+                  <div
+                    key={item.title}
+                    className={`space-y-3 px-5 py-4 ${
+                      index < partnershipFormats.length - 1
+                        ? "border-b border-black/10 dark:border-white/10"
+                        : ""
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-black/10 bg-black text-white dark:border-white/10 dark:bg-white dark:text-black">
+                        {item.icon}
+                      </span>
+                      <Heading className="text-2xl title" size="h3">
+                        {item.title}
+                      </Heading>
                     </div>
+
                     <Text className="text-sm text-black/70 dark:text-white/70">
                       {item.body}
                     </Text>
-                    <div className="space-y-3 border-black/10 dark:border-white/10">
-                      {/* <Text className="text-xs leading-6 text-black/55 dark:text-white/55">
-                        {item.note}
-                      </Text> */}
+
+                    <div className="space-y-2 border-black/10 dark:border-white/10">
                       <span className="inline-flex w-fit items-center gap-2 rounded-full border border-black/15 bg-black/10 px-3 py-1.5 shadow-sm dark:border-white/15 dark:bg-white/10">
                         <span className="hidden text-[10px] font-semibold uppercase tracking-[0.2em] text-black/70 dark:text-white/70 sm:inline">
                           {item.priceLabel}
@@ -240,46 +228,65 @@ const SponsorPartnershipsPage = () => {
                         </span>
                       </span>
                     </div>
-                  </Card>
+                  </div>
                 ))}
               </div>
-            </Card>
 
-            <Card variant="soft" size="lg" className="space-y-4">
-              <Badge variant="secondary">Contact</Badge>
-              <Heading className="text-2xl title" size="h3">
-                Ready to talk sponsorship?
-              </Heading>
-              <Text className="text-sm text-black/70 dark:text-white/70">
-                If your team wants to talk through a recurring sponsorship or an
-                event sponsorship, send us a note and we can start there.
-              </Text>
-              <div className="flex flex-col gap-3">
-                <Button.Link
-                  href="/contact?subject=Sponsorship%20Inquiry"
-                  leftIcon={<Send className="h-4 w-4" />}
-                  variant="primary"
-                  size="md"
-                  fullWidth
-                  newTab={false}
-                >
-                  Get in contact
-                </Button.Link>
-              </div>
-              <Text className="text-xs text-black/60 dark:text-white/60">
-                If your brand has a more custom idea in mind, reach out anyway.
-                Recurring and event sponsorship are the main routes, but the
-                conversation can still be shaped around a strong fit.
-              </Text>
+              <Divider />
+
+              {/* <div className="rounded-3xl border border-black/10 bg-black/5 px-5 py-4 dark:border-white/10 dark:bg-white/[0.03]"> */}
+                <div className="space-y-3">
+                  <Heading className="text-2xl title" size="h3">
+                    Ready to talk?
+                  </Heading>
+                  <Text className="text-sm text-black/70 dark:text-white/70">
+                    If your team wants to talk through a recurring sponsorship
+                    or an event sponsorship, send us a note and we can start
+                    there.
+                  </Text>
+                  <Button.Link
+                    href="/contact?subject=Sponsorship%20Inquiry"
+                    leftIcon={<Send className="h-4 w-4" />}
+                    variant="primary"
+                    size="md"
+                    fullWidth
+                    newTab={false}
+                  >
+                    Get in contact
+                  </Button.Link>
+                  <Text className="text-xs text-black/60 dark:text-white/60">
+                    If your brand has a more custom idea in mind, reach out
+                    anyway. Recurring and event sponsorship are the main routes,
+                    but the conversation can still be shaped around a strong
+                    fit.
+                  </Text>
+                </div>
+              {/* </div> */}
             </Card>
           </div>
         </div>
 
         <div className="w-full xl:w-7/12 xl:pl-6">
+          <Breadcrumbs
+            className="mb-1"
+            crumbs={[
+              {
+                icon: <SponsorsIcon className="mr-2 h-4 w-4" />,
+                href: "/sponsors",
+                title: "Sponsors",
+              },
+              {
+                icon: <Details className="mr-2 h-4 w-4" />,
+                href: "/sponsors/partnerships",
+                title: "Sponsorship Details",
+              },
+            ]}
+          />
+
           <div className="space-y-12">
-            <section className="space-y-6">
+            <section className="space-y-5">
               <div className="space-y-3">
-                <Badge variant="secondary">Brand Value</Badge>
+                {/* <Badge variant="secondary">Brand Value</Badge> */}
                 <Heading className="text-3xl title sm:text-4xl lg:text-5xl" size="h2">
                   What your brand gets
                 </Heading>
@@ -288,9 +295,14 @@ const SponsorPartnershipsPage = () => {
                 </Text>
               </div>
 
-              <div className="grid gap-4 lg:grid-cols-2">
+              <div className="columns-1 gap-4 md:columns-2">
                 {opportunityAreas.map((item) => (
-                  <Card key={item.key} variant="soft" size="lg" className="space-y-4">
+                  <Card
+                    key={item.key}
+                    variant="soft"
+                    size="lg"
+                    className="mb-4 break-inside-avoid h-fit space-y-4"
+                  >
                     <div className="flex items-center">
                       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-black/10 bg-black text-white dark:border-white/10 dark:bg-white dark:text-black">
                         {item.icon}
@@ -320,7 +332,7 @@ const SponsorPartnershipsPage = () => {
 
             <section className="space-y-6" id="costs">
               <div className="space-y-3">
-                <Badge variant="secondary">Why Ryan Meetup</Badge>
+                {/* <Badge variant="secondary">Why Ryan Meetup</Badge> */}
                 <Heading className="text-3xl title sm:text-4xl lg:text-5xl" size="h2">
                   Why this makes sense for your brand
                 </Heading>
@@ -372,7 +384,7 @@ const SponsorPartnershipsPage = () => {
 
             <section className="space-y-6" id="next-steps">
               <div className="space-y-3">
-                <Badge variant="secondary">Process</Badge>
+                {/* <Badge variant="secondary">Process</Badge> */}
                 <Heading className="text-3xl title sm:text-4xl lg:text-5xl" size="h2">
                   What happens next
                 </Heading>
@@ -418,6 +430,8 @@ const SponsorPartnershipsPage = () => {
                 ))}
               </Card>
             </section>
+
+            <Divider />
 
             <Card variant="soft" size="lg" className="space-y-4">
               <div className="space-y-2">

@@ -116,9 +116,9 @@ const ChapterPage = async ({
 
           {/* RIGHT PANEL (Scrollable) */}
           <div className="flex-1 p-4">
-            <Breadcrumbs className="hidden sm:flex" crumbs={breadcrumbs} />
+            <Breadcrumbs className="hidden sm:flex mb-1" crumbs={breadcrumbs} />
 
-            <div className="space-y-4 mt-4">
+            <div className="space-y-4">
               <EventsContainer
                 events={events as unknown as RyanEvent[]}
                 eventType={convertSlug(resolvedParams.slug)}

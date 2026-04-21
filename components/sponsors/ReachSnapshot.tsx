@@ -21,7 +21,7 @@ const reachSnapshot = [
     value: "105k+",
     label: "Followers on Instagram; and we're still consistently growing even bigger",
     href: "https://www.instagram.com/ryanmeetup/",
-    cta: "View Instagram",
+    cta: "Instagram",
     icon: <Instagram className="h-4 w-4" />,
     external: true,
   },
@@ -29,22 +29,22 @@ const reachSnapshot = [
     value: "3M+",
     label: "Monthly views across Instagram and TikTok",
     href: "https://www.tiktok.com/@ryanmeetup/",
-    cta: "View TikTok",
+    cta: "TikTok",
     icon: <TikTok className="h-4 w-4" />,
     external: true,
   },
   {
     value: "123k+",
     label: "Annual visitors to RyanMeetup.com",
-    cta: "View traffic",
+    cta: "Site Traffic",
     icon: <Traffic className="h-4 w-4" />,
     modal: true,
   },
   {
-    value: "300+",
-    label: "Ryans attending each of our events on average; many flying in from around the country",
+    value: "400+",
+    label: "Ryans attending each of our events on average",
     href: "/gallery",
-    cta: "See past events",
+    cta: "Past Events",
     icon: <Party className="h-4 w-4" />,
     external: false,
   },
@@ -52,8 +52,16 @@ const reachSnapshot = [
     value: "13+",
     label: "Active chapters across North America, with more to come",
     href: "/chapters",
-    cta: "Explore chapters",
+    cta: "Chapters",
     icon: <Footprint className="h-4 w-4" />,
+    external: false,
+  },
+  {
+    value: "20+",
+    label: "Events hosted each year across our national calendar and local chapters",
+    href: "/events/all",
+    cta: "All Events",
+    icon: <Party className="h-4 w-4" />,
     external: false,
   },
 ];
@@ -96,7 +104,7 @@ const ReachSnapshot = () => {
                   </Text>
                 </div>
 
-                <div className="inline-flex w-full items-center justify-between rounded-full border border-black/15 bg-black/5 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-black/65 transition group-hover:border-black/35 group-hover:bg-black/10 group-hover:text-black dark:border-white/15 dark:bg-white/5 dark:text-white/65 dark:group-hover:border-white/35 dark:group-hover:bg-white/10 dark:group-hover:text-white">
+                <div className="flex w-full items-center justify-between rounded-full border border-black/15 bg-black/5 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-black/65 transition group-hover:border-black/35 group-hover:bg-black/10 group-hover:text-black dark:border-white/15 dark:bg-white/5 dark:text-white/65 dark:group-hover:border-white/35 dark:group-hover:bg-white/10 dark:group-hover:text-white">
                   <span>{item.cta}</span>
                   <ArrowUpRight className="h-4 w-4" />
                 </div>
@@ -145,7 +153,7 @@ const ReachSnapshot = () => {
         title="Website Traffic Snapshot"
         closable
         hideActions
-        panelClassName="max-w-6xl p-4 sm:p-6"
+        panelClassName="w-[92vw] max-w-[1120px] p-4 sm:p-5 lg:p-6"
         cancelButtonText=""
         continueButtonText=""
         isContinueDisabled={false}
