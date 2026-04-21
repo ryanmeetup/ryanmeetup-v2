@@ -70,8 +70,14 @@ const partnershipFormats = [
 
 const opportunityAreas = [
   {
+    key: "website-recognition",
     icon: <WebsitePresence className="h-4 w-4" />,
-    title: "Get Recognized on RyanMeetup.com",
+    title: (
+      <>
+        <span className="2xl:hidden">Website Recognition</span>
+        <span className="hidden 2xl:inline">Get Recognized on RyanMeetup.com</span>
+      </>
+    ),
     bullets: [
       "Top placement on our sponsors page",
       "Featured visibility on our home page",
@@ -79,6 +85,7 @@ const opportunityAreas = [
     ],
   },
   {
+    key: "onsite-event-visibility",
     icon: <Merch className="h-4 w-4" />,
     title: "Onsite Event Visibility",
     bullets: [
@@ -89,6 +96,7 @@ const opportunityAreas = [
     ],
   },
   {
+    key: "local-market-reach",
     icon: <Footprint className="h-4 w-4" />,
     title: "Local Market Reach",
     bullets: [
@@ -99,6 +107,7 @@ const opportunityAreas = [
     ],
   },
   {
+    key: "social-media-visibility",
     icon: <Instagram className="h-4 w-4" />,
     title: "Social Media Visibility",
     bullets: [
@@ -108,6 +117,7 @@ const opportunityAreas = [
     ],
   },
   {
+    key: "post-event-visibility",
     icon: <Video className="h-4 w-4" />,
     title: "Post-Event Visibility",
     bullets: [
@@ -118,6 +128,7 @@ const opportunityAreas = [
     ],
   },
   {
+    key: "live-event-recognition",
     icon: <Mic className="h-4 w-4" />,
     title: "Live Event Recognition",
     bullets: [
@@ -252,8 +263,7 @@ const SponsorPartnershipsPage = () => {
                   fullWidth
                   newTab={false}
                 >
-                  <span className="sm:hidden">Get in contact</span>
-                  <span className="hidden sm:inline">Start a sponsorship conversation</span>
+                  Get in contact
                 </Button.Link>
               </div>
               <Text className="text-xs text-black/60 dark:text-white/60">
@@ -280,7 +290,7 @@ const SponsorPartnershipsPage = () => {
 
               <div className="grid gap-4 lg:grid-cols-2">
                 {opportunityAreas.map((item) => (
-                  <Card key={item.title} variant="soft" size="lg" className="space-y-4">
+                  <Card key={item.key} variant="soft" size="lg" className="space-y-4">
                     <div className="flex items-center">
                       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-black/10 bg-black text-white dark:border-white/10 dark:bg-white dark:text-black">
                         {item.icon}
@@ -431,8 +441,7 @@ const SponsorPartnershipsPage = () => {
                 fullWidth
                 newTab={false}
               >
-                <span className="sm:hidden">Get in contact</span>
-                <span className="hidden sm:inline">Start a sponsorship conversation</span>
+                Get in contact
               </Button.Link>
             </Card>
           </div>
