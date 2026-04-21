@@ -67,8 +67,8 @@ const PartnershipPerks = (props: PartnershipPerksProps) => {
           >
             {partnershipPerks.map((item) => (
               <Card key={item.text} variant="solid" size="sm">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full border border-black/10 bg-black text-white dark:border-white/10 dark:bg-white dark:text-black">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-black/10 bg-black text-white dark:border-white/10 dark:bg-white dark:text-black">
                     {item.icon}
                   </span>
                   <Text className="text-sm text-black/70 dark:text-white/70">
@@ -124,7 +124,8 @@ const PartnershipPerks = (props: PartnershipPerksProps) => {
           fullWidth
           newTab={false}
         >
-          Talk sponsorship with us
+          <span className="sm:hidden">Get in contact</span>
+          <span className="hidden sm:inline">Start a sponsorship conversation</span>
         </Button.Link>
       </div>
     </>

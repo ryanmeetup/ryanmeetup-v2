@@ -84,7 +84,8 @@ const SponsorshipInfo = () => {
             fullWidth
             newTab={false}
           >
-            Talk sponsorship with us
+            <span className="sm:hidden">Get in contact</span>
+            <span className="hidden sm:inline">Start a sponsorship conversation</span>
           </Button.Link>
         </Card>
       </div>

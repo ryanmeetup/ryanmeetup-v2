@@ -131,21 +131,21 @@ const opportunityAreas = [
 const whyRyanMeetup = [
   {
     icon: <Megaphone className="h-4 w-4" />,
-    title: "Recognizable brand",
+    title: "Recognizable Brand",
     description:
       "Ryan Meetup has grown into a recognizable brand with national visibility and a real-world presence that extends well beyond the internet.",
   },
   {
     icon: <Instagram className="h-4 w-4" />,
-    title: "Strong reach",
+    title: "Strong Reach",
     description:
-      "Our social audience drives repeat attention, and our website traffic reinforces sponsor visibility across multiple touchpoints.",
+      "Our social audience drives repeat attention, and our website traffic reinforces sponsor visibility across multiple touch points. Not to mention, Ryans love to support Ryan-owned businesses.",
   },
   {
     icon: <Footprint className="h-4 w-4" />,
-    title: "Local relevance",
+    title: "Local Relevance",
     description:
-      "Brands can support Ryan Meetup broadly or focus on a specific chapter or event, which is especially useful for businesses targeting one market.",
+      "Brands can support Ryan Meetup broadly or focus on a specific chapter or event, which is especially useful for businesses targeting specific markets.",
   },
 ];
 
@@ -221,7 +221,7 @@ const SponsorPartnershipsPage = () => {
                         {item.note}
                       </Text> */}
                       <span className="inline-flex w-fit items-center gap-2 rounded-full border border-black/15 bg-black/10 px-3 py-1.5 shadow-sm dark:border-white/15 dark:bg-white/10">
-                        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-black/70 dark:text-white/70">
+                        <span className="hidden text-[10px] font-semibold uppercase tracking-[0.2em] text-black/70 dark:text-white/70 sm:inline">
                           {item.priceLabel}
                         </span>
                         <span className="text-sm font-semibold tracking-[0.04em] text-black dark:text-white">
@@ -252,7 +252,8 @@ const SponsorPartnershipsPage = () => {
                   fullWidth
                   newTab={false}
                 >
-                  Talk sponsorship with us
+                  <span className="sm:hidden">Get in contact</span>
+                  <span className="hidden sm:inline">Start a sponsorship conversation</span>
                 </Button.Link>
               </div>
               <Text className="text-xs text-black/60 dark:text-white/60">
@@ -407,6 +408,33 @@ const SponsorPartnershipsPage = () => {
                 ))}
               </Card>
             </section>
+
+            <Card variant="soft" size="lg" className="space-y-4">
+              <div className="space-y-2">
+                <Heading className="text-2xl title" size="h3">
+                  Ready to talk sponsorship?
+                </Heading>
+                <Text className="text-sm text-black/70 dark:text-white/70">
+                  If Ryan Meetup feels like the right fit for your brand, send
+                  us a note and we can talk through sponsorship goals, timing,
+                  and the best structure for the partnership.
+                </Text>
+              </div>
+
+              <Button.Link
+                href={`/contact?subject=${encodeURIComponent("Sponsorship Inquiry")}&message=${encodeURIComponent(
+                  "Hi Ryan Meetup,\n\nI reviewed the sponsorship details page and would like to talk more about partnership opportunities for our brand. I'm interested in learning more about fit, visibility options, and next steps.\n",
+                )}`}
+                leftIcon={<Send className="h-4 w-4" />}
+                variant="primary"
+                size="md"
+                fullWidth
+                newTab={false}
+              >
+                <span className="sm:hidden">Get in contact</span>
+                <span className="hidden sm:inline">Start a sponsorship conversation</span>
+              </Button.Link>
+            </Card>
           </div>
         </div>
       </div>

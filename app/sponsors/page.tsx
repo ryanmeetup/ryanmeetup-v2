@@ -88,10 +88,9 @@ const SponsorsPage = async () => {
       <SponsorSection
         id="recurring-sponsors"
         title="Recurring Sponsors"
-        kicker="Active ongoing partners"
         description="Brands providing ongoing financial support to Ryan Meetup on a recurring basis."
         sponsors={recurringSponsors}
-        emptyMessage="Recurring sponsorships are now open for brands that want to support Ryan Meetup on an ongoing monthly basis."
+        emptyMessage="Recurring sponsorships are now open."
       />
 
       <Divider margins="xl" />
@@ -99,7 +98,6 @@ const SponsorsPage = async () => {
       <SponsorSection
         id="featured-brand-partners"
         title="Featured Brand Partners"
-        kicker="Notable brands we've worked with"
         description="Brands we've worked with through notable sponsorships, collaborations, and event support."
         sponsors={featuredBrandPartners}
         sponsorSize="featured"
@@ -111,7 +109,6 @@ const SponsorsPage = async () => {
       <SponsorSection
         id="community-supporters"
         title="Community Supporters"
-        kicker="Curated acknowledgements"
         description="Brands and supporters who have contributed through one-off support, in-kind donations, introductions, or other meaningful help."
         sponsors={communitySponsors}
         sponsorSize="compact"
