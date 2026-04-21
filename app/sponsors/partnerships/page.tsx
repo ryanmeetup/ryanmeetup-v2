@@ -28,6 +28,7 @@ import { GoSponsorTiers as SponsorsIcon } from "react-icons/go";
 
 // Types
 import { buildPageMetadata } from "@/utils/metadata";
+import { contactHrefs } from "@/utils/contact";
 
 export const metadata = buildPageMetadata({
   title: "Ryan Meetup - Sponsorship Details",
@@ -245,7 +246,7 @@ const SponsorPartnershipsPage = () => {
                     there.
                   </Text>
                   <Button.Link
-                    href="/contact?subject=Sponsorship%20Inquiry"
+                    href={contactHrefs.sponsorship}
                     leftIcon={<Send className="h-4 w-4" />}
                     variant="primary"
                     size="md"
@@ -446,9 +447,7 @@ const SponsorPartnershipsPage = () => {
               </div>
 
               <Button.Link
-                href={`/contact?subject=${encodeURIComponent("Sponsorship Inquiry")}&message=${encodeURIComponent(
-                  "Hi Ryan Meetup,\n\nI reviewed the sponsorship details page and would like to talk more about partnership opportunities for our brand. I'm interested in learning more about fit, visibility options, and next steps.\n",
-                )}`}
+                href={contactHrefs.sponsorship}
                 leftIcon={<Send className="h-4 w-4" />}
                 variant="primary"
                 size="md"

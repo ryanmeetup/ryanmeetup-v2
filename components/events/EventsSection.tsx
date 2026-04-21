@@ -2,6 +2,7 @@
 
 // Components
 import { Event, Chapters, EventsSectionHeader } from "@/components/events";
+import { Heading } from "@/components/global";
 import {
   Disclosure,
   DisclosureButton,
@@ -15,7 +16,7 @@ import type { RyanEvent } from "@/lib/types";
 
 // Utilities
 import { usePathname } from "next/navigation";
-import { formatEventCount } from "@/utils/date";
+import { formatEventCount, formatMonthDay } from "@/utils/date";
 
 type EventsSectionProps = {
   events: RyanEvent[];
@@ -26,6 +27,8 @@ type EventsSectionProps = {
   chapterEventCount?: number;
   mainEventCount?: number;
   headerAction?: React.ReactNode;
+  sectionId?: string;
+  pastYearAnchorPrefix?: string;
 };
 
 type ContainerProps = {
@@ -73,6 +76,8 @@ const EventsSection = (props: EventsSectionProps) => {
     chapterEventCount = 0,
     mainEventCount = events.length,
     headerAction,
+    sectionId,
+    pastYearAnchorPrefix = "past-events",
   } = props;
 
   const isUpcomingMainSection =
@@ -86,6 +91,85 @@ const EventsSection = (props: EventsSectionProps) => {
   const eventCountLabel = hasOnlyChapterUpcoming
     ? formatEventCount(chapterEventCount, "chapter event")
     : formatEventCount(displayCount);
+  const isPastEventsSection = title === "Past Events";
+  const pastEventsByYear = isPastEventsSection
+    ? events.reduce(
+        (groups, event) => {
+          const year = formatMonthDay(event.date).year;
+          const existing = groups.get(year);
+          if (existing) {
+            existing.push(event);
+          } else {
+            groups.set(year, [event]);
+          }
+          return groups;
+        },
+        new Map<string, RyanEvent[]>(),
+      )
+    : null;
+
+  const renderSectionContent = () => {
+    if (!isPastEventsSection || !pastEventsByYear) {
+      return (
+        <Container
+          eventType={eventType}
+          events={events}
+          title={title}
+          showChapters={showChapters}
+        />
+      );
+    }
+
+    return (
+      <div className="space-y-8">
+        {Array.from(pastEventsByYear.entries()).map(([year, yearEvents]) => (
+          <Disclosure key={year} as="div" className="w-full" defaultOpen>
+            {({ open }) => (
+              <div className="space-y-4">
+                <DisclosureButton
+                  id={`${pastYearAnchorPrefix}-${year}`}
+                  className="flex w-full items-center justify-between gap-4 border-b border-black/10 pb-3 text-left transition hover:border-black/20 dark:border-white/10 dark:hover:border-white/20"
+                >
+                  <div className="flex items-baseline gap-3">
+                    <Heading className="text-2xl title sm:text-3xl" size="h3">
+                      {year}
+                    </Heading>
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-black/55 dark:text-white/55">
+                      {formatEventCount(yearEvents.length)}
+                    </span>
+                  </div>
+
+                  <ChevronDown
+                    className={`h-3.5 w-3.5 shrink-0 text-black/55 timing dark:text-white/55 ${open && "-rotate-180"}`}
+                  />
+                </DisclosureButton>
+
+                <div className="overflow-hidden">
+                  <Transition
+                    enter="duration-200 ease-in-out"
+                    enterFrom="opacity-0 -translate-y-4"
+                    enterTo="opacity-100 translate-y-0"
+                    leave="duration-200 ease-in-out"
+                    leaveFrom="opacity-100 translate-y-0"
+                    leaveTo="opacity-0 -translate-y-4"
+                  >
+                    <DisclosurePanel className="origin-top transition">
+                      <Container
+                        eventType={eventType}
+                        events={yearEvents}
+                        title={title}
+                        showChapters={showChapters}
+                      />
+                    </DisclosurePanel>
+                  </Transition>
+                </div>
+              </div>
+            )}
+          </Disclosure>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="mb-10">
@@ -117,12 +201,7 @@ const EventsSection = (props: EventsSectionProps) => {
                   leaveTo="opacity-0 -translate-y-6"
                 >
                   <DisclosurePanel className="origin-top transition">
-                    <Container
-                      eventType={eventType}
-                      events={events}
-                      title={title}
-                      showChapters={showChapters}
-                    />
+                    {renderSectionContent()}
                   </DisclosurePanel>
                 </Transition>
               </div>
@@ -131,6 +210,7 @@ const EventsSection = (props: EventsSectionProps) => {
         </Disclosure>
       ) : (
         <div>
+          {sectionId && <div id={sectionId} className="-translate-y-24" />}
           <EventsSectionHeader
             className="mb-4"
             title={title}
@@ -138,12 +218,7 @@ const EventsSection = (props: EventsSectionProps) => {
             action={headerAction}
           />
 
-          <Container
-            eventType={eventType}
-            events={events}
-            title={title}
-            showChapters={showChapters}
-          />
+          {renderSectionContent()}
         </div>
       )}
     </div>

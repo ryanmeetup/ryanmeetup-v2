@@ -25,6 +25,9 @@ type EventsContainerProps = {
   displayMode?: "sectioned" | "flat";
   upcomingHeaderAction?: ReactNode;
   showSearch?: boolean;
+  upcomingSectionId?: string;
+  pastSectionId?: string;
+  pastYearAnchorPrefix?: string;
 };
 
 const EventsContainer = (props: EventsContainerProps) => {
@@ -37,6 +40,9 @@ const EventsContainer = (props: EventsContainerProps) => {
     displayMode = "sectioned",
     upcomingHeaderAction,
     showSearch = true,
+    upcomingSectionId,
+    pastSectionId,
+    pastYearAnchorPrefix = "past-events",
   } = props;
 
   const { query, setQuery, filtered: filteredEvents } = useSearchFilter({
@@ -110,6 +116,7 @@ const EventsContainer = (props: EventsContainerProps) => {
               eventType={eventType}
               showChapters={false}
               headerAction={upcomingHeaderAction}
+              sectionId={upcomingSectionId}
             />
             {inactiveEvents.length !== 0 && <Divider margins="lg" />}
           </>
@@ -122,6 +129,8 @@ const EventsContainer = (props: EventsContainerProps) => {
             eventType={eventType}
             hidePastEvents={hidePastEvents}
             showChapters={false}
+            sectionId={pastSectionId}
+            pastYearAnchorPrefix={pastYearAnchorPrefix}
           />
         )}
       </div>
@@ -196,6 +205,7 @@ const EventsContainer = (props: EventsContainerProps) => {
               chapterEventCount={chapterEvents.length}
               mainEventCount={activeEvents.length}
               headerAction={upcomingHeaderAction}
+              sectionId={upcomingSectionId}
             />
             {inactiveEvents.length !== 0 && <Divider margins="lg" />}
           </>
@@ -208,6 +218,8 @@ const EventsContainer = (props: EventsContainerProps) => {
           eventType={eventType}
           hidePastEvents={hidePastEvents}
           showChapters={false}
+          sectionId={pastSectionId}
+          pastYearAnchorPrefix={pastYearAnchorPrefix}
         />
       )}
 

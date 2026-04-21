@@ -12,6 +12,7 @@ import {
 // Types
 import type { Article as RyanArticle, Outlet } from "@/lib/types";
 import { buildPageMetadata } from "@/utils/metadata";
+import { contactHrefs } from "@/utils/contact";
 
 // Utilities
 import { fetchArticles, fetchOutlets } from "@/actions/fetchContent";
@@ -120,7 +121,7 @@ const PressPage = async () => {
             Learn More
           </Button.Link>
           <Button.Link
-            href="/contact"
+            href={contactHrefs.press}
             newTab={false}
             variant="primary"
             size="md"

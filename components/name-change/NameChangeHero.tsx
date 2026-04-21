@@ -5,6 +5,7 @@ import {
   FaRegFileLines as FormIcon,
   FaRegNewspaper as NewsIcon,
 } from "react-icons/fa6";
+import { contactHrefs } from "@/utils/contact";
 
 const NameChangeHero = () => {
   return (
@@ -12,7 +13,7 @@ const NameChangeHero = () => {
       tag="Change your name to Ryan"
       fullHeadline="Name Change Paperwork"
       smallHeadline="Name Change Paperwork"
-      href="/contact"
+      href={contactHrefs.nameChangePaperwork}
       icon={<FormIcon className="h-4 w-4" />}
       hrefText="Request a form"
       secondaryHref="/newsletter"

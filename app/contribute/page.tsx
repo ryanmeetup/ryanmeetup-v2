@@ -21,6 +21,7 @@ import {
 
 // Types
 import { buildPageMetadata } from "@/utils/metadata";
+import { contactHrefs } from "@/utils/contact";
 
 export const metadata = buildPageMetadata({
   title: "Ryan Meetup - Contribute",
@@ -154,7 +155,7 @@ const ContributePage = async () => {
         </div>
         <div className="mt-6">
           <Button.Link
-            href="/contact"
+            href={contactHrefs.joinTeam}
             leftIcon={<Socials className="h-4 w-4" />}
             variant="primary"
             size="md"

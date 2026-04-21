@@ -4,6 +4,7 @@ import { EventTag } from "@/components/awards";
 import { RepeatRyan } from "@/lib/types";
 import NextImage from "next/image";
 import NextLink from "next/link";
+import { contactHrefs } from "@/utils/contact";
 
 // Utilities
 import { convertImageUrl } from "@/utils/convert";
@@ -63,7 +64,7 @@ const Leaderboard = (props: LeaderboardProps) => {
             <tbody>
               {filteredRyans.map((ryan, index) => (
                 <tr
-                  key={ryan.fullName}
+                  key={`${ryan.fullName}-${index}`}
                   className={`border-b border-black/10 dark:border-white/10 ${index % 2 === 0 ? "bg-black/[0.02] dark:bg-white/[0.03]" : ""}`}
                 >
                   <td className="py-3 px-4">
@@ -113,7 +114,7 @@ const Leaderboard = (props: LeaderboardProps) => {
         <Text className="text-base text-black/70 dark:text-white/70">
           Get in contact through our{" "}
           <NextLink
-            href="/contact"
+            href={contactHrefs.awardsCorrection}
             className="font-semibold text-blue-700 dark:text-blue-500 hover:cursor"
           >
             /contact

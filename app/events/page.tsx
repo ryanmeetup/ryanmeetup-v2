@@ -1,8 +1,13 @@
 // Components
 import { Layout } from "@/components/navigation";
-import { Blurb, Divider, Text } from "@/components/global";
+import { AnchorNav, Blurb, Divider, Text } from "@/components/global";
 import { EventsContainer } from "@/components/events";
-import { FaRegNewspaper as News, FaListUl as List } from "react-icons/fa";
+import {
+  FaRegNewspaper as News,
+  FaListUl as List,
+  FaCalendarAlt as Calendar,
+  FaHistory as History,
+} from "react-icons/fa";
 import { FaUserPlus as Join } from "react-icons/fa6";
 import NextLink from "next/link";
 
@@ -108,6 +113,19 @@ const EventsPage = async ({
     })),
   };
 
+  const anchors = [
+    {
+      icon: <Calendar className="h-5 w-5" />,
+      href: "#upcoming-events",
+      tooltip: "Upcoming Events",
+    },
+    {
+      icon: <History className="h-5 w-5" />,
+      href: "#past-events",
+      tooltip: "Past Events",
+    },
+  ];
+
   return (
     <Layout>
       <script
@@ -144,8 +162,12 @@ const EventsPage = async ({
 
       <Divider />
 
+      <AnchorNav items={anchors} />
+
       <EventsContainer
         events={events as unknown as RyanEvent[]}
+        upcomingSectionId="upcoming-events"
+        pastSectionId="past-events"
         upcomingHeaderAction={
           <NextLink
             href="/events/upcoming"

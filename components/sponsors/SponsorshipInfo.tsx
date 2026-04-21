@@ -1,4 +1,5 @@
 import { BiMailSend as Send } from "react-icons/bi";
+import { contactHrefs } from "@/utils/contact";
 import {
   FaBullhorn as Megaphone,
   FaCalendarAlt as Calendar,
@@ -77,7 +78,7 @@ const SponsorshipInfo = () => {
             Instagram audience of 105k+ followers and 3M+ monthly views.
           </Text>
           <Button.Link
-            href="/contact"
+            href={contactHrefs.sponsorship}
             leftIcon={<Send className="h-4 w-4" />}
             variant="primary"
             size="md"

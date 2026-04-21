@@ -6,14 +6,13 @@ const BenefitsSection = () => {
     "Meet Ryans in your city and make instant connections.",
     "Get invites to unique meetups and themed events.",
     "Find your local chapter and help shape the community.",
-    "Support a nonprofit led by Ryans, for Ryans.",
   ];
   const reasons = [
-    "Celebrate the shared-name energy without the awkward icebreakers.",
     "Build a real-world network beyond group chats.",
     "Show up to memorable themed gatherings and pop-up surprises.",
     "Help Ryan Meetup reach record-breaking scale.",
   ];
+  const items = [...benefits, ...reasons];
 
   return (
     <section className="relative overflow-hidden">
@@ -30,29 +29,18 @@ const BenefitsSection = () => {
             </Text>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className="grid gap-3">
-              {benefits.map((benefit) => (
-                <div
-                  key={benefit}
-                  className="flex items-start gap-3 rounded-2xl border border-black/10 bg-white/80 px-4 py-3 text-sm text-black/80 dark:border-white/10 dark:bg-white/5 dark:text-white/80"
-                >
+          <div className="columns-1 gap-4 lg:columns-2">
+            {items.map((item) => (
+              <div
+                key={item}
+                className="mb-3 break-inside-avoid"
+              >
+                <div className="flex items-start gap-3 rounded-2xl border border-black/10 bg-white/80 px-4 py-3 text-sm text-black/80 dark:border-white/10 dark:bg-white/5 dark:text-white/80">
                   <span className="mt-1 inline-flex h-2.5 w-2.5 shrink-0 rounded-full bg-black/70 dark:bg-white/70" />
-                  <Text className="text-sm">{benefit}</Text>
+                  <Text className="text-sm">{item}</Text>
                 </div>
-              ))}
-            </div>
-            <div className="grid gap-3">
-              {reasons.map((reason) => (
-                <div
-                  key={reason}
-                  className="flex items-start gap-3 rounded-2xl border border-black/10 bg-white/80 px-4 py-3 text-sm text-black/80 dark:border-white/10 dark:bg-white/5 dark:text-white/80"
-                >
-                  <span className="mt-1 inline-flex h-2.5 w-2.5 shrink-0 rounded-full bg-black/70 dark:bg-white/70" />
-                  <Text className="text-sm">{reason}</Text>
-                </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         </div>
       </Card>

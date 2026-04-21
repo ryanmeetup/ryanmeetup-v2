@@ -1,9 +1,13 @@
 // Components
 import { Layout } from "@/components/navigation";
-import { Divider, Text } from "@/components/global";
+import { AnchorNav, Divider, Text } from "@/components/global";
 import { EventsContainer } from "@/components/events";
 import { Blurb } from "@/components/global";
-import { FaRegNewspaper as News } from "react-icons/fa";
+import {
+  FaRegNewspaper as News,
+  FaCalendarAlt as Calendar,
+  FaHistory as History,
+} from "react-icons/fa";
 import { FaUserPlus as Join } from "react-icons/fa6";
 
 // Types
@@ -32,6 +36,18 @@ export const metadata = buildPageMetadata({
 
 const AllEventsPage = async () => {
   const events = await fetchEvents();
+  const anchors = [
+    {
+      icon: <Calendar className="h-5 w-5" />,
+      href: "#upcoming-events",
+      tooltip: "Upcoming Events",
+    },
+    {
+      icon: <History className="h-5 w-5" />,
+      href: "#past-events",
+      tooltip: "Past Events",
+    },
+  ];
 
   return (
     <Layout>
@@ -54,10 +70,14 @@ const AllEventsPage = async () => {
 
       <Divider />
 
+      <AnchorNav items={anchors} />
+
       <EventsContainer
         events={events as unknown as RyanEvent[]}
         showChapters={false}
         displayMode="flat"
+        upcomingSectionId="upcoming-events"
+        pastSectionId="past-events"
       />
     </Layout>
   );

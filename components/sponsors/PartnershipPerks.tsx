@@ -1,6 +1,7 @@
 import { Card, Text, Button } from "@/components/global";
 import { BiMailSend as Send } from "react-icons/bi";
 import { GoSponsorTiers as SponsorDetails } from "react-icons/go";
+import { contactHrefs } from "@/utils/contact";
 import {
   FaBullhorn as Megaphone,
   FaHandshake as Handshake,
@@ -117,7 +118,7 @@ const PartnershipPerks = (props: PartnershipPerksProps) => {
           </Button.Link>
         )}
         <Button.Link
-          href="/contact"
+          href={contactHrefs.sponsorship}
           leftIcon={<Send className="h-4 w-4" />}
           variant="primary"
           size="md"

@@ -2,6 +2,7 @@
 import { Heading, Text, Card, Pill, Kicker } from "@/components/global";
 import NextLink from "next/link";
 import { getCountryFromLocation } from "@/utils/stats";
+import { contactHrefs } from "@/utils/contact";
 
 // Types
 import { Location } from "@/lib/types";
@@ -113,7 +114,7 @@ const Info = (props: InfoProps) => {
         </Heading>
         <Text className="mt-3 text-base text-black/70 dark:text-white/70">
           <NextLink
-            href="/contact"
+            href={contactHrefs.mapUpdate}
             className="font-semibold underline underline-offset-2 text-blue-700 hover:cursor-pointer hover:text-blue-800 dark:text-blue-500 dark:hover:text-blue-400"
           >
             Contact Ryan

@@ -138,7 +138,7 @@ const Legend = (props: LegendProps) => {
                     className="h-3.5 w-3.5 accent-black dark:accent-white dark:bg-white/10 lg:h-4 lg:w-4"
                     checked={option.checked}
                     aria-label={option.text}
-                    onClick={option.handler}
+                    onChange={option.handler}
                   />
                   <Text className="text-xs text-black/70 dark:text-white/80">
                     {option.text}
