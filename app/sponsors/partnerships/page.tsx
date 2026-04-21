@@ -272,12 +272,12 @@ const SponsorPartnershipsPage = () => {
             className="mb-1"
             crumbs={[
               {
-                icon: <SponsorsIcon className="mr-2 h-4 w-4" />,
+                icon: <SponsorsIcon className="mr-2 h-4 w-4 fill-black dark:fill-white" />,
                 href: "/sponsors",
                 title: "Sponsors",
               },
               {
-                icon: <Details className="mr-2 h-4 w-4" />,
+                icon: <Details className="mr-2 h-4 w-4 fill-black dark:fill-white" />,
                 href: "/sponsors/partnerships",
                 title: "Sponsorship Details",
               },
