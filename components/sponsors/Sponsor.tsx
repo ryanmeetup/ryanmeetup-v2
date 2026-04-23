@@ -2,8 +2,8 @@
 
 // Components
 import NextImage from "next/image";
-import NextLink from "next/link";
 import { Card } from "@/components/global";
+import { SponsorLink } from "@/components/sponsors/SponsorLink";
 
 // Types
 import type { Sponsor } from "@/lib/types";
@@ -17,17 +17,30 @@ type SponsorProps = {
   className?: string;
   imageWrapperClassName?: string;
   size?: "default" | "featured" | "compact";
+  placement?: string;
 };
 
 const Sponsor = (props: SponsorProps) => {
-  const { name, darkModeImage, lightModeImage, href } = props.sponsor;
-  const { className, imageWrapperClassName, size = "default" } = props;
+  const { name, darkModeImage, lightModeImage, href, partnershipType } =
+    props.sponsor;
+  const {
+    className,
+    imageWrapperClassName,
+    size = "default",
+    placement = "sponsor_grid",
+  } = props;
 
   const { resolvedTheme } = useTheme();
   const isLight = (resolvedTheme ?? "dark") === "light";
 
   return (
-    <NextLink href={href} className={`group flex w-full ${className}`}>
+    <SponsorLink
+      href={href}
+      sponsorName={name}
+      placement={placement}
+      partnershipType={partnershipType}
+      className={`group flex w-full ${className}`}
+    >
       <Card
         variant="soft"
         size={size === "default" ? "md" : "sm"}
@@ -56,7 +69,7 @@ const Sponsor = (props: SponsorProps) => {
           />
         </div>
       </Card>
-    </NextLink>
+    </SponsorLink>
   );
 };
 

@@ -4,8 +4,7 @@ import { useMemo } from "react";
 
 // Components
 import NextImage from "next/image";
-import NextLink from "next/link";
-import { Button } from "@/components/global";
+import { SponsorLink } from "@/components/sponsors/SponsorLink";
 import Marquee from "react-fast-marquee";
 
 // Types
@@ -68,8 +67,11 @@ const SponsorCarousel = (props: SponsorCarousel) => {
       <Marquee speed={50} gradient={false}>
         {topRow.map((sponsor, idx) => (
           <div key={idx} className="flex flex-col items-center justify-center py-4">
-            <NextLink
+            <SponsorLink
               href={sponsor.href}
+              sponsorName={sponsor.name}
+              placement="homepage_carousel_top"
+              partnershipType={sponsor.partnershipType}
               className="group mx-4 flex h-[120px] w-[11.5rem] items-center justify-center rounded-2xl border border-white/10 bg-white transition hover:-translate-y-1 hover:border-white/30 dark:bg-white/5 dark:hover:bg-white/10 sm:mx-6 sm:h-[176px] sm:w-[18rem]"
             >
               <NextImage
@@ -80,7 +82,7 @@ const SponsorCarousel = (props: SponsorCarousel) => {
                 className="h-[88px] w-auto object-contain sm:h-[128px]"
                 sizes="(max-width: 640px) 200px, (max-width: 768px) 280px, 360px"
               />
-            </NextLink>
+            </SponsorLink>
           </div>
         ))}
       </Marquee>
@@ -90,8 +92,11 @@ const SponsorCarousel = (props: SponsorCarousel) => {
             key={`${sponsor.name}-${idx}`}
             className="flex flex-col items-center justify-center py-4"
           >
-            <NextLink
+            <SponsorLink
               href={sponsor.href}
+              sponsorName={sponsor.name}
+              placement="homepage_carousel_bottom"
+              partnershipType={sponsor.partnershipType}
               className="group mx-3 flex h-[92px] w-[8.5rem] items-center justify-center rounded-2xl border border-white/10 bg-white transition hover:-translate-y-1 hover:border-white/30 dark:bg-white/5 dark:hover:bg-white/10 sm:mx-4 sm:h-[132px] sm:w-[12.5rem]"
             >
               <NextImage
@@ -102,7 +107,7 @@ const SponsorCarousel = (props: SponsorCarousel) => {
                 className="h-[56px] w-auto object-contain sm:h-[88px]"
                 sizes="(max-width: 640px) 140px, (max-width: 768px) 200px, 240px"
               />
-            </NextLink>
+            </SponsorLink>
           </div>
         ))}
       </Marquee>

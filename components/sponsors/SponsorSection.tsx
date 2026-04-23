@@ -56,6 +56,7 @@ const SponsorSection = (props: SponsorSectionProps) => {
               sponsor={sponsor as SponsorType}
               className="w-full"
               size={sponsorSize}
+              placement={id}
             />
           ))}
         </div>
