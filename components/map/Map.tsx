@@ -61,6 +61,7 @@ const Mapbox = (props: MapboxProps) => {
   const [showLegendVisible, setShowLegendVisible] =
     useState<boolean>(showLegend);
   const [legendCollapsed, setLegendCollapsed] = useState<boolean>(false);
+  const [currentZoom, setCurrentZoom] = useState<number>(3.5);
 
   useEffect(() => {
     if (isTestMode) {
@@ -171,9 +172,33 @@ const Mapbox = (props: MapboxProps) => {
     return sanitized.replaceAll(" ", "-");
   }, []);
 
+  const markerSize = useMemo(() => {
+    if (currentZoom <= 2) {
+      return 22;
+    }
+
+    if (currentZoom <= 2.5) {
+      return 25;
+    }
+
+    if (currentZoom <= 3) {
+      return 28;
+    }
+
+    if (currentZoom <= 4) {
+      return 32;
+    }
+
+    return 36;
+  }, [currentZoom]);
+
+  const markerIconSize = useMemo(() => {
+    return Math.max(14, Math.round(markerSize * 0.56));
+  }, [markerSize]);
+
   const markerWrapClass =
-    "flex h-9 w-9 items-center justify-center rounded-full border border-black/15 bg-white shadow-md transition hover:scale-110 dark:border-white/20 dark:bg-white";
-  const markerImageClass = "h-5 w-5 object-contain";
+    "flex items-center justify-center rounded-full border border-black/15 bg-white shadow-md transition-transform hover:scale-110";
+  const markerImageClass = "object-contain";
 
   if (isTestMode) {
     return (
@@ -258,6 +283,7 @@ const Mapbox = (props: MapboxProps) => {
           pitch: 0,
         }}
         mapStyle="mapbox://styles/mapbox/streets-v9"
+        onZoom={(event) => setCurrentZoom(event.viewState.zoom)}
       >
         {showRyans &&
           groupedLocations.hubs.map((location) => (
@@ -270,12 +296,15 @@ const Mapbox = (props: MapboxProps) => {
                 setSelectedLocation(location);
               }}
             >
-              <div className={markerWrapClass}>
+              <div
+                className={markerWrapClass}
+                style={{ width: markerSize, height: markerSize }}
+              >
                 <NextImage
                   src={renderIcon(location.locationType) as string}
                   alt={location.locationType}
-                  width={16}
-                  height={16}
+                  width={markerIconSize}
+                  height={markerIconSize}
                   className={markerImageClass}
                 />
               </div>
@@ -293,12 +322,15 @@ const Mapbox = (props: MapboxProps) => {
                 setSelectedLocation(location);
               }}
             >
-              <div className={markerWrapClass}>
+              <div
+                className={markerWrapClass}
+                style={{ width: markerSize, height: markerSize }}
+              >
                 <NextImage
                   src={renderIcon(location.locationType) as string}
                   alt={location.locationType}
-                  width={16}
-                  height={16}
+                  width={markerIconSize}
+                  height={markerIconSize}
                   className={markerImageClass}
                 />
               </div>
@@ -316,12 +348,15 @@ const Mapbox = (props: MapboxProps) => {
                 setSelectedLocation(location);
               }}
             >
-              <div className={markerWrapClass}>
+              <div
+                className={markerWrapClass}
+                style={{ width: markerSize, height: markerSize }}
+              >
                 <NextImage
                   src={renderIcon(location.locationType) as string}
                   alt={location.locationType}
-                  width={16}
-                  height={16}
+                  width={markerIconSize}
+                  height={markerIconSize}
                   className={markerImageClass}
                 />
               </div>
@@ -339,12 +374,15 @@ const Mapbox = (props: MapboxProps) => {
                 setSelectedLocation(location);
               }}
             >
-              <div className={markerWrapClass}>
+              <div
+                className={markerWrapClass}
+                style={{ width: markerSize, height: markerSize }}
+              >
                 <NextImage
                   src={renderIcon(location.locationType) as string}
                   alt={location.locationType}
-                  width={16}
-                  height={16}
+                  width={markerIconSize}
+                  height={markerIconSize}
                   className={markerImageClass}
                 />
               </div>
@@ -357,11 +395,12 @@ const Mapbox = (props: MapboxProps) => {
             longitude={selectedLocation.coordinates.lon}
             onClose={() => setSelectedLocation(null)}
             closeButton={false}
+            className="map-popup"
           >
-            <div className="rounded-lg border border-black/10 bg-white/95 p-1.5 text-black shadow-md dark:border-white/20 dark:bg-black/90 dark:text-white">
+            <div className="rounded-[20px] bg-white p-4 text-black">
               {selectedLocation.image && (
                 <NextImage
-                  className="mb-2 rounded-md"
+                  className="mb-3 rounded-2xl"
                   src={
                     convertImageUrl(selectedLocation.image) ?? "/trophy.webp"
                   }
@@ -371,14 +410,14 @@ const Mapbox = (props: MapboxProps) => {
                 />
               )}
 
-              <Heading className="text-base text-black dark:text-white" size="h3">
+              <Heading className="text-base text-black" size="h3">
                 {isChapter
                   ? (selectedLocation.locationName ?? selectedLocation.city)
                   : isBusiness
                     ? selectedLocation.locationName
                     : (selectedLocation.eventName ?? selectedLocation.city)}
               </Heading>
-              <Text className="text-xs text-black/70 dark:text-white/70">
+              <p className="text-xs leading-relaxed tracking-wide text-black/70">
                 {isChapter && (
                   <span className="mt-1 flex items-center gap-1">
                     <Pin className="fill-red-500" />{" "}
@@ -395,16 +434,16 @@ const Mapbox = (props: MapboxProps) => {
                   </>
                 )}
                 {selectedLocation.eventDate && (
-                  <span className="-mt-1 text-black/70 dark:text-white/70">
+                  <span className="-mt-1 text-black/70">
                     {formatEventDate(selectedLocation.eventDate)}{" "}
                     •
                   </span>
                 )}{" "}
                 {selectedLocation.eventName ? selectedLocation.city : ""}
-              </Text>
+              </p>
               {isChapter && (
                 <NextLink
-                  className="mt-2 inline-flex items-center rounded-md bg-black px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-black/80 dark:bg-white dark:text-black dark:hover:bg-white/90"
+                  className="mt-4 inline-flex items-center font-sans text-sm font-semibold tracking-wide text-black transition hover:text-black/70"
                   href={`/chapters/${convertToSlug(selectedLocation.city)}`}
                 >
                   View chapter
@@ -428,9 +467,15 @@ const Mapbox = (props: MapboxProps) => {
               <button
                 type="button"
                 className={markerWrapClass}
+                style={{ width: markerSize, height: markerSize }}
                 aria-label={`${location.city} chapter`}
               >
-                <span className="text-sm leading-none">📍</span>
+                <span
+                  className="leading-none"
+                  style={{ fontSize: Math.max(14, Math.round(markerSize * 0.44)) }}
+                >
+                  📍
+                </span>
               </button>
             </Marker>
           ))}
