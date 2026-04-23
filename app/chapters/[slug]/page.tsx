@@ -12,8 +12,19 @@ import { buildPageMetadata } from "@/utils/metadata";
 
 // Utilities
 import { fetchEvents, fetchSingleChapter } from "@/actions/fetchContent";
-import { convertSlug } from "@/utils/convert";
+import { convertImageUrl, convertSlug } from "@/utils/convert";
 import { getChapterSlugFixture } from "@/lib/test-fixtures/chapters";
+
+const isContentfulImage = (value: unknown): value is ContentfulImage => {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "fields" in value &&
+    typeof value.fields === "object" &&
+    value.fields !== null &&
+    "file" in value.fields
+  );
+};
 
 export async function generateMetadata({
   params,
@@ -29,16 +40,23 @@ export async function generateMetadata({
     fixture?.chapter ?? (await fetchSingleChapter(resolvedParams.slug));
 
   if (content) {
-    const { city, state } = content;
+    const { city, state, seoImage } = content;
+    const chapterImageUrl = isContentfulImage(seoImage)
+      ? (convertImageUrl(seoImage) ?? "/meta/chapters.png")
+      : "/meta/chapters.png";
+    const chapterImageSize = isContentfulImage(seoImage)
+      ? seoImage.fields.file.details.image
+      : null;
 
     return buildPageMetadata({
       title: `Ryan Meetup - ${city} Chapter`,
       description: `Keep up to date with Ryan Meetups in ${city}, ${state}.`,
       canonical: `https://ryanmeetup.com/chapters/${resolvedParams.slug}`,
       image: {
-        url: `https://ryanmeetup.com/chapters/${resolvedParams.slug}.png`,
-        width: 3360,
-        height: 1854,
+        url: chapterImageUrl,
+        width: chapterImageSize?.width ?? 4112,
+        height: chapterImageSize?.height ?? 2324,
+        alt: `${city} chapter photo`,
       },
       keywords: [
         "ryan meetup",

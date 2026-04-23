@@ -3,7 +3,7 @@ import { BryanChecker } from "@/components/global";
 import { ThemeProvider } from "next-themes";
 
 // Types
-import { buildPageMetadata } from "@/utils/metadata";
+import { buildPageMetadata, SITE_URL } from "@/utils/metadata";
 
 // Utilities
 import { Inter } from "next/font/google";
@@ -13,14 +13,14 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = buildPageMetadata({
-  metadataBase: "https://v2.ryanmeetup.com",
   title: "Ryan Meetup",
   description: "Wanna meet other Ryans? Join the Ryan Meetup!",
-  canonical: "https://ryanmeetup.com",
+  canonical: SITE_URL,
   image: {
-    url: "https://ryanmeetup.com/group-photos/rockies.jpg",
+    url: "/group-photos/rockies.jpg",
     width: 3490,
     height: 2328,
+    alt: "Ryan Meetup group photo",
   },
   keywords: [
     "ryan gathering",

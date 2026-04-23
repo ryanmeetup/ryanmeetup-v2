@@ -168,6 +168,7 @@ type RyanChapter = {
   chapterLeads: string[];
   whatsAppLink: string;
   coverImage: ContentfulImage;
+  seoImage?: ContentfulImage;
   instagram: string;
 };
 

@@ -1,17 +1,31 @@
 import type { Metadata } from "next";
 
+const SITE_NAME = "Ryan Meetup";
+const SITE_URL = "https://ryanmeetup.com";
+
+type MetadataImage = {
+  url: string;
+  width: number;
+  height: number;
+  alt?: string;
+};
+
 type MetadataOptions = {
   title: string;
   description: string;
   canonical: string;
   metadataBase?: string;
-  image: {
-    url: string;
-    width: number;
-    height: number;
-  };
+  image: MetadataImage;
   keywords?: string[];
   siteName?: string;
+};
+
+const resolveMetadataUrl = (value: string, metadataBase = SITE_URL) => {
+  if (value.startsWith("http://") || value.startsWith("https://")) {
+    return value;
+  }
+
+  return new URL(value, metadataBase).toString();
 };
 
 const buildPageMetadata = (options: MetadataOptions): Metadata => {
@@ -24,21 +38,27 @@ const buildPageMetadata = (options: MetadataOptions): Metadata => {
     keywords,
     siteName,
   } = options;
+  const resolvedMetadataBase = metadataBase ?? SITE_URL;
+  const resolvedCanonical = resolveMetadataUrl(canonical, resolvedMetadataBase);
+  const resolvedImage = {
+    ...image,
+    url: resolveMetadataUrl(image.url, resolvedMetadataBase),
+  };
 
   return {
-    metadataBase: metadataBase ? new URL(metadataBase) : undefined,
+    metadataBase: new URL(resolvedMetadataBase),
     title,
     description,
     keywords,
     alternates: {
-      canonical,
+      canonical: resolvedCanonical,
     },
     openGraph: {
-      url: canonical,
+      url: resolvedCanonical,
       title,
       description,
-      siteName: siteName ?? "Ryan Meetup",
-      images: [image],
+      siteName: siteName ?? SITE_NAME,
+      images: [resolvedImage],
       locale: "en_US",
       type: "website",
     },
@@ -46,9 +66,9 @@ const buildPageMetadata = (options: MetadataOptions): Metadata => {
       card: "summary_large_image",
       title,
       description,
-      images: [image.url],
+      images: [resolvedImage.url],
     },
   };
 };
 
-export { buildPageMetadata };
+export { buildPageMetadata, SITE_NAME, SITE_URL };
