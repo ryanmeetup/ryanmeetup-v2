@@ -1,7 +1,6 @@
 "use client";
 
 import NextLink from "next/link";
-import { track } from "@vercel/analytics";
 import { usePathname } from "next/navigation";
 
 import type { ReactNode } from "react";
@@ -34,29 +33,17 @@ const SponsorLink = (props: SponsorLinkProps) => {
 
   return (
     <NextLink
-      href={href}
-      className={className}
-      onClick={() => {
-        if (typeof window === "undefined") {
-          return;
-        }
-
-        const destination = new URL(href, window.location.origin);
-
-        if (destination.origin === window.location.origin) {
-          return;
-        }
-
-        track("sponsor_click", {
-          sponsor_id: sponsorId,
-          sponsor_name: sponsorName,
-          sponsor_href: destination.toString(),
-          sponsor_host: destination.hostname,
-          source_path: pathname ?? "/",
+      href={{
+        pathname: `/out/sponsor/${sponsorId}`,
+        query: {
+          to: href,
+          name: sponsorName,
           placement,
-          partnership_type: partnershipType ?? "unknown",
-        });
+          type: partnershipType ?? "unknown",
+          source: pathname ?? "/",
+        },
       }}
+      className={className}
     >
       {children}
     </NextLink>
