@@ -22,9 +22,9 @@ export async function generateMetadata() {
       "Explore the brands supporting Ryan Meetup and learn how recurring and event sponsorship can help power future events, chapters, and community growth.",
     canonical: "https://ryanmeetup.com/sponsors",
     image: {
-      url: "https://ryanmeetup.com/meta/sponsors.png",
-      width: 2056,
-      height: 1162,
+      url: "https://ryanmeetup.com/meta/sponsors.jpg",
+      width: 1534,
+      height: 763,
     },
     keywords: [
       "ryan meetup",

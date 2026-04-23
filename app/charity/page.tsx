@@ -17,9 +17,9 @@ export const metadata = buildPageMetadata({
   canonical: "https://ryanmeetup.com/charity",
   siteName: "Ryan Meetup - Charity",
   image: {
-    url: "https://ryanmeetup.com/meta/charity.png",
-    width: 2056,
-    height: 1162,
+    url: "https://ryanmeetup.com/meta/charity.jpg",
+    width: 2188,
+    height: 1458,
   },
   keywords: [
     "Ryan meetup charity",

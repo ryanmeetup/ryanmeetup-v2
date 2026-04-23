@@ -18,9 +18,9 @@ export const metadata = buildPageMetadata({
   description: "View photos from previous Ryan Meetups.",
   canonical: "https://ryanmeetup.com/gallery",
   image: {
-    url: "https://ryanmeetup.com/meta/gallery.png",
-    width: 2056,
-    height: 1162,
+    url: "https://ryanmeetup.com/group-photos/rytober.webp",
+    width: 1000,
+    height: 667,
   },
   keywords: [
     "ryan meetup",

@@ -22,9 +22,9 @@ export const metadata = buildPageMetadata({
   description: "Read all about the Ryan Meetup in the news.",
   canonical: "https://ryanmeetup.com/press",
   image: {
-    url: "https://ryanmeetup.com/meta/press.png",
-    width: 2056,
-    height: 1161,
+    url: "https://ryanmeetup.com/meta/press.jpg",
+    width: 2188,
+    height: 1458,
   },
   keywords: [
     "ryans only",

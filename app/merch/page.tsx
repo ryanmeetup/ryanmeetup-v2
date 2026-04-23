@@ -8,9 +8,9 @@ const { metadata, RedirectPage } = createRedirectPage({
     description: "Buy official Ryan Meetup merchandise!",
     canonical: "https://ryanmeetup.com/merch",
     image: {
-      url: "https://ryanmeetup.com/meta/merch.png",
-      width: 2202,
-      height: 1282,
+      url: "jpg",
+      width: 2188,
+      height: 1458,
     },
     keywords: [
       "ryan meetup merch",

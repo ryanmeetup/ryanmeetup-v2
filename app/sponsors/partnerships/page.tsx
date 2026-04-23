@@ -36,9 +36,9 @@ export const metadata = buildPageMetadata({
     "Explore recurring and event sponsorship options for Ryan Meetup, including partnership opportunities, pricing starting points, and ways to get involved.",
   canonical: "https://ryanmeetup.com/sponsors/partnerships",
   image: {
-    url: "https://ryanmeetup.com/meta/sponsors.png",
-    width: 2056,
-    height: 1162,
+    url: "https://ryanmeetup.com/meta/sponsors.jpg",
+      width: 1534,
+      height: 763,
   },
   keywords: [
     "ryan meetup sponsorship details",

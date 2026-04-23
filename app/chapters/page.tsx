@@ -19,9 +19,9 @@ export const metadata = buildPageMetadata({
     "Introducing Ryan Meetup chapters - a new way to keep connected with your local Ryans, and continue building that sense of community even closer to home.",
   canonical: "https://ryanmeetup.com/chapters",
   image: {
-    url: "https://ryanmeetup.com/meta/chapters.png",
-    width: 2056,
-    height: 1162,
+    url: "https://ryanmeetup.com/meta/chapters.jpg",
+    width: 2188,
+    height: 1458,
   },
   keywords: [
     "ryan meetup chapters",

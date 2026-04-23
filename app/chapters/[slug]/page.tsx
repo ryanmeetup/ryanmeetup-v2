@@ -42,8 +42,8 @@ export async function generateMetadata({
   if (content) {
     const { city, state, seoImage } = content;
     const chapterImageUrl = isContentfulImage(seoImage)
-      ? (convertImageUrl(seoImage) ?? "/meta/chapters.png")
-      : "/meta/chapters.png";
+      ? (convertImageUrl(seoImage) ?? "/meta/chapters.jpg")
+      : "/meta/chapters.jpg";
     const chapterImageSize = isContentfulImage(seoImage)
       ? seoImage.fields.file.details.image
       : null;

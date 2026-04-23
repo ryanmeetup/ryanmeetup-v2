@@ -120,7 +120,7 @@ const HomePage = async () => {
         "@type": "Organization",
         name: "Ryan Meetup",
         url: "https://ryanmeetup.com",
-        logo: "https://ryanmeetup.com/meta/sponsors.png",
+        logo: "https://ryanmeetup.com/meta/sponsors.jpg",
         sameAs: [
           "https://www.instagram.com/ryanmeetup/",
           "https://www.youtube.com/@ryanmeetup",
