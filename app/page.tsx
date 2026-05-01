@@ -12,7 +12,7 @@ import { BiParty as Party } from "react-icons/bi";
 import { MdGroups as Community, MdVolunteerActivism as Heart } from "react-icons/md";
 import { Button } from "@/components/global";
 import { GoSponsorTiers as SponsorIcon } from "react-icons/go";
-import { layoutPaddingX } from "@/lib/constants";
+import { layoutPaddingX, socialProfileUrls } from "@/lib/constants";
 import { sortEventsByDate, splitEventsByTime } from "@/utils/date";
 
 // Types
@@ -122,8 +122,9 @@ const HomePage = async () => {
         url: "https://ryanmeetup.com",
         logo: "https://ryanmeetup.com/meta/sponsors.jpg",
         sameAs: [
-          "https://www.instagram.com/ryanmeetup/",
-          "https://www.youtube.com/@ryanmeetup",
+          socialProfileUrls.instagram,
+          socialProfileUrls.facebook,
+          socialProfileUrls.youtube,
         ],
       },
       {

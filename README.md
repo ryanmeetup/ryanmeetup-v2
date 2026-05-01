@@ -5,6 +5,7 @@ RyanMeetup.com is the official home of the Ryan Meetup — a community for peopl
 Learn more, RSVP to events, and join the community:
 - Website: https://ryanmeetup.com
 - Instagram: https://www.instagram.com/ryanmeetup/
+- Facebook: https://www.facebook.com/ryanmeetup/
 - Join: https://www.ryanmeetup.com/join
 
 ## About The Ryan Meetup

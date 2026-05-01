@@ -1,5 +1,6 @@
 // Components
 import {
+  FaFacebook as Facebook,
   FaInstagram as Instagram,
   FaYoutube as YouTube,
   FaHandsHelping as Help,
@@ -37,21 +38,36 @@ import { PiLetterCirclePBold as Party } from "react-icons/pi";
 export const layoutPaddingX =
   "px-4 lg:px-32 2xl:px-56 3xl:px-[320px]"
 
+export const socialProfileUrls = {
+  instagram: "https://www.instagram.com/ryanmeetup/",
+  facebook: "https://www.facebook.com/ryanmeetup/",
+  partiful: "https://partiful.com/u/sJG4HpH0wS3ZA3YkzaL5",
+  youtube: "https://www.youtube.com/@ryanmeetup",
+  tiktok: "https://www.tiktok.com/@ryanmeetup/",
+  threads: "https://www.threads.net/@ryanmeetup",
+};
+
 export const socials = [
   {
-    href: "https://www.instagram.com/ryanmeetup/",
+    href: socialProfileUrls.instagram,
     icon: <Instagram className="title" />,
     text: "Instagram",
     ctaVerb: "Follow",
   },
   {
-    href: 'https://partiful.com/u/sJG4HpH0wS3ZA3YkzaL5',
+    href: socialProfileUrls.facebook,
+    icon: <Facebook className="title" />,
+    text: "Facebook",
+    ctaVerb: "Follow",
+  },
+  {
+    href: socialProfileUrls.partiful,
     icon: <Party className="title" />,
     text: 'Partiful',
     ctaVerb: "Follow",
   },
   {
-    href: "https://www.youtube.com/@ryanmeetup",
+    href: socialProfileUrls.youtube,
     icon: <YouTube className="title" />,
     text: "YouTube",
     ctaVerb: "Subscribe to",
@@ -59,13 +75,13 @@ export const socials = [
   {
     icon: <TikTok className="title" />,
     text: "TikTok",
-    href: "https://www.tiktok.com/@ryanmeetup/",
+    href: socialProfileUrls.tiktok,
     ctaVerb: "Follow",
   },
   {
     icon: <Threads className="title" />,
     text: "Threads",
-    href: "https://www.threads.net/@ryanmeetup",
+    href: socialProfileUrls.threads,
     ctaVerb: "Follow",
   },
   // {
