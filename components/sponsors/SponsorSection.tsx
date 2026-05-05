@@ -26,6 +26,16 @@ const SponsorSection = (props: SponsorSectionProps) => {
     sponsorSize = "default",
   } = props;
   const sorted = [...sponsors].sort((a, b) => a.name.localeCompare(b.name));
+  const isDefaultSponsorGrid = sponsorSize === "default";
+  const isRecurringSponsorSection =
+    id === "recurring-sponsors" ||
+    sorted.every((sponsor) => sponsor.partnershipType === "Recurring Sponsor");
+  const shouldFeatureRecurringSponsors =
+    isDefaultSponsorGrid && isRecurringSponsorSection;
+  const defaultGridClass =
+    shouldFeatureRecurringSponsors && sorted.length <= 2
+      ? "grid-cols-1 sm:grid-cols-2"
+      : "sm:grid-cols-2 lg:grid-cols-3";
 
   return (
     <section className="space-y-6" id={id}>
@@ -43,8 +53,8 @@ const SponsorSection = (props: SponsorSectionProps) => {
       {sorted.length > 0 ? (
         <div
           className={`grid gap-4 ${
-            sponsorSize === "default"
-              ? "sm:grid-cols-2 lg:grid-cols-3"
+            isDefaultSponsorGrid
+              ? defaultGridClass
               : sponsorSize === "featured"
                 ? "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
                 : "grid-cols-2 md:grid-cols-3 xl:grid-cols-5"
@@ -55,6 +65,16 @@ const SponsorSection = (props: SponsorSectionProps) => {
               key={sponsor.name as string}
               sponsor={sponsor as SponsorType}
               className="w-full"
+              imageWrapperClassName={
+                shouldFeatureRecurringSponsors
+                  ? "h-64 overflow-visible sm:h-80"
+                  : undefined
+              }
+              imageClassName={
+                shouldFeatureRecurringSponsors
+                  ? "origin-left scale-125 object-left sm:scale-150"
+                  : undefined
+              }
               size={sponsorSize}
               placement={id}
             />

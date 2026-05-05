@@ -16,6 +16,7 @@ type SponsorProps = {
   sponsor: Sponsor;
   className?: string;
   imageWrapperClassName?: string;
+  imageClassName?: string;
   size?: "default" | "featured" | "compact";
   placement?: string;
 };
@@ -26,6 +27,7 @@ const Sponsor = (props: SponsorProps) => {
   const {
     className,
     imageWrapperClassName,
+    imageClassName,
     size = "default",
     placement = "sponsor_grid",
   } = props;
@@ -64,7 +66,7 @@ const Sponsor = (props: SponsorProps) => {
             }
             fill
             alt={name}
-            className="object-contain"
+            className={`object-contain ${imageClassName ?? ""}`}
             sizes="(min-width: 1280px) 660px, (min-width: 640px) 540px, 480px"
           />
         </div>
