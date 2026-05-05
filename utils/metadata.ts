@@ -17,6 +17,7 @@ type MetadataOptions = {
   metadataBase?: string;
   image: MetadataImage;
   keywords?: string[];
+  robots?: Metadata["robots"];
   siteName?: string;
 };
 
@@ -36,6 +37,7 @@ const buildPageMetadata = (options: MetadataOptions): Metadata => {
     metadataBase,
     image,
     keywords,
+    robots,
     siteName,
   } = options;
   const resolvedMetadataBase = metadataBase ?? SITE_URL;
@@ -50,6 +52,7 @@ const buildPageMetadata = (options: MetadataOptions): Metadata => {
     title,
     description,
     keywords,
+    robots,
     alternates: {
       canonical: resolvedCanonical,
     },
