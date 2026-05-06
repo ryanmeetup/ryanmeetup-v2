@@ -14,6 +14,8 @@ import {
   FaArrowRight as ArrowRight,
   FaAnglesLeft as AnglesLeft,
   FaAnglesRight as AnglesRight,
+  FaGrip as DetailsIcon,
+  FaListUl as SummaryIcon,
 } from "react-icons/fa6";
 
 // Utilities
@@ -33,6 +35,8 @@ type EventsListPagerProps = {
   ctaLabel?: string;
   sortOrder?: "asc" | "desc";
   emptyStateVariant?: "text" | "table";
+  showDisplayModeSwitch?: boolean;
+  defaultDisplayMode?: "summary" | "details";
   resetKey?: string | number;
 };
 
@@ -49,10 +53,13 @@ const EventsListPager = (props: EventsListPagerProps) => {
     ctaLabel,
     sortOrder,
     emptyStateVariant = "text",
+    showDisplayModeSwitch = false,
+    defaultDisplayMode = "summary",
     resetKey,
   } = props;
 
   const [page, setPage] = useState(1);
+  const [displayMode, setDisplayMode] = useState(defaultDisplayMode);
   const [perPage, setPerPage] = useState(
     defaultPerPage ?? perPageOptions?.[0] ?? pageSize,
   );
@@ -109,8 +116,45 @@ const EventsListPager = (props: EventsListPagerProps) => {
   const resolvedCta =
     ctaLabel ?? (view === "upcoming" ? "RSVP" : "View event");
   const emptyMessage = getEventEmptyMessage(view);
+  const displayModeSwitch = showDisplayModeSwitch ? (
+    <div
+      className="inline-flex rounded-full border border-black/15 bg-black/5 p-1 shadow-sm dark:border-white/15 dark:bg-white/5"
+      aria-label="Event view"
+    >
+      {[
+        {
+          value: "summary" as const,
+          label: "Summary",
+          icon: <SummaryIcon className="h-3.5 w-3.5" />,
+        },
+        {
+          value: "details" as const,
+          label: "Details",
+          icon: <DetailsIcon className="h-3.5 w-3.5" />,
+        },
+      ].map((item) => {
+        const isActive = displayMode === item.value;
+        return (
+          <button
+            key={item.value}
+            type="button"
+            onClick={() => setDisplayMode(item.value)}
+            aria-pressed={isActive}
+            className={`inline-flex min-h-9 items-center justify-center gap-2 rounded-full px-3 text-[11px] font-semibold uppercase tracking-[0.16em] transition ${
+              isActive
+                ? "bg-black text-white shadow-sm dark:bg-white dark:text-black"
+                : "text-black/65 hover:bg-black/10 hover:text-black dark:text-white/65 dark:hover:bg-white/10 dark:hover:text-white"
+            }`}
+          >
+            {item.icon}
+            <span>{item.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  ) : null;
   const footerAction =
-    showPerPageSelector && perPageOptions?.length ? (
+    showPerPageSelector && perPageOptions?.length && displayMode === "summary" ? (
       <ResultsPerPage
         value={effectivePerPage}
         options={perPageOptions}
@@ -140,6 +184,8 @@ const EventsListPager = (props: EventsListPagerProps) => {
           title={resolvedTitle}
           sortOrder={sortOrder ?? (view === "upcoming" ? "asc" : "desc")}
           ctaLabel={resolvedCta}
+          displayMode={displayMode}
+          headerAction={displayModeSwitch}
           footerAction={footerAction}
         />
       )}

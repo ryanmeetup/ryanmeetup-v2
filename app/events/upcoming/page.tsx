@@ -71,6 +71,7 @@ const UpcomingPage = async ({
         ctaLabel="RSVP"
         sortOrder="asc"
         emptyStateVariant="table"
+        showDisplayModeSwitch
       />
     </Layout>
   );

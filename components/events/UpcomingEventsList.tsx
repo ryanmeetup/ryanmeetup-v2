@@ -2,7 +2,7 @@
 
 import { Transition } from "@headlessui/react";
 import { Card } from "@/components/global";
-import { EventRow, EventsSectionHeader } from "@/components/events";
+import { Event, EventRow, EventsSectionHeader } from "@/components/events";
 import { formatEventCount, sortEventsByDate } from "@/utils/date";
 
 import type { RyanEvent } from "@/lib/types";
@@ -12,8 +12,10 @@ type UpcomingEventsListProps = {
   title?: string;
   sortOrder?: "asc" | "desc";
   ctaLabel?: string;
+  displayMode?: "summary" | "details";
   isLoading?: boolean;
   headerMeta?: React.ReactNode;
+  headerAction?: React.ReactNode;
   footerAction?: React.ReactNode;
 };
 
@@ -23,8 +25,10 @@ const UpcomingEventsList = (props: UpcomingEventsListProps) => {
     title = "Upcoming Events",
     sortOrder = "asc",
     ctaLabel = "RSVP",
+    displayMode = "summary",
     isLoading = false,
     headerMeta,
+    headerAction,
     footerAction,
   } = props;
 
@@ -58,13 +62,56 @@ const UpcomingEventsList = (props: UpcomingEventsListProps) => {
 
   if (events.length === 0) return null;
   const sortedEvents = sortEventsByDate(events, sortOrder);
+  const meta = headerMeta ?? formatEventCount(events.length);
+
+  if (displayMode === "details") {
+    return (
+      <div className="mb-10 space-y-4">
+        <EventsSectionHeader
+          title={title}
+          meta={meta}
+          action={headerAction}
+        />
+        <div className="grid grid-cols-1 gap-x-4 gap-y-4 md:grid-cols-2 xl:grid-cols-3">
+          {sortedEvents.map((event, index) => (
+            <Transition
+              key={`${event.title}-${event.date}`}
+              appear={true}
+              show={true}
+              enter="transition duration-700 ease-out"
+              enterFrom="opacity-0 translate-y-4"
+              enterTo="opacity-100 translate-y-0"
+              as="div"
+              className={`h-full ${
+                index === 0
+                  ? "delay-75"
+                  : index === 1
+                    ? "delay-150"
+                    : index === 2
+                      ? "delay-200"
+                      : index === 3
+                        ? "delay-300"
+                        : "delay-500"
+              }`}
+            >
+              <Event event={event} fullDescription />
+            </Transition>
+          ))}
+        </div>
+        {footerAction && (
+          <div className="flex justify-end">{footerAction}</div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <Card variant="solid" size="md" className="mb-10">
       <EventsSectionHeader
         className="mb-4"
         title={title}
-        meta={headerMeta ?? formatEventCount(events.length)}
+        meta={meta}
+        action={headerAction}
       />
       <div className="grid gap-3">
         {sortedEvents.map((event, index) => {

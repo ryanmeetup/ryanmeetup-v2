@@ -16,9 +16,11 @@ import { formatEventDisplayDate, isEventUpcoming } from "@/utils/date";
 
 type EventProps = {
   event: RyanEvent;
+  fullDescription?: boolean;
 };
 
 const Event = (props: EventProps) => {
+  const { fullDescription = false } = props;
   const { title, coverImage, description, href, city, dateTime, venue, date } =
     props.event;
   const isUpcoming = isEventUpcoming(date);
@@ -30,7 +32,7 @@ const Event = (props: EventProps) => {
       : convertImageUrl(coverImage as ContentfulImage);
 
   return (
-    <NextLink href={href} className="group block">
+    <NextLink href={href} className="group block h-full">
       <div className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-black/10 bg-white/90 shadow-[0_25px_50px_-40px_rgba(0,0,0,0.6)] transition hover:-translate-y-1 hover:border-black/30 dark:border-white/10 dark:bg-white/5 dark:hover:border-white/40">
         <div className="relative w-full max-h-[450px] aspect-w-2 aspect-h-1 overflow-hidden border-b border-black/10 dark:border-white/10">
           <NextImage
@@ -55,7 +57,13 @@ const Event = (props: EventProps) => {
               </Heading>
             </div>
           </div>
-          <Text className="min-h-[85px] text-sm text-black/70 dark:text-white/70 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3] overflow-hidden">
+          <Text
+            className={`text-sm text-black/70 dark:text-white/70 ${
+              fullDescription
+                ? ""
+                : "min-h-[85px] overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3]"
+            }`}
+          >
             {description}
           </Text>
 
