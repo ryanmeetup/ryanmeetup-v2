@@ -17,6 +17,7 @@ const contentRoutes = [
   { path: "/goodbye", expectText: "Goodbye, Bryan." },
   { path: "/map" },
   { path: "/press" },
+  { path: "/rsvp", expectText: "Open RSVPs" },
   { path: "/sponsors" },
 ];
 
@@ -41,7 +42,6 @@ const redirectRoutes = [
       "https://docs.google.com/forms/d/e/1FAIpQLScP5a5ynWxQU6f1G9hvprObZQSp9QtLs_97Uf82JQJYHj4L4Q/viewform?usp=dialog",
   },
   { path: "/rcf", location: "https://us.givergy.com/rytoberfest" },
-  { path: "/rsvp", location: "https://partiful.com/e/5YxUmCHOlgP36YQIhfes" },
   {
     path: "/whatsapp",
     location: "https://chat.whatsapp.com/LeI37a2AlMk0OmMfhXPNvq",
@@ -54,7 +54,8 @@ test.describe("content pages", () => {
       const response = await page.goto(route.path);
       expect(response?.ok()).toBeTruthy();
 
-      if (route.path !== "/cards") await expect(page).toHaveTitle(/Ryan Meetup/);
+      if (route.path !== "/cards")
+        await expect(page).toHaveTitle(/Ryan Meetup/);
 
       if (route.expectText) {
         await expect(page.getByText(route.expectText)).toBeVisible();

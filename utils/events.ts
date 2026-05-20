@@ -7,6 +7,9 @@ const buildEventSearchText = (event: RyanEvent) =>
     event.city,
     event.venue,
     event.description,
+    Array.isArray(event.eventType)
+      ? event.eventType.join(" ")
+      : event.eventType,
     event.chapter?.join(" "),
   ]
     .filter(Boolean)
@@ -38,10 +41,19 @@ const getEventEmptyMessage = (view: "upcoming" | "past") =>
     ? "No upcoming events right now. Check back soon!"
     : "No past events yet.";
 
+const hasEventTag = (value: string | string[] | undefined, tag: string) => {
+  if (Array.isArray(value)) return value.includes(tag);
+  return value === tag;
+};
+
+const isMainEvent = (event: RyanEvent) =>
+  hasEventTag(event.eventType, "Main") || hasEventTag(event.chapter, "Main");
+
 export {
   buildEventSearchText,
   filterEventsByQuery,
   getEventsByView,
   getSortedEventsByView,
   getEventEmptyMessage,
+  isMainEvent,
 };

@@ -60,6 +60,7 @@ type RyanEvent = {
   location: string;
   venue: string;
   isPartnerEvent: boolean;
+  eventType?: string | string[];
   chapter: string[];
 };
 

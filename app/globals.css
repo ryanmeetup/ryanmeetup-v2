@@ -41,15 +41,29 @@ body {
 
 @layer components {
   .timing {
-    @apply transition ease-in-out duration-300;
+    transition-property:
+      color, background-color, border-color, outline-color, text-decoration-color,
+      fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to,
+      opacity, box-shadow, transform, translate, scale, rotate, filter,
+      backdrop-filter;
+    transition-duration: 300ms;
+    transition-timing-function: ease-in-out;
   }
 
   .title {
-    @apply text-black dark:text-white;
+    color: #000000;
   }
 
   .secondary {
-    @apply text-gray-700 dark:text-gray-400;
+    color: #374151;
+  }
+
+  .dark .title {
+    color: #ffffff;
+  }
+
+  .dark .secondary {
+    color: #9ca3af;
   }
 }
 

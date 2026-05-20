@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 // Components
-import Map, { Marker, Popup } from "react-map-gl";
+import Map, { Marker, Popup } from "react-map-gl/mapbox";
 import NextImage from "next/image";
 import { Heading, Text } from "@/components/global";
 import { Legend } from "@/components/map";

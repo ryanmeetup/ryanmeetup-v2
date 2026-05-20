@@ -12,6 +12,19 @@ import { usePathname } from "next/navigation";
 // Types
 import type { ReactNode } from "react";
 
+type FloatingCtaTheme = {
+  panel?: string;
+  border?: string;
+  text?: string;
+  subtext?: string;
+  iconPanel?: string;
+  iconText?: string;
+  dismissPanel?: string;
+  glow?: string;
+  halo?: string;
+  focusRing?: string;
+};
+
 type FloatingCtaProps = {
   id: string;
   href: string;
@@ -22,7 +35,23 @@ type FloatingCtaProps = {
   hiddenRoutes?: string[];
   dismissDurationMs?: number;
   ariaLabel?: string;
+  positionClassName?: string;
+  theme?: FloatingCtaTheme;
   className?: string;
+};
+
+const defaultTheme: Required<FloatingCtaTheme> = {
+  panel: "bg-[#0f2741]",
+  border: "border-[#d31145] hover:border-[#d31145]",
+  text: "text-[#edf3f0]",
+  subtext: "text-white dark:text-[#d31145]/90",
+  iconPanel: "bg-[#0f2741]",
+  iconText: "text-[#d31145]",
+  dismissPanel:
+    "border-[#d31145] bg-[#0f2741] text-[#edf3f0] hover:border-[#d31145]",
+  glow: "bg-[radial-gradient(circle_at_top,_rgba(0,0,0,0.2),_transparent_60%)] dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.25),_transparent_60%)]",
+  halo: "bg-[conic-gradient(from_180deg,_rgba(0,0,0,0.35),_rgba(0,0,0,0.05),_rgba(0,0,0,0.35))] dark:bg-[conic-gradient(from_180deg,_rgba(255,255,255,0.35),_rgba(255,255,255,0.05),_rgba(255,255,255,0.35))]",
+  focusRing: "focus-visible:ring-[#d31145]/70",
 };
 
 const FloatingCta = (props: FloatingCtaProps) => {
@@ -36,9 +65,12 @@ const FloatingCta = (props: FloatingCtaProps) => {
     hiddenRoutes = [],
     dismissDurationMs = 1000 * 60 * 60 * 24 * 7,
     ariaLabel = label,
+    positionClassName = "bottom-[max(1.5rem,env(safe-area-inset-bottom))]",
+    theme,
     className,
   } = props;
 
+  const resolvedTheme = { ...defaultTheme, ...theme };
   const pathname = usePathname();
   const dismissKey = useMemo(() => `floatingCtaDismissedAt:${id}`, [id]);
   const [isVisible, setIsVisible] = useState(false);
@@ -67,32 +99,47 @@ const FloatingCta = (props: FloatingCtaProps) => {
 
   return (
     <div
-      className={`fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-6 z-[9999] pointer-events-auto ${className ?? ""}`}
+      className={`fixed ${positionClassName} right-6 z-[9999] pointer-events-auto ${className ?? ""}`}
     >
       <div className="group relative">
         <NextLink href={href} aria-label={ariaLabel}>
           <div className="relative">
-            <div className="absolute -inset-2 rounded-3xl bg-[radial-gradient(circle_at_top,_rgba(0,0,0,0.2),_transparent_60%)] opacity-0 blur-xl transition-opacity duration-300 group-hover:opacity-100 dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.25),_transparent_60%)]" />
-            <div className="absolute -inset-1 rounded-3xl bg-[conic-gradient(from_180deg,_rgba(0,0,0,0.35),_rgba(0,0,0,0.05),_rgba(0,0,0,0.35))] opacity-40 blur-md dark:bg-[conic-gradient(from_180deg,_rgba(255,255,255,0.35),_rgba(255,255,255,0.05),_rgba(255,255,255,0.35))]" />
-            <div className="relative inline-flex items-center gap-2 rounded-2xl border border-[#d31145] bg-[#0f2741] px-2 py-1.5 text-white shadow-[0_12px_30px_-25px_rgba(0,0,0,0.65)] transition group-hover:-translate-y-1 hover:-translate-y-1 hover:border-[#d31145] sm:gap-4 sm:px-5 sm:py-4 sm:shadow-[0_25px_60px_-35px_rgba(0,0,0,0.65)]">
+            <div
+              className={`absolute -inset-2 rounded-3xl opacity-0 blur-xl transition-opacity duration-300 group-hover:opacity-100 ${resolvedTheme.glow}`}
+            />
+            <div
+              className={`absolute -inset-1 rounded-3xl opacity-40 blur-md ${resolvedTheme.halo}`}
+            />
+            <div
+              className={`relative inline-flex min-h-[78px] w-[18rem] items-center gap-3 rounded-2xl border px-3 py-2 shadow-[0_12px_30px_-25px_rgba(0,0,0,0.65)] transition group-hover:-translate-y-1 hover:-translate-y-1 sm:min-h-[92px] sm:w-[22rem] sm:gap-4 sm:px-5 sm:py-4 sm:shadow-[0_25px_60px_-35px_rgba(0,0,0,0.65)] ${resolvedTheme.panel} ${resolvedTheme.border} ${resolvedTheme.text}`}
+            >
               {icon && (
-                <div className="flex h-6 w-6 items-center justify-center rounded-2xl bg-[#0f2741] text-[#d31145] shadow-md sm:h-11 sm:w-11">
+                <div
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl shadow-md sm:h-11 sm:w-11 ${resolvedTheme.iconPanel} ${resolvedTheme.iconText}`}
+                >
                   {icon}
                 </div>
               )}
-              <div>
-                <Heading className="text-lg text-[#edf3f0] sm:text-2xl" size="h4">
+              <div className="min-w-0">
+                <Heading
+                  className={`text-lg sm:text-2xl ${resolvedTheme.text}`}
+                  size="h4"
+                >
                   {label}
                 </Heading>
                 {(sublabel || secondarySublabel) && (
                   <div className="space-y-0.5">
                     {sublabel && (
-                      <Text className="text-xs md:text-sm uppercase text-white dark:text-[#d31145]/90">
+                      <Text
+                        className={`text-xs md:text-sm uppercase ${resolvedTheme.subtext}`}
+                      >
                         {sublabel}
                       </Text>
                     )}
                     {secondarySublabel && (
-                      <Text className="text-xs md:text-sm uppercase text-white dark:text-[#d31145]/90">
+                      <Text
+                        className={`text-xs uppercase sm:whitespace-nowrap md:text-sm ${resolvedTheme.subtext}`}
+                      >
                         {secondarySublabel}
                       </Text>
                     )}
@@ -113,7 +160,7 @@ const FloatingCta = (props: FloatingCtaProps) => {
               // Ignore storage access errors.
             }
           }}
-          className="absolute -top-1.5 -right-1.5 flex h-7 w-7 items-center justify-center rounded-full border border-[#d31145] bg-[#0f2741] text-[10px] font-semibold text-[#edf3f0] shadow-md transition group-hover:-translate-y-1 hover:-translate-y-0.5 hover:border-[#d31145] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d31145]/70 sm:-top-2 sm:-right-2 sm:h-8 sm:w-8 sm:text-xs"
+          className={`absolute -top-1.5 -right-1.5 flex h-7 w-7 items-center justify-center rounded-full border text-[10px] font-semibold shadow-md transition group-hover:-translate-y-1 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 sm:-top-2 sm:-right-2 sm:h-8 sm:w-8 sm:text-xs ${resolvedTheme.dismissPanel} ${resolvedTheme.focusRing}`}
           aria-label="Dismiss"
         >
           ×

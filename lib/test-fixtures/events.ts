@@ -20,6 +20,7 @@ const createEvent = (overrides: Partial<RyanEvent>): RyanEvent => ({
   location: "New York, NY",
   venue: "Ryan Meetup HQ",
   isPartnerEvent: false,
+  eventType: "Main",
   chapter: ["Main"],
   ...overrides,
 });
