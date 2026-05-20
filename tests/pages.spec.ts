@@ -22,6 +22,18 @@ const contentRoutes = [
 ];
 
 const redirectRoutes = [
+  {
+    path: "/baseball",
+    location: "https://partiful.com/e/qIoEYsF86UUJymsWNKkW",
+  },
+  {
+    path: "/coaster",
+    location: "https://partiful.com/e/UhROHO0MxSrt5WEPfvXT",
+  },
+  {
+    path: "/copa",
+    location: "https://partiful.com/e/nJa43gzeVEPf06cvxZVS",
+  },
   { path: "/discord", location: "https://discord.gg/8rPPQMtZCp" },
   {
     path: "/guidelines",

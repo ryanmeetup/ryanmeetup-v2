@@ -44,7 +44,7 @@ const Layout = (props: LayoutProps) => {
 
       <FloatingCta
         id="copa-del-ryan-rsvp"
-        href="/rsvp"
+        href="/copa"
         label="RSVP"
         sublabel="Copa del Ryan"
         secondarySublabel="6/26/26 &nbsp;•&nbsp; Brooklyn, NY"
@@ -69,7 +69,7 @@ const Layout = (props: LayoutProps) => {
 
       <FloatingCta
         id="rsvp"
-        href="/rsvp"
+        href="/baseball"
         label="RSVP"
         sublabel="Ryan Baseball Classic"
         secondarySublabel="7/25/26 &nbsp;•&nbsp; Minneapolis, MN"

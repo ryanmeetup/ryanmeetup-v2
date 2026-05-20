@@ -16,6 +16,7 @@ type ModalProps = {
   children: ReactNode;
   hideActions?: boolean;
   panelClassName?: string;
+  primaryActionFirst?: boolean;
   cancelButtonText: string;
   continueButtonText: string;
   isContinueDisabled: boolean;
@@ -32,12 +33,24 @@ const Modal = (props: ModalProps) => {
     children,
     hideActions = false,
     panelClassName,
+    primaryActionFirst = false,
     cancelButtonText,
     continueButtonText,
     isContinueDisabled,
     cancelAction,
     continueAction,
   } = props;
+
+  const primaryAction = (
+    <Button variant="primary" fullWidth disabled={isContinueDisabled} onClick={continueAction}>
+      {continueButtonText}
+    </Button>
+  );
+  const secondaryAction = (
+    <Button variant="secondary" fullWidth onClick={cancelAction}>
+      {cancelButtonText}
+    </Button>
+  );
 
   return (
     <Dialog open={open} onClose={() => setIsOpen(false)} className="relative z-50">
@@ -72,17 +85,8 @@ const Modal = (props: ModalProps) => {
 
             {!hideActions && (
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                <Button variant="secondary" fullWidth onClick={cancelAction}>
-                  {cancelButtonText}
-                </Button>
-                <Button
-                  variant="primary"
-                  fullWidth
-                  disabled={isContinueDisabled}
-                  onClick={continueAction}
-                >
-                  {continueButtonText}
-                </Button>
+                {primaryActionFirst ? primaryAction : secondaryAction}
+                {primaryActionFirst ? secondaryAction : primaryAction}
               </div>
             )}
           </div>
