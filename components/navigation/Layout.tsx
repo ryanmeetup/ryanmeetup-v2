@@ -50,7 +50,7 @@ const Layout = (props: LayoutProps) => {
         secondarySublabel="6/26/26 &nbsp;•&nbsp; Brooklyn, NY"
         ariaLabel="RSVP to Copa del Ryan"
         hiddenRoutes={["/rsvp", "/awards", "/name-change"]}
-        positionClassName="bottom-[max(9.5rem,calc(env(safe-area-inset-bottom)+9.5rem))]"
+        positionClassName="bottom-[max(7.25rem,calc(env(safe-area-inset-bottom)+7.25rem))] sm:bottom-[max(9.5rem,calc(env(safe-area-inset-bottom)+9.5rem))]"
         theme={{
           panel: "bg-[#234315]",
           border: "border-[#e9edc9] hover:border-[#f2f6d2]",
