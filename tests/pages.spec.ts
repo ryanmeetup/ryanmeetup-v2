@@ -41,6 +41,11 @@ const redirectRoutes = [
       "https://docs.google.com/document/d/1DfDD3iyrQMUHTt4EzbfPytfOOh-de1vk9pHRqqM8obs/edit?tab=t.0",
   },
   { path: "/chapter-lead", location: "https://form.typeform.com/to/TZkv7rua" },
+  {
+    path: "/hotel",
+    location:
+      "https://www.hilton.com/en/book/reservation/rooms/?ctyhocn=MSPSSES&arrivalDate=2026-07-23&departureDate=2026-07-26&groupCode=CES901&room1NumAdults=1&cid=OM%2CWW%2CHILTONLINK%2CEN%2CDirectLink",
+  },
   { path: "/join", location: "https://partiful.com/u/sJG4HpH0wS3ZA3YkzaL5" },
   { path: "/merch", location: "https://ryanmeetup.etsy.com" },
   {
