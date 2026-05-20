@@ -286,6 +286,10 @@ export const gallery = [
     imageUrl: "/group-photos/serhant.jpg",
     title: "Ryans Own Manhattan, December 2025",
   },
+  {
+    imageUrl: "/group-photos/philly.jpg",
+    title: "St. Ryan's Day III, March 2026",
+  },
 ];
 
 export const landingGallery = [
