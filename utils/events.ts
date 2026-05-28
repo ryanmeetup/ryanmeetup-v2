@@ -49,11 +49,25 @@ const hasEventTag = (value: string | string[] | undefined, tag: string) => {
 const isMainEvent = (event: RyanEvent) =>
   hasEventTag(event.eventType, "Main") || hasEventTag(event.chapter, "Main");
 
+const isRyanEmbassyEvent = (event: RyanEvent) =>
+  [event.title, event.venue].some(
+    (value) => value?.toLowerCase().includes("ryan embassy"),
+  );
+
+const getEventCtaLabel = (event: RyanEvent, fallbackLabel: string) => {
+  if (fallbackLabel.toLowerCase() === "rsvp" && isRyanEmbassyEvent(event)) {
+    return "Book a room";
+  }
+
+  return fallbackLabel;
+};
+
 export {
   buildEventSearchText,
   filterEventsByQuery,
   getEventsByView,
   getSortedEventsByView,
   getEventEmptyMessage,
+  getEventCtaLabel,
   isMainEvent,
 };

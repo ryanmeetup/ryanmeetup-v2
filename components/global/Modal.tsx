@@ -17,6 +17,7 @@ type ModalProps = {
   hideActions?: boolean;
   panelClassName?: string;
   primaryActionFirst?: boolean;
+  reverseActionsOnDesktop?: boolean;
   cancelButtonText: string;
   continueButtonText: string;
   isContinueDisabled: boolean;
@@ -34,6 +35,7 @@ const Modal = (props: ModalProps) => {
     hideActions = false,
     panelClassName,
     primaryActionFirst = false,
+    reverseActionsOnDesktop = false,
     cancelButtonText,
     continueButtonText,
     isContinueDisabled,
@@ -84,7 +86,11 @@ const Modal = (props: ModalProps) => {
             {children}
 
             {!hideActions && (
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <div
+                className={`mt-6 flex flex-col gap-3 ${
+                  reverseActionsOnDesktop ? "sm:flex-row-reverse" : "sm:flex-row"
+                }`}
+              >
                 {primaryActionFirst ? primaryAction : secondaryAction}
                 {primaryActionFirst ? secondaryAction : primaryAction}
               </div>

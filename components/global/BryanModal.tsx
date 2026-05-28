@@ -29,6 +29,7 @@ const BryanModal = () => {
       continueButtonText="Continue"
       isContinueDisabled={!isChecked}
       primaryActionFirst
+      reverseActionsOnDesktop
       cancelAction={() => router.push("/goodbye")}
       continueAction={() => setShowModal(false)}
     >

@@ -5,6 +5,7 @@ import NextLink from "next/link";
 import { Heading, Text, Kicker } from "@/components/global";
 import { FaArrowRight as ArrowRight } from "react-icons/fa6";
 import { formatEventLocationLabel, formatMonthDay } from "@/utils/date";
+import { getEventCtaLabel } from "@/utils/events";
 import type { RyanEvent } from "@/lib/types";
 
 type EventRowProps = {
@@ -24,7 +25,10 @@ const EventRow = (props: EventRowProps) => {
   const visibleChapterTags = chapterTags.slice(0, maxChapterBadges);
   const remainingChapterCount = Math.max(0, chapterTags.length - maxChapterBadges);
   const isPartiful = typeof event.href === "string" && event.href.includes("partiful.com");
-  const isViewEvent = ctaLabel.toLowerCase() === "view event";
+  const resolvedCtaLabel = getEventCtaLabel(event, ctaLabel);
+  const resolvedCtaKey = resolvedCtaLabel.toLowerCase();
+  const isViewEvent = resolvedCtaKey === "view event";
+  const showPartifulRsvp = isPartiful && resolvedCtaKey === "rsvp";
 
   return (
     <NextLink
@@ -75,7 +79,7 @@ const EventRow = (props: EventRowProps) => {
         </div>
       </div>
       <span className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-black/20 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-black transition group-hover:border-black/40 group-hover:bg-black/5 dark:border-white/20 dark:text-white dark:group-hover:border-white/40 dark:group-hover:bg-white/10 sm:w-auto">
-        {isPartiful && ctaLabel.toLowerCase() === "rsvp" && (
+        {showPartifulRsvp && (
           <NextImage
             src="/icons/partiful.webp"
             alt="Partiful"
@@ -84,9 +88,7 @@ const EventRow = (props: EventRowProps) => {
             className="h-4 w-4"
           />
         )}
-        {isPartiful && ctaLabel.toLowerCase() === "rsvp"
-          ? "RSVP on Partiful"
-          : ctaLabel}
+        {showPartifulRsvp ? "RSVP on Partiful" : resolvedCtaLabel}
         {isViewEvent && <ArrowRight className="h-3.5 w-3.5" />}
       </span>
     </NextLink>

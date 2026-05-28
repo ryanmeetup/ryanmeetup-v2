@@ -13,6 +13,7 @@ import type { ContentfulImage, RyanEvent } from "@/lib/types";
 // Utilities
 import { convertImageUrl } from "@/utils/convert";
 import { formatEventDisplayDate, isEventUpcoming } from "@/utils/date";
+import { getEventCtaLabel } from "@/utils/events";
 
 type EventProps = {
   event: RyanEvent;
@@ -25,6 +26,7 @@ const Event = (props: EventProps) => {
     props.event;
   const isUpcoming = isEventUpcoming(date);
   const displayDate = formatEventDisplayDate({ date, dateTime });
+  const upcomingCtaLabel = getEventCtaLabel(props.event, "RSVP");
 
   const imageUrl =
     typeof coverImage === "string"
@@ -94,7 +96,7 @@ const Event = (props: EventProps) => {
               {isUpcoming ? (
                 <>
                   <CalendarCheck className="h-4 w-4" />
-                  RSVP
+                  {upcomingCtaLabel}
                 </>
               ) : (
                 <>
