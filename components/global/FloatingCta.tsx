@@ -17,6 +17,7 @@ type FloatingCtaTheme = {
   border?: string;
   text?: string;
   subtext?: string;
+  detailIcon?: string;
   iconPanel?: string;
   iconText?: string;
   dismissPanel?: string;
@@ -31,6 +32,13 @@ type FloatingCtaProps = {
   label: string;
   sublabel?: string;
   secondarySublabel?: string;
+  details?: {
+    title: string;
+    rows: {
+      icon?: ReactNode;
+      text: string;
+    }[];
+  }[];
   icon?: ReactNode;
   hiddenRoutes?: string[];
   dismissDurationMs?: number;
@@ -45,6 +53,7 @@ const defaultTheme: Required<FloatingCtaTheme> = {
   border: "border-[#d31145] hover:border-[#d31145]",
   text: "text-[#edf3f0]",
   subtext: "text-white dark:text-[#d31145]/90",
+  detailIcon: "text-[#d31145]",
   iconPanel: "bg-[#0f2741]",
   iconText: "text-[#d31145]",
   dismissPanel:
@@ -61,6 +70,7 @@ const FloatingCta = (props: FloatingCtaProps) => {
     label,
     sublabel,
     secondarySublabel,
+    details,
     icon,
     hiddenRoutes = [],
     dismissDurationMs = 1000 * 60 * 60 * 24 * 7,
@@ -111,39 +121,77 @@ const FloatingCta = (props: FloatingCtaProps) => {
               className={`absolute -inset-1 rounded-3xl opacity-40 blur-md ${resolvedTheme.halo}`}
             />
             <div
-              className={`relative inline-flex min-h-[78px] w-[18rem] items-center gap-3 rounded-2xl border px-3 py-2 shadow-[0_12px_30px_-25px_rgba(0,0,0,0.65)] transition group-hover:-translate-y-1 hover:-translate-y-1 sm:min-h-[92px] sm:w-[22rem] sm:gap-4 sm:px-5 sm:py-4 sm:shadow-[0_25px_60px_-35px_rgba(0,0,0,0.65)] ${resolvedTheme.panel} ${resolvedTheme.border} ${resolvedTheme.text}`}
+              className={`relative inline-flex min-h-[78px] w-[20rem] items-start gap-3 rounded-2xl border px-3 py-3 shadow-[0_12px_30px_-25px_rgba(0,0,0,0.65)] transition group-hover:-translate-y-1 hover:-translate-y-1 sm:min-h-[92px] sm:w-[27rem] sm:gap-4 sm:px-5 sm:py-4 sm:shadow-[0_25px_60px_-35px_rgba(0,0,0,0.65)] ${resolvedTheme.panel} ${resolvedTheme.border} ${resolvedTheme.text}`}
             >
               {icon && (
                 <div
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl shadow-md sm:h-11 sm:w-11 ${resolvedTheme.iconPanel} ${resolvedTheme.iconText}`}
+                  className={`mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl shadow-md sm:h-11 sm:w-11 ${resolvedTheme.iconPanel} ${resolvedTheme.iconText}`}
                 >
                   {icon}
                 </div>
               )}
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <Heading
                   className={`text-lg sm:text-2xl ${resolvedTheme.text}`}
                   size="h4"
                 >
                   {label}
                 </Heading>
-                {(sublabel || secondarySublabel) && (
-                  <div className="space-y-0.5">
-                    {sublabel && (
-                      <Text
-                        className={`text-xs md:text-sm uppercase ${resolvedTheme.subtext}`}
+                {details && details.length > 0 ? (
+                  <div className="mt-1.5 grid gap-2 sm:grid-cols-2 sm:gap-4">
+                    {details.map((detail) => (
+                      <div
+                        key={detail.title}
+                        className="flex min-w-0 flex-col"
                       >
-                        {sublabel}
-                      </Text>
-                    )}
-                    {secondarySublabel && (
-                      <Text
-                        className={`text-xs uppercase sm:whitespace-nowrap md:text-sm ${resolvedTheme.subtext}`}
-                      >
-                        {secondarySublabel}
-                      </Text>
-                    )}
+                        <Text
+                          className={`text-xs uppercase leading-tight md:text-sm ${resolvedTheme.subtext}`}
+                        >
+                          {detail.title}
+                        </Text>
+                        <div className="mt-auto space-y-1 pt-1">
+                          {detail.rows.map((row) => (
+                            <div
+                              key={`${detail.title}-${row.text}`}
+                              className="flex min-w-0 items-center gap-1.5"
+                            >
+                              {row.icon && (
+                                <span
+                                  className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center ${resolvedTheme.detailIcon}`}
+                                >
+                                  {row.icon}
+                                </span>
+                              )}
+                              <Text
+                                className={`truncate text-[11px] uppercase leading-tight md:text-xs ${resolvedTheme.subtext}`}
+                              >
+                                {row.text}
+                              </Text>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </div>
+                ) : (
+                  (sublabel || secondarySublabel) && (
+                    <div className="space-y-0.5">
+                      {sublabel && (
+                        <Text
+                          className={`text-xs md:text-sm uppercase ${resolvedTheme.subtext}`}
+                        >
+                          {sublabel}
+                        </Text>
+                      )}
+                      {secondarySublabel && (
+                        <Text
+                          className={`text-xs uppercase sm:whitespace-nowrap md:text-sm ${resolvedTheme.subtext}`}
+                        >
+                          {secondarySublabel}
+                        </Text>
+                      )}
+                    </div>
+                  )
                 )}
               </div>
             </div>

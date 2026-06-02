@@ -33,15 +33,21 @@ export async function GET(request: Request, context: RouteContext) {
     return NextResponse.redirect(new URL("/sponsors", request.url), 302);
   }
 
-  await track(`sponsor_click:${slug}`, {
-    sponsor_id: slug,
-    sponsor_name: sponsorName,
-    sponsor_href: targetUrl.toString(),
-    sponsor_host: targetUrl.hostname,
-    source_path: sourcePath,
-    placement,
-    partnership_type: partnershipType,
-  });
+  await track(
+    `sponsor_click:${slug}`,
+    {
+      sponsor_id: slug,
+      sponsor_name: sponsorName,
+      sponsor_href: targetUrl.toString(),
+      sponsor_host: targetUrl.hostname,
+      source_path: sourcePath,
+      placement,
+      partnership_type: partnershipType,
+    },
+    {
+      request,
+    },
+  );
 
   return NextResponse.redirect(targetUrl, 302);
 }

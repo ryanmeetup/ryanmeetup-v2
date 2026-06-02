@@ -5,8 +5,11 @@ import { useState, useEffect } from "react";
 // Components
 import { Banner, Header, NewFooter } from "@/components/navigation";
 import { FloatingCta } from "@/components/global";
-import { IoBaseball as Baseball } from "react-icons/io5";
-import { MdSportsSoccer as Soccer } from "react-icons/md";
+import {
+  FaCalendarAlt as Calendar,
+  FaMapMarkerAlt as MapPin,
+  FaTicketAlt as Ticket,
+} from "react-icons/fa";
 import { useTheme } from "next-themes";
 import { layoutPaddingX } from "@/lib/constants";
 
@@ -43,39 +46,54 @@ const Layout = (props: LayoutProps) => {
       </section>
 
       <FloatingCta
-        id="copa-del-ryan-rsvp"
-        href="/copa"
+        id="upcoming-events-rsvp"
+        href="/rsvp"
         label="RSVP"
-        sublabel="Copa del Ryan"
-        secondarySublabel="6/26/26 &nbsp;•&nbsp; Brooklyn, NY"
-        ariaLabel="RSVP to Copa del Ryan"
-        hiddenRoutes={["/rsvp", "/awards", "/name-change"]}
-        positionClassName="bottom-[max(7.25rem,calc(env(safe-area-inset-bottom)+7.25rem))] sm:bottom-[max(9.5rem,calc(env(safe-area-inset-bottom)+9.5rem))]"
-        theme={{
-          panel: "bg-[#234315]",
-          border: "border-[#e9edc9] hover:border-[#f2f6d2]",
-          text: "text-[#f4f4d2]",
-          subtext: "text-[#f4f4d2]",
-          iconPanel: "bg-[#e9edc9]",
-          iconText: "text-[#234315]",
-          dismissPanel:
-            "border-[#e9edc9] bg-[#234315] text-[#f4f4d2] hover:border-[#f2f6d2]",
-          glow: "bg-[radial-gradient(circle_at_top,_rgba(233,237,201,0.35),_transparent_60%)]",
-          halo: "bg-[conic-gradient(from_180deg,_rgba(233,237,201,0.5),_rgba(244,244,210,0.12),_rgba(233,237,201,0.5))]",
-          focusRing: "focus-visible:ring-[#e9edc9]/80",
-        }}
-        icon={<Soccer className="h-7 w-7 fill-current" />}
-      />
-
-      <FloatingCta
-        id="rsvp"
-        href="/baseball"
-        label="RSVP"
-        sublabel="Ryan Baseball Classic"
-        secondarySublabel="7/25/26 &nbsp;•&nbsp; Minneapolis, MN"
+        details={[
+          {
+            title: "Copa del Ryan",
+            rows: [
+              {
+                icon: <Calendar className="h-3 w-3 fill-current" />,
+                text: "June 26, 2026",
+              },
+              {
+                icon: <MapPin className="h-3 w-3 fill-current" />,
+                text: "Brooklyn, NY",
+              },
+            ],
+          },
+          {
+            title: "Ryan Baseball Classic",
+            rows: [
+              {
+                icon: <Calendar className="h-3 w-3 fill-current" />,
+                text: "July 25, 2026",
+              },
+              {
+                icon: <MapPin className="h-3 w-3 fill-current" />,
+                text: "Minneapolis, MN",
+              },
+            ],
+          },
+        ]}
         ariaLabel="RSVP to upcoming events"
         hiddenRoutes={["/rsvp", "/awards", "/name-change"]}
-        icon={<Baseball className="h-8 w-8 fill-current" />}
+        theme={{
+          panel: "bg-[#1f1d1b]",
+          border: "border-[#f4f4d2] hover:border-white",
+          text: "text-[#f4f4d2]",
+          subtext: "text-[#f4f4d2]/85",
+          detailIcon: "text-[#d31145]",
+          iconPanel: "bg-[#f4f4d2]",
+          iconText: "text-[#1f1d1b]",
+          dismissPanel:
+            "border-[#f4f4d2] bg-[#1f1d1b] text-[#f4f4d2] hover:border-white",
+          glow: "bg-[radial-gradient(circle_at_top,_rgba(211,17,69,0.24),_transparent_60%)]",
+          halo: "bg-[conic-gradient(from_180deg,_rgba(244,244,210,0.44),_rgba(211,17,69,0.14),_rgba(244,244,210,0.44))]",
+          focusRing: "focus-visible:ring-[#f4f4d2]/80",
+        }}
+        icon={<Ticket className="h-7 w-7 fill-current" />}
       />
 
       <NewFooter />
