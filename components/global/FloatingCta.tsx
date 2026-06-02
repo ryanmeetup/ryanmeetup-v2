@@ -121,7 +121,7 @@ const FloatingCta = (props: FloatingCtaProps) => {
               className={`absolute -inset-1 rounded-3xl opacity-40 blur-md ${resolvedTheme.halo}`}
             />
             <div
-              className={`relative inline-flex min-h-[78px] w-[20rem] items-start gap-3 rounded-2xl border px-3 py-3 shadow-[0_12px_30px_-25px_rgba(0,0,0,0.65)] transition group-hover:-translate-y-1 hover:-translate-y-1 sm:min-h-[92px] sm:w-[27rem] sm:gap-4 sm:px-5 sm:py-4 sm:shadow-[0_25px_60px_-35px_rgba(0,0,0,0.65)] ${resolvedTheme.panel} ${resolvedTheme.border} ${resolvedTheme.text}`}
+              className={`relative inline-flex min-h-[78px] w-[18.75rem] items-start gap-3 rounded-2xl border px-3 py-3 shadow-[0_12px_30px_-25px_rgba(0,0,0,0.65)] transition group-hover:-translate-y-1 hover:-translate-y-1 sm:min-h-[92px] sm:w-fit sm:max-w-[calc(100vw-3rem)] sm:gap-4 sm:px-5 sm:py-4 sm:shadow-[0_25px_60px_-35px_rgba(0,0,0,0.65)] ${resolvedTheme.panel} ${resolvedTheme.border} ${resolvedTheme.text}`}
             >
               {icon && (
                 <div
@@ -138,17 +138,17 @@ const FloatingCta = (props: FloatingCtaProps) => {
                   {label}
                 </Heading>
                 {details && details.length > 0 ? (
-                  <div className="mt-1.5 grid gap-2 sm:grid-cols-2 sm:gap-4">
+                  <div className="mt-1.5 grid gap-4 sm:max-w-[31rem] sm:grid-cols-[max-content_max-content] sm:gap-10">
                     {details.map((detail) => (
                       <div
                         key={detail.title}
                         className="flex min-w-0 flex-col"
                       >
-                        <Text
-                          className={`text-xs uppercase leading-tight md:text-sm ${resolvedTheme.subtext}`}
+                        <p
+                          className={`whitespace-nowrap text-[15px] font-semibold uppercase leading-tight tracking-wide sm:text-sm ${resolvedTheme.subtext}`}
                         >
                           {detail.title}
-                        </Text>
+                        </p>
                         <div className="mt-auto space-y-1 pt-1">
                           {detail.rows.map((row) => (
                             <div
@@ -162,11 +162,11 @@ const FloatingCta = (props: FloatingCtaProps) => {
                                   {row.icon}
                                 </span>
                               )}
-                              <Text
-                                className={`truncate text-[11px] uppercase leading-tight md:text-xs ${resolvedTheme.subtext}`}
+                              <p
+                                className={`truncate text-xs uppercase leading-tight tracking-wide sm:text-xs ${resolvedTheme.subtext}`}
                               >
                                 {row.text}
-                              </Text>
+                              </p>
                             </div>
                           ))}
                         </div>

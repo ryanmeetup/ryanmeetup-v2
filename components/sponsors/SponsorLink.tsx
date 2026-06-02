@@ -1,6 +1,5 @@
 "use client";
 
-import NextLink from "next/link";
 import { usePathname } from "next/navigation";
 
 import type { ReactNode } from "react";
@@ -30,23 +29,19 @@ const SponsorLink = (props: SponsorLinkProps) => {
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+  const params = new URLSearchParams({
+    to: href,
+    name: sponsorName,
+    placement,
+    type: partnershipType ?? "unknown",
+    source: pathname ?? "/",
+  });
+  const trackingHref = `/out/sponsor/${sponsorId}?${params.toString()}`;
 
   return (
-    <NextLink
-      href={{
-        pathname: `/out/sponsor/${sponsorId}`,
-        query: {
-          to: href,
-          name: sponsorName,
-          placement,
-          type: partnershipType ?? "unknown",
-          source: pathname ?? "/",
-        },
-      }}
-      className={className}
-    >
+    <a href={trackingHref} className={className}>
       {children}
-    </NextLink>
+    </a>
   );
 };
 

@@ -47,13 +47,13 @@ const Container = (props: ContainerProps) => {
     <div>
       {eventType === "Main" ? (
         <div className="grid grid-cols-1 gap-x-4 gap-y-4 md:grid-cols-2 xl:grid-cols-3 4xl:grid-cols-3">
-          {title.includes("Upcoming Events") &&
-            showChapters &&
-            !pathname.includes("/chapters") && <Chapters />}
-
           {events?.map((event, index) => (
             <Event key={index} event={event as RyanEvent} />
           ))}
+
+          {title.includes("Upcoming Events") &&
+            showChapters &&
+            !pathname.includes("/chapters") && <Chapters />}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-x-4 gap-y-4 xl:grid-cols-2">
