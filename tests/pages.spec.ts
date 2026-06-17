@@ -46,6 +46,10 @@ const redirectRoutes = [
     location:
       "https://www.hilton.com/en/book/reservation/rooms/?ctyhocn=MSPSSES&arrivalDate=2026-07-23&departureDate=2026-07-26&groupCode=CES901&room1NumAdults=1&cid=OM%2CWW%2CHILTONLINK%2CEN%2CDirectLink",
   },
+  {
+    path: "/iowa",
+    location: "https://partiful.com/e/ZWXe1yXdK1rAUMXz30Rc",
+  },
   { path: "/join", location: "https://partiful.com/u/sJG4HpH0wS3ZA3YkzaL5" },
   { path: "/merch", location: "https://ryanmeetup.etsy.com" },
   {
