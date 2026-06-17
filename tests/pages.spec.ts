@@ -44,7 +44,7 @@ const redirectRoutes = [
   {
     path: "/hotel",
     location:
-      "https://www.hilton.com/en/book/reservation/rooms/?ctyhocn=MSPSSES&arrivalDate=2026-07-23&departureDate=2026-07-26&groupCode=CES901&room1NumAdults=1&cid=OM%2CWW%2CHILTONLINK%2CEN%2CDirectLink",
+      "https://www.sonesta.com/royal-sonesta/mn/minneapolis/royal-sonesta-minneapolis-downtown?isGroupCode=true&groupCode=G072226RYAN&checkin=2026-07-22&checkout=2026-07-27",
   },
   {
     path: "/iowa",
