@@ -8,9 +8,9 @@ const { metadata, RedirectPage } = createRedirectPage({
     description: "Book the Ryan Meetup hotel block.",
     canonical: "https://ryanmeetup.com/hotel",
     image: {
-      url: "https://ryanmeetup.com/meta/embassy.png",
-      width: 4500,
-      height: 2660,
+      url: "https://ryanmeetup.com/duke.PNG",
+      width: 11651,
+      height: 7642,
     },
     keywords: [
       "ryan meetup hotel",
