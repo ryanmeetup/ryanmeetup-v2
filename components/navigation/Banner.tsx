@@ -7,13 +7,6 @@ import { layoutPaddingX } from "@/lib/constants";
 const Banner = () => {
   return (
     <div className="font-cooper">
-      <div className={`bg-[#234315] py-1 text-[#f4f4d2] ${layoutPaddingX}`}>
-        Copa del Ryan kicks off in Brooklyn on Friday, June 26.{" "}
-        <NextLink href="/copa" className="underline hover:text-white">
-          RSVP today
-        </NextLink>
-        .
-      </div>
       <div className={`bg-[#4a2f14] py-1 text-[#fff4d6] ${layoutPaddingX}`}>
          We&apos;re heading to Minneapolis to Ryde the Ryan Coaster on Friday, July 24.{" "}
         <NextLink href="/coaster" className="underline hover:text-white">

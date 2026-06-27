@@ -30,10 +30,6 @@ const redirectRoutes = [
     path: "/coaster",
     location: "https://partiful.com/e/UhROHO0MxSrt5WEPfvXT",
   },
-  {
-    path: "/copa",
-    location: "https://partiful.com/e/nJa43gzeVEPf06cvxZVS",
-  },
   { path: "/discord", location: "https://discord.gg/8rPPQMtZCp" },
   {
     path: "/guidelines",

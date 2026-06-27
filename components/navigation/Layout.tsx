@@ -51,19 +51,6 @@ const Layout = (props: LayoutProps) => {
         label="RSVP"
         details={[
           {
-            title: "Copa del Ryan",
-            rows: [
-              {
-                icon: <Calendar className="h-3 w-3 fill-current" />,
-                text: "June 26, 2026",
-              },
-              {
-                icon: <MapPin className="h-3 w-3 fill-current" />,
-                text: "Brooklyn, NY",
-              },
-            ],
-          },
-          {
             title: "Ryan Baseball Classic",
             rows: [
               {
