@@ -34,6 +34,7 @@ type FloatingCtaProps = {
   secondarySublabel?: string;
   details?: {
     title: string;
+    href?: string;
     rows: {
       icon?: ReactNode;
       text: string;
@@ -84,6 +85,7 @@ const FloatingCta = (props: FloatingCtaProps) => {
   const pathname = usePathname();
   const dismissKey = useMemo(() => `floatingCtaDismissedAt:${id}`, [id]);
   const [isVisible, setIsVisible] = useState(false);
+  const hasDetailLinks = details?.some((detail) => detail.href) ?? false;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -112,91 +114,202 @@ const FloatingCta = (props: FloatingCtaProps) => {
       className={`fixed ${positionClassName} right-6 z-[9999] pointer-events-auto ${className ?? ""}`}
     >
       <div className="group relative">
-        <NextLink href={href} aria-label={ariaLabel}>
-          <div className="relative">
-            <div
-              className={`absolute -inset-2 rounded-3xl opacity-0 blur-xl transition-opacity duration-300 group-hover:opacity-100 ${resolvedTheme.glow}`}
-            />
-            <div
-              className={`absolute -inset-1 rounded-3xl opacity-40 blur-md ${resolvedTheme.halo}`}
-            />
-            <div
-              className={`relative inline-flex min-h-[78px] w-[18.75rem] items-start gap-3 rounded-2xl border px-3 py-3 shadow-[0_12px_30px_-25px_rgba(0,0,0,0.65)] transition group-hover:-translate-y-1 hover:-translate-y-1 sm:min-h-[92px] sm:w-fit sm:max-w-[calc(100vw-3rem)] sm:gap-4 sm:px-5 sm:py-4 sm:shadow-[0_25px_60px_-35px_rgba(0,0,0,0.65)] ${resolvedTheme.panel} ${resolvedTheme.border} ${resolvedTheme.text}`}
-            >
-              {icon && (
-                <div
-                  className={`mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl shadow-md sm:h-11 sm:w-11 ${resolvedTheme.iconPanel} ${resolvedTheme.iconText}`}
-                >
-                  {icon}
-                </div>
-              )}
-              <div className="min-w-0 flex-1">
-                <Heading
-                  className={`text-lg sm:text-2xl ${resolvedTheme.text}`}
-                  size="h4"
-                >
-                  {label}
-                </Heading>
-                {details && details.length > 0 ? (
-                  <div className="mt-1.5 grid gap-4 sm:max-w-[31rem] sm:grid-cols-[max-content_max-content] sm:gap-10">
-                    {details.map((detail) => (
-                      <div
-                        key={detail.title}
-                        className="flex min-w-0 flex-col"
-                      >
-                        <p
-                          className={`whitespace-nowrap text-[15px] font-semibold uppercase leading-tight tracking-wide sm:text-sm ${resolvedTheme.subtext}`}
-                        >
-                          {detail.title}
-                        </p>
-                        <div className="mt-auto space-y-1 pt-1">
-                          {detail.rows.map((row) => (
-                            <div
-                              key={`${detail.title}-${row.text}`}
-                              className="flex min-w-0 items-center gap-1.5"
-                            >
-                              {row.icon && (
-                                <span
-                                  className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center ${resolvedTheme.detailIcon}`}
-                                >
-                                  {row.icon}
-                                </span>
-                              )}
-                              <p
-                                className={`truncate text-xs uppercase leading-tight tracking-wide sm:text-xs ${resolvedTheme.subtext}`}
-                              >
-                                {row.text}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  (sublabel || secondarySublabel) && (
-                    <div className="space-y-0.5">
-                      {sublabel && (
-                        <Text
-                          className={`text-xs md:text-sm uppercase ${resolvedTheme.subtext}`}
-                        >
-                          {sublabel}
-                        </Text>
-                      )}
-                      {secondarySublabel && (
-                        <Text
-                          className={`text-xs uppercase sm:whitespace-nowrap md:text-sm ${resolvedTheme.subtext}`}
-                        >
-                          {secondarySublabel}
-                        </Text>
-                      )}
-                    </div>
-                  )
+        {hasDetailLinks ? (
+          <div aria-label={ariaLabel}>
+            <div className="relative">
+              <div
+                className={`absolute -inset-2 rounded-3xl opacity-0 blur-xl transition-opacity duration-300 group-hover:opacity-100 ${resolvedTheme.glow}`}
+              />
+              <div
+                className={`absolute -inset-1 rounded-3xl opacity-40 blur-md ${resolvedTheme.halo}`}
+              />
+              <div
+                className={`relative inline-flex min-h-[78px] w-[18.75rem] items-start gap-3 rounded-2xl border px-3 py-3 shadow-[0_12px_30px_-25px_rgba(0,0,0,0.65)] transition group-hover:-translate-y-1 hover:-translate-y-1 sm:min-h-[92px] sm:w-fit sm:max-w-[calc(100vw-3rem)] sm:gap-4 sm:px-5 sm:py-4 sm:shadow-[0_25px_60px_-35px_rgba(0,0,0,0.65)] ${resolvedTheme.panel} ${resolvedTheme.border} ${resolvedTheme.text}`}
+              >
+                {icon && (
+                  <NextLink
+                    href={href}
+                    className={`mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl shadow-md transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 sm:h-11 sm:w-11 ${resolvedTheme.iconPanel} ${resolvedTheme.iconText} ${resolvedTheme.focusRing}`}
+                    aria-label={label}
+                  >
+                    {icon}
+                  </NextLink>
                 )}
+                <div className="min-w-0 flex-1">
+                  <NextLink
+                    href={href}
+                    className={`inline-block focus-visible:outline-none focus-visible:ring-2 ${resolvedTheme.focusRing}`}
+                  >
+                    <Heading
+                      className={`text-lg sm:text-2xl ${resolvedTheme.text}`}
+                      size="h4"
+                    >
+                      {label}
+                    </Heading>
+                  </NextLink>
+                  {details && details.length > 0 ? (
+                    <div className="mt-1.5 grid gap-4 sm:max-w-[42rem] sm:grid-cols-[repeat(3,max-content)] sm:gap-8">
+                      {details.map((detail) => {
+                        const content = (
+                          <>
+                            <p
+                              className={`whitespace-nowrap text-[15px] font-semibold uppercase leading-tight tracking-wide sm:text-sm ${resolvedTheme.subtext}`}
+                            >
+                              {detail.title}
+                            </p>
+                            <div className="mt-auto space-y-1 pt-1">
+                              {detail.rows.map((row) => (
+                                <div
+                                  key={`${detail.title}-${row.text}`}
+                                  className="flex min-w-0 items-center gap-1.5"
+                                >
+                                  {row.icon && (
+                                    <span
+                                      className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center ${resolvedTheme.detailIcon}`}
+                                    >
+                                      {row.icon}
+                                    </span>
+                                  )}
+                                  <p
+                                    className={`truncate text-xs uppercase leading-tight tracking-wide sm:text-xs ${resolvedTheme.subtext}`}
+                                  >
+                                    {row.text}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        );
+
+                        return detail.href ? (
+                          <NextLink
+                            key={detail.title}
+                            href={detail.href}
+                            className={`flex min-w-0 flex-col rounded-lg p-1 -m-1 transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 ${resolvedTheme.focusRing}`}
+                          >
+                            {content}
+                          </NextLink>
+                        ) : (
+                          <div
+                            key={detail.title}
+                            className="flex min-w-0 flex-col"
+                          >
+                            {content}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    (sublabel || secondarySublabel) && (
+                      <div className="space-y-0.5">
+                        {sublabel && (
+                          <Text
+                            className={`text-xs md:text-sm uppercase ${resolvedTheme.subtext}`}
+                          >
+                            {sublabel}
+                          </Text>
+                        )}
+                        {secondarySublabel && (
+                          <Text
+                            className={`text-xs uppercase sm:whitespace-nowrap md:text-sm ${resolvedTheme.subtext}`}
+                          >
+                            {secondarySublabel}
+                          </Text>
+                        )}
+                      </div>
+                    )
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </NextLink>
+        ) : (
+          <NextLink href={href} aria-label={ariaLabel}>
+            <div className="relative">
+              <div
+                className={`absolute -inset-2 rounded-3xl opacity-0 blur-xl transition-opacity duration-300 group-hover:opacity-100 ${resolvedTheme.glow}`}
+              />
+              <div
+                className={`absolute -inset-1 rounded-3xl opacity-40 blur-md ${resolvedTheme.halo}`}
+              />
+              <div
+                className={`relative inline-flex min-h-[78px] w-[18.75rem] items-start gap-3 rounded-2xl border px-3 py-3 shadow-[0_12px_30px_-25px_rgba(0,0,0,0.65)] transition group-hover:-translate-y-1 hover:-translate-y-1 sm:min-h-[92px] sm:w-fit sm:max-w-[calc(100vw-3rem)] sm:gap-4 sm:px-5 sm:py-4 sm:shadow-[0_25px_60px_-35px_rgba(0,0,0,0.65)] ${resolvedTheme.panel} ${resolvedTheme.border} ${resolvedTheme.text}`}
+              >
+                {icon && (
+                  <div
+                    className={`mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl shadow-md sm:h-11 sm:w-11 ${resolvedTheme.iconPanel} ${resolvedTheme.iconText}`}
+                  >
+                    {icon}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <Heading
+                    className={`text-lg sm:text-2xl ${resolvedTheme.text}`}
+                    size="h4"
+                  >
+                    {label}
+                  </Heading>
+                  {details && details.length > 0 ? (
+                    <div className="mt-1.5 grid gap-4 sm:max-w-[42rem] sm:grid-cols-[repeat(3,max-content)] sm:gap-8">
+                      {details.map((detail) => (
+                        <div
+                          key={detail.title}
+                          className="flex min-w-0 flex-col"
+                        >
+                          <p
+                            className={`whitespace-nowrap text-[15px] font-semibold uppercase leading-tight tracking-wide sm:text-sm ${resolvedTheme.subtext}`}
+                          >
+                            {detail.title}
+                          </p>
+                          <div className="mt-auto space-y-1 pt-1">
+                            {detail.rows.map((row) => (
+                              <div
+                                key={`${detail.title}-${row.text}`}
+                                className="flex min-w-0 items-center gap-1.5"
+                              >
+                                {row.icon && (
+                                  <span
+                                    className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center ${resolvedTheme.detailIcon}`}
+                                  >
+                                    {row.icon}
+                                  </span>
+                                )}
+                                <p
+                                  className={`truncate text-xs uppercase leading-tight tracking-wide sm:text-xs ${resolvedTheme.subtext}`}
+                                >
+                                  {row.text}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    (sublabel || secondarySublabel) && (
+                      <div className="space-y-0.5">
+                        {sublabel && (
+                          <Text
+                            className={`text-xs md:text-sm uppercase ${resolvedTheme.subtext}`}
+                          >
+                            {sublabel}
+                          </Text>
+                        )}
+                        {secondarySublabel && (
+                          <Text
+                            className={`text-xs uppercase sm:whitespace-nowrap md:text-sm ${resolvedTheme.subtext}`}
+                          >
+                            {secondarySublabel}
+                          </Text>
+                        )}
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+            </div>
+          </NextLink>
+        )}
         <button
           type="button"
           onClick={() => {

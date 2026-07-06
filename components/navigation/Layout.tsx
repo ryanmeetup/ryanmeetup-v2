@@ -51,7 +51,22 @@ const Layout = (props: LayoutProps) => {
         label="RSVP"
         details={[
           {
+            title: "Ryan Coaster",
+            href: "/coaster",
+            rows: [
+              {
+                icon: <Calendar className="h-3 w-3 fill-current" />,
+                text: "July 24, 2026",
+              },
+              {
+                icon: <MapPin className="h-3 w-3 fill-current" />,
+                text: "Minneapolis, MN",
+              },
+            ],
+          },
+          {
             title: "Ryan Baseball Classic",
+            href: "/baseball",
             rows: [
               {
                 icon: <Calendar className="h-3 w-3 fill-current" />,
@@ -63,9 +78,30 @@ const Layout = (props: LayoutProps) => {
               },
             ],
           },
+          {
+            title: "Ryan Iowa",
+            href: "/iowa",
+            rows: [
+              {
+                icon: <Calendar className="h-3 w-3 fill-current" />,
+                text: "July 26, 2026",
+              },
+              {
+                icon: <MapPin className="h-3 w-3 fill-current" />,
+                text: "Ryan, IA",
+              },
+            ],
+          },
         ]}
         ariaLabel="RSVP to upcoming events"
-        hiddenRoutes={["/rsvp", "/awards", "/name-change"]}
+        hiddenRoutes={[
+          "/rsvp",
+          "/coaster",
+          "/baseball",
+          "/iowa",
+          "/awards",
+          "/name-change",
+        ]}
         theme={{
           panel: "bg-[#1f1d1b]",
           border: "border-[#f4f4d2] hover:border-white",
