@@ -51,7 +51,7 @@ const RSVPPage = async ({
   return (
     <Layout>
       <Blurb
-        fullHeadline="Join us in New York and Minneapolis!"
+        fullHeadline="Join us in the Midwest!"
         smallHeadline="RSVP"
         tag="RSVP"
         href="/newsletter"
@@ -59,7 +59,7 @@ const RSVPPage = async ({
         hrefText="Get event updates"
       >
         <Text className="secondary text-xl mb-6 xl:mx-32">
-          Hope to see you in New York or Minneapolis, Ryan. Why not consider joining us in both cities? 
+          We hope you&apos;ll consider joining us, Ryan. We&apos;ve got a full weekend full of Ry-tastic entertainment planned for our first and only event in the Midwest this year.
         </Text>
       </Blurb>
 
