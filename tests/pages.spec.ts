@@ -17,19 +17,11 @@ const contentRoutes = [
   { path: "/goodbye", expectText: "Goodbye, Bryan." },
   { path: "/map" },
   { path: "/press" },
-  { path: "/rsvp", expectText: "Open RSVPs" },
+  { path: "/rsvp", expectText: "Join the next Ryan Meetup" },
   { path: "/sponsors" },
 ];
 
 const redirectRoutes = [
-  {
-    path: "/baseball",
-    location: "https://partiful.com/e/qIoEYsF86UUJymsWNKkW",
-  },
-  {
-    path: "/coaster",
-    location: "https://partiful.com/e/UhROHO0MxSrt5WEPfvXT",
-  },
   { path: "/discord", location: "https://discord.gg/8rPPQMtZCp" },
   {
     path: "/guidelines",
@@ -37,15 +29,6 @@ const redirectRoutes = [
       "https://docs.google.com/document/d/1DfDD3iyrQMUHTt4EzbfPytfOOh-de1vk9pHRqqM8obs/edit?tab=t.0",
   },
   { path: "/chapter-lead", location: "https://form.typeform.com/to/TZkv7rua" },
-  {
-    path: "/hotel",
-    location:
-      "https://www.sonesta.com/royal-sonesta/mn/minneapolis/royal-sonesta-minneapolis-downtown?isGroupCode=true&groupCode=G072226RYAN&checkin=2026-07-22&checkout=2026-07-27",
-  },
-  {
-    path: "/iowa",
-    location: "https://partiful.com/e/ZWXe1yXdK1rAUMXz30Rc",
-  },
   { path: "/join", location: "https://partiful.com/u/sJG4HpH0wS3ZA3YkzaL5" },
   { path: "/merch", location: "https://ryanmeetup.etsy.com" },
   {

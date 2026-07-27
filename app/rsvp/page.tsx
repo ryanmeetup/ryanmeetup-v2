@@ -18,19 +18,18 @@ import { isMainEvent } from "@/utils/events";
 export const metadata = buildPageMetadata({
   title: "Ryan Meetup - RSVP",
   description:
-    "RSVP for upcoming Ryan Meetup main events, including national gatherings and featured Ryan celebrations.",
+    "Find open RSVPs for upcoming Ryan Meetup events and sign up for announcements about future gatherings.",
   canonical: "https://ryanmeetup.com/rsvp",
   image: {
-    url: "https://ryanmeetup.com/logos/2026RyanBaseballClassic.jpg",
-    width: 1147,
-    height: 655,
+    url: "https://ryanmeetup.com/group-photos/ryankickoff.png",
+    width: 1600,
+    height: 800,
   },
   keywords: [
     "ryan meetup rsvp",
     "ryan meetup tickets",
     "ryan meetup event registration",
     "ryan meetup signup",
-    "ryan baseball classic",
   ],
 });
 
@@ -51,7 +50,7 @@ const RSVPPage = async ({
   return (
     <Layout>
       <Blurb
-        fullHeadline="Join us in the Midwest!"
+        fullHeadline="Join the next Ryan Meetup"
         smallHeadline="RSVP"
         tag="RSVP"
         href="/newsletter"
@@ -59,7 +58,9 @@ const RSVPPage = async ({
         hrefText="Get event updates"
       >
         <Text className="secondary text-xl mb-6 xl:mx-32">
-          We hope you&apos;ll consider joining us, Ryan. We&apos;ve got a full weekend full of Ry-tastic entertainment planned for our first and only event in the Midwest this year.
+          Open RSVPs will appear here as new events are announced. Sign up for
+          event updates and we&apos;ll let you know when it&apos;s time to meet
+          more Ryans.
         </Text>
       </Blurb>
 
@@ -68,7 +69,7 @@ const RSVPPage = async ({
       {upcomingEvents.length === 0 ? (
         <EmptyState
           variant="solid"
-          message="No main event RSVPs are open right now."
+          message="No RSVPs are open right now. Check back soon!"
         />
       ) : (
         <UpcomingEventsList
