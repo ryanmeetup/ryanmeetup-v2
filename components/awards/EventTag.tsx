@@ -43,8 +43,14 @@ const EventTag = (props: EventTagProps) => {
         return "#1d1b7a";
       case "St. Ryan's Day III":
         return "border-[#011024]";
+      case "Ryde the Ryan Coaster":
+        return "border-[#4a2f14] dark:border-[#fff4d6]";
       case "Ryan Baseball Classic":
         return "border-green-500";
+      case "Welcome to Ryan":
+        return "border-sky-500";
+      case "Ryan Rave II":
+        return "border-fuchsia-500";
       default:
         return "border-gray-700 secondary";
     }
