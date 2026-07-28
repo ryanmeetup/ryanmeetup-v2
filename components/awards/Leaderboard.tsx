@@ -40,7 +40,7 @@ const Leaderboard = (props: LeaderboardProps) => {
     (a, b) => b.eventsAttended.length - a.eventsAttended.length,
   );
   const filteredRyans = sortedRyans.filter(
-    (ryan) => ryan.eventsAttended.length >= 4,
+    (ryan) => ryan.eventsAttended.length >= 5,
   );
 
   return (
@@ -54,7 +54,7 @@ const Leaderboard = (props: LeaderboardProps) => {
             <span className="font-semibold text-blue-700 dark:text-blue-500">
               *
             </span>
-            Ryans must attend at least four Ryan Meetups to qualify.
+            Ryans must attend at least five Ryan Meetups to qualify.
           </Text>
         </div>
 
