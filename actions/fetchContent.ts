@@ -74,12 +74,29 @@ const fetchSingleMediaEvent = unstable_cache(
 
 const fetchLocations = unstable_cache(
   async () => {
-    const data = await client.getEntries({
+    const limit = 1000;
+    const firstPage = await client.getEntries({
       content_type: "locations",
-      limit: 1000,
+      limit,
+      skip: 0,
     });
+    const items = [...firstPage.items];
 
-    return data.items.map((entry) => entry.fields);
+    while (items.length < firstPage.total) {
+      const page = await client.getEntries({
+        content_type: "locations",
+        limit,
+        skip: items.length,
+      });
+
+      if (page.items.length === 0) {
+        break;
+      }
+
+      items.push(...page.items);
+    }
+
+    return items.map((entry) => entry.fields);
   },
   ["contentful-locations"],
   { revalidate: CMS_REVALIDATE_SECONDS },

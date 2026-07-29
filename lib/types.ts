@@ -103,6 +103,7 @@ type Location = {
   city: string;
   locationType:
     | "Event Location"
+    | "Community Event"
     | "Ryan Hub"
     | "Ryan-Named Business"
     | "Ryan-Owned Business"

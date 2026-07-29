@@ -1,7 +1,7 @@
 // Components
 import { Heading, Text, Card, Pill, Kicker } from "@/components/global";
 import NextLink from "next/link";
-import { getCountryFromLocation } from "@/utils/stats";
+import { getLocationStats } from "@/utils/stats";
 import { contactHrefs } from "@/utils/contact";
 
 // Types
@@ -14,10 +14,10 @@ type InfoProps = {
 const Info = (props: InfoProps) => {
   const { locations } = props;
 
-  const uniqueCountries = new Set<string>();
-  const uniqueCities = new Set<string>();
+  const { cityCount, countryCount } = getLocationStats(locations);
   const locationTypeCounts: Record<string, number> = {
     "Event Location": 0,
+    "Community Event": 0,
     "Ryan Hub": 0,
     "Ryan-Named Business": 0,
     "Ryan-Owned Business": 0,
@@ -25,27 +25,21 @@ const Info = (props: InfoProps) => {
   };
 
   locations?.forEach((location) => {
-    const cityName =
-      location.city ?? location.locationName.split(",")[0].trim();
-    if (cityName) {
-      uniqueCities.add(cityName);
-    }
-
     if (locationTypeCounts[location.locationType] !== undefined) {
       locationTypeCounts[location.locationType] += 1;
-    }
-
-    const country = getCountryFromLocation(location);
-    if (country) {
-      uniqueCountries.add(country);
     }
   });
 
   const stats = [
     { label: "Locations", value: locations.length },
-    { label: "Cities", value: uniqueCities.size },
-    { label: "Countries", value: uniqueCountries.size },
-    { label: "National Events", value: locationTypeCounts["Event Location"] + 2 },
+    { label: "Cities & Regions", value: cityCount },
+    { label: "Countries & Territories", value: countryCount },
+    {
+      label: "Event Locations",
+      value:
+        locationTypeCounts["Event Location"] +
+        locationTypeCounts["Community Event"],
+    },
     { label: "Chapters", value: locationTypeCounts["Chapter"] },
     {
       label: "Businesses",
@@ -74,11 +68,11 @@ const Info = (props: InfoProps) => {
         <Text className="mt-3 text-lg text-black/70 dark:text-white/70">
           Our growing network of Ryans spans across{" "}
           <span className="font-semibold text-blue-700 dark:text-blue-500">
-            {uniqueCountries.size} countries
+            {countryCount} countries and territories
           </span>{" "}
           and{" "}
           <span className="font-semibold text-blue-700 dark:text-blue-500">
-            {uniqueCities.size} cities
+            {cityCount} cities and regions
           </span>{" "}
           worldwide.
         </Text>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 // Components
 import Map, { Marker, Popup } from "react-map-gl/mapbox";
@@ -9,7 +9,7 @@ import { Heading, Text } from "@/components/global";
 import { Legend } from "@/components/map";
 import { FaMapPin as Pin } from "react-icons/fa";
 import NextLink from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 // Types
 import type { Location } from "@/lib/types";
@@ -42,9 +42,8 @@ const Mapbox = (props: MapboxProps) => {
 
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
   const isTestMode = process.env.NEXT_PUBLIC_E2E_TESTS === "true";
-  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const hasMounted = useRef(false);
 
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(
     null,
@@ -57,7 +56,8 @@ const Mapbox = (props: MapboxProps) => {
   const [showOwnedBusinesses, setShowOwnedBusinesses] = useState<boolean>(
     initialShowOwnedBusinesses,
   );
-  const [showChapters, setShowChapters] = useState<boolean>(initialShowChapters);
+  const [showChapters, setShowChapters] =
+    useState<boolean>(initialShowChapters);
   const [showLegendVisible, setShowLegendVisible] =
     useState<boolean>(showLegend);
   const [legendCollapsed, setLegendCollapsed] = useState<boolean>(false);
@@ -68,25 +68,23 @@ const Mapbox = (props: MapboxProps) => {
       return;
     }
 
-    if (!hasMounted.current) {
-      hasMounted.current = true;
-      return;
-    }
-
     const params = new URLSearchParams(searchParams?.toString());
-    const desiredParams = [
-      ["legend", showLegendVisible ? "1" : "0"],
-      ["meetups", showMeetups ? "1" : "0"],
-      ["hubs", showRyans ? "1" : "0"],
-      ["named", showNamedBusinesses ? "1" : "0"],
-      ["owned", showOwnedBusinesses ? "1" : "0"],
-      ["chapters", showChapters ? "1" : "0"],
+    const filters = [
+      ["legend", showLegendVisible],
+      ["meetups", showMeetups],
+      ["hubs", showRyans],
+      ["named", showNamedBusinesses],
+      ["owned", showOwnedBusinesses],
+      ["chapters", showChapters],
     ] as const;
 
     let hasChanges = false;
-    desiredParams.forEach(([key, value]) => {
-      if (params.get(key) !== value) {
-        params.set(key, value);
+    filters.forEach(([key, isVisible]) => {
+      if (isVisible && params.has(key)) {
+        params.delete(key);
+        hasChanges = true;
+      } else if (!isVisible && params.get(key) !== "0") {
+        params.set(key, "0");
         hasChanges = true;
       }
     });
@@ -96,7 +94,8 @@ const Mapbox = (props: MapboxProps) => {
     }
 
     const nextQuery = params.toString();
-    router.replace(nextQuery ? `?${nextQuery}` : "?", { scroll: false });
+    const nextUrl = nextQuery ? `${pathname}?${nextQuery}` : pathname;
+    window.history.replaceState(null, "", nextUrl);
   }, [
     showMeetups,
     showRyans,
@@ -104,7 +103,7 @@ const Mapbox = (props: MapboxProps) => {
     showOwnedBusinesses,
     showChapters,
     showLegendVisible,
-    router,
+    pathname,
     searchParams,
     isTestMode,
   ]);
@@ -114,6 +113,7 @@ const Mapbox = (props: MapboxProps) => {
       (acc, location) => {
         switch (location.locationType) {
           case "Event Location":
+          case "Community Event":
             acc.meetups.push(location);
             break;
           case "Ryan Hub":
@@ -144,15 +144,16 @@ const Mapbox = (props: MapboxProps) => {
   const renderIcon = useCallback((type: string) => {
     switch (type) {
       case "Event Location":
-        return "/icons/partiful.webp";
+      case "Community Event":
+        return "/icons/map/ryanicon.png";
       case "Ryan Hub":
-        return "/icons/ryanicon.png";
+        return "/icons/map/house.jpeg";
       case "Ryan-Owned Business":
-        return "/icons/brief.png";
+        return "/icons/map/owned.png";
       case "Ryan-Named Business":
-        return "/icons/nametagicon.png";
+        return "/icons/map/ryannamed.png";
       case "Chapter":
-        return "/icons/invert.png";
+        return "/icons/map/Rchap.png";
     }
   }, []);
 
@@ -193,7 +194,7 @@ const Mapbox = (props: MapboxProps) => {
   }, [currentZoom]);
 
   const markerIconSize = useMemo(() => {
-    return Math.max(14, Math.round(markerSize * 0.56));
+    return Math.max(16, Math.round(markerSize * 0.65));
   }, [markerSize]);
 
   const markerWrapClass =
@@ -420,23 +421,20 @@ const Mapbox = (props: MapboxProps) => {
               <p className="text-xs leading-relaxed tracking-wide text-black/70">
                 {isChapter && (
                   <span className="mt-1 flex items-center gap-1">
-                    <Pin className="fill-red-500" />{" "}
-                    {selectedLocation.city}
+                    <Pin className="fill-red-500" /> {selectedLocation.city}
                   </span>
                 )}
                 {isBusiness && (
                   <>
                     <span>{selectedLocation.locationType}</span>
                     <span className="mt-1 flex items-center gap-1">
-                      <Pin className="fill-red-500" />{" "}
-                      {selectedLocation.city}
+                      <Pin className="fill-red-500" /> {selectedLocation.city}
                     </span>
                   </>
                 )}
                 {selectedLocation.eventDate && (
                   <span className="-mt-1 text-black/70">
-                    {formatEventDate(selectedLocation.eventDate)}{" "}
-                    •
+                    {formatEventDate(selectedLocation.eventDate)} •
                   </span>
                 )}{" "}
                 {selectedLocation.eventName ? selectedLocation.city : ""}
@@ -470,12 +468,13 @@ const Mapbox = (props: MapboxProps) => {
                 style={{ width: markerSize, height: markerSize }}
                 aria-label={`${location.city} chapter`}
               >
-                <span
-                  className="leading-none"
-                  style={{ fontSize: Math.max(14, Math.round(markerSize * 0.44)) }}
-                >
-                  📍
-                </span>
+                <NextImage
+                  src={renderIcon(location.locationType) as string}
+                  alt={location.locationType}
+                  width={markerIconSize}
+                  height={markerIconSize}
+                  className={markerImageClass}
+                />
               </button>
             </Marker>
           ))}
