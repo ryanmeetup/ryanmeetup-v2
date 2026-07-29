@@ -5,7 +5,14 @@ import { useState } from "react";
 import Image from "next/image";
 import NextLink from "next/link";
 
-import { Card, Kicker, Modal, Text, Heading } from "@/components/global";
+import {
+  Card,
+  Heading,
+  IconBadge,
+  Kicker,
+  Modal,
+  Text,
+} from "@/components/global";
 import {
   FaChartLine as Traffic,
   FaInstagram as Instagram,
@@ -15,11 +22,11 @@ import {
 import { GoArrowUpRight as ArrowUpRight } from "react-icons/go";
 import { BiParty as Party } from "react-icons/bi";
 
-
 const reachSnapshot = [
   {
     value: "105k+",
-    label: "Followers on Instagram; and we're still consistently growing even bigger",
+    label:
+      "Followers on Instagram; and we're still consistently growing even bigger",
     href: "https://www.instagram.com/ryanmeetup/",
     cta: "Instagram",
     icon: <Instagram className="h-4 w-4" />,
@@ -58,7 +65,8 @@ const reachSnapshot = [
   },
   {
     value: "20+",
-    label: "Events hosted each year across our national calendar and local chapters",
+    label:
+      "Events hosted each year across our national calendar and local chapters",
     href: "/events/all",
     cta: "All Events",
     icon: <Party className="h-4 w-4" />,
@@ -91,9 +99,7 @@ const ReachSnapshot = () => {
               >
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-black/10 bg-black text-white dark:border-white/10 dark:bg-white dark:text-black">
-                      {item.icon}
-                    </span>
+                    <IconBadge>{item.icon}</IconBadge>
                     <Heading className="text-3xl title" size="h3">
                       {item.value}
                     </Heading>
@@ -139,7 +145,11 @@ const ReachSnapshot = () => {
             }
 
             return (
-              <NextLink key={item.label} href={item.href!} className="group block">
+              <NextLink
+                key={item.label}
+                href={item.href!}
+                className="group block"
+              >
                 {content}
               </NextLink>
             );

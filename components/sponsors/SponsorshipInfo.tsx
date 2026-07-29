@@ -6,7 +6,14 @@ import {
   FaInstagram as Instagram,
 } from "react-icons/fa";
 
-import { Button, Card, Heading, Kicker, Text } from "@/components/global";
+import {
+  Button,
+  Card,
+  Heading,
+  IconBadge,
+  Kicker,
+  Text,
+} from "@/components/global";
 
 const sponsorshipTracks = [
   {
@@ -43,11 +50,14 @@ const SponsorshipInfo = () => {
 
       <div className="grid gap-4 lg:grid-cols-[1.2fr_1.2fr_1fr]">
         {sponsorshipTracks.map((track) => (
-          <Card key={track.title} variant="soft" size="lg" className="space-y-4">
+          <Card
+            key={track.title}
+            variant="soft"
+            size="lg"
+            className="space-y-4"
+          >
             <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-full border border-black/10 bg-black text-white dark:border-white/10 dark:bg-white dark:text-black">
-                {track.icon}
-              </span>
+              <IconBadge>{track.icon}</IconBadge>
               <div className="space-y-1">
                 <Heading className="text-2xl title" size="h3">
                   {track.title}
@@ -63,9 +73,9 @@ const SponsorshipInfo = () => {
 
         <Card variant="solid" size="lg" className="space-y-4">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full border border-black/10 bg-black text-white dark:border-white/10 dark:bg-white dark:text-black">
+            <IconBadge>
               <Instagram className="h-4 w-4" />
-            </span>
+            </IconBadge>
             <div className="space-y-1">
               <Heading className="text-2xl title" size="h3">
                 Sponsor Reach

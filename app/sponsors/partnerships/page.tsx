@@ -9,6 +9,7 @@ import {
   Card,
   Divider,
   Heading,
+  IconBadge,
   Kicker,
   Text,
 } from "@/components/global";
@@ -37,8 +38,8 @@ export const metadata = buildPageMetadata({
   canonical: "https://ryanmeetup.com/sponsors/partnerships",
   image: {
     url: "https://ryanmeetup.com/meta/sponsors.jpg",
-      width: 1534,
-      height: 763,
+    width: 1534,
+    height: 763,
   },
   keywords: [
     "ryan meetup sponsorship details",
@@ -54,8 +55,7 @@ const partnershipFormats = [
     icon: <Megaphone className="h-4 w-4" />,
     priceLabel: "Engagements start at",
     priceAmount: "$250/month",
-    body:
-      "Best for brands that want a longer-running relationship with Ryan Meetup instead of a single one-off logo placement. This is the clearest fit for organizations looking for repeated visibility over time.",
+    body: "Best for brands that want a longer-running relationship with Ryan Meetup instead of a single one-off logo placement. This is the clearest fit for organizations looking for repeated visibility over time.",
     note: "Final scope depends on visibility, cadence, and partnership fit.",
   },
   {
@@ -63,8 +63,7 @@ const partnershipFormats = [
     icon: <Calendar className="h-4 w-4" />,
     priceLabel: "Engagements start at",
     priceAmount: "$1,000/event",
-    body:
-      "Best for brands that want to support a specific meetup, city, chapter, or activation. This can make sense when a business wants visibility tied to a concrete event or audience moment.",
+    body: "Best for brands that want to support a specific meetup, city, chapter, or activation. This can make sense when a business wants visibility tied to a concrete event or audience moment.",
     note: "Larger activations can scale based on event format and deliverables.",
   },
 ];
@@ -76,7 +75,9 @@ const opportunityAreas = [
     title: (
       <>
         <span className="2xl:hidden">Website Recognition</span>
-        <span className="hidden 2xl:inline">Get Recognized on RyanMeetup.com</span>
+        <span className="hidden 2xl:inline">
+          Get Recognized on RyanMeetup.com
+        </span>
       </>
     ),
     bullets: [
@@ -93,7 +94,7 @@ const opportunityAreas = [
       "Signage at sponsored events",
       "Logo placement on event merch",
       "Giveaways and branded materials",
-      "Get your brand in front of a dedicated audience, all of whom named Ryan"
+      "Get your brand in front of a dedicated audience, all of whom named Ryan",
     ],
   },
   {
@@ -104,7 +105,7 @@ const opportunityAreas = [
       "Chapter-specific sponsorship",
       "City-level brand visibility",
       "Build brand awareness with a local audience of Ryans in your target market",
-      "Ryans love to support Ryan-owned businesses, after all"
+      "Ryans love to support Ryan-owned businesses, after all",
     ],
   },
   {
@@ -125,7 +126,7 @@ const opportunityAreas = [
       "Recap video mentions",
       "Post-event storytelling",
       "Sponsor shoutouts after the event",
-      "Have your brand included in potentially viral content that could reach millions"
+      "Have your brand included in potentially viral content that could reach millions",
     ],
   },
   {
@@ -165,20 +166,17 @@ const nextSteps = [
   {
     step: "Step 01",
     title: "Start the conversation",
-    body:
-      "Reach out with a short note on your company, market, goals, and whether you are exploring recurring or event sponsorship.",
+    body: "Reach out with a short note on your company, market, goals, and whether you are exploring recurring or event sponsorship.",
   },
   {
     step: "Step 02",
     title: "We define the fit",
-    body:
-      "We talk through the right sponsorship route, likely placements, timing, and the level of visibility that makes sense.",
+    body: "We talk through the right sponsorship route, likely placements, timing, and the level of visibility that makes sense.",
   },
   {
     step: "Step 03",
     title: "We confirm the scope",
-    body:
-      "Once the fit is clear, we align on sponsorship level, deliverables, and the next steps to activate the partnership.",
+    body: "Once the fit is clear, we align on sponsorship level, deliverables, and the next steps to activate the partnership.",
   },
 ];
 
@@ -207,9 +205,7 @@ const SponsorPartnershipsPage = () => {
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-black/10 bg-black text-white dark:border-white/10 dark:bg-white dark:text-black">
-                        {item.icon}
-                      </span>
+                      <IconBadge>{item.icon}</IconBadge>
                       <Heading className="text-2xl title" size="h3">
                         {item.title}
                       </Heading>
@@ -236,32 +232,30 @@ const SponsorPartnershipsPage = () => {
               <Divider />
 
               {/* <div className="rounded-3xl border border-black/10 bg-black/5 px-5 py-4 dark:border-white/10 dark:bg-white/[0.03]"> */}
-                <div className="space-y-3">
-                  <Heading className="text-2xl title" size="h3">
-                    Ready to talk?
-                  </Heading>
-                  <Text className="text-sm text-black/70 dark:text-white/70">
-                    If your team wants to talk through a recurring sponsorship
-                    or an event sponsorship, send us a note and we can start
-                    there.
-                  </Text>
-                  <Button.Link
-                    href={contactHrefs.sponsorship}
-                    leftIcon={<Send className="h-4 w-4" />}
-                    variant="primary"
-                    size="md"
-                    fullWidth
-                    newTab={false}
-                  >
-                    Get in contact
-                  </Button.Link>
-                  <Text className="text-xs text-black/60 dark:text-white/60">
-                    If your brand has a more custom idea in mind, reach out
-                    anyway. Recurring and event sponsorship are the main routes,
-                    but the conversation can still be shaped around a strong
-                    fit.
-                  </Text>
-                </div>
+              <div className="space-y-3">
+                <Heading className="text-2xl title" size="h3">
+                  Ready to talk?
+                </Heading>
+                <Text className="text-sm text-black/70 dark:text-white/70">
+                  If your team wants to talk through a recurring sponsorship or
+                  an event sponsorship, send us a note and we can start there.
+                </Text>
+                <Button.Link
+                  href={contactHrefs.sponsorship}
+                  leftIcon={<Send className="h-4 w-4" />}
+                  variant="primary"
+                  size="md"
+                  fullWidth
+                  newTab={false}
+                >
+                  Get in contact
+                </Button.Link>
+                <Text className="text-xs text-black/60 dark:text-white/60">
+                  If your brand has a more custom idea in mind, reach out
+                  anyway. Recurring and event sponsorship are the main routes,
+                  but the conversation can still be shaped around a strong fit.
+                </Text>
+              </div>
               {/* </div> */}
             </Card>
           </div>
@@ -272,12 +266,16 @@ const SponsorPartnershipsPage = () => {
             className="mb-1"
             crumbs={[
               {
-                icon: <SponsorsIcon className="mr-2 h-4 w-4 fill-black dark:fill-white" />,
+                icon: (
+                  <SponsorsIcon className="mr-2 h-4 w-4 fill-black dark:fill-white" />
+                ),
                 href: "/sponsors",
                 title: "Sponsors",
               },
               {
-                icon: <Details className="mr-2 h-4 w-4 fill-black dark:fill-white" />,
+                icon: (
+                  <Details className="mr-2 h-4 w-4 fill-black dark:fill-white" />
+                ),
                 href: "/sponsors/partnerships",
                 title: "Sponsorship Details",
               },
@@ -288,11 +286,17 @@ const SponsorPartnershipsPage = () => {
             <section className="space-y-5">
               <div className="space-y-3">
                 {/* <Badge variant="secondary">Brand Value</Badge> */}
-                <Heading className="text-3xl title sm:text-4xl lg:text-5xl" size="h2">
+                <Heading
+                  className="text-3xl title sm:text-4xl lg:text-5xl"
+                  size="h2"
+                >
                   What your brand gets
                 </Heading>
                 <Text className="text-base text-black/70 dark:text-white/70">
-                  Our sponsorship opportunities are built to create visible brand presence across the places our community already pays attention to the most: RyanMeetup.com, our live events, and our social content.
+                  Our sponsorship opportunities are built to create visible
+                  brand presence across the places our community already pays
+                  attention to the most: RyanMeetup.com, our live events, and
+                  our social content.
                 </Text>
               </div>
 
@@ -305,9 +309,7 @@ const SponsorPartnershipsPage = () => {
                     className="mb-4 break-inside-avoid h-fit space-y-4"
                   >
                     <div className="flex items-center">
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-black/10 bg-black text-white dark:border-white/10 dark:bg-white dark:text-black">
-                        {item.icon}
-                      </span>
+                      <IconBadge>{item.icon}</IconBadge>
                       <Heading className="ml-4 text-2xl title" size="h3">
                         {item.title}
                       </Heading>
@@ -334,7 +336,10 @@ const SponsorPartnershipsPage = () => {
             <section className="space-y-6" id="costs">
               <div className="space-y-3">
                 {/* <Badge variant="secondary">Why Ryan Meetup</Badge> */}
-                <Heading className="text-3xl title sm:text-4xl lg:text-5xl" size="h2">
+                <Heading
+                  className="text-3xl title sm:text-4xl lg:text-5xl"
+                  size="h2"
+                >
                   Why this makes sense for your brand
                 </Heading>
                 <Text className="text-base text-black/70 dark:text-white/70">
@@ -362,11 +367,12 @@ const SponsorPartnershipsPage = () => {
                       }`}
                     >
                       <div className="flex items-start gap-4">
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-black/10 bg-black text-white dark:border-white/10 dark:bg-white dark:text-black">
-                          {item.icon}
-                        </span>
+                        <IconBadge>{item.icon}</IconBadge>
                         <div className="min-w-0 flex-1 space-y-3">
-                          <Heading className="pt-1 text-[1.9rem] leading-[0.95] title" size="h3">
+                          <Heading
+                            className="pt-1 text-[1.9rem] leading-[0.95] title"
+                            size="h3"
+                          >
                             {item.title}
                           </Heading>
 
@@ -386,7 +392,10 @@ const SponsorPartnershipsPage = () => {
             <section className="space-y-6" id="next-steps">
               <div className="space-y-3">
                 {/* <Badge variant="secondary">Process</Badge> */}
-                <Heading className="text-3xl title sm:text-4xl lg:text-5xl" size="h2">
+                <Heading
+                  className="text-3xl title sm:text-4xl lg:text-5xl"
+                  size="h2"
+                >
                   What happens next
                 </Heading>
                 <Text className="text-base text-black/70 dark:text-white/70">
@@ -404,9 +413,12 @@ const SponsorPartnershipsPage = () => {
                     }`}
                   >
                     <div className="flex w-16 shrink-0 flex-col items-center">
-                      <span className="flex h-12 w-12 items-center justify-center rounded-full border border-black/10 bg-black text-[10px] font-semibold uppercase tracking-[0.2em] text-white dark:border-white/10 dark:bg-white dark:text-black">
+                      <IconBadge
+                        size="lg"
+                        className="text-[10px] font-semibold uppercase tracking-[0.2em]"
+                      >
                         {index + 1}
-                      </span>
+                      </IconBadge>
                       {index < nextSteps.length - 1 && (
                         <span className="mt-3 h-full w-px bg-black/10 dark:bg-white/10" />
                       )}

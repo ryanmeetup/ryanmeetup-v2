@@ -1,4 +1,4 @@
-import { Card, Text, Button } from "@/components/global";
+import { Button, Card, IconBadge, Text } from "@/components/global";
 import { BiMailSend as Send } from "react-icons/bi";
 import { GoSponsorTiers as SponsorDetails } from "react-icons/go";
 import { contactHrefs } from "@/utils/contact";
@@ -46,10 +46,7 @@ type PartnershipPerksProps = {
 };
 
 const PartnershipPerks = (props: PartnershipPerksProps) => {
-  const {
-    detailsHref = "#sponsorship-info",
-    showDetailsLink = true,
-  } = props;
+  const { detailsHref = "#sponsorship-info", showDetailsLink = true } = props;
 
   return (
     <>
@@ -69,9 +66,7 @@ const PartnershipPerks = (props: PartnershipPerksProps) => {
             {partnershipPerks.map((item) => (
               <Card key={item.text} variant="solid" size="sm">
                 <div className="flex items-start gap-3">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-black/10 bg-black text-white dark:border-white/10 dark:bg-white dark:text-black">
-                    {item.icon}
-                  </span>
+                  <IconBadge size="sm">{item.icon}</IconBadge>
                   <Text className="text-sm text-black/70 dark:text-white/70">
                     {item.text}
                   </Text>
@@ -94,9 +89,7 @@ const PartnershipPerks = (props: PartnershipPerksProps) => {
         {partnershipPerks.map((item) => (
           <Card key={item.text} variant="solid" size="sm">
             <div className="flex items-start gap-3">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-black/10 bg-black text-white dark:border-white/10 dark:bg-white dark:text-black">
-                {item.icon}
-              </span>
+              <IconBadge size="sm">{item.icon}</IconBadge>
               <Text className="text-sm text-black/70 dark:text-white/70">
                 {item.text}
               </Text>

@@ -14,6 +14,7 @@ import { GiHamburgerMenu as Hamburger } from "react-icons/gi";
 import { FaChevronDown as ChevronDown } from "react-icons/fa6";
 import { FaDollarSign as Dollar } from "react-icons/fa";
 import { MdClose as Close } from "react-icons/md";
+import { IconButton } from "@/components/global";
 
 // Types
 import { Fragment, useState } from "react";
@@ -84,14 +85,12 @@ const MobileMenu = (props: MobileMenuProps) => {
                     <div className="text-sm font-semibold uppercase tracking-[0.2em] text-black/70 dark:text-white/70">
                       Menu
                     </div>
-                    <button
-                      type="button"
+                    <IconButton
                       onClick={() => setOpen(false)}
-                      className="flex h-8 w-8 items-center justify-center rounded-full border border-black/10 text-black transition hover:bg-black/5 dark:border-white/10 dark:text-white dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/30"
-                      aria-label="Close menu"
+                      label="Close menu"
                     >
                       <Close className="h-5 w-5" />
-                    </button>
+                    </IconButton>
                   </div>
 
                   <div className="mt-4 flex-1 overflow-y-auto pr-1">

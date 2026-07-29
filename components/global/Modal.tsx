@@ -4,6 +4,7 @@
 import { Dialog, DialogPanel, DialogTitle } from "@headlessui/react";
 import { MdClose as Close } from "react-icons/md";
 import { Button } from "@/components/global";
+import { IconButton } from "./IconButton";
 
 // Types
 import type { ReactNode } from "react";
@@ -44,7 +45,12 @@ const Modal = (props: ModalProps) => {
   } = props;
 
   const primaryAction = (
-    <Button variant="primary" fullWidth disabled={isContinueDisabled} onClick={continueAction}>
+    <Button
+      variant="primary"
+      fullWidth
+      disabled={isContinueDisabled}
+      onClick={continueAction}
+    >
       {continueButtonText}
     </Button>
   );
@@ -55,8 +61,15 @@ const Modal = (props: ModalProps) => {
   );
 
   return (
-    <Dialog open={open} onClose={() => setIsOpen(false)} className="relative z-50">
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
+    <Dialog
+      open={open}
+      onClose={() => setIsOpen(false)}
+      className="relative z-50"
+    >
+      <div
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+        aria-hidden="true"
+      />
 
       <div className="fixed inset-0 flex items-center justify-center p-4 w-screen">
         <DialogPanel
@@ -73,12 +86,9 @@ const Modal = (props: ModalProps) => {
             </DialogTitle>
 
             {closable && (
-              <button
-                className="flex h-8 w-8 items-center justify-center rounded-full border border-black/10 text-black transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:border-white/10 dark:text-white dark:hover:bg-white/10 dark:focus-visible:ring-white/30"
-                onClick={() => setIsOpen(false)}
-              >
+              <IconButton label="Close dialog" onClick={() => setIsOpen(false)}>
                 <Close className="h-5 w-5" />
-              </button>
+              </IconButton>
             )}
           </div>
 
@@ -88,7 +98,9 @@ const Modal = (props: ModalProps) => {
             {!hideActions && (
               <div
                 className={`mt-6 flex flex-col gap-3 ${
-                  reverseActionsOnDesktop ? "sm:flex-row-reverse" : "sm:flex-row"
+                  reverseActionsOnDesktop
+                    ? "sm:flex-row-reverse"
+                    : "sm:flex-row"
                 }`}
               >
                 {primaryActionFirst ? primaryAction : secondaryAction}

@@ -1,11 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { EmptyState, FilterBar, Input, Text } from "@/components/global";
+import {
+  EmptyState,
+  FilterBar,
+  Input,
+  Select,
+  Text,
+} from "@/components/global";
 import {
   FaMagnifyingGlass as Search,
   FaSliders as Filters,
-  FaChevronDown as ChevronDown,
 } from "react-icons/fa6";
 import { ChapterTile } from "@/components/chapters";
 import type { RyanChapter } from "@/lib/types";
@@ -49,15 +54,17 @@ const ChapterDirectory = (props: ChapterDirectoryProps) => {
     return Array.from(unique).sort();
   }, [chapters]);
 
-  const { query, setQuery, filtered: queryFilteredChapters } = useSearchFilter({
+  const {
+    query,
+    setQuery,
+    filtered: queryFilteredChapters,
+  } = useSearchFilter({
     data: chapters,
     buildHaystack: (chapter) => {
       const city = chapter.city ?? "";
       const state = chapter.state ?? "";
       const combined = state ? `${city}, ${state}` : city;
-      return [city, state, combined, chapter.slug]
-        .join(" ")
-        .toLowerCase();
+      return [city, state, combined, chapter.slug].join(" ").toLowerCase();
     },
   });
 
@@ -134,38 +141,27 @@ const ChapterDirectory = (props: ChapterDirectoryProps) => {
           />
         }
         actions={
-          <div className={`grid w-full grid-cols-2 gap-3 lg:w-auto lg:flex lg:flex-wrap lg:items-end lg:justify-end ${showFilters ? "" : "hidden lg:flex"}`}>
+          <div
+            className={`grid w-full grid-cols-2 gap-3 lg:w-auto lg:flex lg:flex-wrap lg:items-end lg:justify-end ${showFilters ? "" : "hidden lg:flex"}`}
+          >
             <div className="col-span-2 flex flex-col gap-2 lg:col-auto">
-              <label
-                className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.2em] text-black/70 dark:text-white/70"
-                htmlFor="chapter-state"
-              >
-                State
-              </label>
-              <div className="relative">
-                <select
-                  id="chapter-state"
-                  name="chapter-state"
-                  value={stateFilter}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    startTransition(() => {
-                      setStateFilter(value);
-                    });
-                  }}
-                  className="h-11 w-full appearance-none rounded-lg border border-black/20 bg-white px-3 pr-10 text-[11px] font-semibold uppercase tracking-[0.2em] text-black/70 shadow-sm transition focus:border-black/40 focus:outline-none focus:ring-2 focus:ring-black/20 dark:border-white/20 dark:bg-white/10 dark:text-white/70 dark:focus:border-white/50 dark:focus:ring-white/20"
-                >
-                  <option value="all">All states</option>
-                  {stateOptions.map((state) => (
-                    <option key={state} value={state}>
-                      {state}
-                    </option>
-                  ))}
-                </select>
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-black/70 dark:text-white/70">
-                  <ChevronDown className="h-3.5 w-3.5" />
-                </span>
-              </div>
+              <Select
+                label="State"
+                name="chapter-state"
+                value={stateFilter}
+                options={[
+                  { label: "All states", value: "all" },
+                  ...stateOptions.map((state) => ({
+                    label: state,
+                    value: state,
+                  })),
+                ]}
+                onChange={(value) => {
+                  startTransition(() => {
+                    setStateFilter(value);
+                  });
+                }}
+              />
             </div>
             <button
               type="button"

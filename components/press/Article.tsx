@@ -1,7 +1,7 @@
 // Components
 import NextLink from "next/link";
 import NextImage from "next/image";
-import { Heading, Text, Card } from "@/components/global";
+import { Badge, Heading, Text, Card } from "@/components/global";
 
 // Types
 import type { Article } from "@/lib/types";
@@ -54,9 +54,9 @@ const Article = (props: ArticleProps) => {
 
           <div className="flex h-full flex-col">
             <div className="flex flex-wrap items-center gap-3">
-              <span className="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-black/70 dark:border-white/10 dark:bg-white/10 dark:text-white/70">
+              <Badge variant="neutral" size="md">
                 {publishedOn}
-              </span>
+              </Badge>
               {isNew && (
                 <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-300">
                   New

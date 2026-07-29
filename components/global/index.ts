@@ -22,3 +22,8 @@ export * from "./Badge";
 export * from "./Card";
 export * from "./AnchorNav";
 export * from "./Kicker";
+export * from "./CollapsibleYearSection";
+export * from "./IconBadge";
+export * from "./IconButton";
+export * from "./FilterChip";
+export * from "./Select";

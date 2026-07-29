@@ -2,7 +2,7 @@
 
 // Components
 import { Event, Chapters, EventsSectionHeader } from "@/components/events";
-import { Heading } from "@/components/global";
+import { CollapsibleYearSection, Heading } from "@/components/global";
 import {
   Disclosure,
   DisclosureButton,
@@ -121,49 +121,19 @@ const EventsSection = (props: EventsSectionProps) => {
     return (
       <div className="space-y-8">
         {Array.from(pastEventsByYear.entries()).map(([year, yearEvents]) => (
-          <Disclosure key={year} as="div" className="w-full" defaultOpen>
-            {({ open }) => (
-              <div className="space-y-4">
-                <DisclosureButton
-                  id={`${pastYearAnchorPrefix}-${year}`}
-                  className="flex w-full items-center justify-between gap-4 border-b border-black/10 pb-3 text-left transition hover:border-black/20 dark:border-white/10 dark:hover:border-white/20"
-                >
-                  <div className="flex items-center gap-3">
-                    <Heading className="text-2xl title sm:text-3xl" size="h3">
-                      {year}
-                    </Heading>
-                    <span className="flex items-center rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-black/70 dark:border-white/10 dark:bg-white/10 dark:text-white/70">
-                      {formatEventCount(yearEvents.length)}
-                    </span>
-                  </div>
-
-                  <ChevronDown
-                    className={`h-3.5 w-3.5 shrink-0 text-black/55 timing dark:text-white/55 ${open && "-rotate-180"}`}
-                  />
-                </DisclosureButton>
-
-                <div className="overflow-hidden">
-                  <Transition
-                    enter="duration-200 ease-in-out"
-                    enterFrom="opacity-0 -translate-y-4"
-                    enterTo="opacity-100 translate-y-0"
-                    leave="duration-200 ease-in-out"
-                    leaveFrom="opacity-100 translate-y-0"
-                    leaveTo="opacity-0 -translate-y-4"
-                  >
-                    <DisclosurePanel className="origin-top transition">
-                      <Container
-                        eventType={eventType}
-                        events={yearEvents}
-                        title={title}
-                        showChapters={showChapters}
-                      />
-                    </DisclosurePanel>
-                  </Transition>
-                </div>
-              </div>
-            )}
-          </Disclosure>
+          <CollapsibleYearSection
+            key={year}
+            id={`${pastYearAnchorPrefix}-${year}`}
+            year={year}
+            countLabel={formatEventCount(yearEvents.length)}
+          >
+            <Container
+              eventType={eventType}
+              events={yearEvents}
+              title={title}
+              showChapters={showChapters}
+            />
+          </CollapsibleYearSection>
         ))}
       </div>
     );

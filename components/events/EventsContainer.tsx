@@ -99,6 +99,22 @@ const EventsContainer = (props: EventsContainerProps) => {
     return <EmptyState message={message} />;
   };
 
+  const searchBar = showSearch ? (
+    <FilterBar
+      className="mb-6"
+      search={
+        <Input
+          label="Search events"
+          name="event-search"
+          placeholder="Search by city, venue, or event name..."
+          inputClassName="pr-4"
+          onChange={(event) => setQuery(event.target.value)}
+          value={query}
+        />
+      }
+    />
+  ) : null;
+
   if (displayMode === "flat") {
     const { upcoming, past } = splitEventsByTime(
       eventsWithMeta.map((item) => item.event),
@@ -113,21 +129,7 @@ const EventsContainer = (props: EventsContainerProps) => {
 
     return (
       <div className="mb-10">
-        {showSearch && (
-          <FilterBar
-            className="mb-6"
-            search={
-              <Input
-                label="Search events"
-                name="event-search"
-                placeholder="Search by city, venue, or event name..."
-                inputClassName="pr-4"
-                onChange={(event) => setQuery(event.target.value)}
-                value={query}
-              />
-            }
-          />
-        )}
+        {searchBar}
         {showEmptyUpcomingBanner && renderEmptyUpcomingBanner()}
 
         {!showEmptyUpcomingBanner && activeEvents.length !== 0 && (
@@ -206,21 +208,7 @@ const EventsContainer = (props: EventsContainerProps) => {
     inactiveEvents.length !== 0;
   return (
     <div className="mb-10">
-      {showSearch && (
-        <FilterBar
-          className="mb-6"
-          search={
-            <Input
-              label="Search events"
-              name="event-search"
-              placeholder="Search by city, venue, or event name..."
-              inputClassName="pr-4"
-              onChange={(event) => setQuery(event.target.value)}
-              value={query}
-            />
-          }
-        />
-      )}
+      {searchBar}
       {showEmptyUpcomingBanner && renderEmptyUpcomingBanner()}
 
       {/* Only render the second block if we are NOT in the “empty banner” case */}

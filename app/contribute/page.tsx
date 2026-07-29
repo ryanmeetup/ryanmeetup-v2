@@ -1,6 +1,14 @@
 // Components
 import { Layout } from "@/components/navigation";
-import { Heading, Text, Divider, Pill, Card, Button } from "@/components/global";
+import {
+  Button,
+  Card,
+  Divider,
+  Heading,
+  IconBadge,
+  Pill,
+  Text,
+} from "@/components/global";
 import {
   FaHandsHelping as Help,
   FaDollarSign as Dollar,
@@ -13,10 +21,10 @@ import {
 import { FaGear as Gear } from "react-icons/fa6";
 import { RiFilePaper2Line as Flyer } from "react-icons/ri";
 import { IoPersonAdd as Socials } from "react-icons/io5";
-import { 
-  MdMovie as Video, 
+import {
+  MdMovie as Video,
   MdDesignServices as Design,
-  MdBusinessCenter as Business 
+  MdBusinessCenter as Business,
 } from "react-icons/md";
 
 // Types
@@ -101,9 +109,9 @@ const ContributePage = async () => {
       title: "Logistics",
       icon: <Gear className="h-5 w-5" />,
     },
-    { 
-      title: "Business Development", 
-      icon: <Business className="h-5 w-5" /> 
+    {
+      title: "Business Development",
+      icon: <Business className="h-5 w-5" />,
     },
   ];
 
@@ -135,17 +143,15 @@ const ContributePage = async () => {
             Team & Skills
           </Heading>
           <Text className="text-base text-black/70 dark:text-white/70">
-            These cards represent the Ryans currently on the team. If you have
-            a relevant skill, we&apos;d love for you to join our volunteer crew.
+            These cards represent the Ryans currently on the team. If you have a
+            relevant skill, we&apos;d love for you to join our volunteer crew.
           </Text>
         </div>
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {composed.map((role) => (
             <Card key={role.title} variant="solid" size="md" hover>
               <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full border border-black/10 bg-black text-white dark:border-white/10 dark:bg-white dark:text-black">
-                  {role.icon}
-                </span>
+                <IconBadge>{role.icon}</IconBadge>
                 <Text className="text-sm uppercase tracking-[0.3em] text-black/70 dark:text-white/70">
                   {role.title} Ryan
                 </Text>
@@ -182,9 +188,7 @@ const ContributePage = async () => {
             {waysToSupport.map((item) => (
               <Card key={item.title} variant="solid" size="md" hover>
                 <div className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full border border-black/10 bg-black text-white dark:border-white/10 dark:bg-white dark:text-black">
-                    {item.icon}
-                  </span>
+                  <IconBadge>{item.icon}</IconBadge>
                   <Text className="text-sm uppercase tracking-[0.3em] text-black/70 dark:text-white/70">
                     {item.title}
                   </Text>
