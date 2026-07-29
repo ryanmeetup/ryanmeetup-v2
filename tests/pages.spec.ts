@@ -4,7 +4,6 @@ const contentRoutes = [
   { path: "/" },
   { path: "/about" },
   { path: "/awards" },
-  { path: "/calendar" },
   { path: "/cards" },
   { path: "/charity" },
   { path: "/chapters" },

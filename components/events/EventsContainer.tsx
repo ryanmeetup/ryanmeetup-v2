@@ -4,7 +4,13 @@ import { useMemo } from "react";
 import type { ReactNode } from "react";
 
 // Components
-import { FilterBar, Text, Divider, Heading, Input, Card } from "@/components/global";
+import {
+  FilterBar,
+  Divider,
+  EmptyState,
+  Heading,
+  Input,
+} from "@/components/global";
 import { EventsSection } from "@/components/events";
 import NextLink from "next/link";
 
@@ -12,7 +18,11 @@ import NextLink from "next/link";
 import type { RyanEvent } from "@/lib/types";
 
 // Utilities
-import { sortEventsByDate, splitEventsByTime, toEndOfDayTime } from "@/utils/date";
+import {
+  sortEventsByDate,
+  splitEventsByTime,
+  toEndOfDayTime,
+} from "@/utils/date";
 import { buildEventSearchText, getEventEmptyMessage } from "@/utils/events";
 import { useSearchFilter } from "@/hooks/useSearchFilter";
 
@@ -45,7 +55,11 @@ const EventsContainer = (props: EventsContainerProps) => {
     pastYearAnchorPrefix = "past-events",
   } = props;
 
-  const { query, setQuery, filtered: filteredEvents } = useSearchFilter({
+  const {
+    query,
+    setQuery,
+    filtered: filteredEvents,
+  } = useSearchFilter({
     data: events,
     buildHaystack: buildEventSearchText,
   });
@@ -68,14 +82,22 @@ const EventsContainer = (props: EventsContainerProps) => {
       >
         Upcoming Events
       </Heading>
-      <div className="space-y-4">
-        <Text className="text-lg text-center secondary lg:text-left">
-          {getEventEmptyMessage("upcoming")}
-        </Text>
-      </div>
+      <EmptyState message={getEventEmptyMessage("upcoming")} />
       <Divider margins="lg" />
     </div>
   );
+
+  const renderEmptyState = () => {
+    const hasSearchQuery = query.trim().length > 0;
+
+    const message = hasSearchQuery
+      ? "No events match your search. Try another city, venue, or event name."
+      : showSearch
+        ? "There are no events to show right now. Check back soon for new Ryan Meetups."
+        : `There have not been any local Ryan Meetups in ${eventType} yet. Check back later once we officially launch this chapter!`;
+
+    return <EmptyState message={message} />;
+  };
 
   if (displayMode === "flat") {
     const { upcoming, past } = splitEventsByTime(
@@ -133,6 +155,10 @@ const EventsContainer = (props: EventsContainerProps) => {
             pastYearAnchorPrefix={pastYearAnchorPrefix}
           />
         )}
+
+        {inactiveEvents.length === 0 &&
+          activeEvents.length === 0 &&
+          renderEmptyState()}
       </div>
     );
   }
@@ -158,7 +184,11 @@ const EventsContainer = (props: EventsContainerProps) => {
       }
     }
   }
-  activeEvents.splice(0, activeEvents.length, ...sortEventsByDate(activeEvents, "asc"));
+  activeEvents.splice(
+    0,
+    activeEvents.length,
+    ...sortEventsByDate(activeEvents, "asc"),
+  );
   chapterEvents.splice(
     0,
     chapterEvents.length,
@@ -223,22 +253,10 @@ const EventsContainer = (props: EventsContainerProps) => {
         />
       )}
 
-      {inactiveEvents.length === 0 && activeEvents.length === 0 && (
-        <Card
-          variant="solid"
-          size="lg"
-          className="-mt-8 text-center lg:text-left"
-        >
-          <div className="space-y-3">
-            <Text className="text-lg secondary">
-              There have not been any local Ryan Meetups in {eventType} yet.
-            </Text>
-            <Text className="text-lg secondary">
-              Check back later once we officially launch this chapter!
-            </Text>
-          </div>
-        </Card>
-      )}
+      {inactiveEvents.length === 0 &&
+        activeEvents.length === 0 &&
+        chapterEvents.length === 0 &&
+        renderEmptyState()}
     </div>
   );
 };

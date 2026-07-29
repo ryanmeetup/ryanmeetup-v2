@@ -83,29 +83,27 @@ const EventsSection = (props: EventsSectionProps) => {
   const isUpcomingMainSection =
     title === "Upcoming Events" && eventType === "Main";
   const hasOnlyChapterUpcoming =
-    isUpcomingMainSection && showChapters && chapterEventCount > 0 && mainEventCount === 0;
+    isUpcomingMainSection &&
+    showChapters &&
+    chapterEventCount > 0 &&
+    mainEventCount === 0;
   const displayCount =
-    isUpcomingMainSection && showChapters
-      ? mainEventCount
-      : events.length;
+    isUpcomingMainSection && showChapters ? mainEventCount : events.length;
   const eventCountLabel = hasOnlyChapterUpcoming
     ? formatEventCount(chapterEventCount, "chapter event")
     : formatEventCount(displayCount);
   const isPastEventsSection = title === "Past Events";
   const pastEventsByYear = isPastEventsSection
-    ? events.reduce(
-        (groups, event) => {
-          const year = formatMonthDay(event.date).year;
-          const existing = groups.get(year);
-          if (existing) {
-            existing.push(event);
-          } else {
-            groups.set(year, [event]);
-          }
-          return groups;
-        },
-        new Map<string, RyanEvent[]>(),
-      )
+    ? events.reduce((groups, event) => {
+        const year = formatMonthDay(event.date).year;
+        const existing = groups.get(year);
+        if (existing) {
+          existing.push(event);
+        } else {
+          groups.set(year, [event]);
+        }
+        return groups;
+      }, new Map<string, RyanEvent[]>())
     : null;
 
   const renderSectionContent = () => {
@@ -130,11 +128,11 @@ const EventsSection = (props: EventsSectionProps) => {
                   id={`${pastYearAnchorPrefix}-${year}`}
                   className="flex w-full items-center justify-between gap-4 border-b border-black/10 pb-3 text-left transition hover:border-black/20 dark:border-white/10 dark:hover:border-white/20"
                 >
-                  <div className="flex items-baseline gap-3">
+                  <div className="flex items-center gap-3">
                     <Heading className="text-2xl title sm:text-3xl" size="h3">
                       {year}
                     </Heading>
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-black/55 dark:text-white/55">
+                    <span className="flex items-center rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-black/70 dark:border-white/10 dark:bg-white/10 dark:text-white/70">
                       {formatEventCount(yearEvents.length)}
                     </span>
                   </div>

@@ -127,8 +127,6 @@ const ChaptersPage = async ({
           chapters={activeChapters as RyanChapter[]}
           upcomingCities={Array.from(upcomingEvents)}
         />
-
-        {/* <CalendarButton /> */}
       </div>
 
       <Divider margins="lg" />

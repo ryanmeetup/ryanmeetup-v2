@@ -107,7 +107,7 @@ const PressPage = async () => {
 
       <FeaturedIn outlets={outlets as Outlet[]} />
 
-      <div className={`${layoutPaddingX}`}>
+      <div className={`pb-20 ${layoutPaddingX}`}>
         <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:justify-center">
           <Button.Link
             href="/about"
