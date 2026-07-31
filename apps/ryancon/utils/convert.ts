@@ -21,8 +21,8 @@ const convertShortDate = (date: Date) => {
   return `${dateString.slice(4, 8)} ${day + 1}, ${year}`;
 };
 
-const convertImageUrl = (file: ContentfulImage) => {
-  const route = file.fields?.file?.url;
+const convertImageUrl = (file?: ContentfulImage | null) => {
+  const route = file?.fields?.file?.url;
 
   if (route) {
     return `https://${route.replace('//', '')}`;

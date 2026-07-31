@@ -20,6 +20,11 @@ type SponsorProps = {
 const Sponsor = (props: SponsorProps) => {
   const { name, image, href } = props.sponsor;
   const { className, imageWrapperClassName } = props;
+  const imageUrl = convertImageUrl(image);
+
+  if (!imageUrl) {
+    return null;
+  }
 
   return (
     <NextLink
@@ -36,7 +41,7 @@ const Sponsor = (props: SponsorProps) => {
           className={`relative mx-auto h-48 w-full max-w-[660px] sm:h-[216px] ${imageWrapperClassName ?? ""}`}
         >
           <NextImage
-            src={convertImageUrl(image) as string}
+            src={imageUrl}
             fill
             alt={name}
             className="object-contain"

@@ -23,11 +23,13 @@ const SponsorCarousel = (props: SponsorCarousel) => {
 
   const sponsorLogos = useMemo(
     () =>
-      sponsors.map((sponsor) => ({
-        href: sponsor.href,
-        name: sponsor.name,
-        src: convertImageUrl(sponsor.image) as string,
-      })),
+      sponsors.flatMap((sponsor) => {
+        const src = convertImageUrl(sponsor.image);
+
+        return src
+          ? [{ href: sponsor.href, name: sponsor.name, src }]
+          : [];
+      }),
     [sponsors],
   );
   const [topRow, bottomRow] = useMemo(() => {
