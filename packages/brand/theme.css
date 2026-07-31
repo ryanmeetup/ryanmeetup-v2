@@ -1,0 +1,30 @@
+@custom-variant dark (&:where(.dark, .dark *));
+
+@font-face {
+  font-family: "Cooper";
+  src: url("./COOPBL.woff") format("woff");
+  font-display: swap;
+}
+
+@theme {
+  --color-nametag: #ee1a25;
+  --font-cooper: Cooper, sans-serif;
+  --text-display: calc(5rem + ((1vw - 7.68px) * 1.7361));
+  --text-display2: calc(2.25rem + ((1vw - 7.68px) * 1.0417));
+  --text-display3: calc(1.5rem + ((1vw - 7.68px) * 1.0417));
+  --text-display4: calc(1rem + ((1vw - 7.68px) * 0.6944));
+  --breakpoint-1xl: 1360px;
+  --breakpoint-3xl: 1800px;
+  --breakpoint-4xl: 2100px;
+  --animate-disco: disco 1.5s linear infinite;
+
+  @keyframes disco {
+    0% { transform: translateY(-50%) rotate(0deg); }
+    100% { transform: translateY(-50%) rotate(360deg); }
+  }
+}
+
+@utility brightness-20 { filter: brightness(0.2); }
+@utility brightness-25 { filter: brightness(0.25); }
+@utility brightness-30 { filter: brightness(0.3); }
+@utility scale-102 { scale: 1.02; }
