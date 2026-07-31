@@ -1,5 +1,5 @@
 {
-  "name": "ryan-meetup-platform",
+  "name": "ryanmeetup-v3",
   "version": "1.0.0",
   "private": true,
   "workspaces": [
@@ -7,9 +7,9 @@
     "packages/*"
   ],
   "scripts": {
-    "dev:meetup": "npm run dev --workspace=@ryanmeetup/meetup",
+    "dev:ryanmeetup": "npm run dev --workspace=@ryanmeetup/ryanmeetup",
     "dev:ryancon": "npm run dev --workspace=@ryanmeetup/ryancon",
-    "build:meetup": "npm run build --workspace=@ryanmeetup/meetup",
+    "build:ryanmeetup": "npm run build --workspace=@ryanmeetup/ryanmeetup",
     "build:ryancon": "npm run build --workspace=@ryanmeetup/ryancon",
     "build": "npm run build --workspaces --if-present"
   },
