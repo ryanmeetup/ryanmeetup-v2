@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useCallback, useMemo, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 
 // Components
@@ -22,6 +22,7 @@ import {
 import { getEventEmptyMessage, getSortedEventsByView } from "@/utils/events";
 import { formatEventCount } from "@/utils/date";
 import type { RyanEvent } from "@/lib/types";
+import { useQueryParamState } from "@/hooks/useQueryParamState";
 
 type EventsListPagerProps = {
   events: RyanEvent[];
@@ -58,20 +59,54 @@ const EventsListPager = (props: EventsListPagerProps) => {
     resetKey,
   } = props;
 
-  const [page, setPage] = useState(1);
-  const [displayMode, setDisplayMode] = useState(defaultDisplayMode);
-  const [perPage, setPerPage] = useState(
-    defaultPerPage ?? perPageOptions?.[0] ?? pageSize,
+  const defaultPerPageValue = defaultPerPage ?? perPageOptions?.[0] ?? pageSize;
+  const [pageParam, setPageParam] = useQueryParamState("page", "1");
+  const [displayModeParam, setDisplayModeParam] = useQueryParamState(
+    "view",
+    defaultDisplayMode,
+  );
+  const [perPageParam, setPerPageParam] = useQueryParamState(
+    "perPage",
+    String(defaultPerPageValue),
+  );
+  const page = Math.max(1, Number.parseInt(pageParam, 10) || 1);
+  const displayMode = displayModeParam === "details" ? "details" : "summary";
+  const parsedPerPage = Number.parseInt(perPageParam, 10);
+  const perPage = perPageOptions?.includes(parsedPerPage)
+    ? parsedPerPage
+    : defaultPerPageValue;
+  const setPage = useCallback(
+    (next: number | ((current: number) => number)) =>
+      setPageParam((current) =>
+        String(
+          typeof next === "function"
+            ? next(Math.max(1, Number.parseInt(current, 10) || 1))
+            : next,
+        ),
+      ),
+    [setPageParam],
+  );
+  const setDisplayMode = useCallback(
+    (next: "summary" | "details") => setDisplayModeParam(next),
+    [setDisplayModeParam],
+  );
+  const setPerPage = useCallback(
+    (next: number) => setPerPageParam(String(next)),
+    [setPerPageParam],
   );
 
   const effectivePerPage = showPerPageSelector ? perPage : pageSize;
+  const previousResetKey = useRef(resetKey);
 
   const sortedEvents = useMemo(
     () => getSortedEventsByView(events, view, sortOrder),
     [events, sortOrder, view],
   );
 
-  const totalPages = Math.max(1, Math.ceil(sortedEvents.length / effectivePerPage));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(sortedEvents.length / effectivePerPage),
+  );
   const currentPage = Math.min(page, totalPages);
   const pagedItems = sortedEvents.slice(
     (currentPage - 1) * effectivePerPage,
@@ -84,17 +119,20 @@ const EventsListPager = (props: EventsListPagerProps) => {
         setPerPage(perPageOptions[0]);
       }
     }
-  }, [perPage, perPageOptions, showPerPageSelector]);
+  }, [perPage, perPageOptions, setPerPage, showPerPageSelector]);
 
   useEffect(() => {
-    setPage(1);
-  }, [effectivePerPage, resetKey]);
+    if (previousResetKey.current !== resetKey) {
+      previousResetKey.current = resetKey;
+      setPage(1);
+    }
+  }, [resetKey, setPage]);
 
   useEffect(() => {
     if (page > totalPages) {
       setPage(totalPages);
     }
-  }, [page, totalPages]);
+  }, [page, setPage, totalPages]);
 
   const pageButtons = useMemo(() => {
     if (totalPages <= 5) {
@@ -113,8 +151,7 @@ const EventsListPager = (props: EventsListPagerProps) => {
 
   const resolvedTitle =
     listTitle ?? (view === "upcoming" ? "Upcoming Events" : "Past Events");
-  const resolvedCta =
-    ctaLabel ?? (view === "upcoming" ? "RSVP" : "View event");
+  const resolvedCta = ctaLabel ?? (view === "upcoming" ? "RSVP" : "View event");
   const emptyMessage = getEventEmptyMessage(view);
   const displayModeSwitch = showDisplayModeSwitch ? (
     <div
@@ -154,11 +191,16 @@ const EventsListPager = (props: EventsListPagerProps) => {
     </div>
   ) : null;
   const footerAction =
-    showPerPageSelector && perPageOptions?.length && displayMode === "summary" ? (
+    showPerPageSelector &&
+    perPageOptions?.length &&
+    displayMode === "summary" ? (
       <ResultsPerPage
         value={effectivePerPage}
         options={perPageOptions}
-        onChange={setPerPage}
+        onChange={(nextValue) => {
+          setPerPage(nextValue);
+          setPage(1);
+        }}
       />
     ) : null;
 
@@ -204,7 +246,6 @@ const EventsListPager = (props: EventsListPagerProps) => {
         nextIcon={<ArrowRight className="h-3.5 w-3.5" />}
         lastIcon={<AnglesRight className="h-3.5 w-3.5" />}
       />
-
     </div>
   );
 };

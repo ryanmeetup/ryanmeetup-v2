@@ -5,16 +5,15 @@ import {
   EmptyState,
   FilterBar,
   Input,
+  SearchIndicator,
   Select,
   Text,
 } from "@/components/global";
-import {
-  FaMagnifyingGlass as Search,
-  FaSliders as Filters,
-} from "react-icons/fa6";
+import { FaSliders as Filters } from "react-icons/fa6";
 import { ChapterTile } from "@/components/chapters";
 import type { RyanChapter } from "@/lib/types";
 import { useSearchFilter } from "@/hooks/useSearchFilter";
+import { useQueryParamState } from "@/hooks/useQueryParamState";
 
 type ChapterDirectoryProps = {
   chapters: RyanChapter[];
@@ -23,8 +22,9 @@ type ChapterDirectoryProps = {
 
 const ChapterDirectory = (props: ChapterDirectoryProps) => {
   const { chapters, upcomingCities } = props;
-  const [stateFilter, setStateFilter] = useState("all");
-  const [onlyUpcoming, setOnlyUpcoming] = useState(false);
+  const [stateFilter, setStateFilter] = useQueryParamState("state", "all");
+  const [upcomingFilter, setUpcomingFilter] = useQueryParamState("upcoming");
+  const onlyUpcoming = upcomingFilter === "true";
   const [showFilters, setShowFilters] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [showSkeleton, setShowSkeleton] = useState(false);
@@ -58,6 +58,7 @@ const ChapterDirectory = (props: ChapterDirectoryProps) => {
     query,
     setQuery,
     filtered: queryFilteredChapters,
+    isPending: isSearchPending,
   } = useSearchFilter({
     data: chapters,
     buildHaystack: (chapter) => {
@@ -106,7 +107,7 @@ const ChapterDirectory = (props: ChapterDirectoryProps) => {
     startTransition(() => {
       setQuery("");
       setStateFilter("all");
-      setOnlyUpcoming(false);
+      setUpcomingFilter("");
     });
   };
 
@@ -118,7 +119,7 @@ const ChapterDirectory = (props: ChapterDirectoryProps) => {
             label="Search chapters"
             name="chapter-search"
             placeholder="Search by city or state..."
-            leadingIcon={<Search className="h-4 w-4" />}
+            leadingIcon={<SearchIndicator isPending={isSearchPending} />}
             inputClassName="pr-12 lg:pr-4"
             trailingAction={
               <button
@@ -166,7 +167,11 @@ const ChapterDirectory = (props: ChapterDirectoryProps) => {
             <button
               type="button"
               onClick={() =>
-                startTransition(() => setOnlyUpcoming((value) => !value))
+                startTransition(() =>
+                  setUpcomingFilter((value) =>
+                    value === "true" ? "" : "true",
+                  ),
+                )
               }
               aria-pressed={onlyUpcoming}
               className={`h-11 w-full rounded-lg border px-4 text-[11px] font-semibold uppercase tracking-[0.2em] transition lg:w-auto ${

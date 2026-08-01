@@ -10,6 +10,7 @@ import {
   EmptyState,
   Heading,
   Input,
+  SearchIndicator,
 } from "@/components/global";
 import { EventsSection } from "@/components/events";
 import NextLink from "next/link";
@@ -59,6 +60,7 @@ const EventsContainer = (props: EventsContainerProps) => {
     query,
     setQuery,
     filtered: filteredEvents,
+    isPending: isSearchPending,
   } = useSearchFilter({
     data: events,
     buildHaystack: buildEventSearchText,
@@ -107,6 +109,7 @@ const EventsContainer = (props: EventsContainerProps) => {
           label="Search events"
           name="event-search"
           placeholder="Search by city, venue, or event name..."
+          leadingIcon={<SearchIndicator isPending={isSearchPending} />}
           inputClassName="pr-4"
           onChange={(event) => setQuery(event.target.value)}
           value={query}

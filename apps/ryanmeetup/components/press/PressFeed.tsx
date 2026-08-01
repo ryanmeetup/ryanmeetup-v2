@@ -11,6 +11,7 @@ import {
   FilterChipGroup,
   FilterBar,
   Input,
+  SearchIndicator,
   Text,
 } from "@/components/global";
 
@@ -19,6 +20,7 @@ import type { Article as RyanArticle } from "@/lib/types";
 
 // Utilities
 import { useSearchFilter } from "@/hooks/useSearchFilter";
+import { useQueryParamState } from "@/hooks/useQueryParamState";
 
 type PressFeedProps = {
   articles: RyanArticle[];
@@ -34,13 +36,14 @@ const getYear = (article: RyanArticle) => {
 
 const PressFeed = (props: PressFeedProps) => {
   const { articles } = props;
-  const [activeOutlet, setActiveOutlet] = useState("All");
-  const [activeYear, setActiveYear] = useState("All");
+  const [activeOutlet, setActiveOutlet] = useQueryParamState("outlet", "All");
+  const [activeYear, setActiveYear] = useQueryParamState("year", "All");
   const [showFilters, setShowFilters] = useState(false);
   const {
     query,
     setQuery,
     filtered: searchedArticles,
+    isPending: isSearchPending,
   } = useSearchFilter({
     data: articles,
     buildHaystack: buildArticleSearchText,
@@ -103,6 +106,7 @@ const PressFeed = (props: PressFeedProps) => {
             label="Search articles"
             name="article-search"
             placeholder="Search by title, author, outlet, or keyword..."
+            leadingIcon={<SearchIndicator isPending={isSearchPending} />}
             inputClassName="pr-4"
             onChange={(event) => setQuery(event.target.value)}
             value={query}

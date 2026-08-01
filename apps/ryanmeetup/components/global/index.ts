@@ -19,3 +19,4 @@ export * from "./CollapsibleYearSection";
 export * from "./IconBadge";
 export * from "./IconButton";
 export * from "./FilterChip";
+export * from "./SearchIndicator";
