@@ -7,7 +7,7 @@ const FieldError = ({ children, className }: FieldErrorProps) =>
   children ? (
     <Text
       role="alert"
-      className={`mt-2 text-xs font-semibold uppercase tracking-[0.3em] text-red-500 ${className ?? ""}`}
+      className={`mt-2 text-xs font-semibold uppercase tracking-[0.3em] !text-red-500 dark:!text-red-400 ${className ?? ""}`}
     >
       {children}
     </Text>

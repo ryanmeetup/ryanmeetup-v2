@@ -1,21 +1,22 @@
 import { forwardRef } from "react";
 
 // Types
-import type { ChangeEvent, ReactNode } from "react";
+import type { ChangeEventHandler, InputHTMLAttributes, ReactNode } from "react";
 import { fieldControlBaseClasses, getFieldLabelClasses } from "./fieldStyles";
 
-export type InputProps = {
+export type InputProps = Omit<
+  InputHTMLAttributes<HTMLInputElement>,
+  "name" | "type" | "onChange"
+> & {
   label: string;
   name: string;
-  type?: "text" | "email" | "url" | "number";
-  onChange: (event: ChangeEvent<HTMLInputElement>) => void;
-  placeholder?: string;
-  required?: boolean;
+  type?: "text" | "email" | "password" | "url" | "number";
+  onChange: ChangeEventHandler<HTMLInputElement>;
   ignoreColorMode?: boolean;
-  value?: string;
   leadingIcon?: ReactNode;
   trailingAction?: ReactNode;
   inputClassName?: string;
+  error?: boolean;
 };
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
@@ -31,6 +32,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       leadingIcon,
       trailingAction,
       inputClassName,
+      error = false,
       ...rest
     } = props;
 
@@ -40,7 +42,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="flex flex-col gap-2">
         <label
-          className={getFieldLabelClasses(!ignoreColorMode)}
+          className={`${getFieldLabelClasses(!ignoreColorMode)} ${error ? "!text-red-500 dark:!text-red-400" : ""}`}
           htmlFor={name}
         >
           <span>{label}</span>
@@ -58,12 +60,13 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             </div>
           )}
           <input
-            className={`${fieldControlBaseClasses} ${iconPadding} ${actionPadding} ${inputClassName ?? ""}`}
+            className={`${fieldControlBaseClasses} ${error ? "border-red-500 ring-2 ring-red-500/20 focus:border-red-500 focus:ring-red-500/25 dark:border-red-400 dark:focus:border-red-400 dark:focus:ring-red-400/25" : ""} ${iconPadding} ${actionPadding} ${inputClassName ?? ""}`}
             id={name}
             name={name}
             placeholder={placeholder}
             onChange={onChange}
             required={required}
+            aria-invalid={error || undefined}
             type={type}
             ref={ref}
             {...rest}
