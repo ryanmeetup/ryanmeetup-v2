@@ -39,6 +39,7 @@ import {
 } from "react-icons/fi";
 import { createClient } from "@/lib/supabase/client";
 import type { Priority, Task, WorkspaceData } from "@/lib/types";
+import { ThemeToggle } from "./ThemeToggle";
 
 type View = "board" | "list";
 type Draft = Pick<
@@ -501,6 +502,7 @@ export function TaskApp({
               className="h-10 w-full rounded-lg border border-black/10 bg-white pl-10 pr-3 text-sm outline-none focus:border-black/30 focus:ring-2 focus:ring-black/10 dark:border-white/10 dark:bg-white/5 dark:focus:border-white/30"
             />
           </div>
+          <ThemeToggle />
           <Button size="sm" leftIcon={<FiPlus />} onClick={() => openCreate()}>
             New task
           </Button>
