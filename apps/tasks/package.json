@@ -9,9 +9,14 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@ryanmeetup/brand": "^0.1.0",
+    "@ryanmeetup/ui": "^0.1.0",
+    "@supabase/ssr": "^0.12.4",
+    "@supabase/supabase-js": "^2.111.0",
     "next": "^16.2.12",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "react-icons": "^5.7.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
