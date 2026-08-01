@@ -1,17 +1,17 @@
 import { forwardRef } from "react";
 
 // Types
-import type { ChangeEvent } from "react";
+import type { ChangeEventHandler, TextareaHTMLAttributes } from "react";
 import { fieldControlBaseClasses, getFieldLabelClasses } from "./fieldStyles";
 
-export type TextareaProps = {
+export type TextareaProps = Omit<
+  TextareaHTMLAttributes<HTMLTextAreaElement>,
+  "id" | "name" | "onChange"
+> & {
   id: string;
   label: string;
   name: string;
-  onChange: (event: ChangeEvent<HTMLTextAreaElement>) => void;
-  placeholder?: string;
-  required?: boolean;
-  rows?: number;
+  onChange: ChangeEventHandler<HTMLTextAreaElement>;
 };
 
 const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
