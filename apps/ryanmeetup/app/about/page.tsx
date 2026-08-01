@@ -1,6 +1,7 @@
 // Components
 import { Layout } from "@/components/navigation";
-import { Text, Divider, HeroCard } from "@/components/global";
+import { HeroCard } from "@/components/global";
+import { Divider, Text } from "@ryanmeetup/ui";
 import { Moments } from "@/components/about";
 import { BenefitsSection } from "@/components/home";
 
@@ -29,7 +30,7 @@ export const metadata = buildPageMetadata({
 
 const AboutPage = () => {
   const story = [
-    "In February 2023, Ryan decided she wanted to meet more people named Ryan. So she posted a handful of flyers in her Brooklyn neighborhood with a QR code that implored Ryans to RSVP for a \"Ryan Meetup.\" Only two other Ryans attended.",
+    'In February 2023, Ryan decided she wanted to meet more people named Ryan. So she posted a handful of flyers in her Brooklyn neighborhood with a QR code that implored Ryans to RSVP for a "Ryan Meetup." Only two other Ryans attended.',
     "That night, after checking each other's IDs, Ryan, Ryan, and Ryan devised a plan to reach more Ryans—and set an ambitious goal for themselves: to break the world record for the largest same first name gathering of all time.",
     "So the Ryans got to work, covering NYC in flyers to advertise their next event at Ryan Maguire's pub—but this time, over 100 Ryans showed up, including some Ryans from major news sources, who helped spread the word to even more Ryans.",
     "Soon, Ryans everywhere wanted to join in on the fun. So we took Ryan Meetup on tour, hosting events in Los Angeles, Denver, Chicago, and more. All while building a community with thousands of Ryans, who each contribute in their own unique way. And that's exactly what it will take to put our name in the record books.",
@@ -54,7 +55,10 @@ const AboutPage = () => {
 
         <section className="space-y-6">
           {story.map((paragraph, index) => (
-            <Text key={index} className="text-lg text-black/70 dark:text-white/70">
+            <Text
+              key={index}
+              className="text-lg text-black/70 dark:text-white/70"
+            >
               {paragraph}
             </Text>
           ))}

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 
 // Components
 import NextLink from "next/link";
-import { Heading, Divider, Text, Card, Button } from "@/components/global";
+import { Button, Card, Divider, Heading, Text } from "@ryanmeetup/ui";
 import { RotatingGallery } from "@/components/home/RotatingGallery";
 import { landingGallery } from "@/lib/constants";
 import { Transition } from "@headlessui/react";
@@ -24,16 +24,10 @@ const Info = () => {
   return (
     <div className="space-y-4 xl:space-y-8">
       <div className="space-y-2">
-        <Heading
-          className="text-5xl title"
-          size="h1"
-        >
+        <Heading className="text-5xl title" size="h1">
           If your name is Ryan,
         </Heading>
-        <Heading
-          className="text-3xl title"
-          size="h2"
-        >
+        <Heading className="text-3xl title" size="h2">
           you&apos;re in the right place.
         </Heading>
       </div>
@@ -41,25 +35,24 @@ const Info = () => {
       <div className="space-y-4 text-base sm:text-lg text-black/70 dark:text-white/70">
         <Text>
           Welcome to the Ryan Meetup — a not-for-profit organization run by
-          Ryans, for Ryans, with the ultimate goal of assembling as many
-          Ryans as possible.
+          Ryans, for Ryans, with the ultimate goal of assembling as many Ryans
+          as possible.
         </Text>
         <Text>
           A meetup for people named Ryan, with events and chapters across the
           country.
         </Text>
         <Text>
-            One day, we aim to host RyanCon, and break the world record for
-            the{" "}
-            <NextLink
-              href="https://www.guinnessworldrecords.com/world-records/largest-same-name-gathering-first-name"
-              className="font-medium text-blue-700 dark:text-blue-500 hover:underline"
-            >
-              largest same name gathering
-            </NextLink>{" "}
-            in history.
-          </Text>
-          <Text>See you soon, Ryan.</Text>
+          One day, we aim to host RyanCon, and break the world record for the{" "}
+          <NextLink
+            href="https://www.guinnessworldrecords.com/world-records/largest-same-name-gathering-first-name"
+            className="font-medium text-blue-700 dark:text-blue-500 hover:underline"
+          >
+            largest same name gathering
+          </NextLink>{" "}
+          in history.
+        </Text>
+        <Text>See you soon, Ryan.</Text>
       </div>
     </div>
   );
@@ -141,7 +134,7 @@ const Overview = (props: { stats: StatItem[] }) => {
                 {stat.value}
               </Heading>
             </div>
-            <Text className="w-full text-left text-xs sm:w-auto md:text-sm lg:text-[10px] xl:text-sm uppercase tracking-[0.12em] sm:tracking-[0.2em] whitespace-nowrap text-black/70 dark:text-white/70">
+            <Text className="w-full whitespace-nowrap text-left text-sm uppercase tracking-[0.12em] text-black/70 dark:text-white/70 sm:w-auto sm:tracking-[0.2em]">
               {stat.label}
             </Text>
           </NextLink>
@@ -159,7 +152,7 @@ type HighlightsProps = {
     href: string;
     cta: string;
   }[];
-}
+};
 
 const Highlights = (props: HighlightsProps) => {
   const { highlights } = props;
@@ -245,7 +238,7 @@ const Highlights = (props: HighlightsProps) => {
       ))}
     </div>
   );
-}
+};
 
 const Landing = (props: LandingProps) => {
   const { stats } = props;
@@ -280,7 +273,6 @@ const Landing = (props: LandingProps) => {
     title: photo.title,
     city: photo.city,
   }));
-
 
   return (
     <section className="relative overflow-hidden text-black dark:text-white">

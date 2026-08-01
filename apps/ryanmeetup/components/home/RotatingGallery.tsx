@@ -3,7 +3,7 @@
 import NextImage from "next/image";
 import { useEffect, useState } from "react";
 import { Transition } from "@headlessui/react";
-import { Badge, IconButton } from "@/components/global";
+import { IconButton, Pill } from "@ryanmeetup/ui";
 import {
   FaChevronLeft as ChevronLeft,
   FaChevronRight as ChevronRight,
@@ -122,14 +122,22 @@ const RotatingGallery = (props: RotatingGalleryProps) => {
       {(items[activeSlide]?.title || items[activeSlide]?.city) && (
         <div className="pointer-events-none absolute right-4 top-4 z-20 flex flex-col items-end gap-2">
           {items[activeSlide]?.title && (
-            <Badge className="text-[9px] sm:text-[10px]">
+            <Pill
+              variant="overlay"
+              size="sm"
+              className="text-[9px] sm:text-[10px]"
+            >
               {items[activeSlide].title}
-            </Badge>
+            </Pill>
           )}
           {items[activeSlide]?.city && (
-            <Badge className="text-[9px] sm:text-[10px]">
+            <Pill
+              variant="overlay"
+              size="sm"
+              className="text-[9px] sm:text-[10px]"
+            >
               📍 {items[activeSlide].city}
-            </Badge>
+            </Pill>
           )}
         </div>
       )}

@@ -4,17 +4,19 @@ import { useMemo } from "react";
 
 // Components
 import NextImage from "next/image";
-import { Button } from "@/components/global";
+import { Button } from "@ryanmeetup/ui";
+import { SponsorLogoMarquee } from "@ryanmeetup/sponsors";
 import { SponsorLink } from "@/components/sponsors/SponsorLink";
-import Marquee from "react-fast-marquee";
+import { buildSponsorTrackingHref } from "@/components/sponsors/SponsorLink";
 
 // Types
 import type { Sponsor } from "@/lib/types";
 
 // Utilities
 import { useTheme } from "next-themes";
+import { usePathname } from "next/navigation";
 import { layoutPaddingX } from "@/lib/constants";
-import { convertImageUrl } from "@/utils/convert";
+import { convertImageUrl } from "@ryanmeetup/utils";
 
 type SponsorCarousel = {
   sponsors: Sponsor[];
@@ -22,6 +24,7 @@ type SponsorCarousel = {
 
 const SponsorCarousel = (props: SponsorCarousel) => {
   const { resolvedTheme } = useTheme();
+  const pathname = usePathname();
 
   const { sponsors } = props;
 
@@ -114,56 +117,38 @@ const SponsorCarousel = (props: SponsorCarousel) => {
         </div>
       ) : null}
 
-      <Marquee speed={50} gradient={false}>
-        {topRow.map((sponsor, idx) => (
-          <div
-            key={idx}
-            className="flex flex-col items-center justify-center py-4"
-          >
-            <SponsorLink
-              href={sponsor.href}
-              sponsorName={sponsor.name}
-              placement="homepage_carousel_top"
-              partnershipType={sponsor.partnershipType}
-              className="group mx-4 flex h-[120px] w-[11.5rem] items-center justify-center rounded-2xl border border-white/10 bg-white transition hover:-translate-y-1 hover:border-white/30 dark:bg-white/5 dark:hover:bg-white/10 sm:mx-6 sm:h-[176px] sm:w-[18rem]"
-            >
-              <NextImage
-                src={sponsor.src}
-                alt={sponsor.name}
-                width={360}
-                height={180}
-                className="h-[88px] w-auto object-contain sm:h-[128px]"
-                sizes="(max-width: 640px) 200px, (max-width: 768px) 280px, 360px"
-              />
-            </SponsorLink>
-          </div>
-        ))}
-      </Marquee>
-      <Marquee speed={40} gradient={false} direction="right">
-        {bottomRow.map((sponsor, idx) => (
-          <div
-            key={`${sponsor.name}-${idx}`}
-            className="flex flex-col items-center justify-center py-4"
-          >
-            <SponsorLink
-              href={sponsor.href}
-              sponsorName={sponsor.name}
-              placement="homepage_carousel_bottom"
-              partnershipType={sponsor.partnershipType}
-              className="group mx-3 flex h-[92px] w-[8.5rem] items-center justify-center rounded-2xl border border-white/10 bg-white transition hover:-translate-y-1 hover:border-white/30 dark:bg-white/5 dark:hover:bg-white/10 sm:mx-4 sm:h-[132px] sm:w-[12.5rem]"
-            >
-              <NextImage
-                src={sponsor.src}
-                alt={sponsor.name}
-                width={240}
-                height={120}
-                className="h-[56px] w-auto object-contain sm:h-[88px]"
-                sizes="(max-width: 640px) 140px, (max-width: 768px) 200px, 240px"
-              />
-            </SponsorLink>
-          </div>
-        ))}
-      </Marquee>
+      <SponsorLogoMarquee
+        sponsors={topRow.map((sponsor) => ({
+          name: sponsor.name,
+          src: sponsor.src,
+          href: buildSponsorTrackingHref({
+            href: sponsor.href,
+            sponsorName: sponsor.name,
+            placement: "homepage_carousel_top",
+            partnershipType: sponsor.partnershipType,
+            source: pathname,
+          }),
+        }))}
+        itemClassName="mx-4 h-[120px] w-[11.5rem] sm:mx-6 sm:h-[176px] sm:w-[18rem]"
+        imageClassName="h-[88px] sm:h-[128px]"
+      />
+      <SponsorLogoMarquee
+        sponsors={bottomRow.map((sponsor) => ({
+          name: sponsor.name,
+          src: sponsor.src,
+          href: buildSponsorTrackingHref({
+            href: sponsor.href,
+            sponsorName: sponsor.name,
+            placement: "homepage_carousel_bottom",
+            partnershipType: sponsor.partnershipType,
+            source: pathname,
+          }),
+        }))}
+        speed={40}
+        direction="right"
+        itemClassName="mx-3 h-[92px] w-[8.5rem] sm:mx-4 sm:h-[132px] sm:w-[12.5rem]"
+        imageClassName="h-[56px] sm:h-[88px]"
+      />
     </div>
   );
 };

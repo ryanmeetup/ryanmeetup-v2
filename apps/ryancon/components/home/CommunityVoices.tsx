@@ -1,25 +1,24 @@
 // Components
-import { Heading, Pill, Text } from '@/components/global';
-import { Testimony } from '@/components/home';
+import { Heading, Pill, TestimonialCard, Text } from "@ryanmeetup/ui";
 
 // Utilities
-import { layoutPaddingX } from '@/lib/constants';
+import { layoutPaddingX } from "@/lib/constants";
 
 const testimonials = [
   {
     quote:
-      'RyanCon felt like summer camp for people with the exact same name. Instant friends, instant memories.',
-    location: 'Brooklyn, NY',
+      "RyanCon felt like summer camp for people with the exact same name. Instant friends, instant memories.",
+    location: "Brooklyn, NY",
   },
   {
     quote:
-      'The energy was unreal. I came for the joke, stayed for the community.',
-    location: 'Austin, TX',
+      "The energy was unreal. I came for the joke, stayed for the community.",
+    location: "Austin, TX",
   },
   {
     quote:
-      'From posters on street corners to a movement. This is the most wholesome record chase ever.',
-    location: 'Chicago, IL',
+      "From posters on street corners to a movement. This is the most wholesome record chase ever.",
+    location: "Chicago, IL",
   },
 ];
 
@@ -33,21 +32,21 @@ const testimonials = [
 const CommunityVoices = () => {
   return (
     <section className={`py-12 sm:py-16 ${layoutPaddingX}`}>
-      <div className='space-y-10'>
-        <div className='mx-auto flex max-w-4xl flex-col items-center gap-4 text-center'>
+      <div className="space-y-10">
+        <div className="mx-auto flex max-w-4xl flex-col items-center gap-4 text-center">
           <Pill>Community voices</Pill>
-          <Heading className='text-4xl title sm:text-5xl lg:text-6xl' size='h2'>
+          <Heading className="text-4xl title sm:text-5xl lg:text-6xl" size="h2">
             People are talking about RyanCon.
           </Heading>
-          <Text className='text-lg sm:text-xl'>
+          <Text className="text-lg sm:text-xl">
             Stories from Ryans who have joined past meetups and helped build the
             momentum toward RyanCon.
           </Text>
         </div>
 
-        <div className='columns-1 gap-6 space-y-6 sm:columns-2 lg:columns-3'>
+        <div className="columns-1 gap-6 space-y-6 sm:columns-2 lg:columns-3">
           {testimonials.map((item, index) => (
-            <Testimony key={`${item.location}-${index}`} testimony={item} />
+            <TestimonialCard key={`${item.location}-${index}`} {...item} />
           ))}
         </div>
 

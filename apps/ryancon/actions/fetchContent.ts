@@ -1,6 +1,6 @@
-'use server';
+"use server";
 
-import * as contentful from 'contentful';
+import * as contentful from "contentful";
 
 const client = contentful.createClient({
   space: process.env.CONTENTFUL_SPACE_ID as string,
@@ -8,18 +8,15 @@ const client = contentful.createClient({
 });
 
 const fetchFAQs = async () => {
-  const data = await client.getEntries(({ content_type: 'faq' }));
+  const data = await client.getEntries({ content_type: "faq" });
 
   return data.items.map((entry) => entry.fields).reverse();
 };
 
 const fetchSponsors = async () => {
-  const data = await client.getEntries(({ content_type: 'sponsor' }));
+  const data = await client.getEntries({ content_type: "sponsor" });
 
   return data.items.map((entry) => entry.fields);
 };
 
-export {
-  fetchFAQs,
-  fetchSponsors,
-};
+export { fetchFAQs, fetchSponsors };

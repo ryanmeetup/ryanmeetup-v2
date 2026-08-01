@@ -1,7 +1,7 @@
 "use client";
 
 // Components
-import { Button } from "@/components/global";
+import { Button } from "@ryanmeetup/ui";
 import { FaDownload as Download } from "react-icons/fa";
 import { Poster } from "@/components/flyers";
 
@@ -9,7 +9,7 @@ import { Poster } from "@/components/flyers";
 import type { Flyer, EventFlyer } from "@/lib/types";
 
 // Utilities
-import { convertImageUrl } from "@/utils/convert";
+import { convertImageUrl } from "@ryanmeetup/utils";
 
 // Base props shared by both variants
 type BaseProps = {

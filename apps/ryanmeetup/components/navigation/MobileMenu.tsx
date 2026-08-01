@@ -14,7 +14,7 @@ import { GiHamburgerMenu as Hamburger } from "react-icons/gi";
 import { FaChevronDown as ChevronDown } from "react-icons/fa6";
 import { FaDollarSign as Dollar } from "react-icons/fa";
 import { MdClose as Close } from "react-icons/md";
-import { IconButton } from "@/components/global";
+import { IconButton } from "@ryanmeetup/ui";
 
 // Types
 import { Fragment, useState } from "react";

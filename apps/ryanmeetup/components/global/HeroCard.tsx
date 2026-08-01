@@ -1,5 +1,5 @@
 import NextImage from "next/image";
-import { Heading, Text, Pill } from "@/components/global";
+import { Heading, Pill, Text } from "@ryanmeetup/ui";
 import type { ReactNode } from "react";
 
 type HeroCardImage = {
@@ -37,10 +37,7 @@ const HeroCard = (props: HeroCardProps) => {
           </Text>
           <div className="flex flex-wrap gap-3">
             {badges.map((badge) => (
-              <Pill
-                key={badge}
-                variant="subtle"
-              >
+              <Pill key={badge} variant="subtle">
                 {badge}
               </Pill>
             ))}

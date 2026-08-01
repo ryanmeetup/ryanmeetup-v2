@@ -123,8 +123,8 @@ const CANADA_FILENAME_OVERRIDES: Record<string, string> = {
 const getNameChangeFormPath = (name: string, region: "usa" | "canada") => {
   const filename =
     region === "canada"
-      ? CANADA_FILENAME_OVERRIDES[name] ??
-        `${name.replace(/[^A-Za-z]/g, "")}NameChange.pdf`
+      ? (CANADA_FILENAME_OVERRIDES[name] ??
+        `${name.replace(/[^A-Za-z]/g, "")}NameChange.pdf`)
       : `${name.replace(/[^A-Za-z]/g, "")}NameChange.pdf`;
 
   const availableSet =

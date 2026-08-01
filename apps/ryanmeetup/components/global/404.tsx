@@ -1,5 +1,5 @@
 // Components
-import { Heading, Text, Button } from "@/components/global";
+import { Button, Heading, Text } from "@ryanmeetup/ui";
 import { FaHome as Home } from "react-icons/fa";
 
 const PageNotFound = () => {

@@ -1,6 +1,6 @@
 // Components
 import { Layout } from "@/components/navigation";
-import { Blurb, Button, Divider } from "@/components/global";
+import { Blurb, Button, Divider } from "@ryanmeetup/ui";
 import { FeaturedIn, PressFeed } from "@/components/press";
 import { layoutPaddingX } from "@/lib/constants";
 import {
@@ -69,25 +69,27 @@ const PressPage = async () => {
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    itemListElement: (articles as unknown as RyanArticle[]).map((article, index) => ({
-      "@type": "ListItem",
-      position: index + 1,
-      item: {
-        "@type": "NewsArticle",
-        headline: article.title,
-        datePublished: new Date(article.publishDate).toISOString(),
-        author: {
-          "@type": "Person",
-          name: article.author,
+    itemListElement: (articles as unknown as RyanArticle[]).map(
+      (article, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        item: {
+          "@type": "NewsArticle",
+          headline: article.title,
+          datePublished: new Date(article.publishDate).toISOString(),
+          author: {
+            "@type": "Person",
+            name: article.author,
+          },
+          publisher: {
+            "@type": "Organization",
+            name: article.outlet,
+          },
+          mainEntityOfPage: article.href,
+          url: article.href,
         },
-        publisher: {
-          "@type": "Organization",
-          name: article.outlet,
-        },
-        mainEntityOfPage: article.href,
-        url: article.href,
-      },
-    })),
+      }),
+    ),
   };
 
   return (
@@ -98,7 +100,11 @@ const PressPage = async () => {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
       <div className={`pt-8 ${layoutPaddingX}`}>
-        <Blurb tag="Press" fullHeadline="RYAN MEETUP" smallHeadline="RYAN MEETUP">
+        <Blurb
+          tag="Press"
+          fullHeadline="RYAN MEETUP"
+          smallHeadline="RYAN MEETUP"
+        >
           <p className="mb-6 text-center text-lg italic text-black/70 dark:text-white/70">
             has been proudly featured in:
           </p>

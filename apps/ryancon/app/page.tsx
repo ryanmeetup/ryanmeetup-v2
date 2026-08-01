@@ -1,6 +1,6 @@
 // Components
-import { Layout } from '@/components/navigation';
-import { Hero, CommunityVoices } from '@/components/home';
+import { Layout } from "@/components/navigation";
+import { Hero, CommunityVoices } from "@/components/home";
 
 const HomePage = () => {
   return (

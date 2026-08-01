@@ -1,0 +1,189 @@
+"use client";
+
+import emailjs from "@emailjs/browser";
+import {
+  Button,
+  FieldError,
+  FormActions,
+  FormStatus,
+  Input,
+  RequiredFieldsNote,
+  Spinner,
+  Textarea,
+} from "@ryanmeetup/ui";
+import { validateEmail } from "@ryanmeetup/utils";
+import { useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import toast, { Toaster } from "react-hot-toast";
+import { BiMailSend as Send } from "react-icons/bi";
+import { FaCheckCircle as Check } from "react-icons/fa";
+
+export type ContactFormFields = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  subject: string;
+  message: string;
+};
+export type ContactFormProps = {
+  initialSubject?: string;
+  initialMessage?: string;
+  layout?: "compact" | "wide";
+  messagePlaceholder?: string;
+};
+
+const requiredMessages: Partial<Record<keyof ContactFormFields, string>> = {
+  firstName: "Error: must provide a first name",
+  lastName: "Error: must provide a last name",
+  subject: "Error: must provide a subject",
+  message: "Error: must provide a message",
+};
+
+const ContactForm = ({
+  initialSubject = "",
+  initialMessage = "",
+  layout = "wide",
+  messagePlaceholder = "What Ryan business brings you here?",
+}: ContactFormProps) => {
+  const defaultValues = useMemo<ContactFormFields>(
+    () => ({
+      firstName: "",
+      lastName: "",
+      email: "",
+      subject: initialSubject,
+      message: initialMessage,
+    }),
+    [initialMessage, initialSubject],
+  );
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+    setError,
+    clearErrors,
+  } = useForm<ContactFormFields>({ defaultValues });
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    reset(defaultValues);
+  }, [defaultValues, reset]);
+
+  const required = (name: keyof ContactFormFields) => ({
+    onBlur: (
+      event: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>,
+    ) =>
+      event.target.value === ""
+        ? setError(name, { message: requiredMessages[name] })
+        : clearErrors(name),
+  });
+
+  const notifySuccess = () =>
+    toast.custom(() => (
+      <FormStatus
+        title="Email sent!"
+        icon={<Check className="h-6 w-6 fill-emerald-500" />}
+      >
+        Expect an email back from Ryan soon!
+      </FormStatus>
+    ));
+
+  const send = async (form: ContactFormFields) => {
+    setLoading(true);
+    try {
+      if (process.env.NEXT_PUBLIC_E2E_TESTS !== "true") {
+        await emailjs.send(
+          process.env.NEXT_PUBLIC_EMAIL_SERVICE_ID as string,
+          process.env.NEXT_PUBLIC_EMAIL_TEMPLATE_ID as string,
+          form,
+          process.env.NEXT_PUBLIC_EMAIL_USER_ID as string,
+        );
+      }
+      notifySuccess();
+      reset(defaultValues);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fieldClass = layout === "compact" ? "col-span-2 sm:col-span-1" : "";
+  return (
+    <>
+      <form
+        onSubmit={handleSubmit(send)}
+        className={
+          layout === "compact"
+            ? "grid w-full grid-cols-2 gap-6"
+            : "grid w-full grid-cols-1 gap-6 2xl:grid-cols-2"
+        }
+      >
+        <div className={fieldClass}>
+          <Input
+            label="First Name"
+            placeholder="Ryan"
+            required
+            {...register("firstName", required("firstName"))}
+          />
+        </div>
+        <div className={fieldClass}>
+          <Input
+            label="Last Name"
+            placeholder="Smith"
+            required
+            {...register("lastName", required("lastName"))}
+          />
+        </div>
+        <div className={fieldClass}>
+          <Input
+            label="Email Address"
+            placeholder="ryan@ryanmeetup.com"
+            type="email"
+            required
+            {...register("email", {
+              onBlur: (event) =>
+                validateEmail(event.target.value)
+                  ? clearErrors("email")
+                  : setError("email", {
+                      message: "Error: invalid email address",
+                    }),
+            })}
+          />
+          <FieldError>{errors.email?.message}</FieldError>
+        </div>
+        <div className={fieldClass}>
+          <Input
+            label="Subject"
+            placeholder="Official Ryan Business"
+            required
+            {...register("subject", required("subject"))}
+          />
+        </div>
+        <div className={layout === "compact" ? "col-span-2" : "2xl:col-span-2"}>
+          <Textarea
+            id="message"
+            label="Message"
+            placeholder={messagePlaceholder}
+            required
+            {...register("message", required("message"))}
+          />
+        </div>
+        <FormActions
+          className={layout === "compact" ? "col-span-2" : "2xl:col-span-2"}
+        >
+          <RequiredFieldsNote />
+          <Button
+            type="submit"
+            className="w-full sm:w-auto sm:min-w-[180px]"
+            leftIcon={loading ? <Spinner /> : <Send />}
+            disabled={loading || Object.keys(errors).length !== 0}
+          >
+            {loading ? "Sending..." : "Send"}
+          </Button>
+        </FormActions>
+      </form>
+      <Toaster position="bottom-center" />
+    </>
+  );
+};
+
+export { ContactForm };

@@ -1,17 +1,20 @@
 // Components
 import NextLink from "next/link";
 import NextImage from "next/image";
-import { Heading, Text } from "@/components/global";
+import { Heading, Text } from "@ryanmeetup/ui";
 import { FaCity as City } from "react-icons/fa";
 import { FaCalendarDays as Calendar } from "react-icons/fa6";
-import { FaCalendarCheck as CalendarCheck, FaArrowRight as ArrowRight } from "react-icons/fa6";
+import {
+  FaCalendarCheck as CalendarCheck,
+  FaArrowRight as ArrowRight,
+} from "react-icons/fa6";
 import { MdLocationPin as Pin } from "react-icons/md";
 
 // Types
 import type { ContentfulImage, RyanEvent } from "@/lib/types";
 
 // Utilities
-import { convertImageUrl } from "@/utils/convert";
+import { convertImageUrl } from "@ryanmeetup/utils";
 import { formatEventDisplayDate, isEventUpcoming } from "@/utils/date";
 import { getEventCtaLabel } from "@/utils/events";
 
@@ -72,13 +75,11 @@ const Event = (props: EventProps) => {
           <div className="mt-auto gap-2 pt-5 text-black/70 dark:text-white/70">
             <div className="flex items-center gap-2">
               <City className="w-4 h-4" />
-              <Text className="text-sm uppercase tracking-[0.2em]">
-                {city}
-              </Text>
+              <Text className="text-sm uppercase tracking-[0.2em]">{city}</Text>
             </div>
 
             <div className="flex items-center gap-2">
-              <Pin className="w-4 h-4"/>
+              <Pin className="w-4 h-4" />
               <Text className="text-sm uppercase tracking-[0.2em]">
                 {venue}
               </Text>

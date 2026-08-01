@@ -1,5 +1,5 @@
 // Components
-import { Heading } from "@/components/global";
+import { Heading } from "@ryanmeetup/ui";
 
 // Types
 import { buildPageMetadata } from "@/utils/metadata";

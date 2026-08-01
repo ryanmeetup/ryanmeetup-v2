@@ -1,7 +1,8 @@
 // Components
 import { Layout } from "@/components/navigation";
 import NextImage from "next/image";
-import { Backdrop, Heading, Text, Pill, Card, Button } from "@/components/global";
+import { Backdrop } from "@/components/global";
+import { Button, Card, Heading, Pill, Text } from "@ryanmeetup/ui";
 import { CardInfo } from "@/components/cards";
 import { layoutPaddingX } from "@/lib/constants";
 
@@ -31,10 +32,15 @@ const BuyCardsPage = () => {
   return (
     <Layout fullscreen>
       <Backdrop imageSrc="/backdrop.png">
-        <section className={`grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center py-8 ${layoutPaddingX}`}>
+        <section
+          className={`grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center py-8 ${layoutPaddingX}`}
+        >
           <div className="space-y-6">
             <Pill>Membership</Pill>
-            <Heading className="text-4xl title sm:text-5xl lg:text-6xl" size="h1">
+            <Heading
+              className="text-4xl title sm:text-5xl lg:text-6xl"
+              size="h1"
+            >
               The Ryan Meetup Membership Card
             </Heading>
             <Text className="text-lg text-black/70 dark:text-white/80">

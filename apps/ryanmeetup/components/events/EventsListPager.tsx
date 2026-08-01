@@ -4,7 +4,7 @@ import { useCallback, useMemo, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 
 // Components
-import { EmptyState } from "@/components/global";
+import { EmptyState } from "@ryanmeetup/ui";
 import { UpcomingEventsList } from "@/components/events";
 import { EventsEmptyTable } from "@/components/events/EventsEmptyTable";
 import { EventsPagination } from "@/components/events/EventsPagination";

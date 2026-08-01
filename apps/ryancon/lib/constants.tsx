@@ -1,51 +1,48 @@
 // Components
-import {
-  FaCircleInfo as About,
-  FaThreads as Threads,
-} from 'react-icons/fa6';
+import { FaCircleInfo as About, FaThreads as Threads } from "react-icons/fa6";
 import {
   FaQuestion as FAQ,
   FaInstagram as Instagram,
   FaYoutube as YouTube,
   FaTiktok as TikTok,
-} from 'react-icons/fa';
-import { HiOutlineMail as Email } from 'react-icons/hi';
+} from "react-icons/fa";
+import { HiOutlineMail as Email } from "react-icons/hi";
 import { PiLetterCirclePBold as Party } from "react-icons/pi";
 import { GoSponsorTiers as Sponsor } from "react-icons/go";
 import { SiGithubsponsors as BecomeSponsor } from "react-icons/si";
 
-const iconStyle = 'fill-white'
+const iconStyle = "fill-white";
 
-export const layoutPaddingX = "px-4 lg:px-32 2xl:px-56 3xl:px-[320px]"
+export const layoutPaddingX = "px-4 lg:px-32 2xl:px-56 3xl:px-[320px]";
 
 export const leftRoutes = [
   {
     icon: <About className={iconStyle} />,
-    text: 'About',
-    href: '/about',
+    text: "About",
+    href: "/about",
   },
   {
     icon: <FAQ className={iconStyle} />,
-    text: 'FAQ',
-    href: '/faqs',
+    text: "FAQ",
+    href: "/faqs",
   },
 ];
 
 export const rightRoutes = [
   {
     icon: <Sponsor className={iconStyle} />,
-    text: 'Sponsors',
-    href: '/sponsors',
+    text: "Sponsors",
+    href: "/sponsors",
   },
   {
     icon: <BecomeSponsor className={iconStyle} />,
-    text: 'Become a Sponsor',
-    href: '/sponsorship',
+    text: "Become a Sponsor",
+    href: "/sponsorship",
   },
   {
     icon: <Email />,
-    text: 'Contact',
-    href: '/contact',
+    text: "Contact",
+    href: "/contact",
   },
 ];
 
@@ -56,9 +53,9 @@ export const socials = [
     text: "Instagram",
   },
   {
-    href: 'https://partiful.com/u/sJG4HpH0wS3ZA3YkzaL5',
+    href: "https://partiful.com/u/sJG4HpH0wS3ZA3YkzaL5",
     icon: <Party className="title" />,
-    text: 'Partiful',
+    text: "Partiful",
   },
   {
     href: "https://www.youtube.com/@ryanmeetup",
@@ -147,7 +144,7 @@ export const gallery = [
     imageUrl: "/group-photos/serhant.jpg",
     title: "Ryans Own Manhattan, December 2025",
   },
-    {
+  {
     imageUrl: "/group-photos/stryan2.jpg",
     title: "St. Ryans Day II, March 2025",
   },

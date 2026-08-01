@@ -2,14 +2,8 @@
 
 // Components
 import { Event, Chapters, EventsSectionHeader } from "@/components/events";
-import { CollapsibleYearSection, Heading } from "@/components/global";
-import {
-  Disclosure,
-  DisclosureButton,
-  DisclosurePanel,
-  Transition,
-} from "@headlessui/react";
-import { FaChevronDown as ChevronDown } from "react-icons/fa";
+import { CollapsibleYearSection } from "@/components/global";
+import { DisclosureCard, Heading } from "@ryanmeetup/ui";
 
 // Types
 import type { RyanEvent } from "@/lib/types";
@@ -46,7 +40,7 @@ const Container = (props: ContainerProps) => {
   return (
     <div>
       {eventType === "Main" ? (
-        <div className="grid grid-cols-1 gap-x-4 gap-y-4 md:grid-cols-2 xl:grid-cols-3 4xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-x-4 gap-y-4 pt-1 md:grid-cols-2 xl:grid-cols-3 4xl:grid-cols-3">
           {events?.map((event, index) => (
             <Event key={index} event={event as RyanEvent} />
           ))}
@@ -56,7 +50,7 @@ const Container = (props: ContainerProps) => {
             !pathname.includes("/chapters") && <Chapters />}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-x-4 gap-y-4 xl:grid-cols-2">
+        <div className="grid grid-cols-1 gap-x-4 gap-y-4 pt-1 xl:grid-cols-2">
           {events?.map((event, index) => (
             <Event key={index} event={event as RyanEvent} />
           ))}
@@ -142,40 +136,20 @@ const EventsSection = (props: EventsSectionProps) => {
   return (
     <div className="mb-10">
       {hidePastEvents ? (
-        <Disclosure as="div" className="w-full">
-          {({ open }) => (
-            <>
-              <DisclosureButton className="gap-x-4 mb-2 w-full flex items-center hover:underline hover:scale-102 timing">
-                <div className="flex-1">
-                  <EventsSectionHeader
-                    title={title}
-                    meta={eventCountLabel}
-                    action={headerAction}
-                  />
-                </div>
-
-                <div className="flex justify-end">
-                  <ChevronDown className={`timing ${open && "-rotate-180"}`} />
-                </div>
-              </DisclosureButton>
-
-              <div className="overflow-hidden">
-                <Transition
-                  enter="duration-200 ease-in-out"
-                  enterFrom="opacity-0 -translate-y-6"
-                  enterTo="opacity-100 translate-y-0"
-                  leave="duration-300 ease-in-out"
-                  leaveFrom="opacity-100 translate-y-0"
-                  leaveTo="opacity-0 -translate-y-6"
-                >
-                  <DisclosurePanel className="origin-top transition">
-                    {renderSectionContent()}
-                  </DisclosurePanel>
-                </Transition>
-              </div>
-            </>
-          )}
-        </Disclosure>
+        <DisclosureCard
+          className="w-full"
+          buttonClassName="mb-2 flex w-full items-center gap-x-4 text-left transition hover:underline"
+          panelClassName="origin-top transition"
+          summary={
+            <EventsSectionHeader
+              title={title}
+              meta={eventCountLabel}
+              action={headerAction}
+            />
+          }
+        >
+          {renderSectionContent()}
+        </DisclosureCard>
       ) : (
         <div>
           {sectionId && <div id={sectionId} className="-translate-y-24" />}

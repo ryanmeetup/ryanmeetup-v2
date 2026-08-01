@@ -2,7 +2,7 @@
 
 import NextImage from "next/image";
 import NextLink from "next/link";
-import { Heading, Text, Kicker } from "@/components/global";
+import { Heading, Kicker, Text } from "@ryanmeetup/ui";
 import { FaArrowRight as ArrowRight } from "react-icons/fa6";
 import { formatEventLocationLabel, formatMonthDay } from "@/utils/date";
 import { getEventCtaLabel } from "@/utils/events";
@@ -23,8 +23,12 @@ const EventRow = (props: EventRowProps) => {
   );
   const maxChapterBadges = 1;
   const visibleChapterTags = chapterTags.slice(0, maxChapterBadges);
-  const remainingChapterCount = Math.max(0, chapterTags.length - maxChapterBadges);
-  const isPartiful = typeof event.href === "string" && event.href.includes("partiful.com");
+  const remainingChapterCount = Math.max(
+    0,
+    chapterTags.length - maxChapterBadges,
+  );
+  const isPartiful =
+    typeof event.href === "string" && event.href.includes("partiful.com");
   const resolvedCtaLabel = getEventCtaLabel(event, ctaLabel);
   const resolvedCtaKey = resolvedCtaLabel.toLowerCase();
   const isViewEvent = resolvedCtaKey === "view event";
@@ -46,7 +50,10 @@ const EventRow = (props: EventRowProps) => {
         </div>
         <div className="space-y-1">
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
-            <Heading className="order-2 text-base title sm:order-1 sm:text-lg" size="h3">
+            <Heading
+              className="order-2 text-base title sm:order-1 sm:text-lg"
+              size="h3"
+            >
               {event.title}
             </Heading>
             {(isNationalEvent || chapterTags.length > 0) && (

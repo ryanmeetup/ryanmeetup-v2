@@ -1,5 +1,5 @@
 import NextImage from "next/image";
-import { Heading, Text, Card } from "@/components/global";
+import { Card, Heading, Text } from "@ryanmeetup/ui";
 import { gallery } from "@/lib/constants";
 
 const Moments = () => {

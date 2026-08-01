@@ -1,14 +1,7 @@
 "use client";
 
 // Components
-import { Heading, Text, Card } from "@/components/global";
-import {
-  Disclosure,
-  DisclosureButton,
-  DisclosurePanel,
-  Transition,
-} from "@headlessui/react";
-import { FaChevronDown as ChevronDown } from "react-icons/fa";
+import { Card, DisclosureCard, Heading, Text } from "@ryanmeetup/ui";
 
 // Types
 import type { FrequentlyAskedQuestion } from "@/lib/types";
@@ -42,34 +35,16 @@ const FAQItem = (props: FAQItemProps) => {
   }
 
   return (
-    <Disclosure as="div">
-      {({ open }) => (
-        <Card variant="soft" size="sm">
-          <DisclosureButton className="flex w-full items-center justify-between gap-4 text-left text-lg font-semibold tracking-wider text-black transition hover:opacity-80 dark:text-white">
-            <span>{item.question}</span>
-            <ChevronDown
-              className={`h-4 w-4 transition ${open && "-rotate-180"}`}
-            />
-          </DisclosureButton>
-          <div className="overflow-hidden">
-            <Transition
-              enter="duration-200 ease-in-out"
-              enterFrom="opacity-0 -translate-y-4"
-              enterTo="opacity-100 translate-y-0"
-              leave="duration-200 ease-in-out"
-              leaveFrom="opacity-100 translate-y-0"
-              leaveTo="opacity-0 -translate-y-4"
-            >
-              <DisclosurePanel className="origin-top pt-3">
-                <Text className="text-sm text-black/70 dark:text-white/70">
-                  {item.answer}
-                </Text>
-              </DisclosurePanel>
-            </Transition>
-          </div>
-        </Card>
-      )}
-    </Disclosure>
+    <DisclosureCard
+      className="rounded-2xl border border-black/10 bg-white/80 p-4 shadow-sm dark:border-white/10 dark:bg-white/5"
+      buttonClassName="flex w-full items-center justify-between gap-4 text-left text-lg font-semibold tracking-wider text-black transition hover:opacity-80 dark:text-white"
+      panelClassName="pt-3"
+      summary={item.question}
+    >
+      <Text className="text-sm text-black/70 dark:text-white/70 sm:text-base">
+        {item.answer}
+      </Text>
+    </DisclosureCard>
   );
 };
 

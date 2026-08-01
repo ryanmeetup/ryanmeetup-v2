@@ -1,6 +1,6 @@
 // Components
 import { Layout } from "@/components/navigation";
-import { Blurb, Divider, EmptyState, Text } from "@/components/global";
+import { Blurb, Divider, EmptyState, Text } from "@ryanmeetup/ui";
 import { UpcomingEventsList } from "@/components/events";
 import { FaCalendarCheck as CalendarCheck } from "react-icons/fa6";
 import { MdEmail as Email } from "react-icons/md";

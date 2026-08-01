@@ -1,14 +1,14 @@
 // Components
 import NextLink from "next/link";
 import NextImage from "next/image";
-import { Badge, Heading, Text, Card } from "@/components/global";
+import { Card, Heading, Pill, Text } from "@ryanmeetup/ui";
 
 // Types
 import type { Article } from "@/lib/types";
-import { convertImageUrl } from "@/utils/convert";
+import { convertImageUrl } from "@ryanmeetup/utils";
 
 // Utilities
-import { isMoreThanTwoWeeksAgo } from "@/utils/validate";
+import { isMoreThanTwoWeeksAgo } from "@ryanmeetup/utils";
 
 type ArticleProps = {
   article: Article;
@@ -23,7 +23,7 @@ const ArticleImage = (props: ArticleImageProps) => {
   const { imageSrc, title } = props;
 
   return (
-    <div className="relative aspect-[2/1] w-full max-h-[200px] overflow-hidden rounded-2xl border border-black/10 dark:border-white/10">
+    <div className="relative aspect-[2/1] w-full overflow-hidden rounded-2xl border border-black/10 dark:border-white/10">
       <NextImage
         className="h-full w-full object-cover"
         src={imageSrc}
@@ -52,9 +52,9 @@ const Article = (props: ArticleProps) => {
 
           <div className="flex h-full flex-col">
             <div className="flex flex-wrap items-center gap-3">
-              <Badge variant="neutral" size="md">
+              <Pill variant="neutral" size="md">
                 {publishedOn}
-              </Badge>
+              </Pill>
               {isNew && (
                 <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-300">
                   New

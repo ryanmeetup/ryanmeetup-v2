@@ -1,5 +1,5 @@
 // Components
-import { Heading, Card, Button } from "@/components/global";
+import { Button, Card, Heading } from "@ryanmeetup/ui";
 import { FaDownload } from "react-icons/fa";
 
 // Types

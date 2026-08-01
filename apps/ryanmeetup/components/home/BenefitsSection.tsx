@@ -1,5 +1,5 @@
 // Components
-import { Heading, Text, Card, Kicker } from "@/components/global";
+import { Card, Heading, Kicker, Text } from "@ryanmeetup/ui";
 
 const BenefitsSection = () => {
   const benefits = [
@@ -31,10 +31,7 @@ const BenefitsSection = () => {
 
           <div className="columns-1 gap-4 lg:columns-2">
             {items.map((item) => (
-              <div
-                key={item}
-                className="mb-3 break-inside-avoid"
-              >
+              <div key={item} className="mb-3 break-inside-avoid">
                 <div className="flex items-start gap-3 rounded-2xl border border-black/10 bg-white/80 px-4 py-3 text-sm text-black/80 dark:border-white/10 dark:bg-white/5 dark:text-white/80">
                   <span className="mt-1 inline-flex h-2.5 w-2.5 shrink-0 rounded-full bg-black/70 dark:bg-white/70" />
                   <Text className="text-sm">{item}</Text>

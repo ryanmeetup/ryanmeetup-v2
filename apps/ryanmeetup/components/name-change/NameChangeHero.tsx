@@ -1,6 +1,5 @@
 // Components
-import { Text } from "@/components/global";
-import { Blurb } from "@/components/global";
+import { Blurb, Text } from "@ryanmeetup/ui";
 import {
   FaRegFileLines as FormIcon,
   FaRegNewspaper as NewsIcon,
@@ -21,8 +20,8 @@ const NameChangeHero = () => {
       secondaryHrefText="Get updates"
     >
       <Text className="secondary text-xl mb-6 xl:mx-32">
-        One hub for every state. Choose your state to download the official
-        name change paperwork.
+        One hub for every state. Choose your state to download the official name
+        change paperwork.
       </Text>
     </Blurb>
   );

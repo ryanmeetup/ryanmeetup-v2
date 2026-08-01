@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 // Components
 import Map, { Marker, Popup } from "react-map-gl/mapbox";
 import NextImage from "next/image";
-import { Heading, Text } from "@/components/global";
+import { Heading, Text } from "@ryanmeetup/ui";
 import { Legend } from "@/components/map";
 import { FaMapPin as Pin } from "react-icons/fa";
 import NextLink from "next/link";
@@ -16,7 +16,7 @@ import type { Location } from "@/lib/types";
 
 // Utilities
 import "mapbox-gl/dist/mapbox-gl.css";
-import { convertImageUrl } from "@/utils/convert";
+import { convertImageUrl } from "@ryanmeetup/utils";
 import { formatEventDate } from "@/utils/date";
 
 type MapboxProps = {

@@ -2,10 +2,10 @@
 import { forwardRef } from "react";
 import type { ReactNode } from "react";
 
-type CardVariant = "soft" | "solid" | "outline";
-type CardSize = "sm" | "md" | "lg";
+export type CardVariant = "soft" | "solid" | "outline";
+export type CardSize = "sm" | "md" | "lg";
 
-type CardProps = {
+export type CardProps = {
   children: ReactNode;
   className?: string;
   variant?: CardVariant;

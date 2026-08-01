@@ -6,14 +6,7 @@ import {
   FaInstagram as Instagram,
 } from "react-icons/fa";
 
-import {
-  Button,
-  Card,
-  Heading,
-  IconBadge,
-  Kicker,
-  Text,
-} from "@/components/global";
+import { Button, Card, Heading, IconBadge, Kicker, Text } from "@ryanmeetup/ui";
 
 const sponsorshipTracks = [
   {

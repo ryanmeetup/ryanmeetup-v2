@@ -1,14 +1,14 @@
 // Components
 import NextImage from "next/image";
 import NextLink from "next/link";
-import { Heading, Text } from "@/components/global";
+import { Heading, Text } from "@ryanmeetup/ui";
 import { FaInstagram as Instagram } from "react-icons/fa";
 
 // Types
 import type { TravelingRyan } from "@/lib/types";
 
 // Utilities
-import { convertImageUrl } from "@/utils/convert";
+import { convertImageUrl } from "@ryanmeetup/utils";
 import { formatEventLabel } from "@/utils/date";
 
 type FarthestRyanProps = {
@@ -69,7 +69,8 @@ const FarthestRyan = (props: FarthestRyanProps) => {
         </span>
       </Text>
       <Text className="mt-2 text-black/70 dark:text-white/70">
-        <span className="font-cooper text-black dark:text-white">{event}</span> • {displayDate}
+        <span className="font-cooper text-black dark:text-white">{event}</span>{" "}
+        • {displayDate}
       </Text>
     </div>
   );

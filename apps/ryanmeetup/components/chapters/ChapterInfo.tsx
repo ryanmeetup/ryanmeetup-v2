@@ -1,5 +1,5 @@
 // Components
-import { Heading, Text, Card, Divider, Button } from "@/components/global";
+import { Button, Card, Divider, Heading, Text } from "@ryanmeetup/ui";
 import NextLink from "next/link";
 import NextImage from "next/image";
 import { FaInstagram as Instagram } from "react-icons/fa";
@@ -10,7 +10,7 @@ import { IoLogoWhatsapp as WhatsApp } from "react-icons/io";
 import type { ContentfulImage } from "@/lib/types";
 
 // Utilities
-import { convertImageUrl, filterInstagram } from "@/utils/convert";
+import { convertImageUrl, filterInstagram } from "@ryanmeetup/utils";
 
 type ChapterInfoProps = {
   leaders: string[];
@@ -60,7 +60,10 @@ const ChapterInfo = (props: ChapterInfoProps) => {
 
           <div className="col-span-5 space-y-1">
             {leaders?.map((ryan, index) => (
-              <Text key={index} className="text-base text-black/70 dark:text-white/70">
+              <Text
+                key={index}
+                className="text-base text-black/70 dark:text-white/70"
+              >
                 {ryan}
               </Text>
             ))}

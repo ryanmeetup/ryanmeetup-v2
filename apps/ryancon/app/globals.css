@@ -1,7 +1,9 @@
-@import 'tailwindcss';
-@import '@ryanmeetup/brand/theme.css';
+@import "tailwindcss";
+@import "@ryanmeetup/brand/theme.css";
 
-@source '../../../packages/ui/src';
+@source "../../../packages/ui/src";
+@source "../../../packages/contact/src";
+@source "../../../packages/sponsors/src";
 
 :root {
   --background: #ffffff;

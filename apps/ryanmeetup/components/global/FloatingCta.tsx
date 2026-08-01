@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 // Componenets
 import NextLink from "next/link";
-import { Heading, Text } from "@/components/global";
+import { Heading, Text } from "@ryanmeetup/ui";
 
 // Utilities
 import { usePathname } from "next/navigation";
@@ -153,7 +153,7 @@ const FloatingCta = (props: FloatingCtaProps) => {
                         const content = (
                           <>
                             <p
-                              className={`whitespace-nowrap text-[15px] font-semibold uppercase leading-tight tracking-wide sm:text-sm ${resolvedTheme.subtext}`}
+                              className={`whitespace-nowrap text-sm font-semibold uppercase leading-tight tracking-wide ${resolvedTheme.subtext}`}
                             >
                               {detail.title}
                             </p>
@@ -257,7 +257,7 @@ const FloatingCta = (props: FloatingCtaProps) => {
                           className="flex min-w-0 flex-col"
                         >
                           <p
-                            className={`whitespace-nowrap text-[15px] font-semibold uppercase leading-tight tracking-wide sm:text-sm ${resolvedTheme.subtext}`}
+                            className={`whitespace-nowrap text-sm font-semibold uppercase leading-tight tracking-wide ${resolvedTheme.subtext}`}
                           >
                             {detail.title}
                           </p>

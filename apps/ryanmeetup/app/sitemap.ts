@@ -1,4 +1,8 @@
-import { fetchArticles, fetchChapters, fetchEvents } from "@/actions/fetchContent";
+import {
+  fetchArticles,
+  fetchChapters,
+  fetchEvents,
+} from "@/actions/fetchContent";
 import type { MetadataRoute } from "next";
 
 const BASE_URL = "https://ryanmeetup.com";
@@ -39,7 +43,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     (events as { href?: string; date?: string | Date }[]).forEach((event) => {
       if (!event.href) return;
       entries.push({
-        url: event.href.startsWith("http") ? event.href : `${BASE_URL}${event.href}`,
+        url: event.href.startsWith("http")
+          ? event.href
+          : `${BASE_URL}${event.href}`,
         lastModified: event.date ? new Date(event.date) : new Date(),
         changeFrequency: "weekly",
         priority: 0.8,
@@ -50,7 +56,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       if (!chapter.slug) return;
       entries.push({
         url: `${BASE_URL}/chapters/${chapter.slug}`,
-        lastModified: chapter.updatedAt ? new Date(chapter.updatedAt) : new Date(),
+        lastModified: chapter.updatedAt
+          ? new Date(chapter.updatedAt)
+          : new Date(),
         changeFrequency: "weekly",
         priority: 0.6,
       });
@@ -63,7 +71,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           url: article.href.startsWith("http")
             ? article.href
             : `${BASE_URL}${article.href}`,
-          lastModified: article.publishDate ? new Date(article.publishDate) : new Date(),
+          lastModified: article.publishDate
+            ? new Date(article.publishDate)
+            : new Date(),
           changeFrequency: "monthly",
           priority: 0.5,
         });

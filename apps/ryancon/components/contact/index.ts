@@ -1,3 +1,2 @@
-export * from './ContactForm';
-export * from './Loader';
-export * from './FollowUs';
+export * from "./ContactForm";
+export * from "./FollowUs";

@@ -2,7 +2,7 @@ import { Suspense } from "react";
 
 // Components
 import { Layout } from "@/components/navigation";
-import { Text, Pill, Heading, Card } from "@/components/global";
+import { Card, Heading, Pill, Text } from "@ryanmeetup/ui";
 import { ContactForm, FollowUs } from "@/components/contact";
 
 // Types
@@ -66,7 +66,8 @@ const ContactPage = async ({ searchParams }: ContactPageProps) => {
               </Heading>
               <Text className="text-lg text-black/80 dark:text-white/80">
                 Reach out about events, local chapters, press, partnerships, or
-                any other official Ryan business. One of our Ryans will get back to you as soon as we can.
+                any other official Ryan business. One of our Ryans will get back
+                to you as soon as we can.
               </Text>
             </div>
 

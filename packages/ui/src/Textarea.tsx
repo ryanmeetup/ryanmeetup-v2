@@ -4,7 +4,7 @@ import { forwardRef } from "react";
 import type { ChangeEvent } from "react";
 import { fieldControlBaseClasses, getFieldLabelClasses } from "./fieldStyles";
 
-type TextareaProps = {
+export type TextareaProps = {
   id: string;
   label: string;
   name: string;

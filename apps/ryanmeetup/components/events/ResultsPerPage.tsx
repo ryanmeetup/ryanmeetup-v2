@@ -1,6 +1,6 @@
 "use client";
 
-import { Select } from "@/components/global";
+import { Select } from "@ryanmeetup/ui";
 
 type ResultsPerPageProps = {
   value: number;

@@ -1,3 +1,2 @@
-export * from './Hero';
-export * from './CommunityVoices';
-export * from './Testimony';
+export * from "./Hero";
+export * from "./CommunityVoices";

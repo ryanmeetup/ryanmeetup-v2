@@ -1,7 +1,7 @@
 // Utilities
 import clsx from "clsx";
 
-type DividerProps = {
+export type DividerProps = {
   className?: string;
   margins?: "sm" | "md" | "lg" | "xl";
 };

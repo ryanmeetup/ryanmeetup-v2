@@ -1,16 +1,19 @@
 // Components
 import { Layout } from "@/components/navigation";
 import { Landing, FAQ, TestimonyContainer } from "@/components/home";
-import { Divider, Heading } from "@/components/global";
+import { Divider, Heading } from "@ryanmeetup/ui";
 import { SponsorCarousel } from "@/components/sponsors";
 import { EventsPreview } from "@/components/events";
-import { 
+import {
   FaCommentDollar as Dollar,
   FaRegNewspaper as Press,
 } from "react-icons/fa6";
 import { BiParty as Party } from "react-icons/bi";
-import { MdGroups as Community, MdVolunteerActivism as Heart } from "react-icons/md";
-import { Button } from "@/components/global";
+import {
+  MdGroups as Community,
+  MdVolunteerActivism as Heart,
+} from "react-icons/md";
+import { Button } from "@ryanmeetup/ui";
 import { GoSponsorTiers as SponsorIcon } from "react-icons/go";
 import { layoutPaddingX, socialProfileUrls } from "@/lib/constants";
 import { sortEventsByDate, splitEventsByTime } from "@/utils/date";
@@ -54,7 +57,9 @@ const HomePage = async () => {
   const faqs = (await fetchFAQs()) as FrequentlyAskedQuestion[];
   const sponsors = (await fetchSponsors()) as Sponsor[];
   const testimonies = (await fetchTestimonies()) as Testimonial[];
-  const chapters = (await fetchChapters()) as (RyanChapter & { active?: boolean })[];
+  const chapters = (await fetchChapters()) as (RyanChapter & {
+    active?: boolean;
+  })[];
   const events = (await fetchEvents()) as RyanEvent[];
   const articles = await fetchArticles();
   const donations = (await fetchDonations()) as Charity[];
@@ -87,28 +92,36 @@ const HomePage = async () => {
     formatCount(value).replace(/\+$/, "");
 
   const stats = [
-    { 
-      value: formatCountNoPlus(activeChapters.length), 
+    {
+      value: formatCountNoPlus(activeChapters.length),
       label: "Active chapters",
-      icon: <Community className="w-5 h-5 sm:w-6 sm:h-6 md:w-5 md:h-5 lg:h-4 lg:w-4 xl:w-7 xl:h-7" />,
+      icon: (
+        <Community className="w-5 h-5 sm:w-6 sm:h-6 md:w-5 md:h-5 lg:h-4 lg:w-4 xl:w-7 xl:h-7" />
+      ),
       href: "/chapters",
     },
-    { 
-      value: formatCount(mainEvents.length), 
+    {
+      value: formatCount(mainEvents.length),
       label: "Events hosted",
-      icon: <Party className="w-5 h-5 sm:w-6 sm:h-6 md:w-5 md:h-5 lg:h-4 lg:w-4 xl:w-7 xl:h-7" />,
+      icon: (
+        <Party className="w-5 h-5 sm:w-6 sm:h-6 md:w-5 md:h-5 lg:h-4 lg:w-4 xl:w-7 xl:h-7" />
+      ),
       href: "/events",
     },
-    { 
-      value: formatCount(articles.length), 
+    {
+      value: formatCount(articles.length),
       label: "Press features",
-      icon: <Press className="w-5 h-5 sm:w-6 sm:h-6 md:w-5 md:h-5 lg:h-4 lg:w-4 xl:w-7 xl:h-7" />,
+      icon: (
+        <Press className="w-5 h-5 sm:w-6 sm:h-6 md:w-5 md:h-5 lg:h-4 lg:w-4 xl:w-7 xl:h-7" />
+      ),
       href: "/press",
     },
-    { 
+    {
       value: formatDollars(totalRaised),
       label: "Raised for charity",
-      icon: <Heart className="w-5 h-5 sm:w-6 sm:h-6 md:w-5 md:h-5 lg:h-4 lg:w-4 xl:w-7 xl:h-7" />,
+      icon: (
+        <Heart className="w-5 h-5 sm:w-6 sm:h-6 md:w-5 md:h-5 lg:h-4 lg:w-4 xl:w-7 xl:h-7" />
+      ),
       href: "/charity",
     },
   ];
@@ -162,35 +175,37 @@ const HomePage = async () => {
         <div className={`py-8 ${layoutPaddingX}`}>
           <Landing stats={stats} />
 
-        <Divider margins="xl" />
+          <Divider margins="xl" />
 
-        <EventsPreview events={events as RyanEvent[]} />
-        <Divider margins="xl" />
+          <EventsPreview events={events as RyanEvent[]} />
+          <Divider margins="xl" />
 
-        <Heading className="text-center text-4xl title" size="h2">
-          We&apos;re supported by Ryans at:
-        </Heading>
+          <Heading className="text-center text-4xl title" size="h2">
+            We&apos;re supported by Ryans at:
+          </Heading>
         </div>
 
         <SponsorCarousel sponsors={sponsors} />
-        <div className={`flex flex-col items-center justify-center gap-3 sm:flex-row mt-12 ${layoutPaddingX}`}>
-          <Button.Link 
-            href="/sponsors" 
-            variant="secondary" 
-            size="sm" 
-            className="w-full" 
+        <div
+          className={`flex flex-col items-center justify-center gap-3 sm:flex-row mt-12 ${layoutPaddingX}`}
+        >
+          <Button.Link
+            href="/sponsors"
+            variant="secondary"
+            size="sm"
+            className="w-full"
             newTab={false}
-            leftIcon={<SponsorIcon className="w-4 h-4"/>}
+            leftIcon={<SponsorIcon className="w-4 h-4" />}
           >
             View all sponsors
           </Button.Link>
-          <Button.Link 
+          <Button.Link
             href="/sponsors/partnerships"
-            variant="primary" 
-            size="sm" 
+            variant="primary"
+            size="sm"
             className="w-full"
             newTab={false}
-            leftIcon={<Dollar className="w-4 h-4"/>}
+            leftIcon={<Dollar className="w-4 h-4" />}
           >
             Become a sponsor
           </Button.Link>

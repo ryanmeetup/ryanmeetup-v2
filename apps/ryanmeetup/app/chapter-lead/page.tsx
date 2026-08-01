@@ -5,8 +5,7 @@ const { metadata, RedirectPage } = createRedirectPage({
   url: "https://form.typeform.com/to/TZkv7rua",
   metadata: {
     title: "Ryan Meetup - Chapter Lead Form",
-    description:
-      "First-step form for prospective Ryan Meetup chapter leads.",
+    description: "First-step form for prospective Ryan Meetup chapter leads.",
     canonical: "https://ryanmeetup.com/chapter-lead",
     image: {
       url: "https://ryanmeetup.com/meta/chapters.jpg",

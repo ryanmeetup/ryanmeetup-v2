@@ -1,7 +1,7 @@
 "use client";
 
 // Components
-import { Heading } from "@/components/global";
+import { Heading } from "@ryanmeetup/ui";
 import { RouteMenu, ThemeToggle } from "@/components/navigation";
 import NextLink from "next/link";
 import { MobileMenu } from "@/components/navigation";
@@ -20,7 +20,9 @@ const Header = () => {
   return (
     <header className="sticky top-0 z-30 relative border-b border-black/10 bg-white/80 backdrop-blur dark:border-white/10 dark:bg-black/70">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_80%_at_20%_10%,rgba(0,0,0,0.06),transparent_60%),radial-gradient(45%_70%_at_80%_0%,rgba(0,0,0,0.04),transparent_55%)] dark:bg-[radial-gradient(60%_80%_at_20%_10%,rgba(255,255,255,0.08),transparent_60%),radial-gradient(45%_70%_at_80%_0%,rgba(255,255,255,0.05),transparent_55%)]" />
-      <div className={`relative flex items-center gap-4 py-3 ${layoutPaddingX}`}>
+      <div
+        className={`relative flex items-center gap-4 py-3 ${layoutPaddingX}`}
+      >
         <NextLink
           href="/"
           className="title group flex items-center tracking-[0.2em] timing hover:scale-105"
@@ -42,8 +44,8 @@ const Header = () => {
                         ? "bg-black/15 text-black shadow-sm ring-1 ring-black/10 dark:bg-white/25 dark:text-white dark:ring-white/20"
                         : ""
                       : route.href.includes(pathname) && pathname !== "/"
-                      ? "bg-black/15 text-black shadow-sm ring-1 ring-black/10 dark:bg-white/25 dark:text-white dark:ring-white/20"
-                      : ""
+                        ? "bg-black/15 text-black shadow-sm ring-1 ring-black/10 dark:bg-white/25 dark:text-white dark:ring-white/20"
+                        : ""
                   }`}
                   href={route.href}
                 >

@@ -1,5 +1,5 @@
 // Components
-import { Heading, Text } from "@/components/global";
+import { Heading, Text } from "@ryanmeetup/ui";
 import NextImage from "next/image";
 import NextLink from "next/link";
 
@@ -7,7 +7,7 @@ import NextLink from "next/link";
 import type { MediaEvent } from "@/lib/types";
 
 // Utilities
-import { convertImageUrl } from "@/utils/convert";
+import { convertImageUrl } from "@ryanmeetup/utils";
 import { formatEventLabel } from "@/utils/date";
 
 type MediaTileProps = {

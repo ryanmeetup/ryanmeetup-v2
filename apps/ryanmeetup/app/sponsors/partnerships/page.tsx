@@ -3,8 +3,6 @@ import { ReachSnapshot } from "@/components/sponsors/ReachSnapshot";
 import { Layout } from "@/components/navigation";
 import NextLink from "next/link";
 import {
-  Badge,
-  Breadcrumbs,
   Button,
   Card,
   Divider,
@@ -12,7 +10,8 @@ import {
   IconBadge,
   Kicker,
   Text,
-} from "@/components/global";
+} from "@ryanmeetup/ui";
+import { Breadcrumbs } from "@/components/global";
 import { BiMailSend as Send } from "react-icons/bi";
 import {
   FaBullhorn as WebsitePresence,

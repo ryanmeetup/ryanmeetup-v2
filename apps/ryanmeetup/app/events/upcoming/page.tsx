@@ -1,6 +1,7 @@
 // Components
 import { Layout } from "@/components/navigation";
-import { Blurb, Breadcrumbs, Text, Divider } from "@/components/global";
+import { Breadcrumbs } from "@/components/global";
+import { Blurb, Divider, Text } from "@ryanmeetup/ui";
 import { EventsListPager } from "@/components/events/EventsListPager";
 import { FaListUl as List } from "react-icons/fa";
 
@@ -64,9 +65,7 @@ const UpcomingPage = async ({
         perPageOptions={[5, 10, 25]}
         defaultPerPage={10}
         showPerPageSelector
-        breadcrumbNode={
-          <Breadcrumbs className="flex" crumbs={breadcrumbs} />
-        }
+        breadcrumbNode={<Breadcrumbs className="flex" crumbs={breadcrumbs} />}
         listTitle="Upcoming Events"
         ctaLabel="RSVP"
         sortOrder="asc"

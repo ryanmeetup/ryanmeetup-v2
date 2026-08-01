@@ -1,8 +1,7 @@
 // Components
 import { Layout } from "@/components/navigation";
-import { Divider, Text } from "@/components/global";
+import { Blurb, Divider, Text } from "@ryanmeetup/ui";
 import { PosterContainer } from "@/components/flyers";
-import { Blurb } from "@/components/global";
 
 // Types
 import { buildPageMetadata } from "@/utils/metadata";

@@ -1,6 +1,6 @@
 // Components
 import { Layout } from "@/components/navigation";
-import { Heading, Text, Pill } from "@/components/global";
+import { Heading, Pill, Text } from "@ryanmeetup/ui";
 import { SponsorSection, PartnershipPerks } from "@/components/sponsors";
 
 // Types
@@ -23,13 +23,13 @@ const SponsorsPage = async () => {
         </Heading>
         <Text className="mx-auto text-lg text-black/70 dark:text-white/70">
           Thanks to our incredible sponsors, Ryan Meetup has grown across the
-          country. Want to help power the next one? We&apos;d love to partner with
-          you.
+          country. Want to help power the next one? We&apos;d love to partner
+          with you.
         </Text>
         <PartnershipPerks />
       </section>
 
-       {/*TODO: revamp RyanCon sponsor tiers  */}
+      {/*TODO: revamp RyanCon sponsor tiers  */}
       <SponsorSection sponsors={sponsors as Sponsor[]} tier="Founding" />
     </Layout>
   );

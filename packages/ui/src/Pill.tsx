@@ -1,27 +1,35 @@
 // Types
 import type { ReactNode } from "react";
 
-type PillProps = {
+export type PillProps = {
   children: ReactNode;
   className?: string;
-  variant?: "default" | "subtle";
+  variant?: "default" | "subtle" | "overlay" | "neutral";
+  size?: "sm" | "md";
 };
 
 const Pill = (props: PillProps) => {
-  const { children, className, variant = "default" } = props;
+  const { children, className, variant = "default", size = "md" } = props;
 
   const baseStyles =
-    "inline-flex items-center justify-center rounded-full border text-xs uppercase";
+    "inline-flex items-center justify-center rounded-full border uppercase";
   const variantStyles = {
     default:
       "border-black/20 bg-white/90 px-4 py-1 font-semibold tracking-[0.3em] text-black/80 shadow-sm dark:border-white/25 dark:bg-white/15 dark:text-white/85",
     subtle:
       "border-black/10 bg-white/80 px-3 py-1 font-normal tracking-[0.2em] text-black/70 shadow-none dark:border-white/15 dark:bg-white/5 dark:text-white/70",
+    overlay: "border-white/30 bg-black/60 text-white",
+    neutral:
+      "border-black/10 bg-white/80 text-black/70 dark:border-white/10 dark:bg-white/10 dark:text-white/70",
+  };
+  const sizeStyles = {
+    sm: "px-3 py-1 text-[10px] tracking-[0.35em]",
+    md: "px-3 py-1 text-xs font-semibold tracking-[0.3em]",
   };
 
   return (
     <span
-      className={`${baseStyles} ${variantStyles[variant]} ${className ?? ""}`}
+      className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className ?? ""}`}
     >
       {children}
     </span>

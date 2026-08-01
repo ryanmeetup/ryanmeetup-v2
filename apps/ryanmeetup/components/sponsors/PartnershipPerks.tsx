@@ -1,4 +1,4 @@
-import { Button, Card, IconBadge, Text } from "@/components/global";
+import { Button, Card, IconBadge, Text } from "@ryanmeetup/ui";
 import { BiMailSend as Send } from "react-icons/bi";
 import { GoSponsorTiers as SponsorDetails } from "react-icons/go";
 import { contactHrefs } from "@/utils/contact";

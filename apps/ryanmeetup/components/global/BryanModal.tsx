@@ -4,7 +4,7 @@ import { useState } from "react";
 import { MdCheck as Check } from "react-icons/md";
 
 // Components
-import { Modal } from "@/components/global";
+import { Modal } from "@ryanmeetup/ui";
 
 // Utilities
 import { useRouter } from "next/navigation";
@@ -53,7 +53,9 @@ const BryanModal = () => {
                 : "border-black/25 bg-white text-white dark:border-white/35 dark:bg-black/40"
             }`}
           >
-            <Check className={`h-4 w-4 transition ${isChecked ? "opacity-100" : "opacity-0"}`} />
+            <Check
+              className={`h-4 w-4 transition ${isChecked ? "opacity-100" : "opacity-0"}`}
+            />
           </span>
           I certify my name is not Bryan or Brian.
         </label>

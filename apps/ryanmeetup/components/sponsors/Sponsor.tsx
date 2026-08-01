@@ -2,14 +2,14 @@
 
 // Components
 import NextImage from "next/image";
-import { Card } from "@/components/global";
+import { Card } from "@ryanmeetup/ui";
 import { SponsorLink } from "@/components/sponsors/SponsorLink";
 
 // Types
 import type { Sponsor } from "@/lib/types";
 
 // Utilities
-import { convertImageUrl } from "@/utils/convert";
+import { convertImageUrl } from "@ryanmeetup/utils";
 import { useTheme } from "next-themes";
 
 type SponsorProps = {

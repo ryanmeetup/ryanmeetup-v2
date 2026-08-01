@@ -1,5 +1,5 @@
 // Components
-import { Text } from "@/components/global";
+import { Text } from "@ryanmeetup/ui";
 
 // Types
 import type { ReactNode } from "react";

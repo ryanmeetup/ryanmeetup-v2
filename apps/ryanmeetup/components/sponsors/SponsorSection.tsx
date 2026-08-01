@@ -1,6 +1,6 @@
 // Components
 import { Sponsor } from "@/components/sponsors";
-import { EmptyState, Heading, Text, Kicker } from "@/components/global";
+import { EmptyState, Heading, Kicker, Text } from "@ryanmeetup/ui";
 
 // Types
 import type { Sponsor as SponsorType } from "@/lib/types";

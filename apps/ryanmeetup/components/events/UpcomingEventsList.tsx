@@ -1,7 +1,7 @@
 "use client";
 
 import { Transition } from "@headlessui/react";
-import { Card } from "@/components/global";
+import { Card } from "@ryanmeetup/ui";
 import { Event, EventRow, EventsSectionHeader } from "@/components/events";
 import { formatEventCount, sortEventsByDate } from "@/utils/date";
 
@@ -67,12 +67,8 @@ const UpcomingEventsList = (props: UpcomingEventsListProps) => {
   if (displayMode === "details") {
     return (
       <div className="mb-10 space-y-4">
-        <EventsSectionHeader
-          title={title}
-          meta={meta}
-          action={headerAction}
-        />
-        <div className="grid grid-cols-1 gap-x-4 gap-y-4 md:grid-cols-2 xl:grid-cols-3">
+        <EventsSectionHeader title={title} meta={meta} action={headerAction} />
+        <div className="grid grid-cols-1 gap-x-4 gap-y-4 pt-1 md:grid-cols-2 xl:grid-cols-3">
           {sortedEvents.map((event, index) => (
             <Transition
               key={`${event.title}-${event.date}`}
@@ -98,9 +94,7 @@ const UpcomingEventsList = (props: UpcomingEventsListProps) => {
             </Transition>
           ))}
         </div>
-        {footerAction && (
-          <div className="flex justify-end">{footerAction}</div>
-        )}
+        {footerAction && <div className="flex justify-end">{footerAction}</div>}
       </div>
     );
   }

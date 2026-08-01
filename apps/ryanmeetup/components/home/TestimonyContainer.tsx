@@ -1,6 +1,5 @@
 // Components
-import { Testimony } from "@/components/home";
-import { Heading, Text } from "@/components/global";
+import { Heading, TestimonialCard } from "@ryanmeetup/ui";
 
 // Types
 import { Testimonial } from "@/lib/types";
@@ -23,7 +22,11 @@ const TestimonyContainer = (props: TestimonyContainerProps) => {
 
         <div className="columns-1 gap-4 sm:columns-2 xl:columns-3">
           {testimonies.map((item) => (
-            <Testimony key={item.lastName} testimony={item} />
+            <TestimonialCard
+              key={item.lastName}
+              quote={item.quote}
+              location={item.location}
+            />
           ))}
         </div>
       </div>

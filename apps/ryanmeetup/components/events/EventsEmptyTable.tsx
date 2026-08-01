@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, EmptyState } from "@/components/global";
+import { Card, EmptyState } from "@ryanmeetup/ui";
 import { EventsSectionHeader } from "@/components/events";
 
 type EventsEmptyTableProps = {

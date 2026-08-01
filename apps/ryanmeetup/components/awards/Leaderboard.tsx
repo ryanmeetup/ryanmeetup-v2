@@ -1,5 +1,5 @@
 // Components
-import { Heading, Text } from "@/components/global";
+import { Heading, Text } from "@ryanmeetup/ui";
 import { EventTag } from "@/components/awards";
 import { RepeatRyan } from "@/lib/types";
 import NextImage from "next/image";
@@ -7,7 +7,7 @@ import NextLink from "next/link";
 import { contactHrefs } from "@/utils/contact";
 
 // Utilities
-import { convertImageUrl } from "@/utils/convert";
+import { convertImageUrl } from "@ryanmeetup/utils";
 
 type LeaderboardProps = {
   ryans: RepeatRyan[];

@@ -1,5 +1,5 @@
 // Components
-import { Heading, Text, Button, Card } from "@/components/global";
+import { Button, Card, Heading, Text } from "@ryanmeetup/ui";
 import { FaDollarSign as Dollar } from "react-icons/fa";
 
 const CardInfo = () => {
@@ -23,9 +23,9 @@ const CardInfo = () => {
         </Text>
 
         <Text>
-          But it&apos;s more than just another flex on your non-Ryan
-          friends. Your card comes with Ryan Pre-Check, letting you
-          breeze past secu-Ry-ty at our events without having to show your Ry-D.
+          But it&apos;s more than just another flex on your non-Ryan friends.
+          Your card comes with Ryan Pre-Check, letting you breeze past
+          secu-Ry-ty at our events without having to show your Ry-D.
         </Text>
 
         <div className="text-white/70 tracking-wide font-medium mt-8">

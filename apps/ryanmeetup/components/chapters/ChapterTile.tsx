@@ -1,11 +1,11 @@
 // Components
 import NextLink from "next/link";
 import NextImage from "next/image";
-import { Heading } from "@/components/global";
+import { Heading } from "@ryanmeetup/ui";
 
 // Utilities
 import { RyanChapter } from "@/lib/types";
-import { convertImageUrl } from "@/utils/convert";
+import { convertImageUrl } from "@ryanmeetup/utils";
 
 type ChapterTileProps = {
   chapter: RyanChapter;

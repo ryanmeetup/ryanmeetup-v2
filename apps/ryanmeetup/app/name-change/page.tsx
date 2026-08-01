@@ -1,6 +1,7 @@
 // Components
 import { Layout } from "@/components/navigation";
-import { AnchorNav, Divider } from "@/components/global";
+import { AnchorNav } from "@/components/global";
+import { Divider } from "@ryanmeetup/ui";
 import {
   NameChangeHero,
   RegionSection,

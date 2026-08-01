@@ -1,5 +1,5 @@
 // Types
-import type { ReactNode } from 'react';
+import type { ReactNode } from "react";
 
 // #region Contentful Types
 type ContentfulSys = {
@@ -19,7 +19,7 @@ type ContentfulFile = {
   };
   fileName: string;
   url: string;
-}
+};
 
 type ContentfulImage = {
   fields: {

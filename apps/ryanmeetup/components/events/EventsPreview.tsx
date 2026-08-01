@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Heading, Text } from "@/components/global";
+import { Heading, Text } from "@ryanmeetup/ui";
 import { EventsListPager } from "@/components/events/EventsListPager";
 import type { RyanEvent } from "@/lib/types";
 

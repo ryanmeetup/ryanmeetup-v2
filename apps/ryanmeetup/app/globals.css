@@ -2,6 +2,8 @@
 @import "@ryanmeetup/brand/theme.css";
 
 @source "../../../packages/ui/src";
+@source "../../../packages/contact/src";
+@source "../../../packages/sponsors/src";
 
 :root {
   --foreground-rgb: 0, 0, 0;
@@ -36,10 +38,10 @@ body {
 @layer components {
   .timing {
     transition-property:
-      color, background-color, border-color, outline-color, text-decoration-color,
-      fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to,
-      opacity, box-shadow, transform, translate, scale, rotate, filter,
-      backdrop-filter;
+      color, background-color, border-color, outline-color,
+      text-decoration-color, fill, stroke, --tw-gradient-from,
+      --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform,
+      translate, scale, rotate, filter, backdrop-filter;
     transition-duration: 300ms;
     transition-timing-function: ease-in-out;
   }

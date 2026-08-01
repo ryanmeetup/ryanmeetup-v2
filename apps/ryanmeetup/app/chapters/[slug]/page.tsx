@@ -1,6 +1,7 @@
 // Components
 import { Layout } from "@/components/navigation";
-import { Heading, Breadcrumbs, PageNotFound } from "@/components/global";
+import { Breadcrumbs, PageNotFound } from "@/components/global";
+import { Heading } from "@ryanmeetup/ui";
 import { ChapterInfo } from "@/components/chapters";
 import { EventsContainer } from "@/components/events";
 import { FaCity as City } from "react-icons/fa";
@@ -12,7 +13,7 @@ import { buildPageMetadata } from "@/utils/metadata";
 
 // Utilities
 import { fetchEvents, fetchSingleChapter } from "@/actions/fetchContent";
-import { convertImageUrl, convertSlug } from "@/utils/convert";
+import { convertImageUrl, convertSlug } from "@ryanmeetup/utils";
 import { getChapterSlugFixture } from "@/lib/test-fixtures/chapters";
 
 const isContentfulImage = (value: unknown): value is ContentfulImage => {
@@ -81,19 +82,20 @@ const ChapterPage = async ({
   const resolvedSearchParams = await Promise.resolve(searchParams);
   const fixture =
     process.env.E2E_TESTS === "true"
-      ? getChapterSlugFixture(resolvedParams.slug, resolvedSearchParams?.fixture)
+      ? getChapterSlugFixture(
+          resolvedParams.slug,
+          resolvedSearchParams?.fixture,
+        )
       : null;
   const content =
     fixture?.chapter ?? (await fetchSingleChapter(resolvedParams.slug));
   const events = fixture?.events ?? (await fetchEvents());
 
-  
-
   const {
     chapterLeads: leaders,
     city,
     instagram,
-    avatar, 
+    avatar,
     active: isActive,
     whatsAppLink,
   } = content || {};

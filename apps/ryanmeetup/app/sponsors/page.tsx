@@ -1,10 +1,7 @@
 // Components
 import { Layout } from "@/components/navigation";
-import { Blurb, Text, Divider } from "@/components/global";
-import {
-  SponsorSection,
-  PartnershipPerks,
-} from "@/components/sponsors";
+import { Blurb, Divider, Text } from "@ryanmeetup/ui";
+import { SponsorSection, PartnershipPerks } from "@/components/sponsors";
 
 // Types
 import { Sponsor } from "@/lib/types";

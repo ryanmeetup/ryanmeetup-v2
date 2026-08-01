@@ -1,6 +1,6 @@
 // Components
 import { Layout } from "@/components/navigation";
-import { Text, Divider, Pill, Heading, Card } from "@/components/global";
+import { Card, Divider, Heading, Pill, Text } from "@ryanmeetup/ui";
 import { ContactForm, FollowUs } from "@/components/contact";
 
 // Types
@@ -14,7 +14,10 @@ const ContactPage = async () => {
         <div className="relative grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
           <div className="space-y-6">
             <Pill>Contact</Pill>
-            <Heading className="text-4xl title sm:text-5xl lg:text-6xl" size="h1">
+            <Heading
+              className="text-4xl title sm:text-5xl lg:text-6xl"
+              size="h1"
+            >
               Contact the Ryans
             </Heading>
             <Text className="text-lg text-black/70 dark:text-white/70">

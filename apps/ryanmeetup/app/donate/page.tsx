@@ -1,6 +1,6 @@
 // Components
 import { Layout } from "@/components/navigation";
-import { Heading, Text, Pill, Card, Button, Kicker } from "@/components/global";
+import { Button, Card, Heading, Kicker, Pill, Text } from "@ryanmeetup/ui";
 import QRCode from "react-qr-code";
 import NextLink from "next/link";
 import NextImage from "next/image";
@@ -95,8 +95,7 @@ const DonatePage = async () => {
     },
     {
       title: "Storage unit",
-      body:
-        "After 3+ years of storing event materials between our own apartments, it has become necessary to have a dedicated space.",
+      body: "After 3+ years of storing event materials between our own apartments, it has become necessary to have a dedicated space.",
     },
     {
       title: "Financial and legal filings",
@@ -148,8 +147,8 @@ const DonatePage = async () => {
               Prefer merch instead?
             </Text>
             <Text className="mt-3 text-sm text-black/70 dark:text-white/70">
-              Purchase Ryan Meetup merchandise directly to support future
-              events and community growth.
+              Purchase Ryan Meetup merchandise directly to support future events
+              and community growth.
             </Text>
             <Button.Link
               href="/merch"
@@ -187,7 +186,7 @@ const DonatePage = async () => {
             </ul>
             <Text className="mt-4 text-sm text-black/70 dark:text-white/70">
               On top of that, large-scale events aren’t cheap — venues,
-              materials, and logistics all add up. 
+              materials, and logistics all add up.
             </Text>
           </Card>
 
@@ -214,7 +213,10 @@ const DonatePage = async () => {
 
         <div className="order-1 space-y-4 lg:order-2 lg:sticky lg:top-24">
           <div className="flex items-center justify-center sm:justify-between sm:text-left">
-            <Heading className="text-2xl title text-center sm:text-3xl" size="h2">
+            <Heading
+              className="text-2xl title text-center sm:text-3xl"
+              size="h2"
+            >
               Two easy ways to donate
             </Heading>
             <Text className="hidden text-xs font-semibold uppercase tracking-[0.3em] text-black/70 dark:text-white/70 sm:inline-block">
@@ -228,7 +230,12 @@ const DonatePage = async () => {
               logoSrc="/logos/zellelogo.png"
               logoAlt="Zelle Logo"
               visual={
-                <NextImage src="/zelle.png" width={180} height={180} alt="Zelle" />
+                <NextImage
+                  src="/zelle.png"
+                  width={180}
+                  height={180}
+                  alt="Zelle"
+                />
               }
             />
 

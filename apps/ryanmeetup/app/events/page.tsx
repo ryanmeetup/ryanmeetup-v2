@@ -1,6 +1,7 @@
 // Components
 import { Layout } from "@/components/navigation";
-import { AnchorNav, Blurb, Divider, Text } from "@/components/global";
+import { AnchorNav } from "@/components/global";
+import { Blurb, Divider, Text } from "@ryanmeetup/ui";
 import { EventsContainer } from "@/components/events";
 import {
   FaRegNewspaper as News,
@@ -166,6 +167,7 @@ const EventsPage = async ({
 
       <EventsContainer
         events={events as unknown as RyanEvent[]}
+        showUpcomingSection
         upcomingSectionId="upcoming-events"
         pastSectionId="past-events"
         upcomingHeaderAction={

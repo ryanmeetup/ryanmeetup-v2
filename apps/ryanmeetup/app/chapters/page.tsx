@@ -1,11 +1,15 @@
 // Components
 import { Layout } from "@/components/navigation";
-import { Blurb, Divider, Text } from "@/components/global";
+import { Blurb, Divider, Text } from "@ryanmeetup/ui";
 import { FAQ } from "@/components/home";
 import { ChapterDirectory } from "@/components/chapters";
 
 // Types
-import type { FrequentlyAskedQuestion, RyanChapter, RyanEvent } from "@/lib/types";
+import type {
+  FrequentlyAskedQuestion,
+  RyanChapter,
+  RyanEvent,
+} from "@/lib/types";
 import { buildPageMetadata } from "@/utils/metadata";
 
 // Utilities

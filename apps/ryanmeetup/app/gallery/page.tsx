@@ -1,6 +1,6 @@
 // Components
 import { Layout } from "@/components/navigation";
-import { Heading, Text, Pill, Card } from "@/components/global";
+import { Card, Heading, Pill, Text } from "@ryanmeetup/ui";
 import { MediaTile } from "@/components/gallery";
 import { FaQuestionCircle as Question } from "react-icons/fa";
 import NextLink from "next/link";
@@ -82,15 +82,15 @@ const GalleryPage = async () => {
         </div>
       </Card>
 
-        <div className="grid grid-cols-1 gap-4 mt-10 md:grid-cols-2 xl:grid-cols-3">
-          {tiles?.map((content, index) => (
-            <MediaTile
-              key={`${content.title}-${index}`}
-              id={content.title as string}
-              data={content as unknown as MediaEvent}
-            />
-          ))}
-        </div>
+      <div className="grid grid-cols-1 gap-4 mt-10 md:grid-cols-2 xl:grid-cols-3">
+        {tiles?.map((content, index) => (
+          <MediaTile
+            key={`${content.title}-${index}`}
+            id={content.title as string}
+            data={content as unknown as MediaEvent}
+          />
+        ))}
+      </div>
     </Layout>
   );
 };

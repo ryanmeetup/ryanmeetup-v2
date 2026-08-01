@@ -1,4 +1,4 @@
-import { Card, Text, Button } from "@/components/global";
+import { Button, Card, Text } from "@ryanmeetup/ui";
 import { BiMailSend as Send } from "react-icons/bi";
 import {
   FaBullhorn as Megaphone,

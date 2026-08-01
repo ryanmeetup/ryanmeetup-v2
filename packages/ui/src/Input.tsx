@@ -4,7 +4,7 @@ import { forwardRef } from "react";
 import type { ChangeEvent, ReactNode } from "react";
 import { fieldControlBaseClasses, getFieldLabelClasses } from "./fieldStyles";
 
-type InputProps = {
+export type InputProps = {
   label: string;
   name: string;
   type?: "text" | "email" | "url" | "number";

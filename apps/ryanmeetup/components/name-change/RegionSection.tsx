@@ -1,5 +1,5 @@
 // Components
-import { Heading, Kicker } from "@/components/global";
+import { Heading, Kicker } from "@ryanmeetup/ui";
 import { RegionGrid } from "@/components/name-change/RegionGrid";
 
 // Types

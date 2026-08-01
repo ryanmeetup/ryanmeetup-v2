@@ -7,6 +7,7 @@ patterns that control the visual signature.
 ## 1) Non-negotiables (must copy)
 
 ### Fonts
+
 - Primary display font: `Cooper`
 - Source file: `assets/fonts/COOPBL.woff`
 - Global CSS setup:
@@ -14,7 +15,9 @@ patterns that control the visual signature.
   - Headings use `font-cooper` and the shared `.title` class.
 
 ### Tailwind Extensions
+
 Copy the following from `tailwind.config.ts` into the target app:
+
 - `fontFamily.cooper`
 - `fontSize.display`, `display2`, `display3`, `display4` (fluidType)
 - `colors.nametag`
@@ -25,18 +28,22 @@ Copy the following from `tailwind.config.ts` into the target app:
 - `@tailwindcss/aspect-ratio` plugin
 
 ### Global Utility Classes
+
 From `app/globals.css`:
+
 - `.timing` for base transitions
 - `.title` for heading color
 - `.secondary` for subheading/body color
 
 ### Theme Mode
+
 - Dark mode uses Tailwind `dark` class on `html` or `body`.
 - Color choices are opacity-based (black/white with alpha).
 
 ## 2) Core Tokens (use these class values)
 
 ### Text
+
 - Primary: `text-black` or `text-black/90`
 - Secondary: `text-black/70`
 - Tertiary: `text-black/60`
@@ -45,24 +52,29 @@ From `app/globals.css`:
 - Dark mode tertiary: `dark:text-white/60`
 
 ### Surfaces
+
 - Soft card: `bg-white/80 dark:bg-white/5`
 - Solid card: `bg-white/90 dark:bg-white/5`
 - High contrast popup: `bg-white/95 dark:bg-white/95`
 
 ### Borders
+
 - Default: `border border-black/10 dark:border-white/10`
 - Emphasis: `border-black/20 dark:border-white/20`
 
 ### Shadows
+
 - Low elevation: `shadow-sm`
 - Floating: `shadow-xl`
 - Hero glow: `shadow-[0_25px_50px_-40px_rgba(0,0,0,0.6)]`
 
 ### Hover Affordance
+
 - Lift: `hover:-translate-y-1`
 - Border emphasize: `hover:border-black/30 dark:hover:border-white/40`
 
 ### Meta Label
+
 - `text-xs font-semibold uppercase tracking-[0.3em]`
 
 ## 3) Typography Rules
@@ -83,40 +95,51 @@ Use the same component APIs if possible. If recreating, match the
 classes and variants.
 
 ### Buttons
+
 File: `components/global/Button.tsx`
+
 - `variant="primary"`
 - `variant="secondary"`
 - `variant="outline"`
 - `variant="ghost"`
 
 ### Cards
+
 File: `components/global/Card.tsx`
+
 - `variant="soft"` or `variant="solid"`
 - Avoid custom backgrounds unless a section is meant to stand out.
 
 ### Pill
+
 File: `components/global/Pill.tsx`
 
 ### Typography
+
 Files: `components/global/Heading.tsx`, `components/global/Text.tsx`
 
 ### Inputs
+
 Files: `components/global/Input.tsx`, `components/global/Textarea.tsx`
+
 - Required labels keep the asterisk inline.
 
 ## 6) Common Class Snippets (copy verbatim)
 
 ### Soft Card Container
+
 ```
 rounded-2xl border border-black/10 bg-white/80 shadow-sm dark:border-white/10 dark:bg-white/5
 ```
 
 ### Meta Label
+
 ```
 text-xs font-semibold uppercase tracking-[0.3em] text-black/60 dark:text-white/60
 ```
 
 ### Hoverable Tile
+
 ```
 transition hover:-translate-y-1 hover:border-black/30 dark:hover:border-white/40
 ```
@@ -137,6 +160,7 @@ transition hover:-translate-y-1 hover:border-black/30 dark:hover:border-white/40
 - Use the same opacity-based text and surface classes.
 
 ## Reference Files in This Repo
+
 - `components/global/Button.tsx`
 - `components/global/Card.tsx`
 - `components/global/Heading.tsx`

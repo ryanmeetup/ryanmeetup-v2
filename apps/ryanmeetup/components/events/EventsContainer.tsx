@@ -4,14 +4,8 @@ import { useMemo } from "react";
 import type { ReactNode } from "react";
 
 // Components
-import {
-  FilterBar,
-  Divider,
-  EmptyState,
-  Heading,
-  Input,
-  SearchIndicator,
-} from "@/components/global";
+import { FilterBar, Divider, EmptyState, Heading, Input } from "@ryanmeetup/ui";
+import { SearchIndicator } from "@/components/global";
 import { EventsSection } from "@/components/events";
 import NextLink from "next/link";
 
@@ -77,7 +71,7 @@ const EventsContainer = (props: EventsContainerProps) => {
   );
 
   const renderEmptyUpcomingBanner = () => (
-    <div className="mb-8">
+    <div id={upcomingSectionId} className="mb-8 scroll-mt-24">
       <Heading
         className="mb-4 text-center text-3xl title lg:text-4xl lg:text-left"
         size="h2"
@@ -208,6 +202,7 @@ const EventsContainer = (props: EventsContainerProps) => {
   const showEmptyUpcomingBanner =
     showUpcomingSection &&
     activeEvents.length === 0 &&
+    chapterEvents.length === 0 &&
     inactiveEvents.length !== 0;
   return (
     <div className="mb-10">

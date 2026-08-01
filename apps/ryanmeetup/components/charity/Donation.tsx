@@ -1,13 +1,13 @@
 // Components
 import NextLink from "next/link";
 import NextImage from "next/image";
-import { Text, Card, Button, Heading } from "@/components/global";
+import { Button, Card, Heading, Text } from "@ryanmeetup/ui";
 
 // Types
 import type { Charity } from "@/lib/types";
 
 // Utilities
-import { convertImageUrl } from "@/utils/convert";
+import { convertImageUrl } from "@ryanmeetup/utils";
 
 type DonationProps = {
   donation: Charity;
@@ -43,17 +43,18 @@ const Donation = (props: DonationProps) => {
         }}
       />
       <div className="relative flex h-full flex-col">
-        <Heading className="text-xl sm:text-xl md:text-2xl font-semibold tracking-tight text-black dark:text-white mb-2" variant="normal">
+        <Heading
+          className="text-xl sm:text-xl md:text-2xl font-semibold tracking-tight text-black dark:text-white mb-2"
+          variant="normal"
+        >
           {title}
         </Heading>
         <div className="flex flex-1 items-center">
-          <Text
-            className="flex flex-wrap items-baseline gap-x-2 text-5xl font-extrabold tabular-nums"
-          >
+          <Text className="flex flex-wrap items-baseline gap-x-2 text-5xl font-extrabold tabular-nums">
             <span className={`whitespace-nowrap text-4xl ${color}`}>
               {fmt(parseCurrency(amount))}
             </span>
-            <span className="text-black/70 text-sm font-normal text-lg whitespace-nowrap mt-4 xl:mt-0 dark:text-white/80">
+            <span className="mt-4 whitespace-nowrap text-lg font-normal text-black/70 dark:text-white/80 xl:mt-0">
               Raised to date
             </span>
           </Text>
@@ -89,7 +90,7 @@ const Donation = (props: DonationProps) => {
                 </NextLink>
               ))}
             </div>
-          )}  
+          )}
         </div>
       </div>
     </Card>

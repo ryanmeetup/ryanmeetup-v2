@@ -1,6 +1,6 @@
 // Components
 import { Layout } from "@/components/navigation";
-import { Divider, Heading, Text, Card } from "@/components/global";
+import { Card, Divider, Heading, Text } from "@ryanmeetup/ui";
 import { TotalCount, Donation } from "@/components/charity";
 
 // Types
@@ -45,7 +45,6 @@ const CharityPage = async () => {
       <TotalCount donations={donations as Charity[]} />
 
       <Divider />
-
 
       <Heading size="h1" className="text-4xl text-center title">
         Our fundraising partners

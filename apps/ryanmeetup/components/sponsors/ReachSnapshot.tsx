@@ -5,14 +5,7 @@ import { useState } from "react";
 import Image from "next/image";
 import NextLink from "next/link";
 
-import {
-  Card,
-  Heading,
-  IconBadge,
-  Kicker,
-  Modal,
-  Text,
-} from "@/components/global";
+import { Card, Heading, IconBadge, Kicker, Modal, Text } from "@ryanmeetup/ui";
 import {
   FaChartLine as Traffic,
   FaInstagram as Instagram,

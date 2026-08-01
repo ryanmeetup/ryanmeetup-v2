@@ -1,6 +1,7 @@
 // Components
 import { Layout } from "@/components/navigation";
-import { AnchorNav, Heading, Text, Divider, Pill } from "@/components/global";
+import { AnchorNav } from "@/components/global";
+import { Divider, Heading, Pill, Text } from "@ryanmeetup/ui";
 import { FarthestRyan, Champion, Leaderboard } from "@/components/awards";
 import { MdLeaderboard as Leader } from "react-icons/md";
 import { FaTrophy as Trophy, FaPlaneArrival as Plane } from "react-icons/fa";
@@ -46,8 +47,7 @@ export const metadata = buildPageMetadata({
 });
 
 const AwardsPage = async () => {
-  const fixture =
-    process.env.E2E_TESTS === "true" ? getAwardsFixture() : null;
+  const fixture = process.env.E2E_TESTS === "true" ? getAwardsFixture() : null;
   const farthest = fixture?.farthest ?? (await fetchFarthestRyans());
   const champs = fixture?.champs ?? (await fetchChampionRyans());
   const repeats = fixture?.repeats ?? (await fetchRepeatRyans());
@@ -88,7 +88,7 @@ const AwardsPage = async () => {
           </Text>
           <div id="farthest" />
         </section>
-        
+
         <AnchorNav items={anchors} />
 
         <Divider />
@@ -96,17 +96,20 @@ const AwardsPage = async () => {
         <section className="space-y-6">
           <Heading className="text-center text-3xl title sm:text-4xl">
             Farthest Traveling Ryans
-          </Heading>          
+          </Heading>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
             {farthest?.map((ryan, index) => (
-              <FarthestRyan key={index} ryan={ryan as unknown as TravelingRyan} />
+              <FarthestRyan
+                key={index}
+                ryan={ryan as unknown as TravelingRyan}
+              />
             ))}
           </div>
           <div id="champions" />
         </section>
 
         <Divider margins="xl" />
-        
+
         <section className="space-y-6">
           <div className="space-y-2 text-center">
             <Heading className="text-3xl title sm:text-4xl">
@@ -126,7 +129,7 @@ const AwardsPage = async () => {
         </section>
 
         <Divider margins="xl" />
-        
+
         <section className="space-y-6">
           <Leaderboard ryans={repeats as RepeatRyan[]} />
         </section>

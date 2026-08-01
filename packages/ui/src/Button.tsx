@@ -2,37 +2,31 @@
 import NextLink from "next/link";
 
 // Types
-import type { ReactNode } from "react";
+import type { ButtonHTMLAttributes, ComponentProps, ReactNode } from "react";
 
-type ButtonLinkProps = {
+export type ButtonLinkProps = Omit<ComponentProps<typeof NextLink>, "href"> & {
   children: ReactNode;
-  className?: string;
-  onClick?: () => void;
   leftIcon?: ReactNode;
   rightIcon?: ReactNode;
   disabled?: boolean;
   href: string;
   newTab?: boolean;
-  download?: boolean | string;
   variant?: ButtonVariant;
   size?: ButtonSize;
   fullWidth?: boolean;
 };
 
-type ButtonProps = {
+export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   children: ReactNode;
-  className?: string;
-  onClick?: () => void;
   leftIcon?: ReactNode;
   rightIcon?: ReactNode;
-  disabled?: boolean;
   variant?: ButtonVariant;
   size?: ButtonSize;
   fullWidth?: boolean;
 };
 
-type ButtonVariant = "primary" | "secondary" | "outline" | "ghost";
-type ButtonSize = "sm" | "md" | "lg";
+export type ButtonVariant = "primary" | "secondary" | "outline" | "ghost";
+export type ButtonSize = "sm" | "md" | "lg";
 
 const sizeStyles: Record<ButtonSize, string> = {
   sm: "px-4 py-2 text-xs",
@@ -88,11 +82,13 @@ const ButtonLink = (props: ButtonLinkProps) => {
     rightIcon,
     disabled = false,
     href,
-    newTab = true,
+    newTab = false,
     download,
     variant = "primary",
     size = "md",
     fullWidth = false,
+    onClick,
+    ...linkProps
   } = props;
 
   return (
@@ -105,6 +101,9 @@ const ButtonLink = (props: ButtonLinkProps) => {
       aria-disabled={disabled}
       tabIndex={disabled ? -1 : 0}
       download={download}
+      onClick={onClick}
+      rel={newTab ? "noopener noreferrer" : linkProps.rel}
+      {...linkProps}
     >
       {variant === "primary" && !disabled && (
         <>
@@ -140,6 +139,8 @@ const Button = (props: ButtonProps) => {
     variant = "primary",
     size = "md",
     fullWidth = false,
+    type = "button",
+    ...buttonProps
   } = props;
 
   return (
@@ -149,6 +150,8 @@ const Button = (props: ButtonProps) => {
       } ${className ?? ""}`}
       onClick={onClick}
       disabled={disabled}
+      type={type}
+      {...buttonProps}
     >
       {variant === "primary" && !disabled && (
         <>

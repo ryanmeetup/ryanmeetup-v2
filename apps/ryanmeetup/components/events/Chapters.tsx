@@ -1,7 +1,7 @@
 // Components
 import NextLink from "next/link";
 import NextImage from "next/image";
-import { Heading, Text } from "@/components/global";
+import { Heading, Text } from "@ryanmeetup/ui";
 
 const Chapters = () => {
   return (

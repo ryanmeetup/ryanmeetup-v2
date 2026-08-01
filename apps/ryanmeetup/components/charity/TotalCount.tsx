@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 
 // Components
-import { Heading, Text, Pill } from "@/components/global";
+import { Heading, Pill, Text } from "@ryanmeetup/ui";
 
 // Types
 import type { Charity } from "@/lib/types";

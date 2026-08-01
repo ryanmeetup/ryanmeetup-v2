@@ -1,14 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import {
-  EmptyState,
-  FilterBar,
-  Input,
-  SearchIndicator,
-  Select,
-  Text,
-} from "@/components/global";
+import { EmptyState, FilterBar, Input, Select, Text } from "@ryanmeetup/ui";
+import { SearchIndicator } from "@/components/global";
 import { FaSliders as Filters } from "react-icons/fa6";
 import { ChapterTile } from "@/components/chapters";
 import type { RyanChapter } from "@/lib/types";

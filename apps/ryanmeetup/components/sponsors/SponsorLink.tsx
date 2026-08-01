@@ -13,17 +13,13 @@ type SponsorLinkProps = {
   children: ReactNode;
 };
 
-const SponsorLink = (props: SponsorLinkProps) => {
-  const {
-    href,
-    sponsorName,
-    placement,
-    partnershipType,
-    className,
-    children,
-  } = props;
-  const pathname = usePathname();
-
+const buildSponsorTrackingHref = ({
+  href,
+  sponsorName,
+  placement,
+  partnershipType,
+  source,
+}: Omit<SponsorLinkProps, "className" | "children"> & { source: string }) => {
   const sponsorId = sponsorName
     .toLowerCase()
     .trim()
@@ -34,9 +30,23 @@ const SponsorLink = (props: SponsorLinkProps) => {
     name: sponsorName,
     placement,
     type: partnershipType ?? "unknown",
+    source,
+  });
+  return `/out/sponsor/${sponsorId}?${params.toString()}`;
+};
+
+const SponsorLink = (props: SponsorLinkProps) => {
+  const { href, sponsorName, placement, partnershipType, className, children } =
+    props;
+  const pathname = usePathname();
+
+  const trackingHref = buildSponsorTrackingHref({
+    href,
+    sponsorName,
+    placement,
+    partnershipType,
     source: pathname ?? "/",
   });
-  const trackingHref = `/out/sponsor/${sponsorId}?${params.toString()}`;
 
   return (
     <a href={trackingHref} className={className}>
@@ -45,4 +55,4 @@ const SponsorLink = (props: SponsorLinkProps) => {
   );
 };
 
-export { SponsorLink };
+export { buildSponsorTrackingHref, SponsorLink };

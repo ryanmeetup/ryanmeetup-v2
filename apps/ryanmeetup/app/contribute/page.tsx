@@ -8,7 +8,7 @@ import {
   IconBadge,
   Pill,
   Text,
-} from "@/components/global";
+} from "@ryanmeetup/ui";
 import {
   FaHandsHelping as Help,
   FaDollarSign as Dollar,

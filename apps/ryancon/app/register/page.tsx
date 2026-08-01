@@ -1,16 +1,16 @@
 // Components
-import { Layout } from '@/components/navigation';
-import { Heading, Pill, Text } from '@/components/global';
+import { Layout } from "@/components/navigation";
+import { Heading, Pill, Text } from "@ryanmeetup/ui";
 
 const RegisterPage = () => {
   return (
     <Layout>
-      <div className='mx-auto flex max-w-4xl flex-col items-center gap-4 text-center'>
+      <div className="mx-auto flex max-w-4xl flex-col items-center gap-4 text-center">
         <Pill>Register</Pill>
-        <Heading className='text-4xl title sm:text-5xl lg:text-6xl' size='h1'>
+        <Heading className="text-4xl title sm:text-5xl lg:text-6xl" size="h1">
           Secure your RyanCon spot.
         </Heading>
-        <Text className='text-lg sm:text-xl'>
+        <Text className="text-lg sm:text-xl">
           Join the interest list now. You&apos;ll be first in line when tickets
           officially go live.
         </Text>

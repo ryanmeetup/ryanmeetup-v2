@@ -1,5 +1,5 @@
 // Components
-import { Heading, Text, Card, Pill, Kicker } from "@/components/global";
+import { Heading, Text, Card, Pill, StatCard, StatGrid } from "@ryanmeetup/ui";
 import NextLink from "next/link";
 import { getLocationStats } from "@/utils/stats";
 import { contactHrefs } from "@/utils/contact";
@@ -65,7 +65,7 @@ const Info = (props: InfoProps) => {
         >
           Ryan Meetup Worldwide
         </Heading>
-        <Text className="mt-3 text-lg text-black/70 dark:text-white/70">
+        <Text className="mt-3 text-base text-black/70 dark:text-white/70">
           Our growing network of Ryans spans across{" "}
           <span className="font-semibold text-blue-700 dark:text-blue-500">
             {countryCount} countries and territories
@@ -81,24 +81,16 @@ const Info = (props: InfoProps) => {
           name gathering in history.
         </Text>
 
-        <div className="mt-6 grid gap-3 grid-cols-2 lg:grid-cols-3">
+        <StatGrid className="mt-6">
           {stats.map((stat) => (
-            <Card
+            <StatCard
               key={stat.label}
-              variant="solid"
-              size="sm"
+              value={stat.value}
+              label={stat.label}
               className="bg-white/90 ring-1 ring-black/10 dark:bg-white/5 dark:ring-white/10"
-            >
-              <Heading
-                className="text-3xl font-cooper text-black dark:text-white"
-                size="h3"
-              >
-                {stat.value}
-              </Heading>
-              <Kicker>{stat.label}</Kicker>
-            </Card>
+            />
           ))}
-        </div>
+        </StatGrid>
 
         <Heading
           className="mt-8 text-2xl title text-black sm:text-3xl dark:text-white"

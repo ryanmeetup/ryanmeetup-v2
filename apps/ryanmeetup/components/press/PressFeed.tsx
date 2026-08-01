@@ -6,14 +6,13 @@ import { useMemo, useState } from "react";
 import { Article } from "@/components/press";
 import {
   Card,
-  CollapsibleYearSection,
   EmptyState,
   FilterChipGroup,
   FilterBar,
   Input,
-  SearchIndicator,
   Text,
-} from "@/components/global";
+} from "@ryanmeetup/ui";
+import { CollapsibleYearSection, SearchIndicator } from "@/components/global";
 
 // Types
 import type { Article as RyanArticle } from "@/lib/types";
