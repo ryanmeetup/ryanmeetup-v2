@@ -1,0 +1,289 @@
+# Ryan Meetup Monorepo Instructions
+
+This file is the source of truth for agents working in this repository. Apply
+these rules to every workspace unless a more specific `AGENTS.md` exists lower
+in the directory tree.
+
+## Goal
+
+Keep every Ryan Meetup app recognizably part of the same product family while
+keeping code small, reusable, accessible, and easy to change. Prefer one shared
+implementation over parallel app-local versions, but do not force app-specific
+business logic into a generic package.
+
+## Repository Map
+
+- `apps/ryanmeetup`: the primary Ryan Meetup site.
+- `apps/ryancon`: the RyanCon site.
+- `apps/tasks`: task-management app and workspace.
+- `packages/brand`: shared fonts and brand theme CSS.
+- `packages/ui`: reusable visual primitives and generic compositions.
+- `packages/contact`: shared contact-form behavior and integrations.
+- `packages/sponsors`: shared sponsor-domain components.
+- `packages/utils`: framework-agnostic shared utilities.
+
+The repository uses npm workspaces. Use the workspace scripts in the root
+`package.json` or run scripts from the relevant app directory.
+
+## Before Making Changes
+
+1. Inspect the relevant app and shared packages before adding a component,
+   utility, token, dependency, or interaction.
+2. Search with `rg` for an existing implementation and for similar UI in the
+   other apps.
+3. Preserve unrelated work in the worktree. Do not overwrite or reformat files
+   outside the requested scope.
+4. Treat the current source code and this file as more authoritative than old
+   transfer guides. Update stale documentation when a change makes it wrong.
+
+## Ownership and Package Boundaries
+
+Choose the narrowest correct owner for new code.
+
+### `packages/ui`
+
+Put a component in `@ryanmeetup/ui` when it is presentation-focused,
+brand-consistent, and useful in more than one app or feature. Examples include
+buttons, cards, typography, fields, pills, icon controls, feedback states,
+disclosures, section headers, social-link grids, logo treatments, and stat
+cards.
+
+Shared UI components must:
+
+- accept content and behavior through props rather than importing app data;
+- avoid app aliases such as `@/`;
+- avoid imports from an app's `lib`, `hooks`, `actions`, or `components`;
+- expose reusable prop types when consumers may need them;
+- support `className` when composition reasonably requires it;
+- use semantic HTML and preserve native element attributes where practical;
+- include dark-mode, focus, disabled, and responsive behavior as applicable;
+- be exported from `packages/ui/src/index.ts`.
+
+Do not put CMS queries, route tables, analytics placement logic, EmailJS
+configuration, or Ryan Meetup-only workflows in `packages/ui`.
+
+### Feature packages
+
+Use a feature package when code is shared but carries domain behavior:
+
+- contact forms and submission behavior belong in `@ryanmeetup/contact`;
+- sponsor-specific presentation and behavior belong in
+  `@ryanmeetup/sponsors`;
+- framework-agnostic conversion and validation helpers belong in
+  `@ryanmeetup/utils`.
+
+Feature packages may depend on `@ryanmeetup/ui`. `@ryanmeetup/ui` must not
+depend on a feature package or an app.
+
+### App-local code
+
+Keep code app-local when it depends on that app's routes, CMS shape, page
+composition, copy, analytics, or unique workflow. Navigation shells, page
+sections, Contentful adapters, and route-specific orchestration usually remain
+inside the app.
+
+If two apps contain near-identical local implementations, consolidate the
+shared primitive or behavior first. Do not maintain copies that differ only by
+small props or copy.
+
+## Imports
+
+- Import shared ownership directly from its package, for example
+  `@ryanmeetup/ui`, `@ryanmeetup/contact`, or `@ryanmeetup/utils`.
+- Use `@/` only for files owned by the current app.
+- Do not create app-local barrels that re-export an entire shared package. Such
+  barrels hide ownership and encourage accidental coupling.
+- Avoid deep imports into another package's `src` directory. Use its public
+  export surface.
+- Use `import type` for type-only dependencies.
+- Keep package manifests accurate. A package must declare every external
+  runtime dependency it imports.
+
+## Shared Package Integration
+
+When an app consumes a source-based workspace package:
+
+- add the package to the app's dependencies;
+- include it in `transpilePackages` when Next.js requires transpilation;
+- add the package source to the app's Tailwind `@source` directives when it
+  contains utility classes;
+- ensure both Ryan Meetup and RyanCon receive the same change when they consume
+  the package;
+- verify the package does not rely on an app's global CSS beyond the shared
+  brand theme.
+
+Current shared Tailwind sources include `packages/ui/src`,
+`packages/contact/src`, and `packages/sponsors/src`.
+
+## Design Language
+
+Use `@ryanmeetup/brand/theme.css` and existing shared components before adding
+new styling conventions.
+
+### Typography
+
+- Use the shared `Heading`, `Text`, and `Kicker` components for their intended
+  roles.
+- Cooper is the display face. Use it for intentional headings, not body copy.
+- Prefer clear sentence-case body copy and short uppercase metadata labels.
+- Metadata commonly uses `text-xs font-semibold uppercase` with generous
+  tracking.
+- Avoid adding arbitrary font families or duplicating font assets in apps.
+
+### Color and surfaces
+
+- Use opacity-based black/white neutrals and always consider light and dark
+  themes together.
+- Default borders are subtle: `border-black/10 dark:border-white/10`.
+- Secondary text should remain readable, normally around
+  `text-black/70 dark:text-white/70`; do not reduce contrast merely for visual
+  subtlety.
+- Prefer shared `Card`, `Button`, `Pill`, and field variants over
+  repeating long class strings.
+- Reserve vivid colors for status, validation, or a deliberate campaign
+  accent.
+
+### Spacing and shape
+
+- Prefer established gaps and spacing such as `gap-2`, `gap-4`, `gap-6`,
+  `space-y-6`, and `space-y-12`.
+- Cards generally use rounded corners, subtle borders, translucent surfaces,
+  and restrained shadows.
+- Use hover lift sparingly and consistently. Interactive elements should not
+  shift far enough to disturb surrounding layout.
+- When two desktop columns have unequal content, balance them through alignment
+  and meaningful grouping before adding filler copy.
+
+## Responsive Behavior
+
+Design mobile-first, then add complexity only when the available width supports
+it.
+
+Tailwind's standard breakpoints are the shared vocabulary:
+
+- `sm`: 640px
+- `md`: 768px
+- `lg`: 1024px
+- `xl`: 1280px
+- `2xl`: 1536px
+
+Rules:
+
+- Do not make a component dense merely because a breakpoint was reached.
+- Stagger nested responsive layouts. A two-column page and a two-column form
+  should not both activate at the same breakpoint if that squeezes fields.
+- Contact-style major page columns remain stacked below `xl`; dense form grids
+  should wait until `2xl` when their card is inside another column.
+- Compact, scannable controls such as icon grids may remain compact at every
+  breakpoint when verbose lists add no value.
+- Prevent label wrapping and clipped input values at intermediate desktop
+  widths, not only mobile widths.
+- Test at the boundary widths, especially 1024, 1280, and 1536 pixels.
+
+## Images
+
+- Use `next/image` for optimized app imagery unless there is a concrete reason
+  not to.
+- Every image needs meaningful `alt` text; decorative imagery should use an
+  empty alt value.
+- A `fill` image must have a positioned containing block, normally `relative`,
+  with an explicit height or aspect ratio.
+- Use Tailwind's built-in aspect syntax such as `aspect-[2/1]` or
+  `aspect-[3/4]`.
+- Do not use legacy `aspect-w-*` or `aspect-h-*` classes. The old aspect-ratio
+  plugin is not part of the current Tailwind setup.
+- Add new remote hosts to the relevant app's Next image configuration rather
+  than bypassing image optimization.
+- Include an appropriate `sizes` value for responsive `fill` images.
+
+## Next.js and React
+
+- Prefer Server Components by default. Add `"use client"` only when hooks,
+  browser APIs, or interactive libraries require it.
+- In current Next.js route pages, dynamic APIs such as `searchParams` may be
+  promises. Type and `await` them before reading their properties.
+- Keep data fetching and secrets server-side. Only expose intentionally public
+  environment variables with the `NEXT_PUBLIC_` prefix.
+- Use `next/link` for navigation and distinguish internal navigation from
+  external links. External links opened in a new tab need safe `rel` values.
+- Avoid index keys when a stable content identifier exists.
+- Do not suppress hydration, type, or lint errors without documenting the
+  concrete reason next to the suppression.
+
+## Forms and Feedback
+
+- Use the shared field components so labels, required markers, focus rings,
+  placeholders, errors, and theme behavior remain consistent.
+- Labels must remain visible; placeholders supplement labels and do not replace
+  them.
+- Write placeholders and helper copy in the Ryan voice when appropriate, but
+  keep the requested action clear.
+- Disable submission only for a clear reason and expose loading, success, and
+  error states accessibly.
+- Do not allow long placeholder or entered values to be visibly clipped because
+  a responsive grid activated too early.
+
+## Accessibility
+
+- All interactive elements must be keyboard reachable and have visible focus
+  treatment.
+- Icon-only buttons and links require an accessible name.
+- Use real buttons for actions and links for navigation.
+- Preserve Headless UI semantics when wrapping dialogs, disclosures, popovers,
+  and transitions.
+- Honor disabled states with both behavior and appropriate ARIA where needed.
+- Do not communicate status or selection by color alone.
+- Respect reduced-motion preferences for any substantial animation.
+
+## Copy and Content
+
+- Keep copy concise, warm, and lightly playful. Ryan jokes should support the
+  message rather than obscure it.
+- Prefer specific guidance over generic filler. For example, name relevant
+  contact topics rather than saying only "How can we help?"
+- Do not invent event facts, sponsor claims, statistics, or organizational
+  policies.
+- Keep shared components free of app-specific copy unless the component itself
+  is intentionally Ryan-branded and the copy is stable across consumers.
+
+## Validation
+
+Validate in proportion to the change, from the affected workspace.
+
+Minimum expectations:
+
+1. Run ESLint on changed TypeScript/TSX files.
+2. Run `git diff --check`.
+3. Run relevant unit or Playwright tests when behavior changes.
+4. Run the affected app build for package, configuration, routing, or
+   production-rendering changes.
+5. Visually inspect responsive or layout changes at mobile and relevant desktop
+   boundary widths when browser tooling is available.
+
+Useful commands:
+
+```sh
+npm run build:ryanmeetup
+npm run build:ryancon
+npm run build
+npm run lint --workspace=@ryanmeetup/ryanmeetup
+npm run lint --workspace=@ryanmeetup/ryancon
+```
+
+If a check fails for an unrelated existing issue or restricted network access,
+report the exact blocker. Do not claim the check passed.
+
+## Change Checklist
+
+Before handing off a change, confirm:
+
+- no existing shared component or utility was needlessly duplicated;
+- ownership is correct: UI, feature package, utility package, or app;
+- new shared exports, dependencies, Tailwind sources, and transpilation config
+  are complete;
+- light mode, dark mode, mobile, and intermediate desktop widths remain usable;
+- `next/image fill` containers are positioned and sized;
+- interactive controls have semantics, labels, focus, and disabled behavior;
+- app-specific data and routing did not leak into `packages/ui`;
+- lint, formatting/diff, tests, and builds were run as appropriate;
+- unrelated user changes remain untouched.
