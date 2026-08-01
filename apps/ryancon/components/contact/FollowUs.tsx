@@ -1,9 +1,10 @@
-import { Button, Divider, SocialLinkGrid } from "@ryanmeetup/ui";
+import { Button, Divider, Kicker, SocialLinkGrid } from "@ryanmeetup/ui";
 import { FaRegNewspaper as News } from "react-icons/fa";
 import { socials } from "@/lib/constants";
 
 const FollowUs = () => (
   <div className="col-span-2 text-black dark:text-white md:col-span-1">
+    <Kicker className="mb-3 hidden xl:block">Follow RyanCon updates</Kicker>
     <SocialLinkGrid
       links={socials.map((outlet) => ({
         href: outlet.href,
@@ -11,11 +12,11 @@ const FollowUs = () => (
         icon: outlet.icon,
       }))}
     />
-    <Divider />
+    <Divider margins="lg" />
     <Button.Link
       href="https://ryanmeetup.com/newsletter"
       leftIcon={<News />}
-      variant="secondary"
+      variant="primary"
       className="w-full"
     >
       <span className="sm:hidden">Join newsletter</span>

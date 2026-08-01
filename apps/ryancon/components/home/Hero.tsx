@@ -39,7 +39,7 @@ const Hero = () => {
                 Event details
               </Text>
               <div className="mt-3 flex flex-wrap space-x-16">
-                <Text className="text-display4">🏙 LAS VEGAS, NV</Text>
+                <Text className="text-display4">🏙 LOCATION TBD</Text>
                 <Text className="text-display4">🗓 DATE TBD</Text>
                 <Text className="text-display4">📍 VENUE TBD</Text>
               </div>
