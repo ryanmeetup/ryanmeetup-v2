@@ -8,6 +8,7 @@ import {
   Heading,
   IconButton,
   Input,
+  Tooltip,
 } from "@ryanmeetup/ui";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import { createClient } from "@/lib/supabase/client";
@@ -93,18 +94,23 @@ export function LoginForm() {
             }}
             placeholder="Enter your password"
             trailingAction={
-              <IconButton
-                label={showPassword ? "Hide password" : "Show password"}
-                variant="plain"
-                onClick={() => setShowPassword((visible) => !visible)}
-                aria-pressed={showPassword}
+              <Tooltip
+                content={showPassword ? "Hide password" : "Show password"}
+                placement="left"
               >
-                {showPassword ? (
-                  <FiEyeOff aria-hidden />
-                ) : (
-                  <FiEye aria-hidden />
-                )}
-              </IconButton>
+                <IconButton
+                  label={showPassword ? "Hide password" : "Show password"}
+                  variant="plain"
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  aria-pressed={showPassword}
+                >
+                  {showPassword ? (
+                    <FiEyeOff aria-hidden />
+                  ) : (
+                    <FiEye aria-hidden />
+                  )}
+                </IconButton>
+              </Tooltip>
             }
           />
           <FieldError>{message}</FieldError>

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@ryanmeetup/brand": "^0.1.0",
+    "@ryanmeetup/hooks": "^0.1.0",
     "@ryanmeetup/ui": "^0.1.0",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.111.0",

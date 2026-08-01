@@ -11,6 +11,7 @@ import {
 import {
   Button,
   Card,
+  DropdownSelect,
   EmptyState,
   Heading,
   IconButton,
@@ -19,6 +20,7 @@ import {
   Pill,
   Select,
   Textarea,
+  Tooltip,
 } from "@ryanmeetup/ui";
 import {
   FiCalendar,
@@ -38,6 +40,7 @@ import {
   FiX,
 } from "react-icons/fi";
 import { createClient } from "@/lib/supabase/client";
+import { useSearchFilter } from "@ryanmeetup/hooks";
 import type { Priority, Task, WorkspaceData } from "@/lib/types";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -122,7 +125,15 @@ export function TaskApp({
       initialData.statuses[1]?.id ?? initialData.statuses[0]?.id ?? "",
     ),
   );
-  const [search, setSearch] = useState("");
+  const {
+    query: search,
+    setQuery: setSearch,
+    filtered: searchedTasks,
+  } = useSearchFilter({
+    data: data.tasks,
+    buildHaystack: (task) =>
+      `${task.title} ${task.description ?? ""}`.toLowerCase(),
+  });
   const [assignee, setAssignee] = useState("all");
   const [group, setGroup] = useState("all");
   const [status, setStatus] = useState("all");
@@ -183,14 +194,9 @@ export function TaskApp({
   );
   const visibleTasks = useMemo(
     () =>
-      data.tasks
+      searchedTasks
         .filter((task) => {
-          const needle = search.toLowerCase();
           return (
-            (!needle ||
-              `${task.title} ${task.description ?? ""}`
-                .toLowerCase()
-                .includes(needle)) &&
             (assignee === "all" ||
               (assignee === "unassigned"
                 ? !task.assignee_id
@@ -207,7 +213,7 @@ export function TaskApp({
               ? priorities.indexOf(b.priority) - priorities.indexOf(a.priority)
               : b.updated_at.localeCompare(a.updated_at),
         ),
-    [assignee, data.tasks, group, priority, search, sort, status],
+    [assignee, group, priority, searchedTasks, sort, status],
   );
 
   function openCreate(statusId?: string) {
@@ -385,7 +391,7 @@ export function TaskApp({
       >
         <div className="flex h-12 items-center justify-between px-2">
           <div>
-            <p className="font-cooper text-xl">Ryan Meetup</p>
+            <p className="font-cooper text-2xl uppercase">Ryan Meetup</p>
             <p className="text-[9px] font-semibold uppercase tracking-[0.28em] text-black/45 dark:text-white/45">
               Task tracker
             </p>
@@ -419,13 +425,19 @@ export function TaskApp({
             <FiList />
             List
           </button>
-          <button disabled className="sidebar-link opacity-40">
-            <FiCalendar />
-            Calendar
-            <Pill size="sm" className="ml-auto">
-              Soon
-            </Pill>
-          </button>
+          <Tooltip
+            content="Calendar view is coming soon"
+            placement="right"
+            triggerClassName="w-full"
+          >
+            <button disabled className="sidebar-link opacity-40">
+              <FiCalendar />
+              Calendar
+              <Pill size="sm" className="ml-auto">
+                Soon
+              </Pill>
+            </button>
+          </Tooltip>
         </nav>
         <div className="mt-8">
           <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-black/45 dark:text-white/45">
@@ -469,15 +481,17 @@ export function TaskApp({
               </p>
             </div>
             {!demoMode && (
-              <IconButton
-                label="Sign out"
-                onClick={async () => {
-                  await createClient().auth.signOut();
-                  location.assign("/login");
-                }}
-              >
-                <FiLogOut />
-              </IconButton>
+              <Tooltip content="Sign out" placement="right">
+                <IconButton
+                  label="Sign out"
+                  onClick={async () => {
+                    await createClient().auth.signOut();
+                    location.assign("/login");
+                  }}
+                >
+                  <FiLogOut />
+                </IconButton>
+              </Tooltip>
             )}
           </div>
         </div>
@@ -502,10 +516,16 @@ export function TaskApp({
               className="h-10 w-full rounded-lg border border-black/10 bg-white pl-10 pr-3 text-sm outline-none focus:border-black/30 focus:ring-2 focus:ring-black/10 dark:border-white/10 dark:bg-white/5 dark:focus:border-white/30"
             />
           </div>
-          <ThemeToggle />
-          <Button size="sm" leftIcon={<FiPlus />} onClick={() => openCreate()}>
-            New task
-          </Button>
+          <div className="ml-auto flex items-center gap-3">
+            <Button
+              size="sm"
+              leftIcon={<FiPlus />}
+              onClick={() => openCreate()}
+            >
+              New task
+            </Button>
+            <ThemeToggle />
+          </div>
         </header>
         {demoMode && (
           <div className="border-b border-amber-300/40 bg-amber-50 px-4 py-2 text-center text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-100">
@@ -558,10 +578,8 @@ export function TaskApp({
                   </b>
                 )}
               </span>
-              <Select
-                variant="compact"
+              <DropdownSelect
                 label="Assignee"
-                name="assignee-filter"
                 value={assignee}
                 onChange={setAssignee}
                 options={[
@@ -573,10 +591,8 @@ export function TaskApp({
                   })),
                 ]}
               />
-              <Select
-                variant="compact"
+              <DropdownSelect
                 label="Group"
-                name="group-filter"
                 value={group}
                 onChange={setGroup}
                 options={[
@@ -587,10 +603,8 @@ export function TaskApp({
                   })),
                 ]}
               />
-              <Select
-                variant="compact"
+              <DropdownSelect
                 label="Status"
-                name="status-filter"
                 value={status}
                 onChange={setStatus}
                 options={[
@@ -601,10 +615,8 @@ export function TaskApp({
                   })),
                 ]}
               />
-              <Select
-                variant="compact"
+              <DropdownSelect
                 label="Priority"
-                name="priority-filter"
                 value={priority}
                 onChange={setPriority}
                 options={[
@@ -758,11 +770,18 @@ export function TaskApp({
                         </tr>
                       );
                     })}
+                    {visibleTasks.length === 0 && (
+                      <tr>
+                        <td colSpan={6}>
+                          <EmptyState
+                            variant="plain"
+                            message="No tasks found. Try clearing a filter or add the first task in this view."
+                          />
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
-                {visibleTasks.length === 0 && (
-                  <EmptyState message="No tasks found. Try clearing a filter or add the first task in this view." />
-                )}
               </div>
             </Card>
           )}
