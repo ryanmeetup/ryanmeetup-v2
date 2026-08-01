@@ -23,7 +23,7 @@ const ArticleImage = (props: ArticleImageProps) => {
   const { imageSrc, title } = props;
 
   return (
-    <div className="w-full max-h-[200px] aspect-w-2 aspect-h-1 overflow-hidden rounded-2xl border border-black/10 dark:border-white/10">
+    <div className="relative aspect-[2/1] w-full max-h-[200px] overflow-hidden rounded-2xl border border-black/10 dark:border-white/10">
       <NextImage
         className="h-full w-full object-cover"
         src={imageSrc}
@@ -38,8 +38,6 @@ const Article = (props: ArticleProps) => {
   const { title, author, outlet, href, publishedOn, thumbnail } = props.article;
 
   const highlight = "font-semibold text-blue-700 dark:text-blue-500";
-  const publishedYear = new Date(publishedOn).getFullYear();
-
   const imageUrl = convertImageUrl(thumbnail);
 
   const isNew = !isMoreThanTwoWeeksAgo(publishedOn);

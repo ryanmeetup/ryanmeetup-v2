@@ -16,7 +16,7 @@ const Moments = () => {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {gallery.map((photo, index) => (
           <Card key={index} variant="soft" size="sm" hover>
-            <div className="relative w-full max-h-[420px] aspect-w-3 aspect-h-2 overflow-hidden rounded-2xl">
+            <div className="relative aspect-[3/2] w-full max-h-[420px] overflow-hidden rounded-2xl">
               <NextImage
                 src={photo.imageUrl}
                 fill

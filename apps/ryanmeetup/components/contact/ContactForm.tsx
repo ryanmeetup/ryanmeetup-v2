@@ -140,8 +140,8 @@ const ContactForm = (props: ContactFormProps) => {
 
   return (
     <>
-      <form className="w-full grid grid-cols-2 gap-x-6 gap-y-6">
-        <div className="col-span-1">
+      <form className="grid w-full grid-cols-1 gap-6 2xl:grid-cols-2">
+        <div>
           <Input
             label="First Name"
             placeholder="Ryan"
@@ -157,7 +157,7 @@ const ContactForm = (props: ContactFormProps) => {
           />
         </div>
 
-        <div className="col-span-1">
+        <div>
           <Input
             label="Last Name"
             placeholder="Smith"
@@ -173,7 +173,7 @@ const ContactForm = (props: ContactFormProps) => {
           />
         </div>
 
-        <div className="col-span-2 sm:col-span-1">
+        <div>
           <Input
             label="Email Address"
             placeholder="ryan@ryanmeetup.com"
@@ -190,7 +190,7 @@ const ContactForm = (props: ContactFormProps) => {
           )}
         </div>
 
-        <div className="col-span-2 sm:col-span-1">
+        <div>
           <Input
             label="Subject"
             placeholder="Official Ryan Business"
@@ -206,10 +206,11 @@ const ContactForm = (props: ContactFormProps) => {
           />
         </div>
 
-        <div className="col-span-2">
+        <div className="2xl:col-span-2">
           <Textarea
             id="message"
             label="Message"
+            placeholder="What Ryan business brings you here?"
             required
             {...register("message", {
               onBlur: (event) =>
@@ -222,10 +223,10 @@ const ContactForm = (props: ContactFormProps) => {
           />
         </div>
 
-        <div className="col-span-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 2xl:col-span-2 2xl:flex-row 2xl:items-center 2xl:justify-between">
           <Kicker>All fields required</Kicker>
           <Button
-            className="w-full sm:w-auto sm:min-w-[180px]"
+            className="w-full 2xl:w-auto 2xl:min-w-[180px]"
             leftIcon={loading ? <Loader /> : <Send />}
             onClick={handleSubmit((data) => send(data as ContactFormFields))}
             disabled={Object.keys(errors).length !== 0}
