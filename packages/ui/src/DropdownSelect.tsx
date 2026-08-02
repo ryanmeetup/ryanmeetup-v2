@@ -14,6 +14,7 @@ import { getFieldLabelClasses } from "./fieldStyles";
 export type DropdownSelectOption = {
   label: string;
   value: string;
+  color?: string;
 };
 
 export type DropdownSelectProps = {
@@ -56,7 +57,16 @@ const DropdownSelect = ({
         {!field && (
           <span className="text-black/50 dark:text-white/50">{label}</span>
         )}
-        <span>{selected?.label ?? value}</span>
+        <span className="inline-flex min-w-0 items-center gap-2">
+          {selected?.color && (
+            <i
+              aria-hidden
+              className="h-2.5 w-2.5 shrink-0 rounded-full"
+              style={{ backgroundColor: selected.color }}
+            />
+          )}
+          <span className="truncate">{selected?.label ?? value}</span>
+        </span>
         <FiChevronDown
           aria-hidden
           className="ml-auto shrink-0 text-black/40 dark:text-white/40"
@@ -80,6 +90,13 @@ const DropdownSelect = ({
               value={option.value}
               className="group flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm transition focus:outline-none data-focus:bg-black/5 data-selected:bg-black/5 data-selected:font-semibold dark:data-focus:bg-white/10 dark:data-selected:bg-white/10"
             >
+              {option.color && (
+                <i
+                  aria-hidden
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: option.color }}
+                />
+              )}
               <span className="min-w-0 flex-1 truncate">{option.label}</span>
               <FiCheck
                 aria-hidden

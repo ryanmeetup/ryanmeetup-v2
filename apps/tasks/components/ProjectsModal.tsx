@@ -6,15 +6,8 @@ import {
   type FormEvent,
   type SetStateAction,
 } from "react";
-import {
-  Button,
-  IconButton,
-  Input,
-  Modal,
-  Spinner,
-  toast,
-} from "@ryanmeetup/ui";
-import { FiArchive, FiEdit2, FiPlus, FiRotateCcw } from "react-icons/fi";
+import { Button, IconButton, Input, Modal, toast } from "@ryanmeetup/ui";
+import { FiArchive, FiEdit2, FiRotateCcw } from "react-icons/fi";
 import type { Project, WorkspaceData } from "@/lib/types";
 
 export function ProjectsModal({
@@ -32,6 +25,9 @@ export function ProjectsModal({
 }) {
   const [name, setName] = useState("");
   const [creating, setCreating] = useState(false);
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
+  const [renaming, setRenaming] = useState(false);
   const [newOwnerIds, setNewOwnerIds] = useState<string[]>([
     data.currentProfile.id,
   ]);
@@ -95,11 +91,13 @@ export function ProjectsModal({
     }
   }
 
-  async function rename(project: Project) {
-    const nextName = window
-      .prompt("Update the project name", project.name)
-      ?.trim();
-    if (!nextName || nextName === project.name) return;
+  async function rename(project: Project, nextName: string) {
+    if (!nextName) return;
+    if (nextName === project.name) {
+      setEditingProjectId(null);
+      return;
+    }
+    setRenaming(true);
     try {
       if (!demoMode) await request({ id: project.id, name: nextName }, "PATCH");
       setData((current) => ({
@@ -109,13 +107,24 @@ export function ProjectsModal({
         ),
       }));
       toast.success(`${nextName} updated.`);
+      setEditingProjectId(null);
     } catch (error) {
       toast.error(
         error instanceof Error
           ? error.message
           : "The project could not be renamed.",
       );
+    } finally {
+      setRenaming(false);
     }
+  }
+
+  function beginRename(project: Project) {
+    setEditingProjectId(project.id);
+    setEditingName(project.name);
+    window.requestAnimationFrame(() => {
+      document.getElementById(`edit-project-${project.id}`)?.focus();
+    });
   }
 
   async function toggleArchived(project: Project) {
@@ -180,129 +189,192 @@ export function ProjectsModal({
   );
 
   return (
-    <Modal
-      open={open}
-      setIsOpen={setOpen}
-      title="Projects"
-      hideActions
-      size="xl"
-      maxHeight="min(42rem, calc(100dvh - max(1rem, env(safe-area-inset-top)) - max(1rem, env(safe-area-inset-bottom))))"
-    >
-      <p className="mb-5 text-sm text-black/60 dark:text-white/60">
-        Projects collect related work across categories. Assign one or more
-        owners to drive the work, then archive it when it is over.
-      </p>
-      <div className="space-y-3">
-        {projects.map((project) => (
-          <div
-            key={project.id}
-            className="rounded-xl border border-black/10 p-3 dark:border-white/10"
-          >
-            <div className="flex items-center gap-3">
-              <span
-                className={`min-w-0 flex-1 truncate font-semibold ${project.archived_at ? "text-black/45 line-through dark:text-white/45" : ""}`}
-              >
-                {project.name}
-              </span>
-              {project.archived_at && (
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-black/45 dark:text-white/45">
-                  Archived
+    <>
+      <Modal
+        open={open}
+        setIsOpen={setOpen}
+        title="Projects"
+        hideActions
+        size="xl"
+        maxHeight="min(42rem, calc(100dvh - max(1rem, env(safe-area-inset-top)) - max(1rem, env(safe-area-inset-bottom))))"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setOpen(false)}
+              disabled={creating}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="create-project-form"
+              variant="action"
+              loading={creating}
+              loadingText="Creating..."
+            >
+              Create project
+            </Button>
+          </div>
+        }
+      >
+        <p className="mb-5 text-sm text-black/60 dark:text-white/60">
+          Projects collect related work across categories. Assign one or more
+          owners to drive the work, then archive it when it is over.
+        </p>
+        <div className="grid items-start gap-3 md:grid-cols-2">
+          {projects.map((project) => (
+            <div
+              key={project.id}
+              className="rounded-xl border border-black/10 p-3 dark:border-white/10"
+            >
+              <div className="flex items-center gap-3">
+                <span
+                  className={`min-w-0 flex-1 truncate font-semibold ${project.archived_at ? "text-black/45 line-through dark:text-white/45" : ""}`}
+                >
+                  {project.name}
                 </span>
-              )}
-              <IconButton
-                label={`Rename ${project.name}`}
-                onClick={() => void rename(project)}
+                {project.archived_at && (
+                  <span className="text-[10px] font-semibold uppercase tracking-widest text-black/45 dark:text-white/45">
+                    Archived
+                  </span>
+                )}
+                <IconButton
+                  label={`Rename ${project.name}`}
+                  onClick={() => beginRename(project)}
+                >
+                  <FiEdit2 />
+                </IconButton>
+                <IconButton
+                  label={`${project.archived_at ? "Restore" : "Archive"} ${project.name}`}
+                  onClick={() => void toggleArchived(project)}
+                >
+                  {project.archived_at ? <FiRotateCcw /> : <FiArchive />}
+                </IconButton>
+              </div>
+              <div
+                aria-hidden={editingProjectId !== project.id}
+                inert={editingProjectId !== project.id ? true : undefined}
+                className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none ${
+                  editingProjectId === project.id
+                    ? "grid-rows-[1fr] opacity-100"
+                    : "grid-rows-[0fr] opacity-0"
+                }`}
               >
-                <FiEdit2 />
-              </IconButton>
-              <IconButton
-                label={`${project.archived_at ? "Restore" : "Archive"} ${project.name}`}
-                onClick={() => void toggleArchived(project)}
-              >
-                {project.archived_at ? <FiRotateCcw /> : <FiArchive />}
-              </IconButton>
+                <div className="overflow-hidden">
+                  <form
+                    className="mt-3 space-y-3 border-t border-black/10 pt-3 dark:border-white/10"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void rename(project, editingName.trim());
+                    }}
+                  >
+                    <Input
+                      id={`edit-project-${project.id}`}
+                      label={`Name for ${project.name}`}
+                      name={`edit-project-${project.id}`}
+                      hideLabel
+                      required
+                      value={editingName}
+                      disabled={renaming}
+                      onChange={(event) => setEditingName(event.target.value)}
+                    />
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        disabled={renaming}
+                        onClick={() => setEditingProjectId(null)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        size="sm"
+                        loading={renaming}
+                        loadingText="Saving..."
+                      >
+                        Save
+                      </Button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-black/45 dark:text-white/45">
+                  Owners
+                </span>
+                {data.profiles.map((profile) => {
+                  const selected = data.projectOwners.some(
+                    (item) =>
+                      item.project_id === project.id &&
+                      item.profile_id === profile.id,
+                  );
+                  return (
+                    <label
+                      key={profile.id}
+                      className={`cursor-pointer rounded-full border px-2.5 py-1 text-xs font-semibold ${selected ? "border-black bg-black text-white dark:border-white dark:bg-white dark:text-black" : "border-black/10 dark:border-white/10"}`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="sr-only"
+                        checked={selected}
+                        onChange={() => void toggleOwner(project, profile.id)}
+                      />
+                      {profile.full_name}
+                    </label>
+                  );
+                })}
+              </div>
             </div>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-black/45 dark:text-white/45">
-                Owners
-              </span>
+          ))}
+        </div>
+        <form
+          id="create-project-form"
+          className="mt-5 grid gap-3 border-t border-black/10 pt-5 dark:border-white/10 sm:grid-cols-[1fr_auto]"
+          onSubmit={addProject}
+        >
+          <Input
+            label="New project"
+            name="project-name"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="RyanCon 2027"
+          />
+          <fieldset className="sm:col-span-2">
+            <legend className="mb-2 text-xs font-semibold uppercase tracking-widest text-black/50 dark:text-white/50">
+              Initial owners
+            </legend>
+            <div className="flex flex-wrap gap-2">
               {data.profiles.map((profile) => {
-                const selected = data.projectOwners.some(
-                  (item) =>
-                    item.project_id === project.id &&
-                    item.profile_id === profile.id,
-                );
+                const selected = newOwnerIds.includes(profile.id);
                 return (
                   <label
                     key={profile.id}
-                    className={`cursor-pointer rounded-full border px-2.5 py-1 text-xs font-semibold ${selected ? "border-black bg-black text-white dark:border-white dark:bg-white dark:text-black" : "border-black/10 dark:border-white/10"}`}
+                    className={`cursor-pointer rounded-full border px-3 py-1.5 text-xs font-semibold ${selected ? "border-black bg-black text-white dark:border-white dark:bg-white dark:text-black" : "border-black/10 dark:border-white/10"}`}
                   >
                     <input
                       type="checkbox"
                       className="sr-only"
                       checked={selected}
-                      onChange={() => void toggleOwner(project, profile.id)}
+                      onChange={() =>
+                        setNewOwnerIds(
+                          selected
+                            ? newOwnerIds.filter((id) => id !== profile.id)
+                            : [...newOwnerIds, profile.id],
+                        )
+                      }
                     />
                     {profile.full_name}
                   </label>
                 );
               })}
             </div>
-          </div>
-        ))}
-      </div>
-      <form
-        className="mt-5 grid gap-3 border-t border-black/10 pt-5 dark:border-white/10 sm:grid-cols-[1fr_auto]"
-        onSubmit={addProject}
-      >
-        <Input
-          label="New project"
-          name="project-name"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          placeholder="RyanCon 2027"
-        />
-        <fieldset className="sm:col-span-2">
-          <legend className="mb-2 text-xs font-semibold uppercase tracking-widest text-black/50 dark:text-white/50">
-            Initial owners
-          </legend>
-          <div className="flex flex-wrap gap-2">
-            {data.profiles.map((profile) => {
-              const selected = newOwnerIds.includes(profile.id);
-              return (
-                <label
-                  key={profile.id}
-                  className={`cursor-pointer rounded-full border px-3 py-1.5 text-xs font-semibold ${selected ? "border-black bg-black text-white dark:border-white dark:bg-white dark:text-black" : "border-black/10 dark:border-white/10"}`}
-                >
-                  <input
-                    type="checkbox"
-                    className="sr-only"
-                    checked={selected}
-                    onChange={() =>
-                      setNewOwnerIds(
-                        selected
-                          ? newOwnerIds.filter((id) => id !== profile.id)
-                          : [...newOwnerIds, profile.id],
-                      )
-                    }
-                  />
-                  {profile.full_name}
-                </label>
-              );
-            })}
-          </div>
-        </fieldset>
-        <div className="flex justify-end sm:col-span-2">
-          <Button
-            type="submit"
-            variant="action"
-            leftIcon={creating ? <Spinner className="h-4 w-4" /> : <FiPlus />}
-            disabled={creating}
-          >
-            {creating ? "Creating" : "Create project"}
-          </Button>
-        </div>
-      </form>
-    </Modal>
+          </fieldset>
+        </form>
+      </Modal>
+    </>
   );
 }

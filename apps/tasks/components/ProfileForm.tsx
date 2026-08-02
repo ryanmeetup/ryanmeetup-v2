@@ -86,8 +86,13 @@ export function ProfileForm({
         <SuccessCallout>{message}</SuccessCallout>
       ) : null}
       <div className="flex justify-end">
-        <Button type="submit" leftIcon={<FiSave />} disabled={saving}>
-          {saving ? "Saving…" : "Save profile"}
+        <Button
+          type="submit"
+          leftIcon={<FiSave />}
+          loading={saving}
+          loadingText="Saving..."
+        >
+          Save profile
         </Button>
       </div>
     </form>

@@ -114,8 +114,13 @@ export function LoginForm() {
             }
           />
           <FieldError>{message}</FieldError>
-          <Button type="submit" fullWidth disabled={loading}>
-            {loading ? "Signing in…" : "Sign in"}
+          <Button
+            type="submit"
+            fullWidth
+            loading={loading}
+            loadingText="Signing in..."
+          >
+            Sign in
           </Button>
         </form>
       </Card>

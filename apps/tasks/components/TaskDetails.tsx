@@ -16,7 +16,6 @@ import {
   FiPaperclip,
   FiPlus,
   FiTrash2,
-  FiUsers,
 } from "react-icons/fi";
 import { createClient } from "@/lib/supabase/client";
 import type {
@@ -57,12 +56,6 @@ export function TaskDetails({
   const attachments = data.attachments.filter(
     (item) => item.task_id === task.id,
   );
-  const assigneeIds = new Set(
-    data.taskAssignees
-      .filter((item) => item.task_id === task.id)
-      .map((item) => item.profile_id),
-  );
-  if (task.assignee_id) assigneeIds.add(task.assignee_id);
   const labelIds = new Set(
     data.taskLabels
       .filter((item) => item.task_id === task.id)
@@ -239,28 +232,6 @@ export function TaskDetails({
     }
   }
 
-  async function toggleAssignee(profileId: string) {
-    const selected = assigneeIds.has(profileId);
-    setData((current) => ({
-      ...current,
-      taskAssignees: selected
-        ? current.taskAssignees.filter(
-            (item) => item.task_id !== task.id || item.profile_id !== profileId,
-          )
-        : [
-            ...current.taskAssignees,
-            { task_id: task.id, profile_id: profileId },
-          ],
-    }));
-    if (!demoMode) {
-      const query = createClient().from("task_assignees");
-      if (selected)
-        await query.delete().eq("task_id", task.id).eq("profile_id", profileId);
-      else await query.insert({ task_id: task.id, profile_id: profileId });
-    }
-    await recordActivity(`${selected ? "removed" : "added"} a collaborator`);
-  }
-
   async function toggleLabel(labelId: string) {
     const selected = labelIds.has(labelId);
     setData((current) => ({
@@ -368,27 +339,7 @@ export function TaskDetails({
         </div>
       </section>
 
-      <section className="grid gap-5 sm:grid-cols-2">
-        <div className="space-y-3">
-          <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em]">
-            <FiUsers /> Collaborators
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {data.profiles.map((profile) => (
-              <button
-                key={profile.id}
-                type="button"
-                disabled={profile.id === task.assignee_id}
-                aria-pressed={assigneeIds.has(profile.id)}
-                onClick={() => void toggleAssignee(profile.id)}
-                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition disabled:cursor-default ${assigneeIds.has(profile.id) ? "border-black bg-black text-white dark:border-white dark:bg-white dark:text-black" : "border-black/10 hover:border-black/30 dark:border-white/10 dark:hover:border-white/30"}`}
-              >
-                {profile.full_name}
-                {profile.id === task.assignee_id ? " · Owner" : ""}
-              </button>
-            ))}
-          </div>
-        </div>
+      <section>
         <div className="space-y-3">
           <h3 className="text-xs font-semibold uppercase tracking-[0.2em]">
             Labels

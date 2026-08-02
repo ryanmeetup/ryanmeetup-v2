@@ -8,7 +8,6 @@ import {
   FormActions,
   Input,
   RequiredFieldsNote,
-  Spinner,
   SuccessCallout,
   Textarea,
 } from "@ryanmeetup/ui";
@@ -182,10 +181,12 @@ const ContactForm = ({
           <Button
             type="submit"
             className="w-full sm:w-auto sm:min-w-[180px]"
-            leftIcon={loading ? <Spinner /> : <Send />}
+            leftIcon={<Send />}
             disabled={loading || Object.keys(errors).length !== 0}
+            loading={loading}
+            loadingText="Sending..."
           >
-            {loading ? "Sending..." : "Send"}
+            Send
           </Button>
         </FormActions>
       </form>

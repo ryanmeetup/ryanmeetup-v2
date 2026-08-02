@@ -15,6 +15,7 @@ export type ModalProps = {
   children: ReactNode;
   closable?: boolean;
   actions?: ReactNode;
+  footer?: ReactNode;
   panelClassName?: string;
   maxHeight?: string;
   primaryActionFirst?: boolean;
@@ -44,6 +45,7 @@ const Modal = ({
   children,
   closable = true,
   actions,
+  footer,
   panelClassName,
   maxHeight,
   primaryActionFirst = false,
@@ -59,7 +61,7 @@ const Modal = ({
   const legacyActions =
     cancelButtonText && continueButtonText && cancelAction && continueAction ? (
       <div
-        className={`mt-6 flex flex-col gap-3 sm:justify-end ${reverseActionsOnDesktop ? "sm:flex-row-reverse" : "sm:flex-row"}`}
+        className={`flex flex-col gap-3 sm:justify-end ${reverseActionsOnDesktop ? "sm:flex-row-reverse" : "sm:flex-row"}`}
       >
         {primaryActionFirst ? (
           <>
@@ -130,15 +132,19 @@ const Modal = ({
               </IconButton>
             )}
           </div>
-          <div className="min-h-0 overflow-y-auto overscroll-contain">
+          <div className="min-h-0 min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain">
             {children}
-            {!hideActions &&
-              (actions ? (
-                <div className="mt-6 flex justify-end">{actions}</div>
-              ) : (
-                legacyActions
-              ))}
           </div>
+          {(footer || (!hideActions && (actions || legacyActions))) && (
+            <div className="mt-4 shrink-0 border-t border-black/10 pt-4 dark:border-white/10">
+              {footer ??
+                (actions ? (
+                  <div className="flex justify-end">{actions}</div>
+                ) : (
+                  legacyActions
+                ))}
+            </div>
+          )}
         </DialogPanel>
       </div>
     </Dialog>

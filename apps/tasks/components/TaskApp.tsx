@@ -11,6 +11,7 @@ import {
 import {
   Button,
   Card,
+  ConfirmationDialog,
   DropdownSelect,
   EmptyState,
   ErrorCallout,
@@ -19,6 +20,7 @@ import {
   Input,
   Modal,
   Pill,
+  PromptDialog,
   SuccessCallout,
   Textarea,
   Tooltip,
@@ -46,8 +48,8 @@ import {
   FiX,
 } from "react-icons/fi";
 import { createClient } from "@/lib/supabase/client";
-import { useSearchFilter } from "@ryanmeetup/hooks";
-import type { Priority, Task, WorkspaceData } from "@/lib/types";
+import { useQueryParamState, useSearchFilter } from "@ryanmeetup/hooks";
+import type { Category, Priority, Task, WorkspaceData } from "@/lib/types";
 import { ThemeToggle } from "./ThemeToggle";
 import { TaskDetails } from "./TaskDetails";
 import { WorkGroupsModal as CategoriesModal } from "./WorkGroupsModal";
@@ -140,6 +142,20 @@ function profileName(profile: { full_name: string }) {
   return profile.full_name || "Teammate";
 }
 
+function CategoryBadge({ category }: { category: Category }) {
+  return (
+    <span
+      className="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/70 dark:text-white/75"
+      style={{
+        borderColor: `${category.color}66`,
+        backgroundColor: `${category.color}22`,
+      }}
+    >
+      {category.name}
+    </span>
+  );
+}
+
 function Avatar({
   name,
   small = false,
@@ -165,7 +181,8 @@ export function TaskApp({
   demoMode: boolean;
 }) {
   const [data, setData] = useState(initialData);
-  const [view, setView] = useState<View>("board");
+  const [viewParam, setView] = useQueryParamState("view", "board");
+  const view: View = viewParam === "list" ? "list" : "board";
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [taskOpen, setTaskOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -173,6 +190,9 @@ export function TaskApp({
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [taskMessage, setTaskMessage] = useState("");
   const [taskSaving, setTaskSaving] = useState(false);
+  const [taskPendingDelete, setTaskPendingDelete] = useState<Task | null>(null);
+  const [taskDeleting, setTaskDeleting] = useState(false);
+  const [dragOverStatusId, setDragOverStatusId] = useState<string | null>(null);
   const [editing, setEditing] = useState<Task | null>(null);
   const [draft, setDraft] = useState<Draft>(
     blankDraft(
@@ -188,11 +208,11 @@ export function TaskApp({
     buildHaystack: (task) =>
       `${task.title} ${task.description ?? ""}`.toLowerCase(),
   });
-  const [assignee, setAssignee] = useState("all");
-  const [group, setGroup] = useState("all");
-  const [project, setProject] = useState("all");
-  const [status, setStatus] = useState("all");
-  const [priority, setPriority] = useState("all");
+  const [assignee, setAssignee] = useQueryParamState("assignee", "all");
+  const [group, setGroup] = useQueryParamState("category", "all");
+  const [project, setProject] = useQueryParamState("project", "all");
+  const [status, setStatus] = useQueryParamState("status", "all");
+  const [priority, setPriority] = useQueryParamState("priority", "all");
   const [sort, setSort] = useState("updated");
 
   useEffect(() => {
@@ -347,6 +367,75 @@ export function TaskApp({
     () => data.projects.filter((item) => !item.archived_at),
     [data.projects],
   );
+  const selectedAssignee =
+    assignee === "all" || assignee.toLowerCase() === "unassigned"
+      ? null
+      : (profiles.get(assignee) ??
+        data.profiles.find((item) => profileName(item) === assignee));
+  const selectedCategory =
+    group === "all"
+      ? null
+      : (categories.get(group) ??
+        data.categories.find((item) => item.name === group));
+  const selectedProject =
+    project === "all" || project === "none"
+      ? null
+      : (projects.get(project) ??
+        data.projects.find((item) => item.name === project));
+  const selectedStatus =
+    status === "all"
+      ? null
+      : (data.statuses.find((item) => item.id === status) ??
+        data.statuses.find((item) => item.name === status));
+  const selectedPriority =
+    priority === "all"
+      ? null
+      : priorities.find(
+          (item) => item.toLowerCase() === priority.toLowerCase(),
+        );
+  useEffect(() => {
+    if (assignee !== "all" && profiles.has(assignee) && selectedAssignee) {
+      setAssignee(profileName(selectedAssignee));
+    } else if (assignee === "unassigned") {
+      setAssignee("Unassigned");
+    }
+  }, [assignee, profiles, selectedAssignee, setAssignee]);
+  useEffect(() => {
+    if (group !== "all" && categories.has(group) && selectedCategory) {
+      setGroup(selectedCategory.name);
+    }
+  }, [categories, group, selectedCategory, setGroup]);
+  useEffect(() => {
+    if (
+      project !== "all" &&
+      project !== "none" &&
+      projects.has(project) &&
+      selectedProject
+    ) {
+      setProject(selectedProject.name);
+    }
+  }, [project, projects, selectedProject, setProject]);
+  useEffect(() => {
+    if (status !== "all" && selectedStatus && status !== selectedStatus.name) {
+      setStatus(selectedStatus.name);
+    }
+  }, [selectedStatus, setStatus, status]);
+  useEffect(() => {
+    if (selectedPriority) {
+      const readablePriority =
+        selectedPriority[0].toUpperCase() + selectedPriority.slice(1);
+      if (priority !== readablePriority) setPriority(readablePriority);
+    }
+  }, [priority, selectedPriority, setPriority]);
+  const scopeName = selectedProject?.name ?? selectedCategory?.name;
+  const viewTitle = scopeName
+    ? `${scopeName} ${view === "board" ? "Board" : "Tasks"}`
+    : view === "board"
+      ? "Task Board"
+      : "All Tasks";
+  useEffect(() => {
+    document.title = `${viewTitle} · Ryan Meetup`;
+  }, [viewTitle]);
   const categoriesByTask = useMemo(() => {
     const result = new Map<string, Set<string>>();
     data.taskCategories.forEach((item) => {
@@ -358,36 +447,34 @@ export function TaskApp({
   }, [data.taskCategories]);
   const assigneesByTask = useMemo(() => {
     const result = new Map<string, Set<string>>();
-    data.taskAssignees.forEach((item) => {
-      const ids = result.get(item.task_id) ?? new Set<string>();
-      ids.add(item.profile_id);
-      result.set(item.task_id, ids);
-    });
     data.tasks.forEach((task) => {
       if (task.assignee_id) {
-        const ids = result.get(task.id) ?? new Set<string>();
-        ids.add(task.assignee_id);
-        result.set(task.id, ids);
+        result.set(task.id, new Set([task.assignee_id]));
       }
     });
     return result;
-  }, [data.taskAssignees, data.tasks]);
+  }, [data.tasks]);
   const visibleTasks = useMemo(
     () =>
       searchedTasks
         .filter((task) => {
           return (
             (assignee === "all" ||
-              (assignee === "unassigned"
+              (assignee.toLowerCase() === "unassigned"
                 ? !assigneesByTask.get(task.id)?.size
-                : assigneesByTask.get(task.id)?.has(assignee))) &&
-            (group === "all" || categoriesByTask.get(task.id)?.has(group)) &&
+                : selectedAssignee
+                  ? assigneesByTask.get(task.id)?.has(selectedAssignee.id)
+                  : false)) &&
+            (group === "all" ||
+              (selectedCategory
+                ? categoriesByTask.get(task.id)?.has(selectedCategory.id)
+                : false)) &&
             (project === "all" ||
               (project === "none"
                 ? task.project_id === null
-                : task.project_id === project)) &&
-            (status === "all" || task.status_id === status) &&
-            (priority === "all" || task.priority === priority)
+                : task.project_id === selectedProject?.id)) &&
+            (status === "all" || task.status_id === selectedStatus?.id) &&
+            (priority === "all" || task.priority === selectedPriority)
           );
         })
         .sort((a, b) =>
@@ -404,9 +491,14 @@ export function TaskApp({
       group,
       priority,
       project,
+      selectedCategory,
+      selectedProject,
       searchedTasks,
+      selectedAssignee,
       sort,
       status,
+      selectedPriority,
+      selectedStatus,
     ],
   );
 
@@ -594,34 +686,39 @@ export function TaskApp({
   }
 
   async function removeTask(id: string) {
-    if (!window.confirm("Delete this task? This cannot be undone.")) return;
-    if (!demoMode) {
-      const { error } = await createClient()
-        .from("tasks")
-        .delete()
-        .eq("id", id);
-      if (error) {
-        toast.error(error.message);
-        return;
+    setTaskDeleting(true);
+    try {
+      if (!demoMode) {
+        const { error } = await createClient()
+          .from("tasks")
+          .delete()
+          .eq("id", id);
+        if (error) {
+          toast.error(error.message);
+          return;
+        }
       }
+      setData((current) => ({
+        ...current,
+        tasks: current.tasks.filter((item) => item.id !== id),
+        subtasks: current.subtasks.filter((item) => item.task_id !== id),
+        comments: current.comments.filter((item) => item.task_id !== id),
+        activity: current.activity.filter((item) => item.task_id !== id),
+        attachments: current.attachments.filter((item) => item.task_id !== id),
+        taskAssignees: current.taskAssignees.filter(
+          (item) => item.task_id !== id,
+        ),
+        taskLabels: current.taskLabels.filter((item) => item.task_id !== id),
+        taskCategories: current.taskCategories.filter(
+          (item) => item.task_id !== id,
+        ),
+      }));
+      setTaskPendingDelete(null);
+      setTaskOpen(false);
+      toast.success("Task deleted.");
+    } finally {
+      setTaskDeleting(false);
     }
-    setData((current) => ({
-      ...current,
-      tasks: current.tasks.filter((item) => item.id !== id),
-      subtasks: current.subtasks.filter((item) => item.task_id !== id),
-      comments: current.comments.filter((item) => item.task_id !== id),
-      activity: current.activity.filter((item) => item.task_id !== id),
-      attachments: current.attachments.filter((item) => item.task_id !== id),
-      taskAssignees: current.taskAssignees.filter(
-        (item) => item.task_id !== id,
-      ),
-      taskLabels: current.taskLabels.filter((item) => item.task_id !== id),
-      taskCategories: current.taskCategories.filter(
-        (item) => item.task_id !== id,
-      ),
-    }));
-    setTaskOpen(false);
-    toast.success("Task deleted.");
   }
 
   async function moveTask(id: string, statusId: string) {
@@ -668,12 +765,41 @@ export function TaskApp({
     return (
       <button
         draggable
-        onDragStart={(event) =>
-          event.dataTransfer.setData("text/task-id", task.id)
-        }
+        onDragStart={(event) => {
+          event.dataTransfer.setData("text/task-id", task.id);
+          event.dataTransfer.effectAllowed = "move";
+          const source = event.currentTarget;
+          const bounds = source.getBoundingClientRect();
+          const previewFrame = document.createElement("div");
+          const previewCard = source.cloneNode(true) as HTMLButtonElement;
+          previewFrame.setAttribute("aria-hidden", "true");
+          previewFrame.style.position = "fixed";
+          previewFrame.style.top = "-2000px";
+          previewFrame.style.left = "-2000px";
+          previewFrame.style.width = `${bounds.width + 32}px`;
+          previewFrame.style.height = `${bounds.height + 32}px`;
+          previewFrame.style.pointerEvents = "none";
+          previewCard.style.position = "absolute";
+          previewCard.style.top = "16px";
+          previewCard.style.left = "16px";
+          previewCard.style.width = `${bounds.width}px`;
+          previewCard.style.transform = "translate(8px, -5px) rotate(2.5deg)";
+          previewCard.style.transformOrigin = "center";
+          previewCard.style.boxShadow = "0 18px 40px rgb(0 0 0 / 0.2)";
+          previewCard.style.opacity = "0.92";
+          previewFrame.append(previewCard);
+          document.body.append(previewFrame);
+          event.dataTransfer.setDragImage(
+            previewFrame,
+            event.clientX - bounds.left + 16,
+            event.clientY - bounds.top + 16,
+          );
+          window.setTimeout(() => previewFrame.remove(), 0);
+        }}
+        onDragEnd={() => setDragOverStatusId(null)}
         onClick={() => openEdit(task)}
         key={task.id}
-        className="group w-full rounded-xl border border-black/10 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-black/25 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-black/20 dark:border-white/10 dark:bg-zinc-900 dark:hover:border-white/30"
+        className="group w-full cursor-grab rounded-xl border border-black/10 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-black/25 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-black/20 active:cursor-grabbing dark:border-white/10 dark:bg-zinc-900 dark:hover:border-white/30"
       >
         <div className="mb-3 flex items-start justify-between gap-3">
           <span
@@ -714,16 +840,7 @@ export function TaskApp({
             {taskCategories.length > 0 && (
               <span className="flex flex-wrap gap-1.5">
                 {taskCategories.map((category) => (
-                  <span
-                    key={category.id}
-                    className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-black/60 dark:text-white/60"
-                  >
-                    <i
-                      className="h-2 w-2 shrink-0 rounded-full"
-                      style={{ backgroundColor: category.color }}
-                    />
-                    {category.name}
-                  </span>
+                  <CategoryBadge key={category.id} category={category} />
                 ))}
               </span>
             )}
@@ -849,8 +966,10 @@ export function TaskApp({
             {data.categories.map((item) => (
               <button
                 key={item.id}
-                onClick={() => setGroup(group === item.id ? "all" : item.id)}
-                className={`sidebar-link ${group === item.id ? "sidebar-link-active" : ""}`}
+                onClick={() =>
+                  setGroup(selectedCategory?.id === item.id ? "all" : item.name)
+                }
+                className={`sidebar-link ${selectedCategory?.id === item.id ? "sidebar-link-active" : ""}`}
               >
                 <i
                   className="h-2.5 w-2.5 rounded-full"
@@ -875,16 +994,24 @@ export function TaskApp({
           </div>
           <div className="mt-2 space-y-1">
             {activeProjects.map((item) => (
-              <button
+              <Tooltip
                 key={item.id}
-                onClick={() =>
-                  setProject(project === item.id ? "all" : item.id)
-                }
-                className={`sidebar-link ${project === item.id ? "sidebar-link-active" : ""}`}
+                content={item.name}
+                placement="right"
+                triggerClassName="w-full"
               >
-                <FiFolder />
-                <span className="truncate">{item.name}</span>
-              </button>
+                <button
+                  onClick={() =>
+                    setProject(
+                      selectedProject?.id === item.id ? "all" : item.name,
+                    )
+                  }
+                  className={`sidebar-link ${selectedProject?.id === item.id ? "sidebar-link-active" : ""}`}
+                >
+                  <FiFolder />
+                  <span className="truncate">{item.name}</span>
+                </button>
+              </Tooltip>
             ))}
           </div>
         </div>
@@ -975,16 +1102,21 @@ export function TaskApp({
           <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
             <div>
               <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-black/50 dark:text-white/50">
-                Team workspace
+                {selectedProject
+                  ? "Project workspace"
+                  : selectedCategory
+                    ? "Category workspace"
+                    : "Team workspace"}
               </p>
-              <Heading size="h1" className="text-3xl sm:text-4xl">
-                {view === "board" ? "The big board" : "Every task"}
-              </Heading>
-              <p className="mt-2 text-sm text-black/60 dark:text-white/60">
-                {visibleTasks.length}{" "}
-                {visibleTasks.length === 1 ? "task" : "tasks"} in view. Keep the
-                good work moving.
-              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <Heading size="h1" className="text-3xl sm:text-4xl">
+                  {viewTitle}
+                </Heading>
+                <Pill size="sm">
+                  {visibleTasks.length}{" "}
+                  {visibleTasks.length === 1 ? "task" : "tasks"}
+                </Pill>
+              </div>
             </div>
             <div className="flex rounded-lg border border-black/10 bg-white p-1 dark:border-white/10 dark:bg-white/5">
               <button
@@ -1018,63 +1150,75 @@ export function TaskApp({
               </span>
               <DropdownSelect
                 label="Assignee"
-                value={assignee}
+                value={
+                  selectedAssignee
+                    ? profileName(selectedAssignee)
+                    : assignee.toLowerCase() === "unassigned"
+                      ? "Unassigned"
+                      : assignee
+                }
                 onChange={setAssignee}
                 options={[
                   { label: "Anyone", value: "all" },
-                  { label: "Unassigned", value: "unassigned" },
+                  { label: "Unassigned", value: "Unassigned" },
                   ...data.profiles.map((item) => ({
                     label: profileName(item),
-                    value: item.id,
+                    value: profileName(item),
                   })),
                 ]}
               />
               <DropdownSelect
                 label="Category"
-                value={group}
+                value={selectedCategory?.name ?? group}
                 onChange={setGroup}
                 options={[
                   { label: "All categories", value: "all" },
                   ...data.categories.map((item) => ({
                     label: item.name,
-                    value: item.id,
+                    value: item.name,
+                    color: item.color,
                   })),
                 ]}
               />
               <DropdownSelect
                 label="Project"
-                value={project}
+                value={selectedProject?.name ?? project}
                 onChange={setProject}
                 options={[
                   { label: "All projects", value: "all" },
                   { label: "No project", value: "none" },
                   ...data.projects.map((item) => ({
                     label: `${item.name}${item.archived_at ? " (archived)" : ""}`,
-                    value: item.id,
+                    value: item.name,
                   })),
                 ]}
               />
               <DropdownSelect
                 label="Status"
-                value={status}
+                value={selectedStatus?.name ?? status}
                 onChange={setStatus}
                 options={[
                   { label: "All statuses", value: "all" },
                   ...statuses.map((item) => ({
                     label: item.name,
-                    value: item.id,
+                    value: item.name,
                   })),
                 ]}
               />
               <DropdownSelect
                 label="Priority"
-                value={priority}
+                value={
+                  selectedPriority
+                    ? selectedPriority[0].toUpperCase() +
+                      selectedPriority.slice(1)
+                    : priority
+                }
                 onChange={setPriority}
                 options={[
                   { label: "All priorities", value: "all" },
                   ...priorities.map((item) => ({
                     label: item[0].toUpperCase() + item.slice(1),
-                    value: item,
+                    value: item[0].toUpperCase() + item.slice(1),
                   })),
                 ]}
               />
@@ -1104,15 +1248,38 @@ export function TaskApp({
                 return (
                   <section
                     key={item.id}
-                    onDragOver={(event) => event.preventDefault()}
+                    onDragEnter={(event) => {
+                      event.preventDefault();
+                      setDragOverStatusId(item.id);
+                    }}
+                    onDragOver={(event) => {
+                      event.preventDefault();
+                      event.dataTransfer.dropEffect = "move";
+                    }}
+                    onDragLeave={(event) => {
+                      const nextTarget = event.relatedTarget;
+                      if (
+                        !(nextTarget instanceof Node) ||
+                        !event.currentTarget.contains(nextTarget)
+                      ) {
+                        setDragOverStatusId((current) =>
+                          current === item.id ? null : current,
+                        );
+                      }
+                    }}
                     onDrop={(event) => {
                       event.preventDefault();
+                      setDragOverStatusId(null);
                       void moveTask(
                         event.dataTransfer.getData("text/task-id"),
                         item.id,
                       );
                     }}
-                    className="min-h-[420px] rounded-2xl bg-black/[0.035] p-3 dark:bg-white/[0.035]"
+                    className={`min-h-[420px] rounded-2xl p-3 transition-[background-color,box-shadow] ${
+                      dragOverStatusId === item.id
+                        ? "bg-black/[0.07] ring-2 ring-inset ring-black/30 dark:bg-white/[0.09] dark:ring-white/40"
+                        : "bg-black/[0.035] dark:bg-white/[0.035]"
+                    }`}
                   >
                     <div className="mb-3 flex items-center gap-2 px-1">
                       <i
@@ -1209,9 +1376,18 @@ export function TaskApp({
                             </span>
                           </td>
                           <td>
-                            {taskCategories
-                              .map((item) => item.name)
-                              .join(", ") || "—"}
+                            {taskCategories.length > 0 ? (
+                              <span className="flex flex-wrap gap-1.5 py-2 pr-3">
+                                {taskCategories.map((category) => (
+                                  <CategoryBadge
+                                    key={category.id}
+                                    category={category}
+                                  />
+                                ))}
+                              </span>
+                            ) : (
+                              "—"
+                            )}
                           </td>
                           <td>{taskProject?.name ?? "—"}</td>
                           <td>
@@ -1268,7 +1444,7 @@ export function TaskApp({
         hideActions
         size={editing ? "2xl" : "lg"}
       >
-        <form className="space-y-5" onSubmit={saveTask}>
+        <form className="min-w-0 space-y-5" onSubmit={saveTask}>
           <div
             className={
               editing
@@ -1276,7 +1452,7 @@ export function TaskApp({
                 : ""
             }
           >
-            <div className="space-y-5">
+            <div className="min-w-0 space-y-5">
               <Input
                 label="Task title"
                 name="task-title"
@@ -1298,7 +1474,7 @@ export function TaskApp({
                 placeholder="Add useful context, links, or a tiny pep talk…"
                 rows={4}
               />
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid min-w-0 gap-4 sm:grid-cols-2">
                 <DropdownSelect
                   variant="field"
                   label="Status"
@@ -1476,7 +1652,7 @@ export function TaskApp({
                   variant="ghost"
                   className="whitespace-nowrap text-red-600 dark:text-red-400"
                   leftIcon={<FiTrash2 />}
-                  onClick={() => void removeTask(editing.id)}
+                  onClick={() => setTaskPendingDelete(editing)}
                 >
                   Delete task
                 </Button>
@@ -1492,19 +1668,30 @@ export function TaskApp({
               <Button
                 type="submit"
                 className="whitespace-nowrap"
-                leftIcon={<FiCheck />}
-                disabled={taskSaving}
+                loading={taskSaving}
+                loadingText="Saving..."
               >
-                {taskSaving
-                  ? "Saving…"
-                  : editing
-                    ? "Save changes"
-                    : "Create task"}
+                {editing ? "Save changes" : "Create task"}
               </Button>
             </div>
           </div>
         </form>
       </Modal>
+      <ConfirmationDialog
+        open={Boolean(taskPendingDelete)}
+        setOpen={(nextOpen) => {
+          if (!nextOpen) setTaskPendingDelete(null);
+        }}
+        title="Delete task?"
+        description="This task and its related comments, attachments, and activity will be permanently removed."
+        confirmLabel="Delete task"
+        pendingLabel="Deleting..."
+        pending={taskDeleting}
+        destructive
+        onConfirm={() => {
+          if (taskPendingDelete) void removeTask(taskPendingDelete.id);
+        }}
+      />
       {workGroupsOpen && (
         <CategoriesModal
           open={workGroupsOpen}
@@ -1550,6 +1737,15 @@ export function WorkGroupsModalLegacy({
   const [name, setName] = useState("");
   const [color, setColor] = useState("#ee1a25");
   const [message, setMessage] = useState("");
+  const [groupToRename, setGroupToRename] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [groupToDelete, setGroupToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [groupActionPending, setGroupActionPending] = useState(false);
 
   function randomizeColor() {
     const choices = workGroupColors.filter((option) => option !== color);
@@ -1587,9 +1783,13 @@ export function WorkGroupsModalLegacy({
     setMessage("Work group created.");
   }
 
-  async function renameWorkGroup(id: string, currentName: string) {
-    const nextName = window.prompt("Update the name", currentName)?.trim();
+  async function renameWorkGroup(
+    id: string,
+    currentName: string,
+    nextName: string,
+  ) {
     if (!nextName || nextName === currentName) return;
+    setGroupActionPending(true);
     if (!demoMode) {
       const { error } = await createClient()
         .from("work_groups")
@@ -1597,6 +1797,7 @@ export function WorkGroupsModalLegacy({
         .eq("id", id);
       if (error) {
         setMessage(error.message);
+        setGroupActionPending(false);
         return;
       }
     }
@@ -1606,11 +1807,12 @@ export function WorkGroupsModalLegacy({
         item.id === id ? { ...item, name: nextName } : item,
       ),
     }));
+    setGroupToRename(null);
+    setGroupActionPending(false);
   }
 
   async function deleteWorkGroup(id: string) {
-    if (!window.confirm("Delete this work group? Tasks will become ungrouped."))
-      return;
+    setGroupActionPending(true);
     if (!demoMode) {
       const { error } = await createClient()
         .from("work_groups")
@@ -1618,6 +1820,7 @@ export function WorkGroupsModalLegacy({
         .eq("id", id);
       if (error) {
         setMessage(error.message);
+        setGroupActionPending(false);
         return;
       }
     }
@@ -1628,91 +1831,132 @@ export function WorkGroupsModalLegacy({
         task.work_group_id === id ? { ...task, work_group_id: null } : task,
       ),
     }));
+    setGroupToDelete(null);
+    setGroupActionPending(false);
   }
 
   return (
-    <Modal
-      open={open}
-      setIsOpen={setOpen}
-      title="Work groups"
-      hideActions
-      size="xl"
-    >
-      <div className="space-y-3">
-        {data.workGroups.map((item) => (
-          <div
-            key={item.id}
-            className="flex items-center gap-3 rounded-xl border border-black/10 p-3 dark:border-white/10"
-          >
-            <i
-              className="h-3 w-3 rounded-full"
-              style={{ backgroundColor: item.color }}
-            />
-            <span className="min-w-0 flex-1 truncate font-semibold">
-              {item.name}
-            </span>
-            <IconButton
-              label={`Rename ${item.name}`}
-              onClick={() => void renameWorkGroup(item.id, item.name)}
-            >
-              <FiMoreHorizontal />
-            </IconButton>
-            <IconButton
-              label={`Delete ${item.name}`}
-              onClick={() => void deleteWorkGroup(item.id)}
-            >
-              <FiTrash2 />
-            </IconButton>
-          </div>
-        ))}
-      </div>
-      <form
-        className="mt-5 grid gap-3 border-t border-black/10 pt-5 dark:border-white/10 lg:grid-cols-[minmax(16rem,1fr)_auto_auto_auto]"
-        onSubmit={addWorkGroup}
+    <>
+      <Modal
+        open={open}
+        setIsOpen={setOpen}
+        title="Work groups"
+        hideActions
+        size="xl"
       >
-        <Input
-          label="New work group"
-          name="work-group-name"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          placeholder="Name"
-        />
-        <label className="date-field">
-          <span>Color</span>
-          <input
-            type="color"
-            className="color-input"
-            value={color}
-            onChange={(event) => setColor(event.target.value)}
+        <div className="space-y-3">
+          {data.workGroups.map((item) => (
+            <div
+              key={item.id}
+              className="flex items-center gap-3 rounded-xl border border-black/10 p-3 dark:border-white/10"
+            >
+              <i
+                className="h-3 w-3 rounded-full"
+                style={{ backgroundColor: item.color }}
+              />
+              <span className="min-w-0 flex-1 truncate font-semibold">
+                {item.name}
+              </span>
+              <IconButton
+                label={`Rename ${item.name}`}
+                onClick={() => setGroupToRename(item)}
+              >
+                <FiMoreHorizontal />
+              </IconButton>
+              <IconButton
+                label={`Delete ${item.name}`}
+                onClick={() => setGroupToDelete(item)}
+              >
+                <FiTrash2 />
+              </IconButton>
+            </div>
+          ))}
+        </div>
+        <form
+          className="mt-5 grid gap-3 border-t border-black/10 pt-5 dark:border-white/10 lg:grid-cols-[minmax(16rem,1fr)_auto_auto_auto]"
+          onSubmit={addWorkGroup}
+        >
+          <Input
+            label="New work group"
+            name="work-group-name"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Name"
           />
-        </label>
-        <Button
-          type="button"
-          variant="secondary"
-          className="self-end"
-          leftIcon={<FiRefreshCw />}
-          onClick={randomizeColor}
-        >
-          Randomize
-        </Button>
-        <Button
-          type="submit"
-          variant="action"
-          className="self-end"
-          leftIcon={<FiPlus />}
-        >
-          Create group
-        </Button>
-        {message && (
-          <p
-            role="status"
-            className="text-sm text-black/60 dark:text-white/60 sm:col-span-3"
+          <label className="date-field">
+            <span>Color</span>
+            <input
+              type="color"
+              className="color-input"
+              value={color}
+              onChange={(event) => setColor(event.target.value)}
+            />
+          </label>
+          <Button
+            type="button"
+            variant="secondary"
+            className="self-end"
+            leftIcon={<FiRefreshCw />}
+            onClick={randomizeColor}
           >
-            {message}
-          </p>
-        )}
-      </form>
-    </Modal>
+            Randomize
+          </Button>
+          <div className="flex items-end justify-end gap-2 lg:col-span-4">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" variant="action">
+              Create group
+            </Button>
+          </div>
+          {message && (
+            <p
+              role="status"
+              className="text-sm text-black/60 dark:text-white/60 sm:col-span-3"
+            >
+              {message}
+            </p>
+          )}
+        </form>
+      </Modal>
+      <PromptDialog
+        open={Boolean(groupToRename)}
+        setOpen={(nextOpen) => {
+          if (!nextOpen) setGroupToRename(null);
+        }}
+        title="Rename work group"
+        label="Work group name"
+        initialValue={groupToRename?.name}
+        pending={groupActionPending}
+        onConfirm={(nextName) => {
+          if (groupToRename)
+            void renameWorkGroup(
+              groupToRename.id,
+              groupToRename.name,
+              nextName,
+            );
+        }}
+      />
+      <ConfirmationDialog
+        open={Boolean(groupToDelete)}
+        setOpen={(nextOpen) => {
+          if (!nextOpen) setGroupToDelete(null);
+        }}
+        title="Delete work group?"
+        description="Tasks in this work group will become ungrouped."
+        confirmLabel="Delete work group"
+        pendingLabel="Deleting..."
+        pending={groupActionPending}
+        destructive
+        onConfirm={() => {
+          if (groupToDelete) void deleteWorkGroup(groupToDelete.id);
+        }}
+      />
+    </>
   );
 }
 
@@ -1734,8 +1978,19 @@ function TeamSettingsModal({
   const [color, setColor] = useState("#ee1a25");
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteName, setInviteName] = useState("");
+  const [inviting, setInviting] = useState(false);
   const [teamMessage, setTeamMessage] = useState("");
   const [teamMessageIsError, setTeamMessageIsError] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<
+    WorkspaceData["profiles"][number] | null
+  >(null);
+  const [statusToRename, setStatusToRename] = useState<
+    WorkspaceData["statuses"][number] | null
+  >(null);
+  const [statusToDelete, setStatusToDelete] = useState<
+    WorkspaceData["statuses"][number] | null
+  >(null);
+  const [settingActionPending, setSettingActionPending] = useState(false);
   async function add() {
     if (!name.trim()) return;
     if (tab === "statuses") {
@@ -1764,92 +2019,123 @@ function TeamSettingsModal({
 
   async function inviteMember(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (inviting) return;
+    setInviting(true);
     setTeamMessage("");
     setTeamMessageIsError(false);
-    if (demoMode) {
-      setData((current) => ({
-        ...current,
-        profiles: [
-          ...current.profiles,
-          {
-            id: crypto.randomUUID(),
-            full_name: inviteName.trim() || inviteEmail.split("@")[0],
-            avatar_url: null,
-          },
-        ],
-      }));
-      setTeamMessage("Demo teammate added.");
-    } else {
-      const response = await fetch("/api/team", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: inviteEmail, fullName: inviteName }),
-      });
-      const result = (await response.json()) as { error?: string };
-      setTeamMessageIsError(!response.ok || Boolean(result.error));
-      setTeamMessage(result.error ?? "Invitation sent.");
+    try {
+      if (demoMode) {
+        setData((current) => ({
+          ...current,
+          profiles: [
+            ...current.profiles,
+            {
+              id: crypto.randomUUID(),
+              full_name: inviteName.trim() || inviteEmail.split("@")[0],
+              avatar_url: null,
+            },
+          ],
+        }));
+        setTeamMessage("Demo teammate added.");
+      } else {
+        const response = await fetch("/api/team", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: inviteEmail, fullName: inviteName }),
+        });
+        const result = (await response.json()) as { error?: string };
+        setTeamMessageIsError(!response.ok || Boolean(result.error));
+        setTeamMessage(result.error ?? "Invitation sent.");
+      }
+      setInviteEmail("");
+      setInviteName("");
+    } catch {
+      setTeamMessageIsError(true);
+      setTeamMessage("The invitation could not be sent.");
+    } finally {
+      setInviting(false);
     }
-    setInviteEmail("");
-    setInviteName("");
   }
 
   async function removeMember(userId: string) {
-    if (!window.confirm("Remove this teammate and revoke their access?"))
-      return;
+    setSettingActionPending(true);
     setTeamMessage("");
     setTeamMessageIsError(false);
-    if (!demoMode) {
-      const response = await fetch("/api/team", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
-      });
-      const result = (await response.json()) as { error?: string };
-      if (result.error) {
-        setTeamMessageIsError(true);
-        setTeamMessage(result.error);
+    try {
+      if (!demoMode) {
+        const response = await fetch("/api/team", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId }),
+        });
+        const result = (await response.json()) as { error?: string };
+        if (result.error) {
+          setTeamMessageIsError(true);
+          setTeamMessage(result.error);
+          return;
+        }
+      }
+      setData((current) => ({
+        ...current,
+        profiles: current.profiles.filter((person) => person.id !== userId),
+      }));
+      setMemberToRemove(null);
+      setTeamMessage("Teammate removed.");
+    } finally {
+      setSettingActionPending(false);
+    }
+  }
+
+  async function renameSetting(
+    id: string,
+    currentName: string,
+    nextName: string,
+  ) {
+    if (!nextName || nextName === currentName) return;
+    setSettingActionPending(true);
+    try {
+      if (!demoMode) {
+        const { error } = await createClient()
+          .from("statuses")
+          .update({ name: nextName })
+          .eq("id", id);
+        if (error) {
+          toast.error(error.message);
+          return;
+        }
+      }
+      setData((current) => ({
+        ...current,
+        statuses: current.statuses.map((item) =>
+          item.id === id ? { ...item, name: nextName } : item,
+        ),
+      }));
+      setStatusToRename(null);
+      toast.success(`${nextName} updated.`);
+    } finally {
+      setSettingActionPending(false);
+    }
+  }
+
+  async function deleteSetting(id: string) {
+    setSettingActionPending(true);
+    try {
+      const result = demoMode
+        ? null
+        : await createClient().from("statuses").delete().eq("id", id);
+      if (result?.error) {
+        toast.error(result.error.message);
         return;
       }
+      setData((current) => ({
+        ...current,
+        statuses: current.statuses.filter((item) => item.id !== id),
+      }));
+      setStatusToDelete(null);
+      toast.success("Status deleted.");
+    } finally {
+      setSettingActionPending(false);
     }
-    setData((current) => ({
-      ...current,
-      profiles: current.profiles.filter((person) => person.id !== userId),
-    }));
-    setTeamMessage("Teammate removed.");
-  }
-
-  async function renameSetting(id: string, currentName: string) {
-    const nextName = window.prompt("Update the name", currentName)?.trim();
-    if (!nextName || nextName === currentName) return;
-    if (!demoMode)
-      await createClient()
-        .from("statuses")
-        .update({ name: nextName })
-        .eq("id", id);
-    setData((current) => ({
-      ...current,
-      statuses: current.statuses.map((item) =>
-        item.id === id ? { ...item, name: nextName } : item,
-      ),
-    }));
-  }
-
-  async function deleteSetting(id: string, isDefault = false) {
-    const warning = isDefault
-      ? "This is a default status. Delete it anyway? Tasks using it must be moved first."
-      : "Delete this shared setting?";
-    if (!window.confirm(warning)) return;
-    const result = demoMode
-      ? null
-      : await createClient().from("statuses").delete().eq("id", id);
-    if (result?.error) {
-      window.alert(result.error.message);
-      return;
-    }
-    setData((current) => ({
-      ...current,
-      statuses: current.statuses.filter((item) => item.id !== id),
-    }));
   }
 
   async function moveStatus(id: string, direction: -1 | 1) {
@@ -1875,161 +2161,225 @@ function TeamSettingsModal({
     }
   }
   return (
-    <Modal
-      open={open}
-      setIsOpen={setOpen}
-      title="Team settings"
-      hideActions
-      size="lg"
-      maxHeight="min(42rem, calc(100dvh - max(1rem, env(safe-area-inset-top)) - max(1rem, env(safe-area-inset-bottom))))"
-    >
-      <div className="mb-6 flex gap-2 overflow-x-auto">
-        {(["statuses", "team"] as const).map((item) => (
-          <button
-            key={item}
-            onClick={() => setTab(item)}
-            className={`view-button capitalize ${tab === item ? "view-button-active" : ""}`}
-          >
-            {item === "team" ? <FiUsers /> : <FiCheck />}
-            {item}
-          </button>
-        ))}
-      </div>
-      {tab === "team" ? (
-        <div className="space-y-3">
-          {data.profiles.map((person) => (
-            <div
-              key={person.id}
-              className="flex items-center gap-3 rounded-xl border border-black/10 p-3 dark:border-white/10"
+    <>
+      <Modal
+        open={open}
+        setIsOpen={setOpen}
+        title="Team settings"
+        hideActions
+        size="lg"
+        maxHeight="min(42rem, calc(100dvh - max(1rem, env(safe-area-inset-top)) - max(1rem, env(safe-area-inset-bottom))))"
+      >
+        <div className="mb-6 flex gap-2 overflow-x-auto">
+          {(["statuses", "team"] as const).map((item) => (
+            <button
+              key={item}
+              onClick={() => setTab(item)}
+              className={`view-button capitalize ${tab === item ? "view-button-active" : ""}`}
             >
-              <Avatar name={profileName(person)} />
-              <div className="flex-1">
-                <p className="font-semibold">{profileName(person)}</p>
-                <p className="text-xs text-black/50 dark:text-white/50">
-                  Team member
-                </p>
-              </div>
-              {person.id !== data.currentProfile.id && (
-                <IconButton
-                  label={`Remove ${profileName(person)}`}
-                  onClick={() => void removeMember(person.id)}
-                >
-                  <FiTrash2 />
-                </IconButton>
-              )}
-            </div>
+              {item === "team" ? <FiUsers /> : <FiCheck />}
+              {item}
+            </button>
           ))}
-          <form
-            className="mt-5 grid gap-3 border-t border-black/10 pt-5 dark:border-white/10 sm:grid-cols-2"
-            onSubmit={inviteMember}
-          >
-            <Input
-              label="Name"
-              name="invite-name"
-              value={inviteName}
-              onChange={(event) => setInviteName(event.target.value)}
-              placeholder="New Ryan"
-            />
-            <Input
-              label="Email"
-              name="invite-email"
-              type="email"
-              required
-              value={inviteEmail}
-              onChange={(event) => setInviteEmail(event.target.value)}
-              placeholder="ryan@example.com"
-            />
-            {teamMessageIsError ? (
-              <ErrorCallout className="sm:col-span-2">
-                {teamMessage}
-              </ErrorCallout>
-            ) : teamMessage ? (
-              <SuccessCallout className="sm:col-span-2">
-                {teamMessage}
-              </SuccessCallout>
-            ) : null}
-            <div className="flex justify-end sm:col-span-2">
-              <Button type="submit" leftIcon={<FiPlus />}>
-                Invite teammate
-              </Button>
-            </div>
-          </form>
         </div>
-      ) : (
-        <>
+        {tab === "team" ? (
           <div className="space-y-3">
-            {[...data.statuses]
-              .sort((a, b) => a.sort_order - b.sort_order)
-              .map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center gap-3 rounded-xl border border-black/10 p-3 dark:border-white/10"
-                >
-                  <i
-                    className="h-3 w-3 rounded-full"
-                    style={{ backgroundColor: item.color }}
-                  />
-                  <span className="flex-1 font-semibold">{item.name}</span>
-                  {"is_default" in item && item.is_default && (
-                    <Pill size="sm">Default</Pill>
-                  )}
+            {data.profiles.map((person) => (
+              <div
+                key={person.id}
+                className="flex items-center gap-3 rounded-xl border border-black/10 p-3 dark:border-white/10"
+              >
+                <Avatar name={profileName(person)} />
+                <div className="flex-1">
+                  <p className="font-semibold">{profileName(person)}</p>
+                  <p className="text-xs text-black/50 dark:text-white/50">
+                    Team member
+                  </p>
+                </div>
+                {person.id !== data.currentProfile.id && (
                   <IconButton
-                    label={`Move ${item.name} up`}
-                    onClick={() => void moveStatus(item.id, -1)}
-                  >
-                    <FiChevronDown className="rotate-180" />
-                  </IconButton>
-                  <IconButton
-                    label={`Move ${item.name} down`}
-                    onClick={() => void moveStatus(item.id, 1)}
-                  >
-                    <FiChevronDown />
-                  </IconButton>
-                  <IconButton
-                    label={`Rename ${item.name}`}
-                    onClick={() => void renameSetting(item.id, item.name)}
-                  >
-                    <FiMoreHorizontal />
-                  </IconButton>
-                  <IconButton
-                    label={`Delete ${item.name}`}
-                    onClick={() =>
-                      void deleteSetting(
-                        item.id,
-                        "is_default" in item && item.is_default,
-                      )
-                    }
+                    label={`Remove ${profileName(person)}`}
+                    onClick={() => setMemberToRemove(person)}
                   >
                     <FiTrash2 />
                   </IconButton>
-                </div>
-              ))}
-          </div>
-          <div className="mt-5 grid gap-3 border-t border-black/10 pt-5 dark:border-white/10 sm:grid-cols-[1fr_auto]">
-            <Input
-              label="New status"
-              name="setting-name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="Name"
-            />
-            <label className="date-field">
-              <span>Color</span>
-              <input
-                type="color"
-                className="color-input"
-                value={color}
-                onChange={(event) => setColor(event.target.value)}
+                )}
+              </div>
+            ))}
+            <form
+              className="mt-5 grid gap-3 border-t border-black/10 pt-5 dark:border-white/10 sm:grid-cols-2"
+              onSubmit={inviteMember}
+            >
+              <Input
+                label="Name"
+                name="invite-name"
+                value={inviteName}
+                onChange={(event) => setInviteName(event.target.value)}
+                placeholder="New Ryan"
               />
-            </label>
-            <div className="flex justify-end sm:col-span-2">
-              <Button onClick={() => void add()} leftIcon={<FiPlus />}>
-                Add
-              </Button>
-            </div>
+              <Input
+                label="Email"
+                name="invite-email"
+                type="email"
+                required
+                value={inviteEmail}
+                onChange={(event) => setInviteEmail(event.target.value)}
+                placeholder="ryan@example.com"
+              />
+              {teamMessageIsError ? (
+                <ErrorCallout className="sm:col-span-2">
+                  {teamMessage}
+                </ErrorCallout>
+              ) : teamMessage ? (
+                <SuccessCallout className="sm:col-span-2">
+                  {teamMessage}
+                </SuccessCallout>
+              ) : null}
+              <div className="flex justify-end gap-2 sm:col-span-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setOpen(false)}
+                  disabled={inviting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  loading={inviting}
+                  loadingText="Inviting..."
+                >
+                  Invite teammate
+                </Button>
+              </div>
+            </form>
           </div>
-        </>
-      )}
-    </Modal>
+        ) : (
+          <>
+            <div className="space-y-3">
+              {[...data.statuses]
+                .sort((a, b) => a.sort_order - b.sort_order)
+                .map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center gap-3 rounded-xl border border-black/10 p-3 dark:border-white/10"
+                  >
+                    <i
+                      className="h-3 w-3 rounded-full"
+                      style={{ backgroundColor: item.color }}
+                    />
+                    <span className="flex-1 font-semibold">{item.name}</span>
+                    {"is_default" in item && item.is_default && (
+                      <Pill size="sm">Default</Pill>
+                    )}
+                    <IconButton
+                      label={`Move ${item.name} up`}
+                      onClick={() => void moveStatus(item.id, -1)}
+                    >
+                      <FiChevronDown className="rotate-180" />
+                    </IconButton>
+                    <IconButton
+                      label={`Move ${item.name} down`}
+                      onClick={() => void moveStatus(item.id, 1)}
+                    >
+                      <FiChevronDown />
+                    </IconButton>
+                    <IconButton
+                      label={`Rename ${item.name}`}
+                      onClick={() => setStatusToRename(item)}
+                    >
+                      <FiMoreHorizontal />
+                    </IconButton>
+                    <IconButton
+                      label={`Delete ${item.name}`}
+                      onClick={() => setStatusToDelete(item)}
+                    >
+                      <FiTrash2 />
+                    </IconButton>
+                  </div>
+                ))}
+            </div>
+            <div className="mt-5 grid gap-3 border-t border-black/10 pt-5 dark:border-white/10 sm:grid-cols-[1fr_auto]">
+              <Input
+                label="New status"
+                name="setting-name"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="Name"
+              />
+              <label className="date-field">
+                <span>Color</span>
+                <input
+                  type="color"
+                  className="color-input"
+                  value={color}
+                  onChange={(event) => setColor(event.target.value)}
+                />
+              </label>
+              <div className="flex justify-end gap-2 sm:col-span-2">
+                <Button variant="secondary" onClick={() => setOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={() => void add()}>Add</Button>
+              </div>
+            </div>
+          </>
+        )}
+      </Modal>
+      <ConfirmationDialog
+        open={Boolean(memberToRemove)}
+        setOpen={(nextOpen) => {
+          if (!nextOpen) setMemberToRemove(null);
+        }}
+        title="Remove teammate?"
+        description={`Remove ${memberToRemove ? profileName(memberToRemove) : "this teammate"} and revoke their access?`}
+        confirmLabel="Remove teammate"
+        pendingLabel="Removing..."
+        pending={settingActionPending}
+        destructive
+        onConfirm={() => {
+          if (memberToRemove) void removeMember(memberToRemove.id);
+        }}
+      />
+      <PromptDialog
+        open={Boolean(statusToRename)}
+        setOpen={(nextOpen) => {
+          if (!nextOpen) setStatusToRename(null);
+        }}
+        title="Rename status"
+        label="Status name"
+        initialValue={statusToRename?.name}
+        pending={settingActionPending}
+        onConfirm={(nextName) => {
+          if (statusToRename)
+            void renameSetting(
+              statusToRename.id,
+              statusToRename.name,
+              nextName,
+            );
+        }}
+      />
+      <ConfirmationDialog
+        open={Boolean(statusToDelete)}
+        setOpen={(nextOpen) => {
+          if (!nextOpen) setStatusToDelete(null);
+        }}
+        title="Delete status?"
+        description={
+          statusToDelete &&
+          "is_default" in statusToDelete &&
+          statusToDelete.is_default
+            ? "This is a default status. Tasks using it must be moved before it can be deleted."
+            : "This shared status will be permanently deleted."
+        }
+        confirmLabel="Delete status"
+        pendingLabel="Deleting..."
+        pending={settingActionPending}
+        destructive
+        onConfirm={() => {
+          if (statusToDelete) void deleteSetting(statusToDelete.id);
+        }}
+      />
+    </>
   );
 }

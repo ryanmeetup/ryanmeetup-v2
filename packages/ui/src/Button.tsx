@@ -3,6 +3,7 @@ import NextLink from "next/link";
 
 // Types
 import type { ButtonHTMLAttributes, ComponentProps, ReactNode } from "react";
+import { Spinner } from "./Spinner";
 
 export type ButtonLinkProps = Omit<ComponentProps<typeof NextLink>, "href"> & {
   children: ReactNode;
@@ -23,6 +24,8 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant;
   size?: ButtonSize;
   fullWidth?: boolean;
+  loading?: boolean;
+  loadingText?: ReactNode;
 };
 
 export type ButtonVariant =
@@ -146,21 +149,26 @@ const Button = (props: ButtonProps) => {
     variant = "primary",
     size = "md",
     fullWidth = false,
+    loading = false,
+    loadingText,
     type = "button",
     ...buttonProps
   } = props;
 
+  const isDisabled = disabled || loading;
+
   return (
     <button
       className={`${getBaseClasses(variant, size, fullWidth)} ${
-        disabled ? "opacity-60 cursor-not-allowed" : ""
+        isDisabled ? "opacity-60 cursor-not-allowed" : ""
       } ${className ?? ""}`}
       onClick={onClick}
-      disabled={disabled}
+      disabled={isDisabled}
+      aria-busy={loading || undefined}
       type={type}
       {...buttonProps}
     >
-      {variant === "primary" && !disabled && (
+      {variant === "primary" && !isDisabled && (
         <>
           <span
             aria-hidden
@@ -176,8 +184,11 @@ const Button = (props: ButtonProps) => {
           />
         </>
       )}
-      <ButtonContent leftIcon={leftIcon} rightIcon={rightIcon}>
-        {children}
+      <ButtonContent
+        leftIcon={loading ? <Spinner size={16} label="Loading" /> : leftIcon}
+        rightIcon={loading ? undefined : rightIcon}
+      >
+        {loading && loadingText ? loadingText : children}
       </ButtonContent>
     </button>
   );

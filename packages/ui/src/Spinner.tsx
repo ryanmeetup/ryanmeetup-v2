@@ -17,18 +17,24 @@ const Spinner = ({
     aria-label={label}
     width={size}
     height={size}
-    className={`animate-spin fill-current text-current ${className ?? ""}`}
-    viewBox="0 0 100 101"
+    className={`animate-spin text-current motion-reduce:animate-none ${className ?? ""}`}
+    viewBox="0 0 24 24"
   >
-    <path
+    <circle
       className="opacity-25"
-      d="M100 50.6A50 50 0 1 1 50 0a50 50 0 0 1 50 50.6Z"
-      fill="currentColor"
+      cx="12"
+      cy="12"
+      r="9"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
     />
     <path
-      className="opacity-75"
-      d="M93.97 39.04A50 50 0 0 0 54.9.24v10.08a40 40 0 0 1 29.35 28.72h9.72Z"
-      fill="currentColor"
+      d="M12 3a9 9 0 0 1 9 9"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeWidth="3"
     />
   </svg>
 );

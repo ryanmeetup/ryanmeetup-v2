@@ -83,18 +83,19 @@ export async function PATCH(request: Request) {
       { error: "SUPABASE_SECRET_KEY is not configured" },
       { status: 503 },
     );
-  const { id, name } = (await request.json()) as {
+  const { id, name, color } = (await request.json()) as {
     id?: string;
     name?: string;
+    color?: string;
   };
-  if (!id || !name?.trim())
+  if (!id || !name?.trim() || !validColor(color))
     return NextResponse.json(
-      { error: "A category and name are required" },
+      { error: "A category, name, and valid color are required" },
       { status: 400 },
     );
   const { error } = await client
     .from("work_groups")
-    .update({ name: name.trim() })
+    .update({ name: name.trim(), color })
     .eq("id", id);
   if (error)
     return NextResponse.json({ error: error.message }, { status: 400 });
