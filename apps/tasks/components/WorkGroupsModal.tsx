@@ -283,8 +283,7 @@ export function WorkGroupsModal({
                       <Button
                         type="button"
                         size="sm"
-                        variant="action"
-                        className="!border-red-700 !bg-red-700 !text-white hover:!bg-red-800"
+                        variant="danger"
                         onClick={() => void deleteWorkGroup(item.id)}
                       >
                         Delete
@@ -311,6 +310,7 @@ export function WorkGroupsModal({
                       </IconButton>
                       <IconButton
                         label={`Delete ${item.name}`}
+                        variant="danger"
                         onClick={() => {
                           setEditingId(null);
                           setDeletingId(item.id);

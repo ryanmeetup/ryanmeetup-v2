@@ -15,20 +15,20 @@ import {
   DropdownSelect,
   EmptyState,
   ErrorCallout,
+  FormattedText,
   Heading,
   IconButton,
   Input,
   Modal,
   Pill,
   PromptDialog,
+  RichTextarea,
   SuccessCallout,
-  Textarea,
   Tooltip,
   toast,
 } from "@ryanmeetup/ui";
 import {
   FiCalendar,
-  FiBell,
   FiCheck,
   FiChevronDown,
   FiFilter,
@@ -49,7 +49,13 @@ import {
 } from "react-icons/fi";
 import { createClient } from "@/lib/supabase/client";
 import { useQueryParamState, useSearchFilter } from "@ryanmeetup/hooks";
-import type { Category, Priority, Task, WorkspaceData } from "@/lib/types";
+import type {
+  Category,
+  Priority,
+  Status,
+  Task,
+  WorkspaceData,
+} from "@/lib/types";
 import { ThemeToggle } from "./ThemeToggle";
 import { TaskDetails } from "./TaskDetails";
 import { WorkGroupsModal as CategoriesModal } from "./WorkGroupsModal";
@@ -94,6 +100,25 @@ const priorityStyles: Record<Priority, string> = {
     "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-200",
 };
 
+const archiveDelayMs = 14 * 24 * 60 * 60 * 1000;
+
+function completionLifecycle(
+  statusId: string,
+  statuses: Status[],
+  current?: Pick<Task, "completed_at" | "archived_at">,
+) {
+  if (!statuses.find((item) => item.id === statusId)?.is_completed) {
+    return { completed_at: null, archived_at: null };
+  }
+  const completedAt = current?.completed_at ?? new Date().toISOString();
+  return {
+    completed_at: completedAt,
+    archived_at:
+      current?.archived_at ??
+      new Date(new Date(completedAt).getTime() + archiveDelayMs).toISOString(),
+  };
+}
+
 function blankDraft(statusId: string): Draft {
   return {
     title: "",
@@ -126,16 +151,6 @@ function displayDate(value: string | null) {
     month: "short",
     day: "numeric",
   }).format(new Date(`${value}T12:00:00`));
-}
-
-function displayDue(task: Task) {
-  const date = displayDate(task.due_date);
-  if (!task.due_time) return date;
-  const [hours, minutes] = task.due_time.split(":").map(Number);
-  return `${date}, ${new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(2000, 0, 1, hours, minutes))}`;
 }
 
 function profileName(profile: { full_name: string }) {
@@ -213,7 +228,50 @@ export function TaskApp({
   const [project, setProject] = useQueryParamState("project", "all");
   const [status, setStatus] = useQueryParamState("status", "all");
   const [priority, setPriority] = useQueryParamState("priority", "all");
+  const [visibility, setVisibility] = useQueryParamState(
+    "visibility",
+    "active",
+  );
   const [sort, setSort] = useState("updated");
+  const [clock, setClock] = useState(() => Date.now());
+  const [collapsedStatusIds, setCollapsedStatusIds] =
+    useState<Set<string> | null>(null);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setClock(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("ryanmeetup.tasks.collapsed-statuses");
+    queueMicrotask(() => {
+      try {
+        setCollapsedStatusIds(
+          new Set(saved ? (JSON.parse(saved) as string[]) : []),
+        );
+      } catch {
+        localStorage.removeItem("ryanmeetup.tasks.collapsed-statuses");
+        setCollapsedStatusIds(new Set());
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!collapsedStatusIds) return;
+    localStorage.setItem(
+      "ryanmeetup.tasks.collapsed-statuses",
+      JSON.stringify([...collapsedStatusIds]),
+    );
+  }, [collapsedStatusIds]);
+
+  function toggleStatusSection(statusId: string) {
+    setCollapsedStatusIds((current) => {
+      const next = new Set(current ?? []);
+      if (next.has(statusId)) next.delete(statusId);
+      else next.add(statusId);
+      return next;
+    });
+  }
 
   useEffect(() => {
     if (!demoMode) return;
@@ -236,11 +294,20 @@ export function TaskApp({
             projectOwners: restored.projectOwners ?? [],
             taskAssignees: restored.taskAssignees ?? [],
             taskLabels: restored.taskLabels ?? [],
+            statuses: (restored.statuses ?? initialData.statuses).map(
+              (item) => ({
+                ...item,
+                is_completed:
+                  item.is_completed ?? item.name.toLowerCase() === "done",
+              }),
+            ),
             tasks: restored.tasks.map((task) => ({
               ...task,
               due_time: task.due_time ?? null,
               reminder_at: task.reminder_at ?? null,
               project_id: task.project_id ?? null,
+              completed_at: task.completed_at ?? null,
+              archived_at: task.archived_at ?? null,
             })),
           }),
         );
@@ -427,12 +494,19 @@ export function TaskApp({
       if (priority !== readablePriority) setPriority(readablePriority);
     }
   }, [priority, selectedPriority, setPriority]);
+  const isMyTasks = selectedAssignee?.id === data.currentProfile.id;
   const scopeName = selectedProject?.name ?? selectedCategory?.name;
   const viewTitle = scopeName
-    ? `${scopeName} ${view === "board" ? "Board" : "Tasks"}`
-    : view === "board"
-      ? "Task Board"
-      : "All Tasks";
+    ? `${scopeName} ${visibility === "archived" ? "Archived Tasks" : view === "board" ? "Board" : "Tasks"}`
+    : isMyTasks
+      ? visibility === "archived"
+        ? "My Archived Tasks"
+        : "My Tasks"
+      : visibility === "archived"
+        ? "Archived Tasks"
+        : view === "board"
+          ? "Task Board"
+          : "All Tasks";
   useEffect(() => {
     document.title = `${viewTitle} · Ryan Meetup`;
   }, [viewTitle]);
@@ -474,7 +548,14 @@ export function TaskApp({
                 ? task.project_id === null
                 : task.project_id === selectedProject?.id)) &&
             (status === "all" || task.status_id === selectedStatus?.id) &&
-            (priority === "all" || task.priority === selectedPriority)
+            (priority === "all" || task.priority === selectedPriority) &&
+            (visibility === "archived"
+              ? Boolean(
+                  task.archived_at &&
+                  new Date(task.archived_at).getTime() <= clock,
+                )
+              : !task.archived_at ||
+                new Date(task.archived_at).getTime() > clock)
           );
         })
         .sort((a, b) =>
@@ -498,6 +579,8 @@ export function TaskApp({
       sort,
       status,
       selectedPriority,
+      visibility,
+      clock,
       selectedStatus,
     ],
   );
@@ -505,7 +588,18 @@ export function TaskApp({
   function openCreate(statusId?: string) {
     setTaskMessage("");
     setEditing(null);
-    setDraft(blankDraft(statusId ?? statuses[1]?.id ?? statuses[0]?.id ?? ""));
+    const scopedDraft = blankDraft(
+      statusId ??
+        selectedStatus?.id ??
+        statuses[1]?.id ??
+        statuses[0]?.id ??
+        "",
+    );
+    scopedDraft.category_ids = selectedCategory ? [selectedCategory.id] : [];
+    scopedDraft.project_id = selectedProject?.id ?? null;
+    scopedDraft.assignee_id = selectedAssignee?.id ?? null;
+    scopedDraft.priority = selectedPriority ?? "medium";
+    setDraft(scopedDraft);
     setTaskOpen(true);
   }
 
@@ -520,9 +614,9 @@ export function TaskApp({
       project_id: task.project_id,
       category_ids: [...(categoriesByTask.get(task.id) ?? [])],
       assignee_id: task.assignee_id,
-      start_date: task.start_date,
+      start_date: null,
       due_date: task.due_date,
-      due_time: task.due_time,
+      due_time: null,
       reminder_at: task.reminder_at,
       priority: task.priority,
     });
@@ -536,6 +630,21 @@ export function TaskApp({
       toast.error("A task title is required.");
       return;
     }
+    if (!draft.status_id) {
+      setTaskMessage("A status is required.");
+      toast.error("A status is required.");
+      return;
+    }
+    if (!draft.priority) {
+      setTaskMessage("A priority is required.");
+      toast.error("A priority is required.");
+      return;
+    }
+    if (draft.category_ids.length === 0) {
+      setTaskMessage("Select at least one category.");
+      toast.error("Select at least one category.");
+      return;
+    }
     setTaskMessage("");
     setTaskSaving(true);
     const now = new Date().toISOString();
@@ -545,11 +654,13 @@ export function TaskApp({
         ? {
             ...editing,
             ...taskDraft,
+            ...completionLifecycle(draft.status_id, data.statuses, editing),
             title: draft.title.trim(),
             updated_at: now,
           }
         : {
             ...taskDraft,
+            ...completionLifecycle(draft.status_id, data.statuses),
             title: draft.title.trim(),
             id: crypto.randomUUID(),
             created_by: data.currentProfile.id,
@@ -595,6 +706,11 @@ export function TaskApp({
               ? {
                   ...task,
                   ...taskDraft,
+                  ...completionLifecycle(
+                    draft.status_id,
+                    current.statuses,
+                    task,
+                  ),
                   title: draft.title.trim(),
                   updated_at: now,
                 }
@@ -729,6 +845,7 @@ export function TaskApp({
           ? {
               ...task,
               status_id: statusId,
+              ...completionLifecycle(statusId, current.statuses, task),
               updated_at: new Date().toISOString(),
             }
           : task,
@@ -741,9 +858,10 @@ export function TaskApp({
         .eq("id", id);
   }
 
-  const filterCount = [assignee, group, project, status, priority].filter(
-    (value) => value !== "all",
-  ).length;
+  const filterCount =
+    [assignee, group, project, status, priority].filter(
+      (value) => value !== "all",
+    ).length + (visibility === "archived" ? 1 : 0);
   const taskCard = (task: Task) => {
     const taskCategories = [...(categoriesByTask.get(task.id) ?? [])]
       .map((id) => categories.get(id))
@@ -758,10 +876,6 @@ export function TaskApp({
     const completedSubtasks = taskSubtasks.filter(
       (item) => item.is_completed,
     ).length;
-    const taskLabels = data.taskLabels
-      .filter((item) => item.task_id === task.id)
-      .map((item) => data.labels.find((label) => label.id === item.label_id))
-      .filter((label) => label !== undefined);
     return (
       <button
         draggable
@@ -813,26 +927,16 @@ export function TaskApp({
           {task.title}
         </h3>
         {task.description && (
-          <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-black/60 dark:text-white/60">
-            {task.description}
-          </p>
+          <FormattedText
+            text={task.description}
+            className="mt-2 line-clamp-2 text-xs leading-relaxed text-black/60 dark:text-white/60"
+          />
         )}
-        {(taskLabels.length > 0 || taskSubtasks.length > 0) && (
+        {taskSubtasks.length > 0 && (
           <div className="mt-3 flex flex-wrap items-center gap-1.5">
-            {taskLabels.map((label) => (
-              <span
-                key={label.id}
-                className="rounded-full px-2 py-0.5 text-[9px] font-semibold text-white"
-                style={{ backgroundColor: label.color }}
-              >
-                {label.name}
-              </span>
-            ))}
-            {taskSubtasks.length > 0 && (
-              <span className="ml-auto text-[10px] font-semibold text-black/50 dark:text-white/50">
-                ✓ {completedSubtasks}/{taskSubtasks.length}
-              </span>
-            )}
+            <span className="ml-auto text-[10px] font-semibold text-black/50 dark:text-white/50">
+              ✓ {completedSubtasks}/{taskSubtasks.length}
+            </span>
           </div>
         )}
         <div className="mt-4 flex items-end justify-between gap-3">
@@ -853,19 +957,7 @@ export function TaskApp({
             {task.due_date && (
               <span className="flex items-center gap-1.5 text-[11px] text-black/55 dark:text-white/55">
                 <FiCalendar />
-                {displayDue(task)}
-              </span>
-            )}
-            {task.reminder_at && (
-              <span className="flex items-center gap-1.5 text-[11px] text-black/55 dark:text-white/55">
-                <FiBell />
-                Reminder{" "}
-                {new Intl.DateTimeFormat("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  hour: "numeric",
-                  minute: "2-digit",
-                }).format(new Date(task.reminder_at))}
+                {displayDate(task.due_date)}
               </span>
             )}
           </div>
@@ -916,6 +1008,27 @@ export function TaskApp({
           </IconButton>
         </div>
         <nav className="mt-8 space-y-1" aria-label="Main navigation">
+          <button
+            onClick={() => {
+              if (isMyTasks) {
+                setAssignee("all");
+                setSidebarOpen(false);
+                return;
+              }
+              setAssignee(profileName(data.currentProfile));
+              setGroup("all");
+              setProject("all");
+              setStatus("all");
+              setPriority("all");
+              setVisibility("active");
+              setView("list");
+              setSidebarOpen(false);
+            }}
+            className={`sidebar-link ${isMyTasks ? "sidebar-link-active" : ""}`}
+          >
+            <FiUser />
+            My Tasks
+          </button>
           <button
             onClick={() => {
               setView("board");
@@ -1106,7 +1219,9 @@ export function TaskApp({
                   ? "Project workspace"
                   : selectedCategory
                     ? "Category workspace"
-                    : "Team workspace"}
+                    : isMyTasks
+                      ? "Personal workspace"
+                      : "Team workspace"}
               </p>
               <div className="flex flex-wrap items-center gap-3">
                 <Heading size="h1" className="text-3xl sm:text-4xl">
@@ -1148,6 +1263,17 @@ export function TaskApp({
                   </b>
                 )}
               </span>
+              <DropdownSelect
+                label="Visibility"
+                value={
+                  visibility === "archived" ? "Archived tasks" : "Active tasks"
+                }
+                onChange={setVisibility}
+                options={[
+                  { label: "Active tasks", value: "active" },
+                  { label: "Archived tasks", value: "archived" },
+                ]}
+              />
               <DropdownSelect
                 label="Assignee"
                 value={
@@ -1231,6 +1357,7 @@ export function TaskApp({
                     setProject("all");
                     setStatus("all");
                     setPriority("all");
+                    setVisibility("active");
                   }}
                 >
                   Clear
@@ -1240,11 +1367,15 @@ export function TaskApp({
           </Card>
 
           {view === "board" ? (
-            <div className="grid auto-cols-[minmax(270px,1fr)] grid-flow-col gap-4 overflow-x-auto pb-5 xl:auto-cols-auto xl:grid-flow-row xl:grid-cols-5">
+            <div className="flex flex-nowrap items-start gap-4 overflow-x-auto overscroll-x-contain pb-5">
               {statuses.map((item) => {
                 const columnTasks = visibleTasks.filter(
                   (task) => task.status_id === item.id,
                 );
+                const isCollapsed = collapsedStatusIds?.has(item.id) ?? false;
+                const columnSizeClass = isCollapsed
+                  ? "min-h-0 w-[220px]"
+                  : `${columnTasks.length === 0 ? "min-h-0" : "min-h-[420px]"} w-[min(320px,calc(100vw-3rem))]`;
                 return (
                   <section
                     key={item.id}
@@ -1275,13 +1406,15 @@ export function TaskApp({
                         item.id,
                       );
                     }}
-                    className={`min-h-[420px] rounded-2xl p-3 transition-[background-color,box-shadow] ${
+                    className={`${columnSizeClass} shrink-0 rounded-2xl p-3 transition-[width,background-color,box-shadow] ${
                       dragOverStatusId === item.id
                         ? "bg-black/[0.07] ring-2 ring-inset ring-black/30 dark:bg-white/[0.09] dark:ring-white/40"
                         : "bg-black/[0.035] dark:bg-white/[0.035]"
                     }`}
                   >
-                    <div className="mb-3 flex items-center gap-2 px-1">
+                    <div
+                      className={`${isCollapsed ? "" : "mb-3"} flex items-center gap-2 px-1`}
+                    >
                       <i
                         className="h-2.5 w-2.5 rounded-full"
                         style={{ backgroundColor: item.color }}
@@ -1299,8 +1432,24 @@ export function TaskApp({
                       >
                         <FiPlus />
                       </button>
+                      <button
+                        type="button"
+                        aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${item.name}`}
+                        aria-expanded={!isCollapsed}
+                        aria-controls={`status-column-${item.id}`}
+                        className="rounded p-1 text-black/40 hover:bg-black/5 hover:text-black focus:outline-none focus:ring-2 focus:ring-black/20 dark:text-white/40 dark:hover:bg-white/10 dark:hover:text-white dark:focus:ring-white/30"
+                        onClick={() => toggleStatusSection(item.id)}
+                      >
+                        <FiChevronDown
+                          className={`transition-transform ${isCollapsed ? "-rotate-90" : ""}`}
+                        />
+                      </button>
                     </div>
-                    <div className="space-y-3">
+                    <div
+                      id={`status-column-${item.id}`}
+                      hidden={isCollapsed}
+                      className="space-y-3"
+                    >
                       {columnTasks.map(taskCard)}
                       {columnTasks.length === 0 && (
                         <button
@@ -1443,8 +1592,47 @@ export function TaskApp({
         title={editing ? "Edit task" : "A new thing to do"}
         hideActions
         size={editing ? "2xl" : "lg"}
+        footer={
+          <div className="grid w-full gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
+            {editing && (
+              <Button
+                type="button"
+                variant="danger"
+                className="w-fit justify-self-start whitespace-nowrap"
+                leftIcon={<FiTrash2 />}
+                onClick={() => setTaskPendingDelete(editing)}
+              >
+                Delete task
+              </Button>
+            )}
+            <div className="flex flex-col gap-3 sm:col-start-2 sm:flex-row">
+              <Button
+                type="button"
+                variant="secondary"
+                className="whitespace-nowrap"
+                onClick={() => setTaskOpen(false)}
+                disabled={taskSaving}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                form="task-editor-form"
+                className="whitespace-nowrap"
+                loading={taskSaving}
+                loadingText="Saving..."
+              >
+                {editing ? "Save changes" : "Create task"}
+              </Button>
+            </div>
+          </div>
+        }
       >
-        <form className="min-w-0 space-y-5" onSubmit={saveTask}>
+        <form
+          id="task-editor-form"
+          className="min-w-0 space-y-5"
+          onSubmit={saveTask}
+        >
           <div
             className={
               editing
@@ -1463,21 +1651,29 @@ export function TaskApp({
                 }
                 placeholder="What needs doing?"
               />
-              <Textarea
-                id="task-description"
-                label="Description"
-                name="description"
-                value={draft.description ?? ""}
-                onChange={(event) =>
-                  setDraft({ ...draft, description: event.target.value })
-                }
-                placeholder="Add useful context, links, or a tiny pep talk…"
-                rows={4}
-              />
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="task-description"
+                  className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.2em] text-black/70 sm:tracking-[0.3em] dark:text-white/70"
+                >
+                  Description
+                </label>
+                <RichTextarea
+                  id="task-description"
+                  name="description"
+                  aria-label="Description"
+                  value={draft.description ?? ""}
+                  onChange={(event) =>
+                    setDraft({ ...draft, description: event.target.value })
+                  }
+                  placeholder="Add useful context, links, or a tiny pep talk…"
+                />
+              </div>
               <div className="grid min-w-0 gap-4 sm:grid-cols-2">
                 <DropdownSelect
                   variant="field"
                   label="Status"
+                  required
                   value={draft.status_id}
                   onChange={(value) => setDraft({ ...draft, status_id: value })}
                   options={statuses.map((item) => ({
@@ -1488,6 +1684,7 @@ export function TaskApp({
                 <DropdownSelect
                   variant="field"
                   label="Priority"
+                  required
                   value={draft.priority}
                   onChange={(value) =>
                     setDraft({ ...draft, priority: value as Priority })
@@ -1497,9 +1694,10 @@ export function TaskApp({
                     value: item,
                   }))}
                 />
-                <fieldset className="sm:col-span-2">
-                  <legend className="mb-2 text-sm font-semibold">
-                    Categories
+                <fieldset className="sm:col-span-2" aria-required="true">
+                  <legend className="mb-2 flex gap-1 text-sm font-semibold">
+                    <span>Categories</span>
+                    <span className="text-red-500">*</span>
                   </legend>
                   <div className="flex flex-wrap gap-2">
                     {data.categories.map((item) => {
@@ -1574,19 +1772,6 @@ export function TaskApp({
                   ]}
                 />
                 <label className="date-field">
-                  <span>Start date</span>
-                  <input
-                    type="date"
-                    value={draft.start_date ?? ""}
-                    onChange={(event) =>
-                      setDraft({
-                        ...draft,
-                        start_date: event.target.value || null,
-                      })
-                    }
-                  />
-                </label>
-                <label className="date-field">
                   <span>Due date</span>
                   <input
                     type="date"
@@ -1599,38 +1784,6 @@ export function TaskApp({
                     }
                   />
                 </label>
-                {editing && (
-                  <label className="date-field">
-                    <span>Due time</span>
-                    <input
-                      type="time"
-                      value={draft.due_time ?? ""}
-                      onChange={(event) =>
-                        setDraft({
-                          ...draft,
-                          due_time: event.target.value || null,
-                        })
-                      }
-                    />
-                  </label>
-                )}
-                {editing && (
-                  <label className="date-field">
-                    <span>Reminder</span>
-                    <input
-                      type="datetime-local"
-                      value={draft.reminder_at?.slice(0, 16) ?? ""}
-                      onChange={(event) =>
-                        setDraft({
-                          ...draft,
-                          reminder_at: event.target.value
-                            ? new Date(event.target.value).toISOString()
-                            : null,
-                        })
-                      }
-                    />
-                  </label>
-                )}
               </div>
             </div>
             {editing && (
@@ -1644,37 +1797,6 @@ export function TaskApp({
             )}
           </div>
           <ErrorCallout>{taskMessage}</ErrorCallout>
-          <div className="sticky -bottom-6 z-10 -mx-6 flex justify-end border-t border-black/10 bg-white px-6 pb-1 pt-5 dark:border-white/10 dark:bg-[#181818]">
-            <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-end">
-              {editing && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="whitespace-nowrap text-red-600 dark:text-red-400"
-                  leftIcon={<FiTrash2 />}
-                  onClick={() => setTaskPendingDelete(editing)}
-                >
-                  Delete task
-                </Button>
-              )}
-              <Button
-                type="button"
-                variant="secondary"
-                className="whitespace-nowrap"
-                onClick={() => setTaskOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                className="whitespace-nowrap"
-                loading={taskSaving}
-                loadingText="Saving..."
-              >
-                {editing ? "Save changes" : "Create task"}
-              </Button>
-            </div>
-          </div>
         </form>
       </Modal>
       <ConfirmationDialog
@@ -1865,6 +1987,7 @@ export function WorkGroupsModalLegacy({
               </IconButton>
               <IconButton
                 label={`Delete ${item.name}`}
+                variant="danger"
                 onClick={() => setGroupToDelete(item)}
               >
                 <FiTrash2 />
@@ -1992,29 +2115,50 @@ function TeamSettingsModal({
   >(null);
   const [settingActionPending, setSettingActionPending] = useState(false);
   async function add() {
-    if (!name.trim()) return;
+    const nextName = name.trim();
+    if (!nextName || settingActionPending) return;
+    setSettingActionPending(true);
     if (tab === "statuses") {
-      const item = {
+      let item: WorkspaceData["statuses"][number] = {
         id: crypto.randomUUID(),
-        name: name.trim(),
+        name: nextName,
         color,
         sort_order: data.statuses.length,
         is_default: false,
+        is_completed: false,
       };
-      if (!demoMode) {
-        const { data: saved } = await createClient()
-          .from("statuses")
-          .insert(item)
-          .select()
-          .single();
-        if (saved) item.id = saved.id;
+      try {
+        if (!demoMode) {
+          const { data: saved, error } = await createClient()
+            .from("statuses")
+            .insert({
+              name: item.name,
+              color: item.color,
+              sort_order: item.sort_order,
+              is_default: item.is_default,
+              is_completed: item.is_completed,
+            })
+            .select("*")
+            .single();
+          if (error) throw error;
+          item = saved;
+        }
+        setData((current) => ({
+          ...current,
+          statuses: [...current.statuses, item],
+        }));
+        setName("");
+        toast.success(`${item.name} added.`);
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "The status could not be added.",
+        );
+      } finally {
+        setSettingActionPending(false);
       }
-      setData((current) => ({
-        ...current,
-        statuses: [...current.statuses, item],
-      }));
     }
-    setName("");
   }
 
   async function inviteMember(event: FormEvent<HTMLFormElement>) {
@@ -2098,7 +2242,9 @@ function TeamSettingsModal({
         const { error } = await createClient()
           .from("statuses")
           .update({ name: nextName })
-          .eq("id", id);
+          .eq("id", id)
+          .select("id")
+          .single();
         if (error) {
           toast.error(error.message);
           return;
@@ -2122,7 +2268,12 @@ function TeamSettingsModal({
     try {
       const result = demoMode
         ? null
-        : await createClient().from("statuses").delete().eq("id", id);
+        : await createClient()
+            .from("statuses")
+            .delete()
+            .eq("id", id)
+            .select("id")
+            .single();
       if (result?.error) {
         toast.error(result.error.message);
         return;
@@ -2138,7 +2289,56 @@ function TeamSettingsModal({
     }
   }
 
+  async function toggleCompletedStatus(id: string, isCompleted: boolean) {
+    setSettingActionPending(true);
+    try {
+      if (!demoMode) {
+        const { error } = await createClient()
+          .from("statuses")
+          .update({ is_completed: isCompleted })
+          .eq("id", id)
+          .select("id")
+          .single();
+        if (error) {
+          toast.error(error.message);
+          return;
+        }
+      }
+      const now = new Date().toISOString();
+      setData((current) => ({
+        ...current,
+        statuses: current.statuses.map((item) =>
+          item.id === id ? { ...item, is_completed: isCompleted } : item,
+        ),
+        tasks: current.tasks.map((task) => {
+          if (task.status_id !== id) return task;
+          return {
+            ...task,
+            ...(isCompleted
+              ? {
+                  completed_at: task.completed_at ?? now,
+                  archived_at:
+                    task.archived_at ??
+                    new Date(
+                      new Date(now).getTime() + archiveDelayMs,
+                    ).toISOString(),
+                }
+              : { completed_at: null, archived_at: null }),
+          };
+        }),
+      }));
+      toast.success(
+        isCompleted
+          ? "Tasks in this status will archive after 14 days."
+          : "This is now an active status.",
+      );
+    } finally {
+      setSettingActionPending(false);
+    }
+  }
+
   async function moveStatus(id: string, direction: -1 | 1) {
+    if (settingActionPending) return;
     const ordered = [...data.statuses].sort(
       (a, b) => a.sort_order - b.sort_order,
     );
@@ -2147,17 +2347,21 @@ function TeamSettingsModal({
     if (index < 0 || swapIndex < 0 || swapIndex >= ordered.length) return;
     [ordered[index], ordered[swapIndex]] = [ordered[swapIndex], ordered[index]];
     const next = ordered.map((item, sort_order) => ({ ...item, sort_order }));
-    setData((current) => ({ ...current, statuses: next }));
-    if (!demoMode) {
-      const supabase = createClient();
-      await Promise.all(
-        next.map((item) =>
-          supabase
-            .from("statuses")
-            .update({ sort_order: item.sort_order })
-            .eq("id", item.id),
-        ),
+    setSettingActionPending(true);
+    try {
+      if (!demoMode) {
+        const { error } = await createClient().from("statuses").upsert(next);
+        if (error) throw error;
+      }
+      setData((current) => ({ ...current, statuses: next }));
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "The status order could not be saved.",
       );
+    } finally {
+      setSettingActionPending(false);
     }
   }
   return (
@@ -2169,6 +2373,37 @@ function TeamSettingsModal({
         hideActions
         size="lg"
         maxHeight="min(42rem, calc(100dvh - max(1rem, env(safe-area-inset-top)) - max(1rem, env(safe-area-inset-bottom))))"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setOpen(false)}
+              disabled={settingActionPending || inviting}
+            >
+              Cancel
+            </Button>
+            {tab === "statuses" ? (
+              <Button
+                type="submit"
+                form="create-status-form"
+                loading={settingActionPending}
+                loadingText="Adding..."
+              >
+                Add
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                form="invite-team-member-form"
+                loading={inviting}
+                loadingText="Inviting..."
+              >
+                Invite teammate
+              </Button>
+            )}
+          </div>
+        }
       >
         <div className="mb-6 flex gap-2 overflow-x-auto">
           {(["statuses", "team"] as const).map((item) => (
@@ -2199,6 +2434,7 @@ function TeamSettingsModal({
                 {person.id !== data.currentProfile.id && (
                   <IconButton
                     label={`Remove ${profileName(person)}`}
+                    variant="danger"
                     onClick={() => setMemberToRemove(person)}
                   >
                     <FiTrash2 />
@@ -2207,6 +2443,7 @@ function TeamSettingsModal({
               </div>
             ))}
             <form
+              id="invite-team-member-form"
               className="mt-5 grid gap-3 border-t border-black/10 pt-5 dark:border-white/10 sm:grid-cols-2"
               onSubmit={inviteMember}
             >
@@ -2235,23 +2472,6 @@ function TeamSettingsModal({
                   {teamMessage}
                 </SuccessCallout>
               ) : null}
-              <div className="flex justify-end gap-2 sm:col-span-2">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setOpen(false)}
-                  disabled={inviting}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  loading={inviting}
-                  loadingText="Inviting..."
-                >
-                  Invite teammate
-                </Button>
-              </div>
             </form>
           </div>
         ) : (
@@ -2272,6 +2492,17 @@ function TeamSettingsModal({
                     {"is_default" in item && item.is_default && (
                       <Pill size="sm">Default</Pill>
                     )}
+                    <button
+                      type="button"
+                      aria-pressed={item.is_completed}
+                      disabled={settingActionPending}
+                      onClick={() =>
+                        void toggleCompletedStatus(item.id, !item.is_completed)
+                      }
+                      className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-black/20 disabled:opacity-50 dark:focus:ring-white/30 ${item.is_completed ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-200" : "border-black/10 text-black/60 hover:text-black dark:border-white/10 dark:text-white/60 dark:hover:text-white"}`}
+                    >
+                      {item.is_completed ? "Completed" : "Mark completed"}
+                    </button>
                     <IconButton
                       label={`Move ${item.name} up`}
                       onClick={() => void moveStatus(item.id, -1)}
@@ -2292,6 +2523,7 @@ function TeamSettingsModal({
                     </IconButton>
                     <IconButton
                       label={`Delete ${item.name}`}
+                      variant="danger"
                       onClick={() => setStatusToDelete(item)}
                     >
                       <FiTrash2 />
@@ -2299,7 +2531,14 @@ function TeamSettingsModal({
                   </div>
                 ))}
             </div>
-            <div className="mt-5 grid gap-3 border-t border-black/10 pt-5 dark:border-white/10 sm:grid-cols-[1fr_auto]">
+            <form
+              id="create-status-form"
+              className="mt-5 grid gap-3 border-t border-black/10 pt-5 dark:border-white/10 sm:grid-cols-[1fr_auto]"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void add();
+              }}
+            >
               <Input
                 label="New status"
                 name="setting-name"
@@ -2316,13 +2555,7 @@ function TeamSettingsModal({
                   onChange={(event) => setColor(event.target.value)}
                 />
               </label>
-              <div className="flex justify-end gap-2 sm:col-span-2">
-                <Button variant="secondary" onClick={() => setOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={() => void add()}>Add</Button>
-              </div>
-            </div>
+            </form>
           </>
         )}
       </Modal>

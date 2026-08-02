@@ -45,12 +45,7 @@ const ConfirmationDialog = ({
       </Button>
       <Button
         type="button"
-        variant={destructive ? "action" : "primary"}
-        className={
-          destructive
-            ? "!border-red-700 !bg-red-700 !text-white hover:!bg-red-800"
-            : undefined
-        }
+        variant={destructive ? "danger" : "primary"}
         loading={pending}
         loadingText={pendingLabel ?? `${confirmLabel}...`}
         onClick={onConfirm}

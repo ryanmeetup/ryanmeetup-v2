@@ -23,6 +23,7 @@ export type DropdownSelectProps = {
   value: string;
   onChange: (value: string) => void;
   className?: string;
+  required?: boolean;
   variant?: "compact" | "field";
 };
 
@@ -32,6 +33,7 @@ const DropdownSelect = ({
   value,
   onChange,
   className,
+  required = false,
   variant = "compact",
 }: DropdownSelectProps) => {
   const buttonId = useId();
@@ -47,11 +49,13 @@ const DropdownSelect = ({
     >
       {field && (
         <label className={getFieldLabelClasses()} htmlFor={buttonId}>
-          {label}
+          <span>{label}</span>
+          {required && <span className="shrink-0 text-red-500">*</span>}
         </label>
       )}
       <ListboxButton
         id={buttonId}
+        aria-required={required || undefined}
         className={`inline-flex items-center gap-2 rounded-lg border bg-white font-semibold text-black transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 dark:focus-visible:ring-white/30 ${field ? "w-full justify-between border-black/20 px-4 py-2.5 text-sm shadow-sm dark:border-white/20 dark:bg-white/10" : "shrink-0 justify-center border-black/10 px-3 py-1.5 text-xs dark:border-white/10"} ${className ?? ""}`}
       >
         {!field && (

@@ -12,6 +12,7 @@ export type Status = {
   color: string;
   sort_order: number;
   is_default: boolean;
+  is_completed: boolean;
 };
 
 export type Category = {
@@ -46,6 +47,8 @@ export type Task = {
   due_time: string | null;
   reminder_at: string | null;
   priority: Priority;
+  completed_at: string | null;
+  archived_at: string | null;
   created_at: string;
   updated_at: string;
 };

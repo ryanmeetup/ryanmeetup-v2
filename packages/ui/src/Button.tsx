@@ -32,6 +32,7 @@ export type ButtonVariant =
   | "primary"
   | "secondary"
   | "action"
+  | "danger"
   | "outline"
   | "ghost";
 export type ButtonSize = "sm" | "md" | "lg";
@@ -59,6 +60,8 @@ const getBaseClasses = (
       "border border-black/20 bg-white/80 text-black hover:border-black/40 hover:bg-black/5 hover:shadow-sm dark:border-white/20 dark:bg-white/5 dark:text-white dark:hover:border-white/40 dark:hover:bg-white/10",
     action:
       "border border-zinc-700 bg-zinc-700 text-white shadow-md hover:-translate-y-0.5 hover:border-zinc-900 hover:bg-zinc-800 hover:shadow-lg focus:ring-zinc-500/30 dark:border-zinc-300 dark:bg-zinc-300 dark:text-black dark:hover:border-white dark:hover:bg-zinc-100 dark:hover:text-black dark:focus:ring-white/30",
+    danger:
+      "border border-red-700 bg-red-700 text-white shadow-md hover:-translate-y-0.5 hover:border-red-800 hover:bg-red-800 hover:shadow-lg focus:ring-red-500/30 dark:border-red-500 dark:bg-red-600 dark:text-white dark:hover:border-red-400 dark:hover:bg-red-500",
     outline:
       "border border-black/60 bg-black/80 text-white hover:border-black/80 hover:bg-black/70 dark:border-white/20 dark:text-white dark:hover:border-white/40 dark:hover:bg-white/10",
     ghost:
