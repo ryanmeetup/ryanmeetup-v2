@@ -8,7 +8,11 @@ export const demoData: WorkspaceData = {
   },
   profiles: [
     { id: "ryan", full_name: "Ryan", avatar_url: null },
-    { id: "alex", full_name: "Alex Ryan", avatar_url: null },
+    {
+      id: "alex",
+      full_name: "Alex Ryan",
+      avatar_url: null,
+    },
     {
       id: "jordan",
       full_name: "Jordan Ryan",

@@ -42,7 +42,9 @@ export async function POST(request: Request) {
   const { data, error } = await admin.auth.admin.inviteUserByEmail(
     email.trim(),
     {
-      data: { full_name: fullName?.trim() || email.split("@")[0] },
+      data: {
+        full_name: fullName?.trim() || email.split("@")[0],
+      },
       redirectTo: new URL("/auth/callback", request.url).toString(),
     },
   );

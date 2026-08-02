@@ -186,6 +186,7 @@ export function ProjectsModal({
       title="Projects"
       hideActions
       size="xl"
+      maxHeight="min(42rem, calc(100dvh - max(1rem, env(safe-area-inset-top)) - max(1rem, env(safe-area-inset-bottom))))"
     >
       <p className="mb-5 text-sm text-black/60 dark:text-white/60">
         Projects collect related work across categories. Assign one or more
@@ -291,15 +292,16 @@ export function ProjectsModal({
             })}
           </div>
         </fieldset>
-        <Button
-          type="submit"
-          variant="action"
-          className="sm:col-start-2 sm:row-start-1"
-          leftIcon={creating ? <Spinner className="h-4 w-4" /> : <FiPlus />}
-          disabled={creating}
-        >
-          {creating ? "Creating" : "Create project"}
-        </Button>
+        <div className="flex justify-end sm:col-span-2">
+          <Button
+            type="submit"
+            variant="action"
+            leftIcon={creating ? <Spinner className="h-4 w-4" /> : <FiPlus />}
+            disabled={creating}
+          >
+            {creating ? "Creating" : "Create project"}
+          </Button>
+        </div>
       </form>
     </Modal>
   );

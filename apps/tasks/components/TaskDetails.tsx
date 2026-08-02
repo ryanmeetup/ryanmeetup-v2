@@ -547,7 +547,7 @@ export function TaskDetails({
                 className="border-l-2 border-black/10 pl-3 text-sm dark:border-white/10"
               >
                 <p>
-                  <strong>{profile?.full_name ?? "A teammate"}</strong>{" "}
+                  <strong>{profile?.full_name || "A teammate"}</strong>{" "}
                   {item.kind === "comment" ? item.body : item.action}
                 </p>
                 <time className="text-xs text-black/45 dark:text-white/45">

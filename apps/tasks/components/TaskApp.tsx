@@ -13,11 +13,13 @@ import {
   Card,
   DropdownSelect,
   EmptyState,
+  ErrorCallout,
   Heading,
   IconButton,
   Input,
   Modal,
   Pill,
+  SuccessCallout,
   Textarea,
   Tooltip,
   toast,
@@ -39,6 +41,7 @@ import {
   FiSearch,
   FiSettings,
   FiTrash2,
+  FiUser,
   FiUsers,
   FiX,
 } from "react-icons/fi";
@@ -106,8 +109,8 @@ function blankDraft(statusId: string): Draft {
   };
 }
 
-function initials(name: string) {
-  return name
+function initials(name?: string | null) {
+  return (name || "?")
     .split(" ")
     .map((part) => part[0])
     .join("")
@@ -133,13 +136,23 @@ function displayDue(task: Task) {
   }).format(new Date(2000, 0, 1, hours, minutes))}`;
 }
 
-function Avatar({ name, small = false }: { name: string; small?: boolean }) {
+function profileName(profile: { full_name: string }) {
+  return profile.full_name || "Teammate";
+}
+
+function Avatar({
+  name,
+  small = false,
+}: {
+  name?: string | null;
+  small?: boolean;
+}) {
   return (
     <span
-      title={name}
+      title={name || "Teammate"}
       className={`inline-grid shrink-0 place-items-center rounded-full border border-black/10 bg-black text-[9px] font-bold text-white dark:border-white/20 dark:bg-white dark:text-black ${small ? "h-6 w-6" : "h-8 w-8"}`}
     >
-      {initials(name)}
+      <span>{initials(name)}</span>
     </span>
   );
 }
@@ -252,6 +265,7 @@ export function TaskApp({
           { data: categories },
           { data: taskCategories },
           { data: projectOwners },
+          { data: profiles },
           { data: taskAssignees },
           { data: taskLabels },
         ] = await Promise.all([
@@ -267,6 +281,7 @@ export function TaskApp({
           supabase.from("work_groups").select("*").order("name"),
           supabase.from("task_categories").select("*"),
           supabase.from("project_owners").select("*"),
+          supabase.from("profiles").select("*").order("full_name"),
           supabase.from("task_assignees").select("*"),
           supabase.from("task_labels").select("*"),
         ]);
@@ -292,6 +307,15 @@ export function TaskApp({
           categories: categories ?? current.categories,
           taskCategories: taskCategories ?? current.taskCategories,
           projectOwners: projectOwners ?? current.projectOwners,
+          profiles: profiles ?? current.profiles,
+          currentProfile: profiles
+            ? (() => {
+                const profile = profiles.find(
+                  (item) => item.id === current.currentProfile.id,
+                );
+                return profile ?? current.currentProfile;
+              })()
+            : current.currentProfile,
           taskAssignees: taskAssignees ?? current.taskAssignees,
           taskLabels: taskLabels ?? current.taskLabels,
         }));
@@ -731,7 +755,7 @@ export function TaskApp({
           {taskPeople.length > 0 ? (
             <span className="flex -space-x-1.5">
               {taskPeople.slice(0, 3).map((person) => (
-                <Avatar key={person.id} name={person.full_name} small />
+                <Avatar key={person.id} name={profileName(person)} small />
               ))}
             </span>
           ) : (
@@ -810,9 +834,17 @@ export function TaskApp({
           </Tooltip>
         </nav>
         <div className="mt-8">
-          <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-black/45 dark:text-white/45">
-            Categories
-          </p>
+          <div className="flex items-center justify-between px-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-black/45 dark:text-white/45">
+              Categories
+            </p>
+            <button
+              className="text-[10px] font-semibold text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white"
+              onClick={() => setWorkGroupsOpen(true)}
+            >
+              Manage
+            </button>
+          </div>
           <div className="mt-2 space-y-1">
             {data.categories.map((item) => (
               <button
@@ -859,23 +891,27 @@ export function TaskApp({
         <div className="mt-auto space-y-2 border-t border-black/10 pt-4 dark:border-white/10">
           <button
             className="sidebar-link"
-            onClick={() => setWorkGroupsOpen(true)}
-          >
-            <FiPlus />
-            New category
-          </button>
-          <button
-            className="sidebar-link"
             onClick={() => setSettingsOpen(true)}
           >
             <FiSettings />
             Team settings
           </button>
+          {!demoMode && (
+            <Button.Link
+              href="/profile"
+              variant="ghost"
+              size="sm"
+              className="sidebar-link !w-full !justify-start !px-3 !py-2 !normal-case !tracking-normal"
+              leftIcon={<FiUser />}
+            >
+              My profile
+            </Button.Link>
+          )}
           <div className="flex items-center gap-3 px-2 py-2">
-            <Avatar name={data.currentProfile.full_name} />
+            <Avatar name={profileName(data.currentProfile)} />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">
-                {data.currentProfile.full_name}
+                {profileName(data.currentProfile)}
               </p>
               <p className="text-[10px] uppercase tracking-widest text-black/45 dark:text-white/45">
                 Team member
@@ -988,7 +1024,7 @@ export function TaskApp({
                   { label: "Anyone", value: "all" },
                   { label: "Unassigned", value: "unassigned" },
                   ...data.profiles.map((item) => ({
-                    label: item.full_name,
+                    label: profileName(item),
                     value: item.id,
                   })),
                 ]}
@@ -1185,14 +1221,12 @@ export function TaskApp({
                                   {taskPeople.slice(0, 3).map((person) => (
                                     <Avatar
                                       key={person.id}
-                                      name={person.full_name}
+                                      name={profileName(person)}
                                       small
                                     />
                                   ))}
                                 </span>
-                                {taskPeople
-                                  .map((person) => person.full_name)
-                                  .join(", ")}
+                                {taskPeople.map(profileName).join(", ")}
                               </span>
                             ) : (
                               "Unassigned"
@@ -1233,7 +1267,6 @@ export function TaskApp({
         title={editing ? "Edit task" : "A new thing to do"}
         hideActions
         size={editing ? "2xl" : "lg"}
-        panelClassName="max-h-[94vh] overflow-y-auto"
       >
         <form className="space-y-5" onSubmit={saveTask}>
           <div
@@ -1359,7 +1392,7 @@ export function TaskApp({
                   options={[
                     { label: "Unassigned", value: "" },
                     ...data.profiles.map((item) => ({
-                      label: item.full_name,
+                      label: profileName(item),
                       value: item.id,
                     })),
                   ]}
@@ -1434,29 +1467,20 @@ export function TaskApp({
               />
             )}
           </div>
-          {taskMessage && (
-            <p
-              role="alert"
-              className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300"
-            >
-              {taskMessage}
-            </p>
-          )}
-          <div className="sticky -bottom-6 z-10 -mx-6 flex flex-col-reverse gap-3 border-t border-black/10 bg-white px-6 pb-1 pt-5 dark:border-white/10 dark:bg-[#181818] sm:flex-row sm:items-center sm:justify-between">
-            {editing ? (
-              <Button
-                type="button"
-                variant="ghost"
-                className="whitespace-nowrap text-red-600 dark:text-red-400"
-                leftIcon={<FiTrash2 />}
-                onClick={() => void removeTask(editing.id)}
-              >
-                Delete task
-              </Button>
-            ) : (
-              <span />
-            )}
-            <div className="flex shrink-0 gap-3">
+          <ErrorCallout>{taskMessage}</ErrorCallout>
+          <div className="sticky -bottom-6 z-10 -mx-6 flex justify-end border-t border-black/10 bg-white px-6 pb-1 pt-5 dark:border-white/10 dark:bg-[#181818]">
+            <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-end">
+              {editing && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="whitespace-nowrap text-red-600 dark:text-red-400"
+                  leftIcon={<FiTrash2 />}
+                  onClick={() => void removeTask(editing.id)}
+                >
+                  Delete task
+                </Button>
+              )}
               <Button
                 type="button"
                 variant="secondary"
@@ -1711,6 +1735,7 @@ function TeamSettingsModal({
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteName, setInviteName] = useState("");
   const [teamMessage, setTeamMessage] = useState("");
+  const [teamMessageIsError, setTeamMessageIsError] = useState(false);
   async function add() {
     if (!name.trim()) return;
     if (tab === "statuses") {
@@ -1740,6 +1765,7 @@ function TeamSettingsModal({
   async function inviteMember(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setTeamMessage("");
+    setTeamMessageIsError(false);
     if (demoMode) {
       setData((current) => ({
         ...current,
@@ -1760,6 +1786,7 @@ function TeamSettingsModal({
         body: JSON.stringify({ email: inviteEmail, fullName: inviteName }),
       });
       const result = (await response.json()) as { error?: string };
+      setTeamMessageIsError(!response.ok || Boolean(result.error));
       setTeamMessage(result.error ?? "Invitation sent.");
     }
     setInviteEmail("");
@@ -1770,6 +1797,7 @@ function TeamSettingsModal({
     if (!window.confirm("Remove this teammate and revoke their access?"))
       return;
     setTeamMessage("");
+    setTeamMessageIsError(false);
     if (!demoMode) {
       const response = await fetch("/api/team", {
         method: "DELETE",
@@ -1778,6 +1806,7 @@ function TeamSettingsModal({
       });
       const result = (await response.json()) as { error?: string };
       if (result.error) {
+        setTeamMessageIsError(true);
         setTeamMessage(result.error);
         return;
       }
@@ -1852,6 +1881,7 @@ function TeamSettingsModal({
       title="Team settings"
       hideActions
       size="lg"
+      maxHeight="min(42rem, calc(100dvh - max(1rem, env(safe-area-inset-top)) - max(1rem, env(safe-area-inset-bottom))))"
     >
       <div className="mb-6 flex gap-2 overflow-x-auto">
         {(["statuses", "team"] as const).map((item) => (
@@ -1872,16 +1902,16 @@ function TeamSettingsModal({
               key={person.id}
               className="flex items-center gap-3 rounded-xl border border-black/10 p-3 dark:border-white/10"
             >
-              <Avatar name={person.full_name} />
+              <Avatar name={profileName(person)} />
               <div className="flex-1">
-                <p className="font-semibold">{person.full_name}</p>
+                <p className="font-semibold">{profileName(person)}</p>
                 <p className="text-xs text-black/50 dark:text-white/50">
                   Team member
                 </p>
               </div>
               {person.id !== data.currentProfile.id && (
                 <IconButton
-                  label={`Remove ${person.full_name}`}
+                  label={`Remove ${profileName(person)}`}
                   onClick={() => void removeMember(person.id)}
                 >
                   <FiTrash2 />
@@ -1909,21 +1939,20 @@ function TeamSettingsModal({
               onChange={(event) => setInviteEmail(event.target.value)}
               placeholder="ryan@example.com"
             />
-            {teamMessage && (
-              <p
-                role="status"
-                className="text-sm text-black/60 dark:text-white/60"
-              >
+            {teamMessageIsError ? (
+              <ErrorCallout className="sm:col-span-2">
                 {teamMessage}
-              </p>
-            )}
-            <Button
-              type="submit"
-              className="sm:col-start-2"
-              leftIcon={<FiPlus />}
-            >
-              Invite teammate
-            </Button>
+              </ErrorCallout>
+            ) : teamMessage ? (
+              <SuccessCallout className="sm:col-span-2">
+                {teamMessage}
+              </SuccessCallout>
+            ) : null}
+            <div className="flex justify-end sm:col-span-2">
+              <Button type="submit" leftIcon={<FiPlus />}>
+                Invite teammate
+              </Button>
+            </div>
           </form>
         </div>
       ) : (
@@ -1976,7 +2005,7 @@ function TeamSettingsModal({
                 </div>
               ))}
           </div>
-          <div className="mt-5 grid gap-3 border-t border-black/10 pt-5 dark:border-white/10 sm:grid-cols-[1fr_auto_auto]">
+          <div className="mt-5 grid gap-3 border-t border-black/10 pt-5 dark:border-white/10 sm:grid-cols-[1fr_auto]">
             <Input
               label="New status"
               name="setting-name"
@@ -1993,13 +2022,11 @@ function TeamSettingsModal({
                 onChange={(event) => setColor(event.target.value)}
               />
             </label>
-            <Button
-              className="self-end"
-              onClick={() => void add()}
-              leftIcon={<FiPlus />}
-            >
-              Add
-            </Button>
+            <div className="flex justify-end sm:col-span-2">
+              <Button onClick={() => void add()} leftIcon={<FiPlus />}>
+                Add
+              </Button>
+            </div>
           </div>
         </>
       )}

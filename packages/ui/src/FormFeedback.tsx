@@ -1,16 +1,14 @@
 import type { ReactNode } from "react";
 import { Kicker } from "./Kicker";
 import { Text } from "./Text";
+import { ErrorCallout } from "./ErrorCallout";
 
 export type FieldErrorProps = { children?: ReactNode; className?: string };
 const FieldError = ({ children, className }: FieldErrorProps) =>
   children ? (
-    <Text
-      role="alert"
-      className={`mt-2 text-xs font-semibold uppercase tracking-[0.3em] !text-red-500 dark:!text-red-400 ${className ?? ""}`}
-    >
+    <ErrorCallout className={`mt-2 ${className ?? ""}`}>
       {children}
-    </Text>
+    </ErrorCallout>
   ) : null;
 
 export type FormStatusProps = {
@@ -44,7 +42,7 @@ const FormActions = ({
   className?: string;
 }) => (
   <div
-    className={`flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between ${className ?? ""}`}
+    className={`flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end ${className ?? ""}`}
   >
     {children}
   </div>

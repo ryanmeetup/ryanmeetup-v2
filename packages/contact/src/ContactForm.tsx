@@ -3,12 +3,13 @@
 import emailjs from "@emailjs/browser";
 import {
   Button,
+  ErrorCallout,
   FieldError,
   FormActions,
-  FormStatus,
   Input,
   RequiredFieldsNote,
   Spinner,
+  SuccessCallout,
   Textarea,
 } from "@ryanmeetup/ui";
 import { validateEmail } from "@ryanmeetup/utils";
@@ -16,7 +17,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast, { Toaster } from "react-hot-toast";
 import { BiMailSend as Send } from "react-icons/bi";
-import { FaCheckCircle as Check } from "react-icons/fa";
 
 export type ContactFormFields = {
   firstName: string;
@@ -80,12 +80,12 @@ const ContactForm = ({
 
   const notifySuccess = () =>
     toast.custom(() => (
-      <FormStatus
-        title="Email sent!"
-        icon={<Check className="h-6 w-6 fill-emerald-500" />}
-      >
-        Expect an email back from Ryan soon!
-      </FormStatus>
+      <SuccessCallout>
+        <strong className="block">Email sent!</strong>
+        <span className="block font-normal">
+          Expect an email back from Ryan soon!
+        </span>
+      </SuccessCallout>
     ));
 
   const send = async (form: ContactFormFields) => {
@@ -101,6 +101,14 @@ const ContactForm = ({
       }
       notifySuccess();
       reset(defaultValues);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "The message could not be sent. Please try again.";
+      toast.custom(() => <ErrorCallout>{message}</ErrorCallout>, {
+        duration: 6000,
+      });
     } finally {
       setLoading(false);
     }
