@@ -157,6 +157,18 @@ function profileName(profile: { full_name: string }) {
   return profile.full_name || "Teammate";
 }
 
+function mutationErrorMessage(error: unknown, fallback: string) {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof error.message === "string"
+  ) {
+    return error.message;
+  }
+  return fallback;
+}
+
 function CategoryBadge({ category }: { category: Category }) {
   return (
     <span
@@ -1374,7 +1386,7 @@ export function TaskApp({
                 );
                 const isCollapsed = collapsedStatusIds?.has(item.id) ?? false;
                 const columnSizeClass = isCollapsed
-                  ? "min-h-0 w-[220px]"
+                  ? "min-h-0 w-[240px]"
                   : `${columnTasks.length === 0 ? "min-h-0" : "min-h-[420px]"} w-[min(320px,calc(100vw-3rem))]`;
                 return (
                   <section
@@ -1419,7 +1431,7 @@ export function TaskApp({
                         className="h-2.5 w-2.5 rounded-full"
                         style={{ backgroundColor: item.color }}
                       />
-                      <h2 className="text-xs font-bold uppercase tracking-[0.16em]">
+                      <h2 className="shrink-0 whitespace-nowrap text-xs font-bold uppercase tracking-[0.16em]">
                         {item.name}
                       </h2>
                       <span className="text-xs text-black/40 dark:text-white/40">
@@ -2114,6 +2126,22 @@ function TeamSettingsModal({
     WorkspaceData["statuses"][number] | null
   >(null);
   const [settingActionPending, setSettingActionPending] = useState(false);
+
+  async function statusRequest<T>(
+    method: "POST" | "PATCH" | "DELETE",
+    body: Record<string, unknown>,
+  ) {
+    const response = await fetch("/api/statuses", {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const result = (await response.json()) as T & { error?: string };
+    if (!response.ok || result.error)
+      throw new Error(result.error ?? "The status change could not be saved.");
+    return result;
+  }
+
   async function add() {
     const nextName = name.trim();
     if (!nextName || settingActionPending) return;
@@ -2129,19 +2157,11 @@ function TeamSettingsModal({
       };
       try {
         if (!demoMode) {
-          const { data: saved, error } = await createClient()
-            .from("statuses")
-            .insert({
-              name: item.name,
-              color: item.color,
-              sort_order: item.sort_order,
-              is_default: item.is_default,
-              is_completed: item.is_completed,
-            })
-            .select("*")
-            .single();
-          if (error) throw error;
-          item = saved;
+          const result = await statusRequest<{ status: typeof item }>("POST", {
+            name: item.name,
+            color: item.color,
+          });
+          item = result.status;
         }
         setData((current) => ({
           ...current,
@@ -2151,9 +2171,7 @@ function TeamSettingsModal({
         toast.success(`${item.name} added.`);
       } catch (error) {
         toast.error(
-          error instanceof Error
-            ? error.message
-            : "The status could not be added.",
+          mutationErrorMessage(error, "The status could not be added."),
         );
       } finally {
         setSettingActionPending(false);
@@ -2239,16 +2257,7 @@ function TeamSettingsModal({
     setSettingActionPending(true);
     try {
       if (!demoMode) {
-        const { error } = await createClient()
-          .from("statuses")
-          .update({ name: nextName })
-          .eq("id", id)
-          .select("id")
-          .single();
-        if (error) {
-          toast.error(error.message);
-          return;
-        }
+        await statusRequest("PATCH", { id, name: nextName });
       }
       setData((current) => ({
         ...current,
@@ -2258,6 +2267,10 @@ function TeamSettingsModal({
       }));
       setStatusToRename(null);
       toast.success(`${nextName} updated.`);
+    } catch (error) {
+      toast.error(
+        mutationErrorMessage(error, "The status could not be renamed."),
+      );
     } finally {
       setSettingActionPending(false);
     }
@@ -2266,24 +2279,17 @@ function TeamSettingsModal({
   async function deleteSetting(id: string) {
     setSettingActionPending(true);
     try {
-      const result = demoMode
-        ? null
-        : await createClient()
-            .from("statuses")
-            .delete()
-            .eq("id", id)
-            .select("id")
-            .single();
-      if (result?.error) {
-        toast.error(result.error.message);
-        return;
-      }
+      if (!demoMode) await statusRequest("DELETE", { id });
       setData((current) => ({
         ...current,
         statuses: current.statuses.filter((item) => item.id !== id),
       }));
       setStatusToDelete(null);
       toast.success("Status deleted.");
+    } catch (error) {
+      toast.error(
+        mutationErrorMessage(error, "The status could not be deleted."),
+      );
     } finally {
       setSettingActionPending(false);
     }
@@ -2293,16 +2299,7 @@ function TeamSettingsModal({
     setSettingActionPending(true);
     try {
       if (!demoMode) {
-        const { error } = await createClient()
-          .from("statuses")
-          .update({ is_completed: isCompleted })
-          .eq("id", id)
-          .select("id")
-          .single();
-        if (error) {
-          toast.error(error.message);
-          return;
-        }
+        await statusRequest("PATCH", { id, isCompleted });
       }
       const now = new Date().toISOString();
       setData((current) => ({
@@ -2332,6 +2329,10 @@ function TeamSettingsModal({
           ? "Tasks in this status will archive after 14 days."
           : "This is now an active status.",
       );
+    } catch (error) {
+      toast.error(
+        mutationErrorMessage(error, "The status could not be updated."),
+      );
     } finally {
       setSettingActionPending(false);
     }
@@ -2350,15 +2351,22 @@ function TeamSettingsModal({
     setSettingActionPending(true);
     try {
       if (!demoMode) {
-        const { error } = await createClient().from("statuses").upsert(next);
-        if (error) throw error;
+        const result = await statusRequest<{
+          statuses: WorkspaceData["statuses"];
+        }>("PATCH", { orderedIds: next.map((item) => item.id) });
+        const savedById = new Map(
+          result.statuses.map((status) => [status.id, status]),
+        );
+        next.splice(
+          0,
+          next.length,
+          ...next.map((status) => savedById.get(status.id) ?? status),
+        );
       }
       setData((current) => ({ ...current, statuses: next }));
     } catch (error) {
       toast.error(
-        error instanceof Error
-          ? error.message
-          : "The status order could not be saved.",
+        mutationErrorMessage(error, "The status order could not be saved."),
       );
     } finally {
       setSettingActionPending(false);
