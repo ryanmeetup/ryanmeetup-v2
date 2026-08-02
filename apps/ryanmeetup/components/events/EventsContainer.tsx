@@ -19,7 +19,7 @@ import {
   toEndOfDayTime,
 } from "@/utils/date";
 import { buildEventSearchText, getEventEmptyMessage } from "@/utils/events";
-import { useSearchFilter } from "@/hooks/useSearchFilter";
+import { useSearchFilter } from "@ryanmeetup/hooks";
 
 type EventsContainerProps = {
   events: RyanEvent[];

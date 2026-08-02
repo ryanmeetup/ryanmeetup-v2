@@ -2,7 +2,7 @@ import type { HTMLAttributes } from "react";
 
 export type EmptyStateProps = HTMLAttributes<HTMLDivElement> & {
   message: string;
-  variant?: "solid" | "dashed";
+  variant?: "solid" | "dashed" | "plain";
 };
 
 const EmptyState = ({
@@ -11,12 +11,19 @@ const EmptyState = ({
   className,
   ...props
 }: EmptyStateProps) => {
-  const base =
-    variant === "solid"
-      ? "rounded-2xl border border-black/10 bg-white/80 p-6 text-center dark:border-white/10 dark:bg-white/5"
-      : "rounded-2xl border border-dashed border-black/20 p-6 text-center dark:border-white/20";
+  const variantStyles = {
+    solid:
+      "rounded-2xl border border-black/10 bg-white/80 p-6 dark:border-white/10 dark:bg-white/5",
+    dashed:
+      "rounded-2xl border border-dashed border-black/20 p-6 dark:border-white/20",
+    plain: "p-10",
+  };
+
   return (
-    <div {...props} className={`${base} ${className ?? ""}`}>
+    <div
+      {...props}
+      className={`text-center ${variantStyles[variant]} ${className ?? ""}`}
+    >
       <span className="text-sm uppercase tracking-[0.2em] text-black/70 dark:text-white/70">
         {message}
       </span>

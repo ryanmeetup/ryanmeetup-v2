@@ -156,7 +156,8 @@ const ReachSnapshot = () => {
         title="Website Traffic Snapshot"
         closable
         hideActions
-        panelClassName="w-[92vw] max-w-[1120px] p-4 sm:p-5 lg:p-6"
+        size="2xl"
+        panelClassName="p-4 sm:p-5 lg:p-6"
         cancelButtonText=""
         continueButtonText=""
         isContinueDisabled={false}

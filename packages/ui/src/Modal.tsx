@@ -6,6 +6,8 @@ import type { ReactNode } from "react";
 import { Button } from "./Button";
 import { IconButton } from "./IconButton";
 
+export type ModalSize = "sm" | "md" | "lg" | "xl" | "2xl" | "full";
+
 export type ModalProps = {
   open: boolean;
   setIsOpen: (open: boolean) => void;
@@ -22,6 +24,16 @@ export type ModalProps = {
   isContinueDisabled?: boolean;
   cancelAction?: () => void;
   continueAction?: () => void;
+  size?: ModalSize;
+};
+
+const sizeStyles: Record<ModalSize, string> = {
+  sm: "max-w-sm",
+  md: "max-w-lg",
+  lg: "max-w-2xl",
+  xl: "max-w-5xl",
+  "2xl": "max-w-7xl",
+  full: "max-w-[calc(100vw-2rem)]",
 };
 
 const Modal = ({
@@ -40,6 +52,7 @@ const Modal = ({
   isContinueDisabled = false,
   cancelAction,
   continueAction,
+  size = "md",
 }: ModalProps) => {
   const legacyActions =
     cancelButtonText && continueButtonText && cancelAction && continueAction ? (
@@ -85,15 +98,15 @@ const Modal = ({
       className="relative z-50"
     >
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+        className="fixed inset-0 bg-black/65 backdrop-blur-sm dark:bg-black/80"
         aria-hidden="true"
       />
       <div className="fixed inset-0 flex w-screen items-center justify-center p-4">
         <DialogPanel
-          className={`mx-auto w-full max-w-lg rounded-2xl border border-black/10 bg-white/95 p-6 shadow-2xl dark:border-white/15 dark:bg-black/85 ${panelClassName ?? ""}`}
+          className={`mx-auto w-full ${sizeStyles[size]} rounded-2xl border border-black/15 bg-white p-6 shadow-[0_24px_80px_rgba(0,0,0,0.35)] ring-1 ring-black/5 dark:border-white/20 dark:bg-[#181818] dark:shadow-[0_28px_100px_rgba(0,0,0,0.85)] dark:ring-white/10 ${panelClassName ?? ""}`}
         >
           <div className="mb-4 flex w-full items-start justify-between gap-4">
-            <DialogTitle className="text-xl font-cooper text-black md:text-2xl dark:text-white">
+            <DialogTitle className="text-xl font-cooper capitalize text-black md:text-2xl dark:text-white">
               {title}
             </DialogTitle>
             {closable && (

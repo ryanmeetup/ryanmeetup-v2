@@ -1,5 +1,7 @@
+"use client";
+
 import { useEffect, useMemo, useState } from "react";
-import { useQueryParamState } from "@/hooks/useQueryParamState";
+import { useQueryParamState } from "./useQueryParamState";
 
 type SearchFilterOptions<T> = {
   data: T[];
@@ -37,3 +39,4 @@ const useSearchFilter = <T,>(options: SearchFilterOptions<T>) => {
 };
 
 export { useSearchFilter };
+export type { SearchFilterOptions };

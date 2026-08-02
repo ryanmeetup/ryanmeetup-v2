@@ -17,6 +17,7 @@ export type InputProps = Omit<
   trailingAction?: ReactNode;
   inputClassName?: string;
   error?: boolean;
+  hideLabel?: boolean;
 };
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
@@ -33,6 +34,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       trailingAction,
       inputClassName,
       error = false,
+      hideLabel = false,
       ...rest
     } = props;
 
@@ -42,7 +44,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="flex flex-col gap-2">
         <label
-          className={`${getFieldLabelClasses(!ignoreColorMode)} ${error ? "!text-red-500 dark:!text-red-400" : ""}`}
+          className={`${hideLabel ? "sr-only" : getFieldLabelClasses(!ignoreColorMode)} ${error ? "!text-red-500 dark:!text-red-400" : ""}`}
           htmlFor={name}
         >
           <span>{label}</span>

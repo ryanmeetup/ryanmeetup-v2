@@ -22,7 +22,7 @@ import {
 import { getEventEmptyMessage, getSortedEventsByView } from "@/utils/events";
 import { formatEventCount } from "@/utils/date";
 import type { RyanEvent } from "@/lib/types";
-import { useQueryParamState } from "@/hooks/useQueryParamState";
+import { useQueryParamState } from "@ryanmeetup/hooks";
 
 type EventsListPagerProps = {
   events: RyanEvent[];

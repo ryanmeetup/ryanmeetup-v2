@@ -12,6 +12,7 @@ export type TextareaProps = Omit<
   label: string;
   name: string;
   onChange: ChangeEventHandler<HTMLTextAreaElement>;
+  hideLabel?: boolean;
 };
 
 const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
@@ -24,12 +25,16 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
       placeholder,
       required,
       rows = 5,
+      hideLabel = false,
       ...rest
     } = props;
 
     return (
       <div className="flex flex-col gap-2">
-        <label className={getFieldLabelClasses()} htmlFor={id}>
+        <label
+          className={hideLabel ? "sr-only" : getFieldLabelClasses()}
+          htmlFor={id}
+        >
           <span>{label}</span>
           {required && <span className="shrink-0 text-red-500">*</span>}
         </label>

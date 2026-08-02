@@ -18,21 +18,24 @@ import {
   Input,
   Modal,
   Pill,
-  Select,
   Textarea,
   Tooltip,
+  toast,
 } from "@ryanmeetup/ui";
 import {
   FiCalendar,
+  FiBell,
   FiCheck,
   FiChevronDown,
   FiFilter,
+  FiFolder,
   FiGrid,
   FiList,
   FiLogOut,
   FiMenu,
   FiMoreHorizontal,
   FiPlus,
+  FiRefreshCw,
   FiSearch,
   FiSettings,
   FiTrash2,
@@ -43,6 +46,9 @@ import { createClient } from "@/lib/supabase/client";
 import { useSearchFilter } from "@ryanmeetup/hooks";
 import type { Priority, Task, WorkspaceData } from "@/lib/types";
 import { ThemeToggle } from "./ThemeToggle";
+import { TaskDetails } from "./TaskDetails";
+import { WorkGroupsModal as CategoriesModal } from "./WorkGroupsModal";
+import { ProjectsModal } from "./ProjectsModal";
 
 type View = "board" | "list";
 type Draft = Pick<
@@ -51,12 +57,29 @@ type Draft = Pick<
   | "description"
   | "status_id"
   | "work_group_id"
+  | "project_id"
   | "assignee_id"
   | "start_date"
   | "due_date"
+  | "due_time"
+  | "reminder_at"
   | "priority"
->;
+> & { category_ids: string[] };
 const priorities: Priority[] = ["low", "medium", "high", "urgent"];
+const workGroupColors = [
+  "#dc2626",
+  "#ea580c",
+  "#d97706",
+  "#65a30d",
+  "#059669",
+  "#0891b2",
+  "#2563eb",
+  "#4f46e5",
+  "#7c3aed",
+  "#c026d3",
+  "#db2777",
+  "#475569",
+];
 const priorityStyles: Record<Priority, string> = {
   low: "border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200",
   medium:
@@ -72,10 +95,14 @@ function blankDraft(statusId: string): Draft {
     description: "",
     status_id: statusId,
     work_group_id: null,
+    project_id: null,
     assignee_id: null,
     start_date: null,
     due_date: null,
+    due_time: null,
+    reminder_at: null,
     priority: "medium",
+    category_ids: [],
   };
 }
 
@@ -94,6 +121,16 @@ function displayDate(value: string | null) {
     month: "short",
     day: "numeric",
   }).format(new Date(`${value}T12:00:00`));
+}
+
+function displayDue(task: Task) {
+  const date = displayDate(task.due_date);
+  if (!task.due_time) return date;
+  const [hours, minutes] = task.due_time.split(":").map(Number);
+  return `${date}, ${new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(2000, 0, 1, hours, minutes))}`;
 }
 
 function Avatar({ name, small = false }: { name: string; small?: boolean }) {
@@ -119,6 +156,10 @@ export function TaskApp({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [taskOpen, setTaskOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [workGroupsOpen, setWorkGroupsOpen] = useState(false);
+  const [projectsOpen, setProjectsOpen] = useState(false);
+  const [taskMessage, setTaskMessage] = useState("");
+  const [taskSaving, setTaskSaving] = useState(false);
   const [editing, setEditing] = useState<Task | null>(null);
   const [draft, setDraft] = useState<Draft>(
     blankDraft(
@@ -136,6 +177,7 @@ export function TaskApp({
   });
   const [assignee, setAssignee] = useState("all");
   const [group, setGroup] = useState("all");
+  const [project, setProject] = useState("all");
   const [status, setStatus] = useState("all");
   const [priority, setPriority] = useState("all");
   const [sort, setSort] = useState("updated");
@@ -146,12 +188,34 @@ export function TaskApp({
     if (saved) {
       try {
         const restored = JSON.parse(saved) as WorkspaceData;
-        queueMicrotask(() => setData(restored));
+        queueMicrotask(() =>
+          setData({
+            ...initialData,
+            ...restored,
+            subtasks: restored.subtasks ?? [],
+            comments: restored.comments ?? [],
+            activity: restored.activity ?? [],
+            attachments: restored.attachments ?? [],
+            labels: restored.labels ?? [],
+            projects: restored.projects ?? [],
+            categories: restored.categories ?? initialData.categories,
+            taskCategories: restored.taskCategories ?? [],
+            projectOwners: restored.projectOwners ?? [],
+            taskAssignees: restored.taskAssignees ?? [],
+            taskLabels: restored.taskLabels ?? [],
+            tasks: restored.tasks.map((task) => ({
+              ...task,
+              due_time: task.due_time ?? null,
+              reminder_at: task.reminder_at ?? null,
+              project_id: task.project_id ?? null,
+            })),
+          }),
+        );
       } catch {
         localStorage.removeItem("ryanmeetup.tasks.workspace");
       }
     }
-  }, [demoMode]);
+  }, [demoMode, initialData]);
 
   useEffect(() => {
     if (demoMode)
@@ -175,8 +239,67 @@ export function TaskApp({
         },
       )
       .subscribe();
+    const detailsChannel = supabase
+      .channel("task-details-live")
+      .on("postgres_changes", { event: "*", schema: "public" }, async () => {
+        const [
+          { data: subtasks },
+          { data: comments },
+          { data: activity },
+          { data: attachments },
+          { data: labels },
+          { data: projects },
+          { data: categories },
+          { data: taskCategories },
+          { data: projectOwners },
+          { data: taskAssignees },
+          { data: taskLabels },
+        ] = await Promise.all([
+          supabase.from("subtasks").select("*").order("sort_order"),
+          supabase.from("task_comments").select("*").order("created_at"),
+          supabase
+            .from("task_activity")
+            .select("*")
+            .order("created_at", { ascending: false }),
+          supabase.from("task_attachments").select("*").order("created_at"),
+          supabase.from("labels").select("*").order("name"),
+          supabase.from("projects").select("*").order("name"),
+          supabase.from("work_groups").select("*").order("name"),
+          supabase.from("task_categories").select("*"),
+          supabase.from("project_owners").select("*"),
+          supabase.from("task_assignees").select("*"),
+          supabase.from("task_labels").select("*"),
+        ]);
+        const refreshedAttachments = await Promise.all(
+          (attachments ?? []).map(async (attachment) => {
+            if (!attachment.file_path) return attachment;
+            const signed = await supabase.storage
+              .from("task-attachments")
+              .createSignedUrl(attachment.file_path, 60 * 60);
+            return signed.data?.signedUrl
+              ? { ...attachment, url: signed.data.signedUrl }
+              : attachment;
+          }),
+        );
+        setData((current) => ({
+          ...current,
+          subtasks: subtasks ?? current.subtasks,
+          comments: comments ?? current.comments,
+          activity: activity ?? current.activity,
+          attachments: attachments ? refreshedAttachments : current.attachments,
+          labels: labels ?? current.labels,
+          projects: projects ?? current.projects,
+          categories: categories ?? current.categories,
+          taskCategories: taskCategories ?? current.taskCategories,
+          projectOwners: projectOwners ?? current.projectOwners,
+          taskAssignees: taskAssignees ?? current.taskAssignees,
+          taskLabels: taskLabels ?? current.taskLabels,
+        }));
+      })
+      .subscribe();
     return () => {
       void supabase.removeChannel(channel);
+      void supabase.removeChannel(detailsChannel);
     };
   }, [demoMode]);
 
@@ -184,14 +307,47 @@ export function TaskApp({
     () => new Map(data.profiles.map((item) => [item.id, item])),
     [data.profiles],
   );
-  const groups = useMemo(
-    () => new Map(data.workGroups.map((item) => [item.id, item])),
-    [data.workGroups],
+  const categories = useMemo(
+    () => new Map(data.categories.map((item) => [item.id, item])),
+    [data.categories],
   );
   const statuses = useMemo(
     () => [...data.statuses].sort((a, b) => a.sort_order - b.sort_order),
     [data.statuses],
   );
+  const projects = useMemo(
+    () => new Map(data.projects.map((item) => [item.id, item])),
+    [data.projects],
+  );
+  const activeProjects = useMemo(
+    () => data.projects.filter((item) => !item.archived_at),
+    [data.projects],
+  );
+  const categoriesByTask = useMemo(() => {
+    const result = new Map<string, Set<string>>();
+    data.taskCategories.forEach((item) => {
+      const ids = result.get(item.task_id) ?? new Set<string>();
+      ids.add(item.category_id);
+      result.set(item.task_id, ids);
+    });
+    return result;
+  }, [data.taskCategories]);
+  const assigneesByTask = useMemo(() => {
+    const result = new Map<string, Set<string>>();
+    data.taskAssignees.forEach((item) => {
+      const ids = result.get(item.task_id) ?? new Set<string>();
+      ids.add(item.profile_id);
+      result.set(item.task_id, ids);
+    });
+    data.tasks.forEach((task) => {
+      if (task.assignee_id) {
+        const ids = result.get(task.id) ?? new Set<string>();
+        ids.add(task.assignee_id);
+        result.set(task.id, ids);
+      }
+    });
+    return result;
+  }, [data.taskAssignees, data.tasks]);
   const visibleTasks = useMemo(
     () =>
       searchedTasks
@@ -199,9 +355,13 @@ export function TaskApp({
           return (
             (assignee === "all" ||
               (assignee === "unassigned"
-                ? !task.assignee_id
-                : task.assignee_id === assignee)) &&
-            (group === "all" || task.work_group_id === group) &&
+                ? !assigneesByTask.get(task.id)?.size
+                : assigneesByTask.get(task.id)?.has(assignee))) &&
+            (group === "all" || categoriesByTask.get(task.id)?.has(group)) &&
+            (project === "all" ||
+              (project === "none"
+                ? task.project_id === null
+                : task.project_id === project)) &&
             (status === "all" || task.status_id === status) &&
             (priority === "all" || task.priority === priority)
           );
@@ -213,25 +373,41 @@ export function TaskApp({
               ? priorities.indexOf(b.priority) - priorities.indexOf(a.priority)
               : b.updated_at.localeCompare(a.updated_at),
         ),
-    [assignee, group, priority, searchedTasks, sort, status],
+    [
+      assignee,
+      assigneesByTask,
+      categoriesByTask,
+      group,
+      priority,
+      project,
+      searchedTasks,
+      sort,
+      status,
+    ],
   );
 
   function openCreate(statusId?: string) {
+    setTaskMessage("");
     setEditing(null);
     setDraft(blankDraft(statusId ?? statuses[1]?.id ?? statuses[0]?.id ?? ""));
     setTaskOpen(true);
   }
 
   function openEdit(task: Task) {
+    setTaskMessage("");
     setEditing(task);
     setDraft({
       title: task.title,
       description: task.description,
       status_id: task.status_id,
       work_group_id: task.work_group_id,
+      project_id: task.project_id,
+      category_ids: [...(categoriesByTask.get(task.id) ?? [])],
       assignee_id: task.assignee_id,
       start_date: task.start_date,
       due_date: task.due_date,
+      due_time: task.due_time,
+      reminder_at: task.reminder_at,
       priority: task.priority,
     });
     setTaskOpen(true);
@@ -239,13 +415,25 @@ export function TaskApp({
 
   async function saveTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!draft.title.trim()) return;
+    if (!draft.title.trim()) {
+      setTaskMessage("A task title is required.");
+      toast.error("A task title is required.");
+      return;
+    }
+    setTaskMessage("");
+    setTaskSaving(true);
     const now = new Date().toISOString();
     if (demoMode) {
+      const { category_ids: categoryIds, ...taskDraft } = draft;
       const task: Task = editing
-        ? { ...editing, ...draft, title: draft.title.trim(), updated_at: now }
+        ? {
+            ...editing,
+            ...taskDraft,
+            title: draft.title.trim(),
+            updated_at: now,
+          }
         : {
-            ...draft,
+            ...taskDraft,
             title: draft.title.trim(),
             id: crypto.randomUUID(),
             created_by: data.currentProfile.id,
@@ -257,37 +445,159 @@ export function TaskApp({
         tasks: editing
           ? current.tasks.map((item) => (item.id === editing.id ? task : item))
           : [task, ...current.tasks],
+        taskCategories: [
+          ...current.taskCategories.filter((item) => item.task_id !== task.id),
+          ...categoryIds.map((category_id) => ({
+            task_id: task.id,
+            category_id,
+          })),
+        ],
       }));
     } else {
       const supabase = createClient();
-      if (editing)
-        await supabase
+      const { category_ids: categoryIds, ...taskDraft } = draft;
+      if (editing) {
+        const { error } = await supabase
           .from("tasks")
-          .update({ ...draft, title: draft.title.trim() })
+          .update({ ...taskDraft, title: draft.title.trim() })
           .eq("id", editing.id);
-      else
-        await supabase.from("tasks").insert({
-          ...draft,
-          title: draft.title.trim(),
-          created_by: data.currentProfile.id,
-        });
-      const { data: tasks } = await supabase
-        .from("tasks")
-        .select("*")
-        .order("updated_at", { ascending: false });
-      if (tasks) setData((current) => ({ ...current, tasks }));
+        if (error) {
+          setTaskMessage(error.message);
+          toast.error(error.message);
+          setTaskSaving(false);
+          return;
+        }
+        if (draft.assignee_id)
+          await supabase.from("task_assignees").upsert({
+            task_id: editing.id,
+            profile_id: draft.assignee_id,
+          });
+        setData((current) => ({
+          ...current,
+          tasks: current.tasks.map((task) =>
+            task.id === editing.id
+              ? {
+                  ...task,
+                  ...taskDraft,
+                  title: draft.title.trim(),
+                  updated_at: now,
+                }
+              : task,
+          ),
+        }));
+        await supabase
+          .from("task_categories")
+          .delete()
+          .eq("task_id", editing.id);
+        if (categoryIds.length > 0)
+          await supabase.from("task_categories").insert(
+            categoryIds.map((category_id) => ({
+              task_id: editing.id,
+              category_id,
+            })),
+          );
+        setData((current) => ({
+          ...current,
+          taskCategories: [
+            ...current.taskCategories.filter(
+              (item) => item.task_id !== editing.id,
+            ),
+            ...categoryIds.map((category_id) => ({
+              task_id: editing.id,
+              category_id,
+            })),
+          ],
+        }));
+      } else {
+        const coreDraft = {
+          title: draft.title,
+          description: draft.description,
+          status_id: draft.status_id,
+          work_group_id: draft.work_group_id,
+          project_id: draft.project_id,
+          assignee_id: draft.assignee_id,
+          start_date: draft.start_date,
+          due_date: draft.due_date,
+          priority: draft.priority,
+        };
+        const { data: saved, error } = await supabase
+          .from("tasks")
+          .insert({
+            ...coreDraft,
+            title: draft.title.trim(),
+            created_by: data.currentProfile.id,
+          })
+          .select("*")
+          .single();
+        if (error || !saved) {
+          const errorMessage =
+            error?.message ?? "The task could not be created.";
+          setTaskMessage(errorMessage);
+          toast.error(errorMessage);
+          setTaskSaving(false);
+          return;
+        }
+        const task: Task = {
+          ...saved,
+          due_time: saved.due_time ?? null,
+          reminder_at: saved.reminder_at ?? null,
+        };
+        setData((current) => ({
+          ...current,
+          tasks: [task, ...current.tasks.filter((item) => item.id !== task.id)],
+        }));
+        if (task.assignee_id)
+          await supabase.from("task_assignees").upsert({
+            task_id: task.id,
+            profile_id: task.assignee_id,
+          });
+        if (categoryIds.length > 0) {
+          const taskCategories = categoryIds.map((category_id) => ({
+            task_id: task.id,
+            category_id,
+          }));
+          await supabase.from("task_categories").insert(taskCategories);
+          setData((current) => ({
+            ...current,
+            taskCategories: [...current.taskCategories, ...taskCategories],
+          }));
+        }
+      }
     }
+    setTaskSaving(false);
     setTaskOpen(false);
+    toast.success(editing ? "Task updated." : "Task created.");
   }
 
   async function removeTask(id: string) {
     if (!window.confirm("Delete this task? This cannot be undone.")) return;
-    if (!demoMode) await createClient().from("tasks").delete().eq("id", id);
+    if (!demoMode) {
+      const { error } = await createClient()
+        .from("tasks")
+        .delete()
+        .eq("id", id);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+    }
     setData((current) => ({
       ...current,
       tasks: current.tasks.filter((item) => item.id !== id),
+      subtasks: current.subtasks.filter((item) => item.task_id !== id),
+      comments: current.comments.filter((item) => item.task_id !== id),
+      activity: current.activity.filter((item) => item.task_id !== id),
+      attachments: current.attachments.filter((item) => item.task_id !== id),
+      taskAssignees: current.taskAssignees.filter(
+        (item) => item.task_id !== id,
+      ),
+      taskLabels: current.taskLabels.filter((item) => item.task_id !== id),
+      taskCategories: current.taskCategories.filter(
+        (item) => item.task_id !== id,
+      ),
     }));
     setTaskOpen(false);
+    toast.success("Task deleted.");
   }
 
   async function moveTask(id: string, statusId: string) {
@@ -310,14 +620,27 @@ export function TaskApp({
         .eq("id", id);
   }
 
-  const filterCount = [assignee, group, status, priority].filter(
+  const filterCount = [assignee, group, project, status, priority].filter(
     (value) => value !== "all",
   ).length;
   const taskCard = (task: Task) => {
-    const taskGroup = task.work_group_id
-      ? groups.get(task.work_group_id)
-      : null;
-    const person = task.assignee_id ? profiles.get(task.assignee_id) : null;
+    const taskCategories = [...(categoriesByTask.get(task.id) ?? [])]
+      .map((id) => categories.get(id))
+      .filter((item) => item !== undefined);
+    const taskProject = task.project_id ? projects.get(task.project_id) : null;
+    const taskPeople = [...(assigneesByTask.get(task.id) ?? [])]
+      .map((id) => profiles.get(id))
+      .filter((person) => person !== undefined);
+    const taskSubtasks = data.subtasks.filter(
+      (item) => item.task_id === task.id,
+    );
+    const completedSubtasks = taskSubtasks.filter(
+      (item) => item.is_completed,
+    ).length;
+    const taskLabels = data.taskLabels
+      .filter((item) => item.task_id === task.id)
+      .map((item) => data.labels.find((label) => label.id === item.label_id))
+      .filter((label) => label !== undefined);
     return (
       <button
         draggable
@@ -344,26 +667,73 @@ export function TaskApp({
             {task.description}
           </p>
         )}
+        {(taskLabels.length > 0 || taskSubtasks.length > 0) && (
+          <div className="mt-3 flex flex-wrap items-center gap-1.5">
+            {taskLabels.map((label) => (
+              <span
+                key={label.id}
+                className="rounded-full px-2 py-0.5 text-[9px] font-semibold text-white"
+                style={{ backgroundColor: label.color }}
+              >
+                {label.name}
+              </span>
+            ))}
+            {taskSubtasks.length > 0 && (
+              <span className="ml-auto text-[10px] font-semibold text-black/50 dark:text-white/50">
+                ✓ {completedSubtasks}/{taskSubtasks.length}
+              </span>
+            )}
+          </div>
+        )}
         <div className="mt-4 flex items-end justify-between gap-3">
           <div className="min-w-0 space-y-2">
-            {taskGroup && (
-              <span className="flex items-center gap-1.5 truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-black/60 dark:text-white/60">
-                <i
-                  className="h-2 w-2 shrink-0 rounded-full"
-                  style={{ backgroundColor: taskGroup.color }}
-                />
-                {taskGroup.name}
+            {taskCategories.length > 0 && (
+              <span className="flex flex-wrap gap-1.5">
+                {taskCategories.map((category) => (
+                  <span
+                    key={category.id}
+                    className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-black/60 dark:text-white/60"
+                  >
+                    <i
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{ backgroundColor: category.color }}
+                    />
+                    {category.name}
+                  </span>
+                ))}
+              </span>
+            )}
+            {taskProject && (
+              <span className="flex items-center gap-1.5 truncate text-[10px] font-semibold text-black/60 dark:text-white/60">
+                <FiFolder className="shrink-0" />
+                {taskProject.name}
               </span>
             )}
             {task.due_date && (
               <span className="flex items-center gap-1.5 text-[11px] text-black/55 dark:text-white/55">
                 <FiCalendar />
-                {displayDate(task.due_date)}
+                {displayDue(task)}
+              </span>
+            )}
+            {task.reminder_at && (
+              <span className="flex items-center gap-1.5 text-[11px] text-black/55 dark:text-white/55">
+                <FiBell />
+                Reminder{" "}
+                {new Intl.DateTimeFormat("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  hour: "numeric",
+                  minute: "2-digit",
+                }).format(new Date(task.reminder_at))}
               </span>
             )}
           </div>
-          {person ? (
-            <Avatar name={person.full_name} small />
+          {taskPeople.length > 0 ? (
+            <span className="flex -space-x-1.5">
+              {taskPeople.slice(0, 3).map((person) => (
+                <Avatar key={person.id} name={person.full_name} small />
+              ))}
+            </span>
           ) : (
             <span
               title="Unassigned"
@@ -441,10 +811,10 @@ export function TaskApp({
         </nav>
         <div className="mt-8">
           <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-black/45 dark:text-white/45">
-            Work groups
+            Categories
           </p>
           <div className="mt-2 space-y-1">
-            {data.workGroups.map((item) => (
+            {data.categories.map((item) => (
               <button
                 key={item.id}
                 onClick={() => setGroup(group === item.id ? "all" : item.id)}
@@ -459,16 +829,48 @@ export function TaskApp({
             ))}
           </div>
         </div>
-        <div className="mt-auto space-y-2 border-t border-black/10 pt-4 dark:border-white/10">
-          {data.currentProfile.role === "admin" && (
+        <div className="mt-6">
+          <div className="flex items-center justify-between px-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-black/45 dark:text-white/45">
+              Projects
+            </p>
             <button
-              className="sidebar-link"
-              onClick={() => setSettingsOpen(true)}
+              className="text-[10px] font-semibold text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white"
+              onClick={() => setProjectsOpen(true)}
             >
-              <FiSettings />
-              Team settings
+              Manage
             </button>
-          )}
+          </div>
+          <div className="mt-2 space-y-1">
+            {activeProjects.map((item) => (
+              <button
+                key={item.id}
+                onClick={() =>
+                  setProject(project === item.id ? "all" : item.id)
+                }
+                className={`sidebar-link ${project === item.id ? "sidebar-link-active" : ""}`}
+              >
+                <FiFolder />
+                <span className="truncate">{item.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="mt-auto space-y-2 border-t border-black/10 pt-4 dark:border-white/10">
+          <button
+            className="sidebar-link"
+            onClick={() => setWorkGroupsOpen(true)}
+          >
+            <FiPlus />
+            New category
+          </button>
+          <button
+            className="sidebar-link"
+            onClick={() => setSettingsOpen(true)}
+          >
+            <FiSettings />
+            Team settings
+          </button>
           <div className="flex items-center gap-3 px-2 py-2">
             <Avatar name={data.currentProfile.full_name} />
             <div className="min-w-0 flex-1">
@@ -476,7 +878,7 @@ export function TaskApp({
                 {data.currentProfile.full_name}
               </p>
               <p className="text-[10px] uppercase tracking-widest text-black/45 dark:text-white/45">
-                {data.currentProfile.role}
+                Team member
                 {demoMode ? " · Demo" : ""}
               </p>
             </div>
@@ -592,13 +994,26 @@ export function TaskApp({
                 ]}
               />
               <DropdownSelect
-                label="Group"
+                label="Category"
                 value={group}
                 onChange={setGroup}
                 options={[
-                  { label: "All groups", value: "all" },
-                  ...data.workGroups.map((item) => ({
+                  { label: "All categories", value: "all" },
+                  ...data.categories.map((item) => ({
                     label: item.name,
+                    value: item.id,
+                  })),
+                ]}
+              />
+              <DropdownSelect
+                label="Project"
+                value={project}
+                onChange={setProject}
+                options={[
+                  { label: "All projects", value: "all" },
+                  { label: "No project", value: "none" },
+                  ...data.projects.map((item) => ({
+                    label: `${item.name}${item.archived_at ? " (archived)" : ""}`,
                     value: item.id,
                   })),
                 ]}
@@ -633,6 +1048,7 @@ export function TaskApp({
                   onClick={() => {
                     setAssignee("all");
                     setGroup("all");
+                    setProject("all");
                     setStatus("all");
                     setPriority("all");
                   }}
@@ -704,7 +1120,8 @@ export function TaskApp({
                     <tr>
                       <th className="px-4 py-3">Task</th>
                       <th>Status</th>
-                      <th>Group</th>
+                      <th>Categories</th>
+                      <th>Project</th>
                       <th>Assignee</th>
                       <th>Priority</th>
                       <th>
@@ -724,12 +1141,19 @@ export function TaskApp({
                       const itemStatus = statuses.find(
                         (item) => item.id === task.status_id,
                       );
-                      const taskGroup = task.work_group_id
-                        ? groups.get(task.work_group_id)
+                      const taskCategories = [
+                        ...(categoriesByTask.get(task.id) ?? []),
+                      ]
+                        .map((id) => categories.get(id))
+                        .filter((item) => item !== undefined);
+                      const taskProject = task.project_id
+                        ? projects.get(task.project_id)
                         : null;
-                      const person = task.assignee_id
-                        ? profiles.get(task.assignee_id)
-                        : null;
+                      const taskPeople = [
+                        ...(assigneesByTask.get(task.id) ?? []),
+                      ]
+                        .map((id) => profiles.get(id))
+                        .filter((person) => person !== undefined);
                       return (
                         <tr
                           key={task.id}
@@ -748,12 +1172,27 @@ export function TaskApp({
                               {itemStatus?.name}
                             </span>
                           </td>
-                          <td>{taskGroup?.name ?? "—"}</td>
                           <td>
-                            {person ? (
+                            {taskCategories
+                              .map((item) => item.name)
+                              .join(", ") || "—"}
+                          </td>
+                          <td>{taskProject?.name ?? "—"}</td>
+                          <td>
+                            {taskPeople.length > 0 ? (
                               <span className="flex items-center gap-2">
-                                <Avatar name={person.full_name} small />
-                                {person.full_name}
+                                <span className="flex -space-x-1.5">
+                                  {taskPeople.slice(0, 3).map((person) => (
+                                    <Avatar
+                                      key={person.id}
+                                      name={person.full_name}
+                                      small
+                                    />
+                                  ))}
+                                </span>
+                                {taskPeople
+                                  .map((person) => person.full_name)
+                                  .join(", ")}
                               </span>
                             ) : (
                               "Unassigned"
@@ -772,7 +1211,7 @@ export function TaskApp({
                     })}
                     {visibleTasks.length === 0 && (
                       <tr>
-                        <td colSpan={6}>
+                        <td colSpan={7}>
                           <EmptyState
                             variant="plain"
                             message="No tasks found. Try clearing a filter or add the first task in this view."
@@ -793,110 +1232,222 @@ export function TaskApp({
         setIsOpen={setTaskOpen}
         title={editing ? "Edit task" : "A new thing to do"}
         hideActions
-        panelClassName="max-h-[92vh] max-w-2xl overflow-y-auto"
+        size={editing ? "2xl" : "lg"}
+        panelClassName="max-h-[94vh] overflow-y-auto"
       >
         <form className="space-y-5" onSubmit={saveTask}>
-          <Input
-            label="Task title"
-            name="task-title"
-            required
-            value={draft.title}
-            onChange={(event) =>
-              setDraft({ ...draft, title: event.target.value })
+          <div
+            className={
+              editing
+                ? "grid items-start gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]"
+                : ""
             }
-            placeholder="What needs doing?"
-          />
-          <Textarea
-            id="task-description"
-            label="Description"
-            name="description"
-            value={draft.description ?? ""}
-            onChange={(event) =>
-              setDraft({ ...draft, description: event.target.value })
-            }
-            placeholder="Add useful context, links, or a tiny pep talk…"
-            rows={4}
-          />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Select
-              label="Status"
-              name="task-status"
-              value={draft.status_id}
-              onChange={(value) => setDraft({ ...draft, status_id: value })}
-              options={statuses.map((item) => ({
-                label: item.name,
-                value: item.id,
-              }))}
-            />
-            <Select
-              label="Priority"
-              name="task-priority"
-              value={draft.priority}
-              onChange={(value) =>
-                setDraft({ ...draft, priority: value as Priority })
-              }
-              options={priorities.map((item) => ({
-                label: item[0].toUpperCase() + item.slice(1),
-                value: item,
-              }))}
-            />
-            <Select
-              label="Work group"
-              name="task-group"
-              value={draft.work_group_id ?? ""}
-              onChange={(value) =>
-                setDraft({ ...draft, work_group_id: value || null })
-              }
-              options={[
-                { label: "No work group", value: "" },
-                ...data.workGroups.map((item) => ({
-                  label: item.name,
-                  value: item.id,
-                })),
-              ]}
-            />
-            <Select
-              label="Assignee"
-              name="task-assignee"
-              value={draft.assignee_id ?? ""}
-              onChange={(value) =>
-                setDraft({ ...draft, assignee_id: value || null })
-              }
-              options={[
-                { label: "Unassigned", value: "" },
-                ...data.profiles.map((item) => ({
-                  label: item.full_name,
-                  value: item.id,
-                })),
-              ]}
-            />
-            <label className="date-field">
-              <span>Start date</span>
-              <input
-                type="date"
-                value={draft.start_date ?? ""}
+          >
+            <div className="space-y-5">
+              <Input
+                label="Task title"
+                name="task-title"
+                required
+                value={draft.title}
                 onChange={(event) =>
-                  setDraft({ ...draft, start_date: event.target.value || null })
+                  setDraft({ ...draft, title: event.target.value })
                 }
+                placeholder="What needs doing?"
               />
-            </label>
-            <label className="date-field">
-              <span>Due date</span>
-              <input
-                type="date"
-                value={draft.due_date ?? ""}
+              <Textarea
+                id="task-description"
+                label="Description"
+                name="description"
+                value={draft.description ?? ""}
                 onChange={(event) =>
-                  setDraft({ ...draft, due_date: event.target.value || null })
+                  setDraft({ ...draft, description: event.target.value })
                 }
+                placeholder="Add useful context, links, or a tiny pep talk…"
+                rows={4}
               />
-            </label>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <DropdownSelect
+                  variant="field"
+                  label="Status"
+                  value={draft.status_id}
+                  onChange={(value) => setDraft({ ...draft, status_id: value })}
+                  options={statuses.map((item) => ({
+                    label: item.name,
+                    value: item.id,
+                  }))}
+                />
+                <DropdownSelect
+                  variant="field"
+                  label="Priority"
+                  value={draft.priority}
+                  onChange={(value) =>
+                    setDraft({ ...draft, priority: value as Priority })
+                  }
+                  options={priorities.map((item) => ({
+                    label: item[0].toUpperCase() + item.slice(1),
+                    value: item,
+                  }))}
+                />
+                <fieldset className="sm:col-span-2">
+                  <legend className="mb-2 text-sm font-semibold">
+                    Categories
+                  </legend>
+                  <div className="flex flex-wrap gap-2">
+                    {data.categories.map((item) => {
+                      const selected = draft.category_ids.includes(item.id);
+                      return (
+                        <label
+                          key={item.id}
+                          className={`flex cursor-pointer items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold transition focus-within:ring-2 focus-within:ring-black/20 dark:focus-within:ring-white/30 ${
+                            selected
+                              ? "border-black/25 bg-black text-white dark:border-white/30 dark:bg-white dark:text-black"
+                              : "border-black/10 bg-white dark:border-white/10 dark:bg-white/5"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            className="sr-only"
+                            checked={selected}
+                            onChange={() =>
+                              setDraft({
+                                ...draft,
+                                category_ids: selected
+                                  ? draft.category_ids.filter(
+                                      (id) => id !== item.id,
+                                    )
+                                  : [...draft.category_ids, item.id],
+                              })
+                            }
+                          />
+                          <i
+                            className="h-2.5 w-2.5 rounded-full"
+                            style={{ backgroundColor: item.color }}
+                          />
+                          {item.name}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+                <DropdownSelect
+                  variant="field"
+                  label="Project"
+                  value={draft.project_id ?? ""}
+                  onChange={(value) =>
+                    setDraft({ ...draft, project_id: value || null })
+                  }
+                  options={[
+                    { label: "No project", value: "" },
+                    ...data.projects
+                      .filter(
+                        (item) =>
+                          !item.archived_at || item.id === draft.project_id,
+                      )
+                      .map((item) => ({
+                        label: `${item.name}${item.archived_at ? " (archived)" : ""}`,
+                        value: item.id,
+                      })),
+                  ]}
+                />
+                <DropdownSelect
+                  variant="field"
+                  label="Assignee"
+                  value={draft.assignee_id ?? ""}
+                  onChange={(value) =>
+                    setDraft({ ...draft, assignee_id: value || null })
+                  }
+                  options={[
+                    { label: "Unassigned", value: "" },
+                    ...data.profiles.map((item) => ({
+                      label: item.full_name,
+                      value: item.id,
+                    })),
+                  ]}
+                />
+                <label className="date-field">
+                  <span>Start date</span>
+                  <input
+                    type="date"
+                    value={draft.start_date ?? ""}
+                    onChange={(event) =>
+                      setDraft({
+                        ...draft,
+                        start_date: event.target.value || null,
+                      })
+                    }
+                  />
+                </label>
+                <label className="date-field">
+                  <span>Due date</span>
+                  <input
+                    type="date"
+                    value={draft.due_date ?? ""}
+                    onChange={(event) =>
+                      setDraft({
+                        ...draft,
+                        due_date: event.target.value || null,
+                      })
+                    }
+                  />
+                </label>
+                {editing && (
+                  <label className="date-field">
+                    <span>Due time</span>
+                    <input
+                      type="time"
+                      value={draft.due_time ?? ""}
+                      onChange={(event) =>
+                        setDraft({
+                          ...draft,
+                          due_time: event.target.value || null,
+                        })
+                      }
+                    />
+                  </label>
+                )}
+                {editing && (
+                  <label className="date-field">
+                    <span>Reminder</span>
+                    <input
+                      type="datetime-local"
+                      value={draft.reminder_at?.slice(0, 16) ?? ""}
+                      onChange={(event) =>
+                        setDraft({
+                          ...draft,
+                          reminder_at: event.target.value
+                            ? new Date(event.target.value).toISOString()
+                            : null,
+                        })
+                      }
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
+            {editing && (
+              <TaskDetails
+                className="!border-t-0 !pt-0 lg:border-l lg:border-black/10 lg:pl-8 lg:dark:border-white/10"
+                task={editing}
+                data={data}
+                setData={setData}
+                demoMode={demoMode}
+              />
+            )}
           </div>
-          <div className="flex flex-col-reverse gap-3 border-t border-black/10 pt-5 dark:border-white/10 sm:flex-row sm:justify-between">
+          {taskMessage && (
+            <p
+              role="alert"
+              className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300"
+            >
+              {taskMessage}
+            </p>
+          )}
+          <div className="sticky -bottom-6 z-10 -mx-6 flex flex-col-reverse gap-3 border-t border-black/10 bg-white px-6 pb-1 pt-5 dark:border-white/10 dark:bg-[#181818] sm:flex-row sm:items-center sm:justify-between">
             {editing ? (
               <Button
                 type="button"
                 variant="ghost"
-                className="text-red-600 dark:text-red-400"
+                className="whitespace-nowrap text-red-600 dark:text-red-400"
                 leftIcon={<FiTrash2 />}
                 onClick={() => void removeTask(editing.id)}
               >
@@ -905,22 +1456,50 @@ export function TaskApp({
             ) : (
               <span />
             )}
-            <div className="flex gap-3">
+            <div className="flex shrink-0 gap-3">
               <Button
                 type="button"
                 variant="secondary"
+                className="whitespace-nowrap"
                 onClick={() => setTaskOpen(false)}
               >
                 Cancel
               </Button>
-              <Button type="submit" leftIcon={<FiCheck />}>
-                {editing ? "Save changes" : "Create task"}
+              <Button
+                type="submit"
+                className="whitespace-nowrap"
+                leftIcon={<FiCheck />}
+                disabled={taskSaving}
+              >
+                {taskSaving
+                  ? "Saving…"
+                  : editing
+                    ? "Save changes"
+                    : "Create task"}
               </Button>
             </div>
           </div>
         </form>
       </Modal>
-      <AdminModal
+      {workGroupsOpen && (
+        <CategoriesModal
+          open={workGroupsOpen}
+          setOpen={setWorkGroupsOpen}
+          data={data}
+          setData={setData}
+          demoMode={demoMode}
+        />
+      )}
+      {projectsOpen && (
+        <ProjectsModal
+          open={projectsOpen}
+          setOpen={setProjectsOpen}
+          data={data}
+          setData={setData}
+          demoMode={demoMode}
+        />
+      )}
+      <TeamSettingsModal
         open={settingsOpen}
         setOpen={setSettingsOpen}
         data={data}
@@ -931,7 +1510,7 @@ export function TaskApp({
   );
 }
 
-function AdminModal({
+export function WorkGroupsModalLegacy({
   open,
   setOpen,
   data,
@@ -944,7 +1523,189 @@ function AdminModal({
   setData: Dispatch<SetStateAction<WorkspaceData>>;
   demoMode: boolean;
 }) {
-  const [tab, setTab] = useState<"groups" | "statuses" | "team">("groups");
+  const [name, setName] = useState("");
+  const [color, setColor] = useState("#ee1a25");
+  const [message, setMessage] = useState("");
+
+  function randomizeColor() {
+    const choices = workGroupColors.filter((option) => option !== color);
+    setColor(choices[Math.floor(Math.random() * choices.length)]);
+  }
+
+  async function addWorkGroup(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const groupName = name.trim();
+    if (!groupName) return;
+    setMessage("");
+    const item = {
+      id: crypto.randomUUID(),
+      name: groupName,
+      color,
+      created_by: data.currentProfile.id,
+    };
+    if (!demoMode) {
+      const { data: saved, error } = await createClient()
+        .from("work_groups")
+        .insert(item)
+        .select()
+        .single();
+      if (error) {
+        setMessage(error.message);
+        return;
+      }
+      if (saved) item.id = saved.id;
+    }
+    setData((current) => ({
+      ...current,
+      workGroups: [...current.workGroups, item],
+    }));
+    setName("");
+    setMessage("Work group created.");
+  }
+
+  async function renameWorkGroup(id: string, currentName: string) {
+    const nextName = window.prompt("Update the name", currentName)?.trim();
+    if (!nextName || nextName === currentName) return;
+    if (!demoMode) {
+      const { error } = await createClient()
+        .from("work_groups")
+        .update({ name: nextName })
+        .eq("id", id);
+      if (error) {
+        setMessage(error.message);
+        return;
+      }
+    }
+    setData((current) => ({
+      ...current,
+      workGroups: current.workGroups.map((item) =>
+        item.id === id ? { ...item, name: nextName } : item,
+      ),
+    }));
+  }
+
+  async function deleteWorkGroup(id: string) {
+    if (!window.confirm("Delete this work group? Tasks will become ungrouped."))
+      return;
+    if (!demoMode) {
+      const { error } = await createClient()
+        .from("work_groups")
+        .delete()
+        .eq("id", id);
+      if (error) {
+        setMessage(error.message);
+        return;
+      }
+    }
+    setData((current) => ({
+      ...current,
+      workGroups: current.workGroups.filter((item) => item.id !== id),
+      tasks: current.tasks.map((task) =>
+        task.work_group_id === id ? { ...task, work_group_id: null } : task,
+      ),
+    }));
+  }
+
+  return (
+    <Modal
+      open={open}
+      setIsOpen={setOpen}
+      title="Work groups"
+      hideActions
+      size="xl"
+    >
+      <div className="space-y-3">
+        {data.workGroups.map((item) => (
+          <div
+            key={item.id}
+            className="flex items-center gap-3 rounded-xl border border-black/10 p-3 dark:border-white/10"
+          >
+            <i
+              className="h-3 w-3 rounded-full"
+              style={{ backgroundColor: item.color }}
+            />
+            <span className="min-w-0 flex-1 truncate font-semibold">
+              {item.name}
+            </span>
+            <IconButton
+              label={`Rename ${item.name}`}
+              onClick={() => void renameWorkGroup(item.id, item.name)}
+            >
+              <FiMoreHorizontal />
+            </IconButton>
+            <IconButton
+              label={`Delete ${item.name}`}
+              onClick={() => void deleteWorkGroup(item.id)}
+            >
+              <FiTrash2 />
+            </IconButton>
+          </div>
+        ))}
+      </div>
+      <form
+        className="mt-5 grid gap-3 border-t border-black/10 pt-5 dark:border-white/10 lg:grid-cols-[minmax(16rem,1fr)_auto_auto_auto]"
+        onSubmit={addWorkGroup}
+      >
+        <Input
+          label="New work group"
+          name="work-group-name"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          placeholder="Name"
+        />
+        <label className="date-field">
+          <span>Color</span>
+          <input
+            type="color"
+            className="color-input"
+            value={color}
+            onChange={(event) => setColor(event.target.value)}
+          />
+        </label>
+        <Button
+          type="button"
+          variant="secondary"
+          className="self-end"
+          leftIcon={<FiRefreshCw />}
+          onClick={randomizeColor}
+        >
+          Randomize
+        </Button>
+        <Button
+          type="submit"
+          variant="action"
+          className="self-end"
+          leftIcon={<FiPlus />}
+        >
+          Create group
+        </Button>
+        {message && (
+          <p
+            role="status"
+            className="text-sm text-black/60 dark:text-white/60 sm:col-span-3"
+          >
+            {message}
+          </p>
+        )}
+      </form>
+    </Modal>
+  );
+}
+
+function TeamSettingsModal({
+  open,
+  setOpen,
+  data,
+  setData,
+  demoMode,
+}: {
+  open: boolean;
+  setOpen: (value: boolean) => void;
+  data: WorkspaceData;
+  setData: Dispatch<SetStateAction<WorkspaceData>>;
+  demoMode: boolean;
+}) {
+  const [tab, setTab] = useState<"statuses" | "team">("statuses");
   const [name, setName] = useState("");
   const [color, setColor] = useState("#ee1a25");
   const [inviteEmail, setInviteEmail] = useState("");
@@ -952,26 +1713,7 @@ function AdminModal({
   const [teamMessage, setTeamMessage] = useState("");
   async function add() {
     if (!name.trim()) return;
-    if (tab === "groups") {
-      const item = {
-        id: crypto.randomUUID(),
-        name: name.trim(),
-        color,
-        created_by: data.currentProfile.id,
-      };
-      if (!demoMode) {
-        const { data: saved } = await createClient()
-          .from("work_groups")
-          .insert(item)
-          .select()
-          .single();
-        if (saved) item.id = saved.id;
-      }
-      setData((current) => ({
-        ...current,
-        workGroups: [...current.workGroups, item],
-      }));
-    } else if (tab === "statuses") {
+    if (tab === "statuses") {
       const item = {
         id: crypto.randomUUID(),
         name: name.trim(),
@@ -1007,7 +1749,6 @@ function AdminModal({
             id: crypto.randomUUID(),
             full_name: inviteName.trim() || inviteEmail.split("@")[0],
             avatar_url: null,
-            role: "member",
           },
         ],
       }));
@@ -1051,24 +1792,17 @@ function AdminModal({
   async function renameSetting(id: string, currentName: string) {
     const nextName = window.prompt("Update the name", currentName)?.trim();
     if (!nextName || nextName === currentName) return;
-    const table = tab === "groups" ? "work_groups" : "statuses";
     if (!demoMode)
-      await createClient().from(table).update({ name: nextName }).eq("id", id);
-    setData((current) =>
-      tab === "groups"
-        ? {
-            ...current,
-            workGroups: current.workGroups.map((item) =>
-              item.id === id ? { ...item, name: nextName } : item,
-            ),
-          }
-        : {
-            ...current,
-            statuses: current.statuses.map((item) =>
-              item.id === id ? { ...item, name: nextName } : item,
-            ),
-          },
-    );
+      await createClient()
+        .from("statuses")
+        .update({ name: nextName })
+        .eq("id", id);
+    setData((current) => ({
+      ...current,
+      statuses: current.statuses.map((item) =>
+        item.id === id ? { ...item, name: nextName } : item,
+      ),
+    }));
   }
 
   async function deleteSetting(id: string, isDefault = false) {
@@ -1076,30 +1810,17 @@ function AdminModal({
       ? "This is a default status. Delete it anyway? Tasks using it must be moved first."
       : "Delete this shared setting?";
     if (!window.confirm(warning)) return;
-    const table = tab === "groups" ? "work_groups" : "statuses";
     const result = demoMode
       ? null
-      : await createClient().from(table).delete().eq("id", id);
+      : await createClient().from("statuses").delete().eq("id", id);
     if (result?.error) {
       window.alert(result.error.message);
       return;
     }
-    setData((current) =>
-      tab === "groups"
-        ? {
-            ...current,
-            workGroups: current.workGroups.filter((item) => item.id !== id),
-            tasks: current.tasks.map((task) =>
-              task.work_group_id === id
-                ? { ...task, work_group_id: null }
-                : task,
-            ),
-          }
-        : {
-            ...current,
-            statuses: current.statuses.filter((item) => item.id !== id),
-          },
-    );
+    setData((current) => ({
+      ...current,
+      statuses: current.statuses.filter((item) => item.id !== id),
+    }));
   }
 
   async function moveStatus(id: string, direction: -1 | 1) {
@@ -1130,22 +1851,16 @@ function AdminModal({
       setIsOpen={setOpen}
       title="Team settings"
       hideActions
-      panelClassName="max-w-2xl"
+      size="lg"
     >
       <div className="mb-6 flex gap-2 overflow-x-auto">
-        {(["groups", "statuses", "team"] as const).map((item) => (
+        {(["statuses", "team"] as const).map((item) => (
           <button
             key={item}
             onClick={() => setTab(item)}
             className={`view-button capitalize ${tab === item ? "view-button-active" : ""}`}
           >
-            {item === "team" ? (
-              <FiUsers />
-            ) : item === "statuses" ? (
-              <FiCheck />
-            ) : (
-              <FiGrid />
-            )}
+            {item === "team" ? <FiUsers /> : <FiCheck />}
             {item}
           </button>
         ))}
@@ -1160,8 +1875,8 @@ function AdminModal({
               <Avatar name={person.full_name} />
               <div className="flex-1">
                 <p className="font-semibold">{person.full_name}</p>
-                <p className="text-xs capitalize text-black/50 dark:text-white/50">
-                  {person.role}
+                <p className="text-xs text-black/50 dark:text-white/50">
+                  Team member
                 </p>
               </div>
               {person.id !== data.currentProfile.id && (
@@ -1214,61 +1929,56 @@ function AdminModal({
       ) : (
         <>
           <div className="space-y-3">
-            {(tab === "groups"
-              ? data.workGroups
-              : [...data.statuses].sort((a, b) => a.sort_order - b.sort_order)
-            ).map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center gap-3 rounded-xl border border-black/10 p-3 dark:border-white/10"
-              >
-                <i
-                  className="h-3 w-3 rounded-full"
-                  style={{ backgroundColor: item.color }}
-                />
-                <span className="flex-1 font-semibold">{item.name}</span>
-                {"is_default" in item && item.is_default && (
-                  <Pill size="sm">Default</Pill>
-                )}
-                {tab === "statuses" && (
-                  <>
-                    <IconButton
-                      label={`Move ${item.name} up`}
-                      onClick={() => void moveStatus(item.id, -1)}
-                    >
-                      <FiChevronDown className="rotate-180" />
-                    </IconButton>
-                    <IconButton
-                      label={`Move ${item.name} down`}
-                      onClick={() => void moveStatus(item.id, 1)}
-                    >
-                      <FiChevronDown />
-                    </IconButton>
-                  </>
-                )}
-                <IconButton
-                  label={`Rename ${item.name}`}
-                  onClick={() => void renameSetting(item.id, item.name)}
+            {[...data.statuses]
+              .sort((a, b) => a.sort_order - b.sort_order)
+              .map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center gap-3 rounded-xl border border-black/10 p-3 dark:border-white/10"
                 >
-                  <FiMoreHorizontal />
-                </IconButton>
-                <IconButton
-                  label={`Delete ${item.name}`}
-                  onClick={() =>
-                    void deleteSetting(
-                      item.id,
-                      "is_default" in item && item.is_default,
-                    )
-                  }
-                >
-                  <FiTrash2 />
-                </IconButton>
-              </div>
-            ))}
+                  <i
+                    className="h-3 w-3 rounded-full"
+                    style={{ backgroundColor: item.color }}
+                  />
+                  <span className="flex-1 font-semibold">{item.name}</span>
+                  {"is_default" in item && item.is_default && (
+                    <Pill size="sm">Default</Pill>
+                  )}
+                  <IconButton
+                    label={`Move ${item.name} up`}
+                    onClick={() => void moveStatus(item.id, -1)}
+                  >
+                    <FiChevronDown className="rotate-180" />
+                  </IconButton>
+                  <IconButton
+                    label={`Move ${item.name} down`}
+                    onClick={() => void moveStatus(item.id, 1)}
+                  >
+                    <FiChevronDown />
+                  </IconButton>
+                  <IconButton
+                    label={`Rename ${item.name}`}
+                    onClick={() => void renameSetting(item.id, item.name)}
+                  >
+                    <FiMoreHorizontal />
+                  </IconButton>
+                  <IconButton
+                    label={`Delete ${item.name}`}
+                    onClick={() =>
+                      void deleteSetting(
+                        item.id,
+                        "is_default" in item && item.is_default,
+                      )
+                    }
+                  >
+                    <FiTrash2 />
+                  </IconButton>
+                </div>
+              ))}
           </div>
           <div className="mt-5 grid gap-3 border-t border-black/10 pt-5 dark:border-white/10 sm:grid-cols-[1fr_auto_auto]">
             <Input
-              label={`New ${tab === "groups" ? "work group" : "status"}`}
+              label="New status"
               name="setting-name"
               value={name}
               onChange={(event) => setName(event.target.value)}
@@ -1278,6 +1988,7 @@ function AdminModal({
               <span>Color</span>
               <input
                 type="color"
+                className="color-input"
                 value={color}
                 onChange={(event) => setColor(event.target.value)}
               />

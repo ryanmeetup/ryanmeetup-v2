@@ -18,8 +18,7 @@ import { CollapsibleYearSection, SearchIndicator } from "@/components/global";
 import type { Article as RyanArticle } from "@/lib/types";
 
 // Utilities
-import { useSearchFilter } from "@/hooks/useSearchFilter";
-import { useQueryParamState } from "@/hooks/useQueryParamState";
+import { useQueryParamState, useSearchFilter } from "@ryanmeetup/hooks";
 
 type PressFeedProps = {
   articles: RyanArticle[];

@@ -6,8 +6,7 @@ import { SearchIndicator } from "@/components/global";
 import { FaSliders as Filters } from "react-icons/fa6";
 import { ChapterTile } from "@/components/chapters";
 import type { RyanChapter } from "@/lib/types";
-import { useSearchFilter } from "@/hooks/useSearchFilter";
-import { useQueryParamState } from "@/hooks/useQueryParamState";
+import { useQueryParamState, useSearchFilter } from "@ryanmeetup/hooks";
 
 type ChapterDirectoryProps = {
   chapters: RyanChapter[];

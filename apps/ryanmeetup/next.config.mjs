@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ["@ryanmeetup/ui"],
+  transpilePackages: ["@ryanmeetup/hooks", "@ryanmeetup/ui"],
   images: {
     remotePatterns: [
       {

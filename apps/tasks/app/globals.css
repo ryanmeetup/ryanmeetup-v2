@@ -56,6 +56,22 @@ button:disabled {
   .date-field input {
     @apply h-11 w-full rounded-lg border border-black/20 bg-white px-3 text-sm text-black shadow-sm outline-none transition focus:border-black/40 focus:ring-2 focus:ring-black/20 dark:border-white/20 dark:bg-white/10 dark:text-white dark:focus:border-white/50 dark:focus:ring-white/20;
   }
+  .color-input {
+    cursor: pointer;
+    overflow: hidden;
+    padding: 0 !important;
+  }
+  .color-input::-webkit-color-swatch-wrapper {
+    padding: 0;
+  }
+  .color-input::-webkit-color-swatch {
+    border: 0;
+    border-radius: calc(0.5rem - 1px);
+  }
+  .color-input::-moz-color-swatch {
+    border: 0;
+    border-radius: calc(0.5rem - 1px);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
