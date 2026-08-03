@@ -259,6 +259,15 @@ Rules:
 
 Validate in proportion to the change, from the affected workspace.
 
+### Supabase migrations
+
+When a requested change adds or modifies a Supabase migration, applying the
+migration to the linked Supabase project is part of the implementation work.
+Do not hand off a database-dependent application change with an unapplied
+migration unless deployment is genuinely blocked. After applying migrations,
+verify the affected table, column, function, policy, or trigger through the
+live project and report any blocker explicitly.
+
 Minimum expectations:
 
 1. Run ESLint on changed TypeScript/TSX files.
