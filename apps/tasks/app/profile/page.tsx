@@ -1,56 +1,24 @@
 import { redirect } from "next/navigation";
-import { Button, Card, Heading } from "@ryanmeetup/ui";
-import { FiArrowLeft } from "react-icons/fi";
-import { ProfileForm } from "@/components/ProfileForm";
+import { ProfilePageClient } from "@/components/ProfilePageClient";
 import { createClient } from "@/lib/supabase/server";
+import type { WorkspaceData } from "@/lib/types";
 
 export default async function ProfilePage() {
-  const demoMode =
-    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  const demoMode = !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (demoMode) redirect("/");
-
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect("/login");
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", auth.user.id)
-    .single();
+  const [{ data: profile, error }, { data: profiles }, { data: statuses }, { data: categories }, { data: projects }, { data: projectOwners }] = await Promise.all([
+    supabase.from("profiles").select("*").eq("id", auth.user.id).single(),
+    supabase.from("profiles").select("*").order("full_name"),
+    supabase.from("statuses").select("*").order("sort_order"),
+    supabase.from("work_groups").select("*").order("name"),
+    supabase.from("projects").select("*").order("name"),
+    supabase.from("project_owners").select("*"),
+  ]);
   if (error) throw error;
   if (!profile) redirect("/?error=profile");
-  const onboardingRequired = !profile.onboarding_completed;
-
-  return (
-    <main className="min-h-screen bg-[#f7f7f5] px-4 py-8 text-black dark:bg-[#101010] dark:text-white sm:px-6 lg:py-16">
-      <div className="mx-auto max-w-2xl">
-        {!onboardingRequired && (
-          <Button.Link href="/" variant="secondary" leftIcon={<FiArrowLeft />}>
-            Back to tasks
-          </Button.Link>
-        )}
-        <div className="mt-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-black/50 dark:text-white/50">
-            {onboardingRequired ? "Welcome" : "Your account"}
-          </p>
-          <Heading size="h1" className="mt-2 text-4xl">
-            {onboardingRequired ? "Complete your profile" : "Profile"}
-          </Heading>
-          <p className="mt-2 text-sm text-black/65 dark:text-white/65">
-            {onboardingRequired
-              ? "Enter your first and last name before continuing to the workspace."
-              : "Manage how teammates see you across the workspace."}
-          </p>
-        </div>
-        <Card className="mt-8">
-          <ProfileForm
-            profile={profile}
-            email={auth.user.email ?? ""}
-            onboardingRequired={onboardingRequired}
-          />
-        </Card>
-      </div>
-    </main>
-  );
+  const initialData: WorkspaceData = { currentProfile: profile, profiles: profiles ?? [], statuses: statuses ?? [], categories: categories ?? [], projects: projects ?? [], projectOwners: projectOwners ?? [], workGroups: [], tasks: [], subtasks: [], comments: [], activity: [], attachments: [], labels: [], taskAssignees: [], taskLabels: [], taskCategories: [] };
+  return <ProfilePageClient initialData={initialData} email={auth.user.email ?? ""} onboardingRequired={!profile.onboarding_completed} />;
 }

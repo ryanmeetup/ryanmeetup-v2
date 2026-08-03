@@ -19,6 +19,7 @@ export type Status = {
 export type Category = {
   id: string;
   name: string;
+  description: string | null;
   color: string;
   created_by: string;
 };
@@ -29,6 +30,7 @@ export type WorkGroup = Category;
 export type Project = {
   id: string;
   name: string;
+  description: string | null;
   created_by: string;
   archived_at: string | null;
   created_at: string;

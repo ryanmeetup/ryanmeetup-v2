@@ -8,6 +8,7 @@ import {
   type SetStateAction,
 } from "react";
 import {
+  Avatar,
   Button,
   DisclosureCard,
   IconButton,
@@ -477,18 +478,25 @@ export function TaskDetails({
             return (
               <div
                 key={`${item.kind}-${item.id}`}
-                className="border-l-2 border-black/10 pl-3 text-sm dark:border-white/10"
+                className="flex items-start gap-2 border-l-2 border-black/10 pl-3 text-sm dark:border-white/10"
               >
-                <p>
-                  <strong>{profile?.full_name || "A teammate"}</strong>{" "}
-                  {item.kind === "comment" ? item.body : item.action}
-                </p>
-                <time className="text-xs text-black/45 dark:text-white/45">
-                  {new Intl.DateTimeFormat("en-US", {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  }).format(new Date(item.created_at))}
-                </time>
+                <Avatar
+                  name={profile?.full_name || "A teammate"}
+                  size="sm"
+                  src={profile?.avatar_url}
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block">
+                    <strong>{profile?.full_name || "A teammate"}</strong>{" "}
+                    {item.kind === "comment" ? item.body : item.action}
+                  </span>
+                  <time className="text-xs text-black/45 dark:text-white/45">
+                    {new Intl.DateTimeFormat("en-US", {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    }).format(new Date(item.created_at))}
+                  </time>
+                </span>
               </div>
             );
           })}

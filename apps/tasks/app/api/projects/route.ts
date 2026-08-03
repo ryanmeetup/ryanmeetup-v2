@@ -47,8 +47,13 @@ export async function POST(request: Request) {
       { error: "SUPABASE_SECRET_KEY is not configured" },
       { status: 503 },
     );
-  const { name, ownerIds: requestedOwnerIds = [] } = (await request.json()) as {
+  const {
+    name,
+    description,
+    ownerIds: requestedOwnerIds = [],
+  } = (await request.json()) as {
     name?: string;
+    description?: string;
     ownerIds?: unknown;
   };
   const ownerIds = normalizeOwnerIds(requestedOwnerIds);
@@ -59,7 +64,11 @@ export async function POST(request: Request) {
     );
   const { data, error } = await client
     .from("projects")
-    .insert({ name: name.trim(), created_by: user.id })
+    .insert({
+      name: name.trim(),
+      description: description?.trim() || null,
+      created_by: user.id,
+    })
     .select()
     .single();
   if (error)
@@ -90,11 +99,13 @@ export async function PATCH(request: Request) {
   const {
     id,
     name,
+    description,
     archived,
     ownerIds: requestedOwnerIds,
   } = (await request.json()) as {
     id?: string;
     name?: string;
+    description?: string;
     archived?: boolean;
     ownerIds?: unknown;
   };
@@ -103,8 +114,14 @@ export async function PATCH(request: Request) {
       { error: "A project and valid update are required" },
       { status: 400 },
     );
-  const updates: { name?: string; archived_at?: string | null } = {};
+  const updates: {
+    name?: string;
+    description?: string | null;
+    archived_at?: string | null;
+  } = {};
   if (name !== undefined) updates.name = name.trim();
+  if (description !== undefined)
+    updates.description = description.trim() || null;
   if (archived !== undefined)
     updates.archived_at = archived ? new Date().toISOString() : null;
   if (Object.keys(updates).length > 0) {

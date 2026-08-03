@@ -2,13 +2,17 @@
 
 import {
   useEffect,
+  useLayoutEffect,
   useMemo,
+  useRef,
   useState,
   type Dispatch,
   type FormEvent,
+  type ReactNode,
   type SetStateAction,
 } from "react";
 import {
+  Avatar,
   Button,
   Card,
   ConfirmationDialog,
@@ -35,6 +39,7 @@ import {
   FiFolder,
   FiGrid,
   FiList,
+  FiLoader,
   FiLogOut,
   FiMenu,
   FiMoreHorizontal,
@@ -47,6 +52,7 @@ import {
   FiUsers,
   FiX,
 } from "react-icons/fi";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useQueryParamState, useSearchFilter } from "@ryanmeetup/hooks";
 import type {
@@ -136,15 +142,6 @@ function blankDraft(statusId: string): Draft {
   };
 }
 
-function initials(name?: string | null) {
-  return (name || "?")
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-}
-
 function displayDate(value: string | null) {
   if (!value) return "—";
   return new Intl.DateTimeFormat("en-US", {
@@ -183,20 +180,72 @@ function CategoryBadge({ category }: { category: Category }) {
   );
 }
 
-function Avatar({
+function ProfileSummary({
   name,
-  small = false,
+  demo = false,
 }: {
-  name?: string | null;
-  small?: boolean;
+  name: string;
+  demo?: boolean;
 }) {
   return (
-    <span
-      title={name || "Teammate"}
-      className={`inline-grid shrink-0 place-items-center rounded-full border border-black/10 bg-black text-[9px] font-bold text-white dark:border-white/20 dark:bg-white dark:text-black ${small ? "h-6 w-6" : "h-8 w-8"}`}
-    >
-      <span>{initials(name)}</span>
+    <span className="min-w-0 flex-1">
+      <span className="block truncate text-sm font-semibold">{name}</span>
+      <span className="block text-[10px] uppercase tracking-widest text-black/45 dark:text-white/45">
+        Team member
+        {demo ? " · Demo" : ""}
+      </span>
     </span>
+  );
+}
+
+function SidebarFilterButton({
+  active,
+  label,
+  leading,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  leading: ReactNode;
+  onClick: () => void;
+}) {
+  const labelRef = useRef<HTMLSpanElement>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+
+  useLayoutEffect(() => {
+    const labelElement = labelRef.current;
+    if (!labelElement) return;
+
+    const updateTruncation = () =>
+      setIsTruncated(labelElement.scrollWidth > labelElement.clientWidth);
+    updateTruncation();
+
+    const resizeObserver = new ResizeObserver(updateTruncation);
+    resizeObserver.observe(labelElement);
+    return () => resizeObserver.disconnect();
+  }, [label]);
+
+  const button = (
+    <button
+      onClick={onClick}
+      className={`sidebar-link ${active ? "sidebar-link-active" : ""}`}
+    >
+      {leading}
+      <span ref={labelRef} className="min-w-0 flex-1 truncate">
+        {label}
+      </span>
+    </button>
+  );
+
+  return (
+    <Tooltip
+      content={label}
+      disabled={!isTruncated}
+      placement="right"
+      triggerClassName="w-full"
+    >
+      {button}
+    </Tooltip>
   );
 }
 
@@ -230,6 +279,7 @@ export function TaskApp({
     query: search,
     setQuery: setSearch,
     filtered: searchedTasks,
+    isPending: searchPending,
   } = useSearchFilter({
     data: data.tasks,
     buildHaystack: (task) =>
@@ -976,7 +1026,12 @@ export function TaskApp({
           {taskPeople.length > 0 ? (
             <span className="flex -space-x-1.5">
               {taskPeople.slice(0, 3).map((person) => (
-                <Avatar key={person.id} name={profileName(person)} small />
+                <Avatar
+                  key={person.id}
+                  name={profileName(person)}
+                  size="sm"
+                  src={person.avatar_url}
+                />
               ))}
             </span>
           ) : (
@@ -1075,72 +1130,89 @@ export function TaskApp({
             </button>
           </Tooltip>
         </nav>
-        <div className="mt-8">
-          <div className="flex items-center justify-between px-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-black/45 dark:text-white/45">
-              Categories
-            </p>
-            <button
-              className="text-[10px] font-semibold text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white"
-              onClick={() => setWorkGroupsOpen(true)}
-            >
-              Manage
-            </button>
-          </div>
-          <div className="mt-2 space-y-1">
-            {data.categories.map((item) => (
-              <button
-                key={item.id}
-                onClick={() =>
-                  setGroup(selectedCategory?.id === item.id ? "all" : item.name)
-                }
-                className={`sidebar-link ${selectedCategory?.id === item.id ? "sidebar-link-active" : ""}`}
-              >
-                <i
-                  className="h-2.5 w-2.5 rounded-full"
-                  style={{ backgroundColor: item.color }}
+        <div className="mt-8 flex min-h-0 flex-1 flex-col">
+          <section className="flex max-h-[70%] min-h-0 shrink-0 flex-col overflow-hidden border-b border-black/10 dark:border-white/10">
+            <div className="flex items-center justify-between px-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-black/45 dark:text-white/45">
+                Categories
+              </p>
+              <span className="flex items-center gap-1">
+                <Link
+                  href="/categories"
+                  className="text-[10px] font-semibold text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white"
+                >
+                  Manage
+                </Link>
+                <IconButton
+                  label="Create category"
+                  size="sm"
+                  onClick={() => setWorkGroupsOpen(true)}
+                >
+                  <FiPlus />
+                </IconButton>
+              </span>
+            </div>
+            <div className="mt-2 min-h-0 flex-1 scroll-pb-2 space-y-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]">
+              {data.categories.map((item) => (
+                <SidebarFilterButton
+                  key={item.id}
+                  active={selectedCategory?.id === item.id}
+                  label={item.name}
+                  onClick={() =>
+                    setGroup(
+                      selectedCategory?.id === item.id ? "all" : item.name,
+                    )
+                  }
+                  leading={
+                    <i
+                      aria-hidden
+                      className="h-2.5 w-2.5 rounded-full"
+                      style={{ backgroundColor: item.color }}
+                    />
+                  }
                 />
-                {item.name}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="mt-6">
-          <div className="flex items-center justify-between px-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-black/45 dark:text-white/45">
-              Projects
-            </p>
-            <button
-              className="text-[10px] font-semibold text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white"
-              onClick={() => setProjectsOpen(true)}
-            >
-              Manage
-            </button>
-          </div>
-          <div className="mt-2 space-y-1">
-            {activeProjects.map((item) => (
-              <Tooltip
-                key={item.id}
-                content={item.name}
-                placement="right"
-                triggerClassName="w-full"
-              >
-                <button
+              ))}
+            </div>
+          </section>
+          <section className="flex min-h-0 flex-1 flex-col overflow-hidden pt-4">
+            <div className="flex items-center justify-between px-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-black/45 dark:text-white/45">
+                Projects
+              </p>
+              <span className="flex items-center gap-1">
+                <Link
+                  href="/projects"
+                  className="text-[10px] font-semibold text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white"
+                >
+                  Manage
+                </Link>
+                <IconButton
+                  label="Create project"
+                  size="sm"
+                  onClick={() => setProjectsOpen(true)}
+                >
+                  <FiPlus />
+                </IconButton>
+              </span>
+            </div>
+            <div className="mt-2 min-h-0 flex-1 scroll-pb-2 space-y-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]">
+              {activeProjects.map((item) => (
+                <SidebarFilterButton
+                  key={item.id}
+                  active={selectedProject?.id === item.id}
+                  label={item.name}
                   onClick={() =>
                     setProject(
                       selectedProject?.id === item.id ? "all" : item.name,
                     )
                   }
-                  className={`sidebar-link ${selectedProject?.id === item.id ? "sidebar-link-active" : ""}`}
-                >
-                  <FiFolder />
-                  <span className="truncate">{item.name}</span>
-                </button>
-              </Tooltip>
-            ))}
-          </div>
+                  leading={<FiFolder />}
+                />
+              ))}
+            </div>
+          </section>
         </div>
-        <div className="mt-auto space-y-2 border-t border-black/10 pt-4 dark:border-white/10">
+        <div className="shrink-0 space-y-2 border-t border-black/10 pt-4 dark:border-white/10">
           <button
             className="sidebar-link"
             onClick={() => setSettingsOpen(true)}
@@ -1148,28 +1220,27 @@ export function TaskApp({
             <FiSettings />
             Team settings
           </button>
-          {!demoMode && (
-            <Button.Link
-              href="/profile"
-              variant="ghost"
-              size="sm"
-              className="sidebar-link !w-full !justify-start !px-3 !py-2 !normal-case !tracking-normal"
-              leftIcon={<FiUser />}
-            >
-              My profile
-            </Button.Link>
-          )}
           <div className="flex items-center gap-3 px-2 py-2">
-            <Avatar name={profileName(data.currentProfile)} />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold">
-                {profileName(data.currentProfile)}
-              </p>
-              <p className="text-[10px] uppercase tracking-widest text-black/45 dark:text-white/45">
-                Team member
-                {demoMode ? " · Demo" : ""}
-              </p>
-            </div>
+            {demoMode ? (
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                <Avatar
+                  name={profileName(data.currentProfile)}
+                  src={data.currentProfile.avatar_url}
+                />
+                <ProfileSummary name={profileName(data.currentProfile)} demo />
+              </div>
+            ) : (
+              <Link
+                href="/profile"
+                className="flex min-w-0 flex-1 items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/40"
+              >
+                <Avatar
+                  name={profileName(data.currentProfile)}
+                  src={data.currentProfile.avatar_url}
+                />
+                <ProfileSummary name={profileName(data.currentProfile)} />
+              </Link>
+            )}
             {!demoMode && (
               <Tooltip content="Sign out" placement="right">
                 <IconButton
@@ -1200,11 +1271,21 @@ export function TaskApp({
             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-black/40 dark:text-white/40" />
             <input
               aria-label="Search tasks"
+              aria-busy={searchPending}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search tasks..."
-              className="h-10 w-full rounded-lg border border-black/10 bg-white pl-10 pr-3 text-sm outline-none focus:border-black/30 focus:ring-2 focus:ring-black/10 dark:border-white/10 dark:bg-white/5 dark:focus:border-white/30"
+              className="h-10 w-full rounded-lg border border-black/10 bg-white pl-10 pr-10 text-sm outline-none focus:border-black/30 focus:ring-2 focus:ring-black/10 dark:border-white/10 dark:bg-white/5 dark:focus:border-white/30"
             />
+            {searchPending && (
+              <span
+                role="status"
+                aria-label="Loading search results"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-black/45 dark:text-white/45"
+              >
+                <FiLoader className="animate-spin motion-reduce:animate-none" />
+              </span>
+            )}
           </div>
           <div className="ml-auto flex items-center gap-3">
             <Button
@@ -1300,6 +1381,10 @@ export function TaskApp({
                   { label: "Anyone", value: "all" },
                   { label: "Unassigned", value: "Unassigned" },
                   ...data.profiles.map((item) => ({
+                    avatar: {
+                      name: profileName(item),
+                      src: item.avatar_url,
+                    },
                     label: profileName(item),
                     value: profileName(item),
                   })),
@@ -1378,223 +1463,249 @@ export function TaskApp({
             </div>
           </Card>
 
-          {view === "board" ? (
-            <div className="flex flex-nowrap items-start gap-4 overflow-x-auto overscroll-x-contain pb-5">
-              {statuses.map((item) => {
-                const columnTasks = visibleTasks.filter(
-                  (task) => task.status_id === item.id,
-                );
-                const isCollapsed = collapsedStatusIds?.has(item.id) ?? false;
-                const columnSizeClass = isCollapsed
-                  ? "min-h-0 w-[240px]"
-                  : `${columnTasks.length === 0 ? "min-h-0" : "min-h-[420px]"} w-[min(320px,calc(100vw-3rem))]`;
-                return (
-                  <section
-                    key={item.id}
-                    onDragEnter={(event) => {
-                      event.preventDefault();
-                      setDragOverStatusId(item.id);
-                    }}
-                    onDragOver={(event) => {
-                      event.preventDefault();
-                      event.dataTransfer.dropEffect = "move";
-                    }}
-                    onDragLeave={(event) => {
-                      const nextTarget = event.relatedTarget;
-                      if (
-                        !(nextTarget instanceof Node) ||
-                        !event.currentTarget.contains(nextTarget)
-                      ) {
-                        setDragOverStatusId((current) =>
-                          current === item.id ? null : current,
-                        );
-                      }
-                    }}
-                    onDrop={(event) => {
-                      event.preventDefault();
-                      setDragOverStatusId(null);
-                      void moveTask(
-                        event.dataTransfer.getData("text/task-id"),
-                        item.id,
-                      );
-                    }}
-                    className={`${columnSizeClass} shrink-0 rounded-2xl p-3 transition-[width,background-color,box-shadow] ${
-                      dragOverStatusId === item.id
-                        ? "bg-black/[0.07] ring-2 ring-inset ring-black/30 dark:bg-white/[0.09] dark:ring-white/40"
-                        : "bg-black/[0.035] dark:bg-white/[0.035]"
-                    }`}
-                  >
-                    <div
-                      className={`${isCollapsed ? "" : "mb-3"} flex items-center gap-2 px-1`}
-                    >
-                      <i
-                        className="h-2.5 w-2.5 rounded-full"
-                        style={{ backgroundColor: item.color }}
-                      />
-                      <h2 className="shrink-0 whitespace-nowrap text-xs font-bold uppercase tracking-[0.16em]">
-                        {item.name}
-                      </h2>
-                      <span className="text-xs text-black/40 dark:text-white/40">
-                        {columnTasks.length}
-                      </span>
-                      <button
-                        aria-label={`Add task to ${item.name}`}
-                        className="ml-auto rounded p-1 text-black/40 hover:bg-black/5 hover:text-black dark:text-white/40 dark:hover:bg-white/10 dark:hover:text-white"
-                        onClick={() => openCreate(item.id)}
-                      >
-                        <FiPlus />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${item.name}`}
-                        aria-expanded={!isCollapsed}
-                        aria-controls={`status-column-${item.id}`}
-                        className="rounded p-1 text-black/40 hover:bg-black/5 hover:text-black focus:outline-none focus:ring-2 focus:ring-black/20 dark:text-white/40 dark:hover:bg-white/10 dark:hover:text-white dark:focus:ring-white/30"
-                        onClick={() => toggleStatusSection(item.id)}
-                      >
-                        <FiChevronDown
-                          className={`transition-transform ${isCollapsed ? "-rotate-90" : ""}`}
-                        />
-                      </button>
-                    </div>
-                    <div
-                      id={`status-column-${item.id}`}
-                      hidden={isCollapsed}
-                      className="space-y-3"
-                    >
-                      {columnTasks.map(taskCard)}
-                      {columnTasks.length === 0 && (
-                        <button
-                          onClick={() => openCreate(item.id)}
-                          className="w-full rounded-xl border border-dashed border-black/15 px-3 py-8 text-xs text-black/40 hover:border-black/30 hover:text-black/60 dark:border-white/15 dark:text-white/40 dark:hover:border-white/30 dark:hover:text-white/60"
-                        >
-                          Drop a task here or add one
-                        </button>
-                      )}
-                    </div>
-                  </section>
-                );
-              })}
-            </div>
-          ) : (
-            <Card size="sm" className="overflow-hidden p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[900px] text-left">
-                  <thead className="border-b border-black/10 bg-black/[0.025] text-[10px] uppercase tracking-[0.16em] text-black/50 dark:border-white/10 dark:bg-white/[0.025] dark:text-white/50">
-                    <tr>
-                      <th className="px-4 py-3">Task</th>
-                      <th>Status</th>
-                      <th>Categories</th>
-                      <th>Project</th>
-                      <th>Assignee</th>
-                      <th>Priority</th>
-                      <th>
-                        <button
-                          className="flex items-center gap-1"
-                          onClick={() =>
-                            setSort(sort === "due" ? "updated" : "due")
-                          }
-                        >
-                          Due <FiChevronDown />
-                        </button>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-black/5 dark:divide-white/5">
-                    {visibleTasks.map((task) => {
-                      const itemStatus = statuses.find(
-                        (item) => item.id === task.status_id,
-                      );
-                      const taskCategories = [
-                        ...(categoriesByTask.get(task.id) ?? []),
-                      ]
-                        .map((id) => categories.get(id))
-                        .filter((item) => item !== undefined);
-                      const taskProject = task.project_id
-                        ? projects.get(task.project_id)
-                        : null;
-                      const taskPeople = [
-                        ...(assigneesByTask.get(task.id) ?? []),
-                      ]
-                        .map((id) => profiles.get(id))
-                        .filter((person) => person !== undefined);
-                      return (
-                        <tr
-                          key={task.id}
-                          onClick={() => openEdit(task)}
-                          className="cursor-pointer text-sm hover:bg-black/[0.025] dark:hover:bg-white/[0.025]"
-                        >
-                          <td className="px-4 py-4 font-semibold">
-                            {task.title}
-                          </td>
-                          <td>
-                            <span className="flex items-center gap-2">
-                              <i
-                                className="h-2 w-2 rounded-full"
-                                style={{ backgroundColor: itemStatus?.color }}
-                              />
-                              {itemStatus?.name}
-                            </span>
-                          </td>
-                          <td>
-                            {taskCategories.length > 0 ? (
-                              <span className="flex flex-wrap gap-1.5 py-2 pr-3">
-                                {taskCategories.map((category) => (
-                                  <CategoryBadge
-                                    key={category.id}
-                                    category={category}
-                                  />
-                                ))}
-                              </span>
-                            ) : (
-                              "—"
-                            )}
-                          </td>
-                          <td>{taskProject?.name ?? "—"}</td>
-                          <td>
-                            {taskPeople.length > 0 ? (
-                              <span className="flex items-center gap-2">
-                                <span className="flex -space-x-1.5">
-                                  {taskPeople.slice(0, 3).map((person) => (
-                                    <Avatar
-                                      key={person.id}
-                                      name={profileName(person)}
-                                      small
-                                    />
-                                  ))}
-                                </span>
-                                {taskPeople.map(profileName).join(", ")}
-                              </span>
-                            ) : (
-                              "Unassigned"
-                            )}
-                          </td>
-                          <td>
-                            <span
-                              className={`rounded-full border px-2 py-1 text-[9px] font-bold uppercase tracking-widest ${priorityStyles[task.priority]}`}
-                            >
-                              {task.priority}
-                            </span>
-                          </td>
-                          <td>{displayDate(task.due_date)}</td>
-                        </tr>
-                      );
-                    })}
-                    {visibleTasks.length === 0 && (
-                      <tr>
-                        <td colSpan={7}>
-                          <EmptyState
-                            variant="plain"
-                            message="No tasks found. Try clearing a filter or add the first task in this view."
-                          />
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+          <div className="relative" aria-busy={searchPending}>
+            {searchPending && (
+              <div
+                role="status"
+                aria-label="Loading task results"
+                className="absolute inset-0 z-10 grid min-h-56 place-items-center rounded-2xl bg-[#f7f7f5]/80 backdrop-blur-sm dark:bg-[#101010]/80"
+              >
+                <span className="flex items-center gap-3 rounded-2xl border border-black/15 bg-white px-6 py-4 text-base font-semibold shadow-lg dark:border-white/15 dark:bg-[#181818]">
+                  <FiLoader className="h-6 w-6 animate-spin motion-reduce:animate-none" />
+                  Loading tasks
+                </span>
               </div>
-            </Card>
-          )}
+            )}
+            <div
+              className={
+                searchPending
+                  ? "pointer-events-none opacity-55 transition-opacity"
+                  : "transition-opacity"
+              }
+            >
+              {view === "board" ? (
+                <div className="flex flex-nowrap items-start gap-4 overflow-x-auto overscroll-x-contain pb-5">
+                  {statuses.map((item) => {
+                    const columnTasks = visibleTasks.filter(
+                      (task) => task.status_id === item.id,
+                    );
+                    const isCollapsed =
+                      collapsedStatusIds?.has(item.id) ?? false;
+                    const columnSizeClass = isCollapsed
+                      ? "min-h-0 w-[240px]"
+                      : `${columnTasks.length === 0 ? "min-h-0" : "min-h-[420px]"} w-[min(320px,calc(100vw-3rem))]`;
+                    return (
+                      <section
+                        key={item.id}
+                        onDragEnter={(event) => {
+                          event.preventDefault();
+                          setDragOverStatusId(item.id);
+                        }}
+                        onDragOver={(event) => {
+                          event.preventDefault();
+                          event.dataTransfer.dropEffect = "move";
+                        }}
+                        onDragLeave={(event) => {
+                          const nextTarget = event.relatedTarget;
+                          if (
+                            !(nextTarget instanceof Node) ||
+                            !event.currentTarget.contains(nextTarget)
+                          ) {
+                            setDragOverStatusId((current) =>
+                              current === item.id ? null : current,
+                            );
+                          }
+                        }}
+                        onDrop={(event) => {
+                          event.preventDefault();
+                          setDragOverStatusId(null);
+                          void moveTask(
+                            event.dataTransfer.getData("text/task-id"),
+                            item.id,
+                          );
+                        }}
+                        className={`${columnSizeClass} shrink-0 rounded-2xl p-3 transition-[width,background-color,box-shadow] ${
+                          dragOverStatusId === item.id
+                            ? "bg-black/[0.07] ring-2 ring-inset ring-black/30 dark:bg-white/[0.09] dark:ring-white/40"
+                            : "bg-black/[0.035] dark:bg-white/[0.035]"
+                        }`}
+                      >
+                        <div
+                          className={`${isCollapsed ? "" : "mb-3"} flex items-center gap-2 px-1`}
+                        >
+                          <i
+                            className="h-2.5 w-2.5 rounded-full"
+                            style={{ backgroundColor: item.color }}
+                          />
+                          <h2 className="shrink-0 whitespace-nowrap text-xs font-bold uppercase tracking-[0.16em]">
+                            {item.name}
+                          </h2>
+                          <span className="text-xs text-black/40 dark:text-white/40">
+                            {columnTasks.length}
+                          </span>
+                          <button
+                            aria-label={`Add task to ${item.name}`}
+                            className="ml-auto rounded p-1 text-black/40 hover:bg-black/5 hover:text-black dark:text-white/40 dark:hover:bg-white/10 dark:hover:text-white"
+                            onClick={() => openCreate(item.id)}
+                          >
+                            <FiPlus />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${item.name}`}
+                            aria-expanded={!isCollapsed}
+                            aria-controls={`status-column-${item.id}`}
+                            className="rounded p-1 text-black/40 hover:bg-black/5 hover:text-black focus:outline-none focus:ring-2 focus:ring-black/20 dark:text-white/40 dark:hover:bg-white/10 dark:hover:text-white dark:focus:ring-white/30"
+                            onClick={() => toggleStatusSection(item.id)}
+                          >
+                            <FiChevronDown
+                              className={`transition-transform ${isCollapsed ? "-rotate-90" : ""}`}
+                            />
+                          </button>
+                        </div>
+                        <div
+                          id={`status-column-${item.id}`}
+                          hidden={isCollapsed}
+                          className="space-y-3"
+                        >
+                          {columnTasks.map(taskCard)}
+                          {columnTasks.length === 0 && (
+                            <button
+                              onClick={() => openCreate(item.id)}
+                              className="w-full rounded-xl border border-dashed border-black/15 px-3 py-8 text-xs text-black/40 hover:border-black/30 hover:text-black/60 dark:border-white/15 dark:text-white/40 dark:hover:border-white/30 dark:hover:text-white/60"
+                            >
+                              Drop a task here or add one
+                            </button>
+                          )}
+                        </div>
+                      </section>
+                    );
+                  })}
+                </div>
+              ) : (
+                <Card size="sm" className="overflow-hidden p-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[900px] text-left">
+                      <thead className="border-b border-black/10 bg-black/[0.025] text-[10px] uppercase tracking-[0.16em] text-black/50 dark:border-white/10 dark:bg-white/[0.025] dark:text-white/50">
+                        <tr>
+                          <th className="px-4 py-3">Task</th>
+                          <th>Status</th>
+                          <th>Categories</th>
+                          <th>Project</th>
+                          <th>Assignee</th>
+                          <th>Priority</th>
+                          <th>
+                            <button
+                              className="flex items-center gap-1"
+                              onClick={() =>
+                                setSort(sort === "due" ? "updated" : "due")
+                              }
+                            >
+                              Due <FiChevronDown />
+                            </button>
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-black/5 dark:divide-white/5">
+                        {visibleTasks.map((task) => {
+                          const itemStatus = statuses.find(
+                            (item) => item.id === task.status_id,
+                          );
+                          const taskCategories = [
+                            ...(categoriesByTask.get(task.id) ?? []),
+                          ]
+                            .map((id) => categories.get(id))
+                            .filter((item) => item !== undefined);
+                          const taskProject = task.project_id
+                            ? projects.get(task.project_id)
+                            : null;
+                          const taskPeople = [
+                            ...(assigneesByTask.get(task.id) ?? []),
+                          ]
+                            .map((id) => profiles.get(id))
+                            .filter((person) => person !== undefined);
+                          return (
+                            <tr
+                              key={task.id}
+                              onClick={() => openEdit(task)}
+                              className="cursor-pointer text-sm hover:bg-black/[0.025] dark:hover:bg-white/[0.025]"
+                            >
+                              <td className="px-4 py-4 font-semibold">
+                                {task.title}
+                              </td>
+                              <td>
+                                <span className="flex items-center gap-2">
+                                  <i
+                                    className="h-2 w-2 rounded-full"
+                                    style={{
+                                      backgroundColor: itemStatus?.color,
+                                    }}
+                                  />
+                                  {itemStatus?.name}
+                                </span>
+                              </td>
+                              <td>
+                                {taskCategories.length > 0 ? (
+                                  <span className="flex flex-wrap gap-1.5 py-2 pr-3">
+                                    {taskCategories.map((category) => (
+                                      <CategoryBadge
+                                        key={category.id}
+                                        category={category}
+                                      />
+                                    ))}
+                                  </span>
+                                ) : (
+                                  "—"
+                                )}
+                              </td>
+                              <td>{taskProject?.name ?? "—"}</td>
+                              <td>
+                                {taskPeople.length > 0 ? (
+                                  <span className="flex items-center gap-2">
+                                    <span className="flex -space-x-1.5">
+                                      {taskPeople.slice(0, 3).map((person) => (
+                                        <Avatar
+                                          key={person.id}
+                                          name={profileName(person)}
+                                          size="sm"
+                                          src={person.avatar_url}
+                                        />
+                                      ))}
+                                    </span>
+                                    {taskPeople.map(profileName).join(", ")}
+                                  </span>
+                                ) : (
+                                  "Unassigned"
+                                )}
+                              </td>
+                              <td>
+                                <span
+                                  className={`rounded-full border px-2 py-1 text-[9px] font-bold uppercase tracking-widest ${priorityStyles[task.priority]}`}
+                                >
+                                  {task.priority}
+                                </span>
+                              </td>
+                              <td>{displayDate(task.due_date)}</td>
+                            </tr>
+                          );
+                        })}
+                        {visibleTasks.length === 0 && (
+                          <tr>
+                            <td colSpan={7}>
+                              <EmptyState
+                                variant="plain"
+                                message="No tasks found. Try clearing a filter or add the first task in this view."
+                              />
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </Card>
+              )}
+            </div>
+          </div>
         </div>
       </main>
 
@@ -1778,6 +1889,10 @@ export function TaskApp({
                   options={[
                     { label: "Unassigned", value: "" },
                     ...data.profiles.map((item) => ({
+                      avatar: {
+                        name: profileName(item),
+                        src: item.avatar_url,
+                      },
                       label: profileName(item),
                       value: item.id,
                     })),
@@ -1833,6 +1948,7 @@ export function TaskApp({
           data={data}
           setData={setData}
           demoMode={demoMode}
+          createOnly
         />
       )}
       {projectsOpen && (
@@ -1842,6 +1958,7 @@ export function TaskApp({
           data={data}
           setData={setData}
           demoMode={demoMode}
+          createOnly
         />
       )}
       <TeamSettingsModal
@@ -1894,6 +2011,7 @@ export function WorkGroupsModalLegacy({
     const item = {
       id: crypto.randomUUID(),
       name: groupName,
+      description: null,
       color,
       created_by: data.currentProfile.id,
     };
@@ -2095,7 +2213,7 @@ export function WorkGroupsModalLegacy({
   );
 }
 
-function TeamSettingsModal({
+export function TeamSettingsModal({
   open,
   setOpen,
   data,
@@ -2433,7 +2551,7 @@ function TeamSettingsModal({
                 key={person.id}
                 className="flex items-center gap-3 rounded-xl border border-black/10 p-3 dark:border-white/10"
               >
-                <Avatar name={profileName(person)} />
+                <Avatar name={profileName(person)} src={person.avatar_url} />
                 <div className="flex-1">
                   <p className="font-semibold">{profileName(person)}</p>
                   <p className="text-xs text-black/50 dark:text-white/50">

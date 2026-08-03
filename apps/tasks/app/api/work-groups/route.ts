@@ -55,8 +55,9 @@ export async function POST(request: Request) {
       { error: "SUPABASE_SECRET_KEY is not configured" },
       { status: 503 },
     );
-  const { name, color } = (await request.json()) as {
+  const { name, description, color } = (await request.json()) as {
     name?: string;
+    description?: string;
     color?: string;
   };
   if (!name?.trim() || !validColor(color))
@@ -66,7 +67,12 @@ export async function POST(request: Request) {
     );
   const { data, error } = await client
     .from("work_groups")
-    .insert({ name: name.trim(), color, created_by: user.id })
+    .insert({
+      name: name.trim(),
+      description: description?.trim() || null,
+      color,
+      created_by: user.id,
+    })
     .select()
     .single();
   if (error)
@@ -83,9 +89,10 @@ export async function PATCH(request: Request) {
       { error: "SUPABASE_SECRET_KEY is not configured" },
       { status: 503 },
     );
-  const { id, name, color } = (await request.json()) as {
+  const { id, name, description, color } = (await request.json()) as {
     id?: string;
     name?: string;
+    description?: string;
     color?: string;
   };
   if (!id || !name?.trim() || !validColor(color))
@@ -95,7 +102,11 @@ export async function PATCH(request: Request) {
     );
   const { error } = await client
     .from("work_groups")
-    .update({ name: name.trim(), color })
+    .update({
+      name: name.trim(),
+      description: description?.trim() || null,
+      color,
+    })
     .eq("id", id);
   if (error)
     return NextResponse.json({ error: error.message }, { status: 400 });
