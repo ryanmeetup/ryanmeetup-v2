@@ -40,6 +40,9 @@ export function TasksSidebar({
   onCreateProject: () => void;
 }) {
   const name = data.currentProfile.full_name || "Teammate";
+  const viewingAsGroup = data.accessPreview?.kind === "group";
+  const myTasksName =
+    data.accessPreview?.kind === "user" ? data.accessPreview.subjectName : name;
   const isOwner =
     !data.accessPreview &&
     (demoMode || data.currentProfile.app_role === "owner");
@@ -85,16 +88,34 @@ export function TasksSidebar({
           </IconButton>
         </div>
         <nav className="mt-8 space-y-1" aria-label="Main navigation">
-          <Link
-            href={withAccessPreview(
-              `/?assignee=${encodeURIComponent(name)}&view=list`,
-              data.accessPreview,
-            )}
-            className="sidebar-link"
-          >
-            <FiUser />
-            My Tasks
-          </Link>
+          {viewingAsGroup ? (
+            <Tooltip
+              content="My Tasks is unavailable when viewing as an access group because a group is not a task assignee."
+              placement="right"
+              triggerClassName="w-full"
+            >
+              <button
+                type="button"
+                aria-disabled="true"
+                className="sidebar-link w-full cursor-not-allowed opacity-40"
+                onClick={(event) => event.preventDefault()}
+              >
+                <FiUser />
+                My Tasks
+              </button>
+            </Tooltip>
+          ) : (
+            <Link
+              href={withAccessPreview(
+                `/?assignee=${encodeURIComponent(myTasksName)}&view=list`,
+                data.accessPreview,
+              )}
+              className="sidebar-link"
+            >
+              <FiUser />
+              My Tasks
+            </Link>
+          )}
           <Link
             href={withAccessPreview("/?view=board", data.accessPreview)}
             className="sidebar-link"

@@ -572,7 +572,17 @@ export function TaskApp({
       if (priority !== readablePriority) setPriority(readablePriority);
     }
   }, [priority, selectedPriority, setPriority]);
-  const isMyTasks = selectedAssignee?.id === data.currentProfile.id;
+  const viewingAsGroup = data.accessPreview?.kind === "group";
+  const myTasksProfile =
+    data.accessPreview?.kind === "user"
+      ? data.profiles.find(
+          (profile) => profile.id === data.accessPreview?.subjectId,
+        )
+      : data.currentProfile;
+  const myTasksName =
+    myTasksProfile?.full_name ?? data.accessPreview?.subjectName ?? "";
+  const isMyTasks =
+    !viewingAsGroup && selectedAssignee?.id === myTasksProfile?.id;
   const scopeName = selectedProject?.name ?? selectedCategory?.name;
   const scopeDescription =
     selectedProject?.description ?? selectedCategory?.description;
@@ -1183,12 +1193,16 @@ export function TaskApp({
         className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-black/10 bg-white p-4 transition-transform dark:border-white/10 dark:bg-black lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="flex h-12 items-center justify-between px-2">
-          <div>
+          <Link
+            href={withAccessPreview("/", data.accessPreview)}
+            aria-label="Task tracker home"
+            className="-ml-2 rounded-lg px-2 py-1 transition duration-300 ease-in-out hover:-translate-y-0.5 hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 motion-reduce:transform-none dark:hover:bg-white/10 dark:focus-visible:ring-white/40"
+          >
             <p className="font-cooper text-2xl uppercase">Ryan Meetup</p>
             <p className="text-[9px] font-semibold uppercase tracking-[0.28em] text-black/45 dark:text-white/45">
               Task tracker
             </p>
-          </div>
+          </Link>
           <IconButton
             label="Close navigation"
             className="lg:hidden"
@@ -1198,27 +1212,45 @@ export function TaskApp({
           </IconButton>
         </div>
         <nav className="mt-8 space-y-1" aria-label="Main navigation">
-          <button
-            onClick={() => {
-              if (isMyTasks) {
-                setAssignee("all");
+          {viewingAsGroup ? (
+            <Tooltip
+              content="My Tasks is unavailable when viewing as an access group because a group is not a task assignee."
+              placement="right"
+              triggerClassName="w-full"
+            >
+              <button
+                type="button"
+                aria-disabled="true"
+                className="sidebar-link w-full cursor-not-allowed opacity-40"
+                onClick={(event) => event.preventDefault()}
+              >
+                <FiUser />
+                My Tasks
+              </button>
+            </Tooltip>
+          ) : (
+            <button
+              onClick={() => {
+                if (isMyTasks) {
+                  setAssignee("all");
+                  setSidebarOpen(false);
+                  return;
+                }
+                setAssignee(myTasksName);
+                setGroup("all");
+                setProject("all");
+                setStatus("all");
+                setPriority("all");
+                setVisibility("active");
+                setView("list");
                 setSidebarOpen(false);
-                return;
-              }
-              setAssignee(profileName(data.currentProfile));
-              setGroup("all");
-              setProject("all");
-              setStatus("all");
-              setPriority("all");
-              setVisibility("active");
-              setView("list");
-              setSidebarOpen(false);
-            }}
-            className={`sidebar-link ${isMyTasks ? "sidebar-link-active" : ""}`}
-          >
-            <FiUser />
-            My Tasks
-          </button>
+              }}
+              className={`sidebar-link ${isMyTasks ? "sidebar-link-active" : ""}`}
+            >
+              <FiUser />
+              My Tasks
+            </button>
+          )}
           <button
             onClick={() => {
               setView("board");

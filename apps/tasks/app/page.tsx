@@ -2,7 +2,9 @@ import { TaskApp } from "@/components/TaskApp";
 import {
   ACCESS_PREVIEW_PARAM,
   applyAccessPreview,
+  USER_ACCESS_PREVIEW_PARAM,
 } from "@/lib/access-preview";
+import { resolveAccessPreview } from "@/lib/access-preview-server";
 import { demoData } from "@/lib/demo-data";
 import { createClient } from "@/lib/supabase/server";
 import type { WorkspaceData } from "@/lib/types";
@@ -20,9 +22,13 @@ export default async function Home({
 }) {
   const query = await searchParams;
   const initialTaskOpen = query["new-task"] === "1";
-  const requestedPreview =
+  const requestedGroupPreview =
     typeof query[ACCESS_PREVIEW_PARAM] === "string"
       ? query[ACCESS_PREVIEW_PARAM]
+      : undefined;
+  const requestedUserPreview =
+    typeof query[USER_ACCESS_PREVIEW_PARAM] === "string"
+      ? query[USER_ACCESS_PREVIEW_PARAM]
       : undefined;
   const demoMode =
     !process.env.NEXT_PUBLIC_SUPABASE_URL ||
@@ -113,26 +119,19 @@ export default async function Home({
     taskCategories: taskCategories ?? [],
     projectOwners: [],
   };
-  if (requestedPreview) {
+  if (requestedGroupPreview || requestedUserPreview) {
     const { data: isOwner } = await supabase.rpc("is_app_owner");
     if (isOwner) {
-      const [{ data: previewGroup }, { data: previewGrants }] =
-        await Promise.all([
-          supabase
-            .from("access_groups")
-            .select("id, name")
-            .eq("id", requestedPreview)
-            .maybeSingle(),
-          supabase
-            .from("project_group_grants")
-            .select("project_id")
-            .eq("group_id", requestedPreview),
-        ]);
-      if (previewGroup) {
+      const resolvedPreview = await resolveAccessPreview(supabase, {
+        groupId: requestedGroupPreview,
+        userId: requestedUserPreview,
+        allProjectIds: initialData.projects.map((project) => project.id),
+      });
+      if (resolvedPreview) {
         initialData = applyAccessPreview(
           initialData,
-          { groupId: previewGroup.id, groupName: previewGroup.name },
-          (previewGrants ?? []).map((grant) => grant.project_id),
+          resolvedPreview.preview,
+          resolvedPreview.projectIds,
         );
       }
     }

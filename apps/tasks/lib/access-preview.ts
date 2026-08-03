@@ -1,19 +1,26 @@
 import type { AccessPreview, WorkspaceData } from "./types";
 
 export const ACCESS_PREVIEW_PARAM = "viewAsGroup";
+export const USER_ACCESS_PREVIEW_PARAM = "viewAsUser";
 
 export function accessPreviewHref(groupId: string) {
   return `/?${ACCESS_PREVIEW_PARAM}=${encodeURIComponent(groupId)}`;
 }
 
-export function withAccessPreview(
-  href: string,
-  preview?: AccessPreview,
-) {
+export function userAccessPreviewHref(profileId: string) {
+  return `/?${USER_ACCESS_PREVIEW_PARAM}=${encodeURIComponent(profileId)}`;
+}
+
+export function withAccessPreview(href: string, preview?: AccessPreview) {
   if (!preview) return href;
   const [path, query = ""] = href.split("?");
   const params = new URLSearchParams(query);
-  params.set(ACCESS_PREVIEW_PARAM, preview.groupId);
+  params.delete(ACCESS_PREVIEW_PARAM);
+  params.delete(USER_ACCESS_PREVIEW_PARAM);
+  params.set(
+    preview.kind === "group" ? ACCESS_PREVIEW_PARAM : USER_ACCESS_PREVIEW_PARAM,
+    preview.subjectId,
+  );
   return `${path}?${params.toString()}`;
 }
 

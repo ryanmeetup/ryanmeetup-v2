@@ -32,17 +32,27 @@ export function TaskHeaderActions({
           Access
         </Button.Link>
       )}
-      {isOwner && onStatuses && (
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          leftIcon={<FiCheck />}
-          onClick={onStatuses}
-        >
-          Statuses
-        </Button>
-      )}
+      {isOwner &&
+        (onStatuses ? (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            leftIcon={<FiCheck />}
+            onClick={onStatuses}
+          >
+            Statuses
+          </Button>
+        ) : (
+          <Button.Link
+            href="/access?statuses=1"
+            variant="secondary"
+            size="sm"
+            leftIcon={<FiCheck />}
+          >
+            Statuses
+          </Button.Link>
+        ))}
       {isPreviewing ? (
         <Tooltip content="Exit access preview to create a new task">
           <Button size="sm" leftIcon={<FiPlus />} disabled>

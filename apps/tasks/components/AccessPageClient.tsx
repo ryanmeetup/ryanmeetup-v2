@@ -28,7 +28,7 @@ import {
 } from "react-icons/fi";
 import { createClient } from "@/lib/supabase/client";
 import { accessGroupSlug } from "@/lib/access-groups";
-import { accessPreviewHref } from "@/lib/access-preview";
+import { accessPreviewHref, userAccessPreviewHref } from "@/lib/access-preview";
 import type { Profile, Project, WorkspaceData } from "@/lib/types";
 import { TaskBanners } from "./TaskBanners";
 import { ProjectsModal } from "./ProjectsModal";
@@ -66,6 +66,7 @@ export function AccessPageClient({
   initialGroups,
   initialMembers,
   initialGroupGrants,
+  initialStatusSettingsOpen = false,
 }: {
   currentUserId: string;
   initialData: WorkspaceData;
@@ -74,12 +75,13 @@ export function AccessPageClient({
   initialGroups: AccessGroup[];
   initialMembers: GroupMember[];
   initialGroupGrants: GroupGrant[];
+  initialStatusSettingsOpen?: boolean;
 }) {
   const [data, setData] = useState(initialData);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [projectCreateOpen, setProjectCreateOpen] = useState(false);
   const [categoryCreateOpen, setCategoryCreateOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(initialStatusSettingsOpen);
   const [groupCreateOpen, setGroupCreateOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<AccessGroup | null>(null);
   const [editingName, setEditingName] = useState("");
@@ -532,6 +534,18 @@ export function AccessPageClient({
                               )}
                             </td>
                             <td className="px-4 py-3 text-right">
+                              <Tooltip
+                                content={`View as ${profile.full_name}`}
+                                placement="left"
+                              >
+                                <Link
+                                  href={userAccessPreviewHref(profile.id)}
+                                  aria-label={`View as ${profile.full_name}`}
+                                  className="mr-2 inline-grid h-8 w-8 place-items-center rounded-full border border-black/10 text-black transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:border-white/10 dark:text-white dark:hover:bg-white/10 dark:focus-visible:ring-white/30"
+                                >
+                                  <FiEye />
+                                </Link>
+                              </Tooltip>
                               {profile.id === currentUserId ? (
                                 <Tooltip
                                   content="You cannot remove your own owner account because that could lock you out of workspace administration."

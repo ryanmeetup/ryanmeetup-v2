@@ -3,7 +3,10 @@
 import { Banner, Button } from "@ryanmeetup/ui";
 import { usePathname, useSearchParams } from "next/navigation";
 import { FiEye, FiX } from "react-icons/fi";
-import { ACCESS_PREVIEW_PARAM } from "@/lib/access-preview";
+import {
+  ACCESS_PREVIEW_PARAM,
+  USER_ACCESS_PREVIEW_PARAM,
+} from "@/lib/access-preview";
 import type { AccessPreview } from "@/lib/types";
 
 export function AccessPreviewBanner({ preview }: { preview?: AccessPreview }) {
@@ -15,6 +18,7 @@ export function AccessPreviewBanner({ preview }: { preview?: AccessPreview }) {
   function exitPreview() {
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.delete(ACCESS_PREVIEW_PARAM);
+    nextParams.delete(USER_ACCESS_PREVIEW_PARAM);
     const query = nextParams.toString();
     window.location.assign(query ? `${pathname}?${query}` : pathname);
   }
@@ -38,9 +42,9 @@ export function AccessPreviewBanner({ preview }: { preview?: AccessPreview }) {
       }
     >
       <p>
-        Viewing project visibility as <strong>{preview.groupName}</strong>. This
-        is a visibility preview; you are still signed in with your own account
-        permissions.
+        Viewing project visibility as <strong>{preview.subjectName}</strong>
+        {preview.kind === "group" ? " access group" : ""}. This is a visibility
+        preview; you are still signed in with your own account permissions.
       </p>
     </Banner>
   );

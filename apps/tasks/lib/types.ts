@@ -116,8 +116,9 @@ export type TaskCategory = { task_id: string; category_id: string };
 export type ProjectOwner = { project_id: string; profile_id: string };
 
 export type AccessPreview = {
-  groupId: string;
-  groupName: string;
+  kind: "group" | "user";
+  subjectId: string;
+  subjectName: string;
 };
 
 export type WorkspaceData = {
