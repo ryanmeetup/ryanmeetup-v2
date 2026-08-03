@@ -11,7 +11,9 @@ import {
   IconButton,
   Input,
   Modal,
+  Pill,
   Textarea,
+  Tooltip,
   toast,
 } from "@ryanmeetup/ui";
 import {
@@ -28,12 +30,12 @@ import { createClient } from "@/lib/supabase/client";
 import { accessGroupSlug } from "@/lib/access-groups";
 import { accessPreviewHref } from "@/lib/access-preview";
 import type { Profile, Project, WorkspaceData } from "@/lib/types";
-import { BetaBanner } from "./BetaBanner";
+import { TaskBanners } from "./TaskBanners";
 import { ProjectsModal } from "./ProjectsModal";
 import { TasksSidebar } from "./TasksSidebar";
 import { TaskHeaderActions } from "./TaskHeaderActions";
 import { WorkGroupsModal as CategoriesModal } from "./WorkGroupsModal";
-import { TeamSettingsModal } from "./TaskApp";
+import { StatusSettingsModal } from "./TaskApp";
 
 type Permission = "viewer" | "editor" | "manager";
 type AccessGroup = {
@@ -85,13 +87,18 @@ export function AccessPageClient({
   const [memberSelections, setMemberSelections] = useState<
     Record<string, string>
   >({});
-  const [profiles] = useState(initialProfiles);
+  const [profiles, setProfiles] = useState(initialProfiles);
   const [groups, setGroups] = useState(initialGroups);
   const [members, setMembers] = useState(initialMembers);
   const [groupGrants, setGroupGrants] = useState(initialGroupGrants);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteName, setInviteName] = useState("");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [teamPending, setTeamPending] = useState(false);
+  const [profileToRemove, setProfileToRemove] = useState<Profile | null>(null);
   const [deleteGroup, setDeleteGroup] = useState<AccessGroup | null>(null);
   const projectNames = useMemo(
     () => new Map(projects.map((project) => [project.id, project.name])),
@@ -231,6 +238,84 @@ export function AccessPageClient({
     setEditingGroup(null);
   }
 
+  async function inviteTeammate(event: FormEvent) {
+    event.preventDefault();
+    if (!inviteEmail.trim() || teamPending) return;
+    setTeamPending(true);
+    try {
+      const response = await fetch("/api/team", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: inviteEmail, fullName: inviteName }),
+      });
+      const result = (await response.json()) as {
+        error?: string;
+        profile?: Profile;
+      };
+      if (!response.ok || !result.profile)
+        throw new Error(result.error ?? "The invitation could not be sent.");
+      setProfiles((current) =>
+        [...current, result.profile!].sort((a, b) =>
+          a.full_name.localeCompare(b.full_name),
+        ),
+      );
+      setData((current) => ({
+        ...current,
+        profiles: [...current.profiles, result.profile!],
+      }));
+      setInviteName("");
+      setInviteEmail("");
+      setInviteOpen(false);
+      toast.success(`Invitation sent to ${result.profile.full_name}.`);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "The invitation could not be sent.",
+      );
+    } finally {
+      setTeamPending(false);
+    }
+  }
+
+  async function removeTeammate() {
+    if (!profileToRemove || teamPending) return;
+    setTeamPending(true);
+    try {
+      const response = await fetch("/api/team", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: profileToRemove.id }),
+      });
+      const result = (await response.json()) as { error?: string };
+      if (!response.ok)
+        throw new Error(result.error ?? "The teammate could not be removed.");
+      const removedId = profileToRemove.id;
+      setProfiles((current) =>
+        current.filter((profile) => profile.id !== removedId),
+      );
+      setData((current) => ({
+        ...current,
+        profiles: current.profiles.filter(
+          (profile) => profile.id !== removedId,
+        ),
+      }));
+      setMembers((current) =>
+        current.filter((member) => member.profile_id !== removedId),
+      );
+      setProfileToRemove(null);
+      toast.success(`${profileToRemove.full_name} removed.`);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "The teammate could not be removed.",
+      );
+    } finally {
+      setTeamPending(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#f7f7f5] text-black dark:bg-[#101010] dark:text-white">
       <TasksSidebar
@@ -240,7 +325,6 @@ export function AccessPageClient({
         setOpen={setSidebarOpen}
         onCreateCategory={() => setCategoryCreateOpen(true)}
         onCreateProject={() => setProjectCreateOpen(true)}
-        onTeamSettings={() => setSettingsOpen(true)}
       />
       <main className="min-w-0 lg:pl-64">
         <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-black/10 bg-[#f7f7f5]/90 px-4 backdrop-blur-xl dark:border-white/10 dark:bg-[#101010]/90 sm:px-6 lg:px-8">
@@ -252,9 +336,13 @@ export function AccessPageClient({
             <FiMenu />
           </IconButton>
           <p className="font-semibold">Access & permissions</p>
-          <TaskHeaderActions data={data} demoMode={false} />
+          <TaskHeaderActions
+            data={data}
+            demoMode={false}
+            onStatuses={() => setSettingsOpen(true)}
+          />
         </header>
-        <BetaBanner />
+        <TaskBanners />
         <div className="p-4 sm:p-6 lg:p-8">
           <div className="mx-auto max-w-6xl space-y-8">
             <div>
@@ -363,6 +451,120 @@ export function AccessPageClient({
                 })}
               </div>
             </section>
+
+            <section
+              aria-labelledby="team-heading"
+              className="space-y-4 border-t border-black/10 pt-8 dark:border-white/10"
+            >
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 id="team-heading" className="text-xl font-semibold">
+                    Team
+                  </h2>
+                  <p className="mt-1 text-sm text-black/65 dark:text-white/65">
+                    Manage the people who can sign in to this workspace.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  leftIcon={<FiPlus />}
+                  onClick={() => setInviteOpen(true)}
+                >
+                  Invite teammate
+                </Button>
+              </div>
+              <Card className="overflow-hidden p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead className="border-b border-black/10 bg-black/[0.025] text-[10px] uppercase tracking-[0.16em] text-black/50 dark:border-white/10 dark:bg-white/[0.025] dark:text-white/50">
+                      <tr>
+                        <th className="px-4 py-3 font-semibold">Person</th>
+                        <th className="px-4 py-3 font-semibold">Role</th>
+                        <th className="px-4 py-3 font-semibold">
+                          Access groups
+                        </th>
+                        <th className="px-4 py-3 text-right font-semibold">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-black/10 dark:divide-white/10">
+                      {profiles.map((profile) => {
+                        const profileGroups = members
+                          .filter((member) => member.profile_id === profile.id)
+                          .map((member) =>
+                            groups.find(
+                              (group) => group.id === member.group_id,
+                            ),
+                          )
+                          .filter((group) => group !== undefined)
+                          .sort((a, b) => a.name.localeCompare(b.name));
+                        return (
+                          <tr key={profile.id}>
+                            <td className="px-4 py-3">
+                              <span className="flex items-center gap-3">
+                                <Avatar
+                                  name={profile.full_name}
+                                  src={profile.avatar_url}
+                                  size="sm"
+                                />
+                                <span className="font-semibold">
+                                  {profile.full_name}
+                                </span>
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 capitalize text-black/65 dark:text-white/65">
+                              {profile.app_role ?? "member"}
+                            </td>
+                            <td className="px-4 py-3">
+                              {profileGroups.length > 0 ? (
+                                <div className="flex flex-wrap gap-1.5">
+                                  {profileGroups.map((group) => (
+                                    <Pill key={group.id} size="sm">
+                                      {group.name}
+                                    </Pill>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-black/45 dark:text-white/45">
+                                  No groups
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              {profile.id === currentUserId ? (
+                                <Tooltip
+                                  content="You cannot remove your own owner account because that could lock you out of workspace administration."
+                                  placement="left"
+                                >
+                                  <IconButton
+                                    label="You cannot remove your own owner account"
+                                    variant="danger"
+                                    aria-disabled="true"
+                                    className="cursor-not-allowed opacity-40 hover:translate-y-0 hover:border-red-500/20 hover:bg-transparent hover:shadow-none dark:hover:border-red-400/25 dark:hover:bg-transparent"
+                                    onClick={(event) => event.preventDefault()}
+                                  >
+                                    <FiTrash2 />
+                                  </IconButton>
+                                </Tooltip>
+                              ) : (
+                                <IconButton
+                                  label={`Remove ${profile.full_name}`}
+                                  variant="danger"
+                                  onClick={() => setProfileToRemove(profile)}
+                                >
+                                  <FiTrash2 />
+                                </IconButton>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            </section>
           </div>
         </div>
       </main>
@@ -387,13 +589,67 @@ export function AccessPageClient({
           createOnly
         />
       )}
-      <TeamSettingsModal
+      <StatusSettingsModal
         open={settingsOpen}
         setOpen={setSettingsOpen}
         data={data}
         setData={setData}
         demoMode={false}
       />
+      <Modal
+        open={inviteOpen}
+        setIsOpen={(open) => {
+          if (!teamPending) setInviteOpen(open);
+        }}
+        title="Invite teammate"
+        size="md"
+        hideActions
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={teamPending}
+              onClick={() => setInviteOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="invite-teammate-form"
+              loading={teamPending}
+              loadingText="Inviting..."
+            >
+              Send invitation
+            </Button>
+          </div>
+        }
+      >
+        <form
+          id="invite-teammate-form"
+          className="grid gap-4 sm:grid-cols-2"
+          onSubmit={inviteTeammate}
+        >
+          <Input
+            label="Name"
+            name="invite-name"
+            value={inviteName}
+            onChange={(event) => setInviteName(event.target.value)}
+            placeholder="New Ryan"
+            disabled={teamPending}
+          />
+          <Input
+            label="Email"
+            name="invite-email"
+            type="email"
+            required
+            value={inviteEmail}
+            onChange={(event) => setInviteEmail(event.target.value)}
+            placeholder="ryan@example.com"
+            disabled={teamPending}
+          />
+        </form>
+      </Modal>
       <Modal
         open={groupCreateOpen}
         setIsOpen={(open) => {
@@ -402,8 +658,32 @@ export function AccessPageClient({
         title="New access group"
         size="md"
         hideActions
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={saving}
+              onClick={() => setGroupCreateOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="create-access-group-form"
+              loading={saving}
+              loadingText="Creating..."
+            >
+              Create group
+            </Button>
+          </div>
+        }
       >
-        <form className="space-y-4" onSubmit={createGroup}>
+        <form
+          id="create-access-group-form"
+          className="space-y-4"
+          onSubmit={createGroup}
+        >
           <Input
             label="Group name"
             name="access-group-name"
@@ -424,19 +704,6 @@ export function AccessPageClient({
             placeholder="Who belongs here and why?"
             disabled={saving}
           />
-          <div className="flex justify-end gap-2 border-t border-black/10 pt-4 dark:border-white/10">
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={saving}
-              onClick={() => setGroupCreateOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" loading={saving} loadingText="Creating...">
-              Create group
-            </Button>
-          </div>
         </form>
       </Modal>
 
@@ -579,6 +846,24 @@ export function AccessPageClient({
           </form>
         )}
       </Modal>
+
+      <ConfirmationDialog
+        open={Boolean(profileToRemove)}
+        setOpen={(open) => {
+          if (!open && !teamPending) setProfileToRemove(null);
+        }}
+        title="Remove teammate?"
+        description={
+          profileToRemove
+            ? `Remove ${profileToRemove.full_name} and revoke their workspace access?`
+            : ""
+        }
+        confirmLabel="Remove teammate"
+        pendingLabel="Removing..."
+        pending={teamPending}
+        destructive
+        onConfirm={removeTeammate}
+      />
 
       <ConfirmationDialog
         open={Boolean(deleteGroup)}

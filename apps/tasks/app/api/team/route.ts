@@ -53,7 +53,15 @@ export async function POST(request: Request) {
   );
   if (error)
     return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json({ user: data.user });
+  return NextResponse.json({
+    profile: {
+      id: data.user.id,
+      full_name: fullName?.trim() || email.trim().split("@")[0],
+      avatar_url: null,
+      onboarding_completed: false,
+      app_role: "member",
+    },
+  });
 }
 
 export async function DELETE(request: Request) {
