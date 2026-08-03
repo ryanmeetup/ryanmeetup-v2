@@ -558,6 +558,8 @@ export function TaskApp({
   }, [priority, selectedPriority, setPriority]);
   const isMyTasks = selectedAssignee?.id === data.currentProfile.id;
   const scopeName = selectedProject?.name ?? selectedCategory?.name;
+  const scopeDescription =
+    selectedProject?.description ?? selectedCategory?.description;
   const viewTitle = scopeName
     ? `${scopeName} ${visibility === "archived" ? "Archived Tasks" : view === "board" ? "Board" : "Tasks"}`
     : isMyTasks
@@ -1325,6 +1327,11 @@ export function TaskApp({
                   {visibleTasks.length === 1 ? "task" : "tasks"}
                 </Pill>
               </div>
+              {scopeDescription && (
+                <p className="mt-2 text-sm text-black/70 dark:text-white/70 sm:text-base">
+                  {scopeDescription}
+                </p>
+              )}
             </div>
             <div className="flex rounded-lg border border-black/10 bg-white p-1 dark:border-white/10 dark:bg-white/5">
               <button
@@ -1493,7 +1500,7 @@ export function TaskApp({
                       collapsedStatusIds?.has(item.id) ?? false;
                     const columnSizeClass = isCollapsed
                       ? "min-h-0 w-[240px]"
-                      : `${columnTasks.length === 0 ? "min-h-0" : "min-h-[420px]"} w-[min(320px,calc(100vw-3rem))]`;
+                      : "min-h-0 w-[min(320px,calc(100vw-3rem))]";
                     return (
                       <section
                         key={item.id}

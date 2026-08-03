@@ -17,7 +17,13 @@ import {
   toast,
 } from "@ryanmeetup/ui";
 import { useSearchFilter } from "@ryanmeetup/hooks";
-import { FiEdit2, FiRefreshCw, FiSearch, FiTrash2 } from "react-icons/fi";
+import {
+  FiEdit2,
+  FiLoader,
+  FiRefreshCw,
+  FiSearch,
+  FiTrash2,
+} from "react-icons/fi";
 import type { Category, WorkspaceData } from "@/lib/types";
 
 function randomCategoryColor(exclude?: string) {
@@ -64,6 +70,7 @@ export function WorkGroupsModal({
     query,
     setQuery,
     filtered: searchedCategories,
+    isPending: searchPending,
   } = useSearchFilter({
     data: data.categories,
     buildHaystack: (category) =>
@@ -251,6 +258,7 @@ export function WorkGroupsModal({
                 {colorControl(color, setColor, creating)}
               </div>
               <Textarea
+                id="category-description"
                 label="Description"
                 name="category-description"
                 value={description}
@@ -291,20 +299,44 @@ export function WorkGroupsModal({
             <p className="mb-5 text-sm text-black/60 dark:text-white/60">
               Categories make work easier to scan and filter across projects.
             </p>
-            <div className="mb-4">
+            <div className="relative mb-4">
               <Input
                 label="Search categories"
                 name="category-search"
                 hideLabel
                 leadingIcon={<FiSearch aria-hidden />}
+                aria-busy={searchPending}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search categories..."
+                inputClassName="pr-10"
               />
+              {searchPending && (
+                <span
+                  role="status"
+                  aria-label="Loading category results"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-black/45 dark:text-white/45"
+                >
+                  <FiLoader className="animate-spin motion-reduce:animate-none" />
+                </span>
+              )}
             </div>
-            <div
-              className={`grid auto-rows-fr items-stretch gap-4 md:grid-cols-2 ${embedded ? "xl:grid-cols-3" : ""}`}
-            >
+            <div className="relative" aria-busy={searchPending}>
+              {searchPending && (
+                <div
+                  role="status"
+                  aria-label="Loading category results"
+                  className="absolute inset-0 z-10 grid min-h-40 place-items-center rounded-xl bg-white/80 backdrop-blur-sm dark:bg-[#181818]/80"
+                >
+                  <span className="flex items-center gap-3 rounded-xl border border-black/15 bg-white px-5 py-3 text-sm font-semibold shadow-lg dark:border-white/15 dark:bg-[#181818]">
+                    <FiLoader className="h-5 w-5 animate-spin motion-reduce:animate-none" />
+                    Loading categories
+                  </span>
+                </div>
+              )}
+              <div
+                className={`${searchPending ? "pointer-events-none opacity-55" : ""} grid auto-rows-fr items-stretch gap-4 transition-opacity md:grid-cols-2 ${embedded ? "xl:grid-cols-3" : ""}`}
+              >
               {categories.map((category) => (
                 <div
                   key={category.id}
@@ -347,6 +379,7 @@ export function WorkGroupsModal({
                   No categories match this search.
                 </div>
               )}
+              </div>
             </div>
           </>
         )}
@@ -388,6 +421,7 @@ export function WorkGroupsModal({
                   {colorControl(editingColor, setEditingColor, saving)}
                 </div>
                 <Textarea
+                  id={`edit-category-description-${category.id}`}
                   label="Description"
                   name={`edit-category-description-${category.id}`}
                   value={editingDescription}

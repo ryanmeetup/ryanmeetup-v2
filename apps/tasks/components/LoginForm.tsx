@@ -11,6 +11,7 @@ import {
   Tooltip,
 } from "@ryanmeetup/ui";
 import { FiEye, FiEyeOff } from "react-icons/fi";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -113,6 +114,14 @@ export function LoginForm() {
               </Tooltip>
             }
           />
+          <div className="-mt-2 flex justify-end">
+            <Link
+              href="/forgot-password"
+              className="text-sm font-semibold text-black/65 underline-offset-4 hover:text-black hover:underline focus:outline-none focus:ring-2 focus:ring-black/30 dark:text-white/65 dark:hover:text-white dark:focus:ring-white/30"
+            >
+              Forgot password?
+            </Link>
+          </div>
           <FieldError>{message}</FieldError>
           <Button
             type="submit"

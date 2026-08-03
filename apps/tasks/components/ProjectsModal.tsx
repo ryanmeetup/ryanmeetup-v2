@@ -21,6 +21,7 @@ import {
 import {
   FiArchive,
   FiEdit2,
+  FiLoader,
   FiRotateCcw,
   FiSearch,
   FiUsers,
@@ -63,6 +64,7 @@ export function ProjectsModal({
     query: projectQuery,
     setQuery: setProjectQuery,
     filtered: searchedProjects,
+    isPending: searchPending,
   } = useSearchFilter({
     data: data.projects,
     buildHaystack: (project) =>
@@ -327,15 +329,28 @@ export function ProjectsModal({
               more owners to drive the work, then archive it when it is over.
             </p>
             <div className="sticky top-0 z-20 -mx-1 mb-4 grid gap-3 bg-white px-1 pb-3 dark:bg-[#181818] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-              <Input
-                label="Search projects"
-                name="project-search"
-                hideLabel
-                leadingIcon={<FiSearch aria-hidden />}
-                value={projectQuery}
-                onChange={(event) => setProjectQuery(event.target.value)}
-                placeholder="Search projects..."
-              />
+              <div className="relative">
+                <Input
+                  label="Search projects"
+                  name="project-search"
+                  hideLabel
+                  leadingIcon={<FiSearch aria-hidden />}
+                  aria-busy={searchPending}
+                  value={projectQuery}
+                  onChange={(event) => setProjectQuery(event.target.value)}
+                  placeholder="Search projects..."
+                  inputClassName="pr-10"
+                />
+                {searchPending && (
+                  <span
+                    role="status"
+                    aria-label="Loading project results"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-black/45 dark:text-white/45"
+                  >
+                    <FiLoader className="animate-spin motion-reduce:animate-none" />
+                  </span>
+                )}
+              </div>
               <div
                 className="flex flex-wrap gap-2"
                 aria-label="Filter projects"
@@ -352,9 +367,22 @@ export function ProjectsModal({
                 ))}
               </div>
             </div>
-            <div
-              className={`grid auto-rows-fr items-stretch gap-4 md:grid-cols-2 ${embedded ? "xl:grid-cols-3" : ""}`}
-            >
+            <div className="relative" aria-busy={searchPending}>
+              {searchPending && (
+                <div
+                  role="status"
+                  aria-label="Loading project results"
+                  className="absolute inset-0 z-10 grid min-h-40 place-items-center rounded-xl bg-white/80 backdrop-blur-sm dark:bg-[#181818]/80"
+                >
+                  <span className="flex items-center gap-3 rounded-xl border border-black/15 bg-white px-5 py-3 text-sm font-semibold shadow-lg dark:border-white/15 dark:bg-[#181818]">
+                    <FiLoader className="h-5 w-5 animate-spin motion-reduce:animate-none" />
+                    Loading projects
+                  </span>
+                </div>
+              )}
+              <div
+                className={`${searchPending ? "pointer-events-none opacity-55" : ""} grid auto-rows-fr items-stretch gap-4 transition-opacity md:grid-cols-2 ${embedded ? "xl:grid-cols-3" : ""}`}
+              >
               {projects.map((project) => {
                 const owners = data.projectOwners
                   .filter((item) => item.project_id === project.id)
@@ -456,6 +484,7 @@ export function ProjectsModal({
                   No projects match this search and filter.
                 </div>
               )}
+              </div>
             </div>
           </>
         )}

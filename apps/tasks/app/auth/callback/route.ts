@@ -4,6 +4,13 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
-  if (code) await (await createClient()).auth.exchangeCodeForSession(code);
-  return NextResponse.redirect(new URL("/profile", url.origin));
+  const next = url.searchParams.get("next");
+  const destination = next?.startsWith("/") && !next.startsWith("//")
+    ? next
+    : "/profile";
+  if (code) {
+    const { error } = await (await createClient()).auth.exchangeCodeForSession(code);
+    if (error) return NextResponse.redirect(new URL("/login?recovery=invalid", url.origin));
+  }
+  return NextResponse.redirect(new URL(destination, url.origin));
 }
