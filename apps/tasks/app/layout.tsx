@@ -7,7 +7,43 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Internal workspace",
+  metadataBase: new URL("https://tasks.ryanmeetup.com"),
+  title: {
+    default: "Ryan Meetup Tasks",
+    template: "%s | Ryan Meetup Tasks",
+  },
+  description:
+    "The private workspace for the Ryan Meetup core team to plan projects and keep work moving.",
+  applicationName: "Ryan Meetup Tasks",
+  openGraph: {
+    title: "Ryan Meetup Tasks",
+    description:
+      "The private workspace for the Ryan Meetup core team to plan projects and keep work moving.",
+    url: "/",
+    siteName: "Ryan Meetup Tasks",
+    locale: "en_US",
+    type: "website",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "Ryan Meetup Tasks — private team workspace",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Ryan Meetup Tasks",
+    description:
+      "The private workspace for the Ryan Meetup core team to plan projects and keep work moving.",
+    images: ["/opengraph-image"],
+  },
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
   robots: {
     index: false,
     follow: false,

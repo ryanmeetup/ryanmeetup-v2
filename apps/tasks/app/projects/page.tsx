@@ -7,6 +7,11 @@ import {
   ACCESS_PREVIEW_PARAM,
   applyAccessPreview,
 } from "@/lib/access-preview";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Projects",
+};
 
 export default async function ProjectsPage({
   searchParams,

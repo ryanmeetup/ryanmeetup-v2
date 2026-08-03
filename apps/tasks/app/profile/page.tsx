@@ -2,6 +2,11 @@ import { redirect } from "next/navigation";
 import { ProfilePageClient } from "@/components/ProfilePageClient";
 import { createClient } from "@/lib/supabase/server";
 import type { WorkspaceData } from "@/lib/types";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Profile",
+};
 
 export default async function ProfilePage() {
   const demoMode =

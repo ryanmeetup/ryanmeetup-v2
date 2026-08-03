@@ -3,6 +3,11 @@ import { CategoriesPageClient } from "@/components/CategoriesPageClient";
 import { demoData } from "@/lib/demo-data";
 import { createClient } from "@/lib/supabase/server";
 import type { WorkspaceData } from "@/lib/types";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Work groups",
+};
 
 export default async function CategoriesPage() {
   const demoMode =

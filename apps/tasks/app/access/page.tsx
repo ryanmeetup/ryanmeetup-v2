@@ -2,6 +2,11 @@ import { notFound, redirect } from "next/navigation";
 import { AccessPageClient } from "@/components/AccessPageClient";
 import { createClient } from "@/lib/supabase/server";
 import type { WorkspaceData } from "@/lib/types";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Team access",
+};
 
 export default async function AccessPage() {
   const supabase = await createClient();

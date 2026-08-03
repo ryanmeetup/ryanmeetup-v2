@@ -3,6 +3,11 @@ import { AccessGroupPageClient } from "@/components/AccessGroupPageClient";
 import { accessGroupSlug } from "@/lib/access-groups";
 import { createClient } from "@/lib/supabase/server";
 import type { WorkspaceData } from "@/lib/types";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Access group",
+};
 
 export default async function AccessGroupPage({
   params,

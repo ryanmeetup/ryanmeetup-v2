@@ -6,7 +6,12 @@ import {
 import { demoData } from "@/lib/demo-data";
 import { createClient } from "@/lib/supabase/server";
 import type { WorkspaceData } from "@/lib/types";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+
+export const metadata: Metadata = {
+  title: "Task board",
+};
 
 export default async function Home({
   searchParams,
