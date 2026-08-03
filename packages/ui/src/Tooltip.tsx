@@ -21,6 +21,7 @@ export type TooltipProps = {
   children: ReactElement<{ "aria-describedby"?: string }>;
   content: ReactNode;
   className?: string;
+  disabled?: boolean;
   placement?: TooltipPlacement;
   triggerClassName?: string;
 };
@@ -50,6 +51,7 @@ const Tooltip = ({
   children,
   content,
   className,
+  disabled = false,
   placement = "top",
   triggerClassName,
 }: TooltipProps) => {
@@ -143,7 +145,7 @@ const Tooltip = ({
   }, [placement]);
 
   useLayoutEffect(() => {
-    if (!open) return;
+    if (!open || disabled) return;
     updatePosition();
     const animationFrame = window.requestAnimationFrame(updatePosition);
     window.addEventListener("resize", updatePosition);
@@ -153,7 +155,11 @@ const Tooltip = ({
       window.removeEventListener("resize", updatePosition);
       window.removeEventListener("scroll", updatePosition, true);
     };
-  }, [content, open, updatePosition]);
+  }, [content, disabled, open, updatePosition]);
+
+  useLayoutEffect(() => {
+    if (disabled) setOpen(false);
+  }, [disabled]);
 
   const handleBlur = (event: FocusEvent<HTMLSpanElement>) => {
     if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
@@ -202,9 +208,13 @@ const Tooltip = ({
     <span
       ref={triggerRef}
       className={`relative inline-flex ${triggerClassName ?? ""}`}
-      onFocus={() => setOpen(true)}
+      onFocus={() => {
+        if (!disabled) setOpen(true);
+      }}
       onBlur={handleBlur}
-      onMouseEnter={() => setOpen(true)}
+      onMouseEnter={() => {
+        if (!disabled) setOpen(true);
+      }}
       onMouseLeave={() => {
         setOpen(false);
         setPosition(null);
@@ -215,11 +225,11 @@ const Tooltip = ({
     >
       {cloneElement(children, {
         "aria-describedby":
-          [children.props["aria-describedby"], open ? id : undefined]
+          [children.props["aria-describedby"], open && !disabled ? id : undefined]
             .filter(Boolean)
             .join(" ") || undefined,
       })}
-      {typeof document === "undefined"
+      {disabled || typeof document === "undefined"
         ? null
         : createPortal(tooltip, document.body)}
     </span>

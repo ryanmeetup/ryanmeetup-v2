@@ -9,9 +9,11 @@ import {
 } from "@headlessui/react";
 import { useId } from "react";
 import { FiCheck, FiChevronDown } from "react-icons/fi";
+import { Avatar, type AvatarProps } from "./Avatar";
 import { getFieldLabelClasses } from "./fieldStyles";
 
 export type MultiSelectOption = {
+  avatar?: AvatarProps;
   label: string;
   value: string;
 };
@@ -90,6 +92,7 @@ const MultiSelect = ({
               value={option.value}
               className="group flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm transition focus:outline-none data-focus:bg-black/5 data-selected:bg-black/5 data-selected:font-semibold dark:data-focus:bg-white/10 dark:data-selected:bg-white/10"
             >
+              {option.avatar && <Avatar size="sm" {...option.avatar} />}
               <span className="min-w-0 flex-1 truncate">{option.label}</span>
               <FiCheck
                 aria-hidden

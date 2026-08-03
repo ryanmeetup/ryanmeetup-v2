@@ -36,3 +36,4 @@ export * from "./Text";
 export * from "./TestimonialCard";
 export * from "./Textarea";
 export * from "./Tooltip";
+export * from "./Avatar";

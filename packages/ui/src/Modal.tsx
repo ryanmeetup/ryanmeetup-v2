@@ -27,6 +27,7 @@ export type ModalProps = {
   cancelAction?: () => void;
   continueAction?: () => void;
   size?: ModalSize;
+  embedded?: boolean;
 };
 
 const sizeStyles: Record<ModalSize, string> = {
@@ -57,6 +58,7 @@ const Modal = ({
   cancelAction,
   continueAction,
   size = "md",
+  embedded = false,
 }: ModalProps) => {
   const legacyActions =
     cancelButtonText && continueButtonText && cancelAction && continueAction ? (
@@ -102,6 +104,26 @@ const Modal = ({
         )}
       </div>
     ) : null;
+
+  if (embedded) {
+    return (
+      <section
+        className={`overflow-hidden rounded-2xl border border-black/10 bg-white shadow-sm dark:border-white/10 dark:bg-[#181818] ${panelClassName ?? ""}`}
+      >
+        {title && (
+          <div className="border-b border-black/10 px-5 py-4 dark:border-white/10">
+            <h1 className="text-xl font-semibold">{title}</h1>
+          </div>
+        )}
+        <div className="p-5">{children}</div>
+        {footer && (
+          <div className="border-t border-black/10 p-5 dark:border-white/10">
+            {footer}
+          </div>
+        )}
+      </section>
+    );
+  }
 
   return (
     <Dialog
