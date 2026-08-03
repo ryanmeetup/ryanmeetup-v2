@@ -5,18 +5,26 @@ export const demoData: WorkspaceData = {
     id: "ryan",
     full_name: "Ryan",
     avatar_url: null,
+    onboarding_completed: true,
   },
   profiles: [
-    { id: "ryan", full_name: "Ryan", avatar_url: null },
+    {
+      id: "ryan",
+      full_name: "Ryan",
+      avatar_url: null,
+      onboarding_completed: true,
+    },
     {
       id: "alex",
       full_name: "Alex Ryan",
       avatar_url: null,
+      onboarding_completed: true,
     },
     {
       id: "jordan",
       full_name: "Jordan Ryan",
       avatar_url: null,
+      onboarding_completed: true,
     },
   ],
   statuses: [

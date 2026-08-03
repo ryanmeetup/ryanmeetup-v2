@@ -8,10 +8,10 @@ async function authorizeTeamMember() {
   if (!auth.user) return null;
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id")
+    .select("id, onboarding_completed")
     .eq("id", auth.user.id)
     .single();
-  return profile ? auth.user : null;
+  return profile?.onboarding_completed ? auth.user : null;
 }
 
 function adminClient() {

@@ -17,10 +17,10 @@ async function authorizeTeamMember() {
   if (!auth.user) return { user: null, error: "Not authorized" };
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id")
+    .select("id, onboarding_completed")
     .eq("id", auth.user.id)
     .single();
-  return profile
+  return profile?.onboarding_completed
     ? { user: auth.user, error: null }
     : { user: null, error: "Not authorized" };
 }

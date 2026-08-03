@@ -1202,7 +1202,7 @@ export function TaskApp({
               aria-label="Search tasks"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search tasks…"
+              placeholder="Search tasks..."
               className="h-10 w-full rounded-lg border border-black/10 bg-white pl-10 pr-3 text-sm outline-none focus:border-black/30 focus:ring-2 focus:ring-black/10 dark:border-white/10 dark:bg-white/5 dark:focus:border-white/30"
             />
           </div>
@@ -2195,6 +2195,7 @@ function TeamSettingsModal({
               id: crypto.randomUUID(),
               full_name: inviteName.trim() || inviteEmail.split("@")[0],
               avatar_url: null,
+              onboarding_completed: true,
             },
           ],
         }));

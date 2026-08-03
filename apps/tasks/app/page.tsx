@@ -13,9 +13,15 @@ export default async function Home() {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect("/login");
+  const { data: currentProfile } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", auth.user.id)
+    .single();
+  if (!currentProfile) redirect("/login?error=profile");
+  if (!currentProfile.onboarding_completed) redirect("/profile");
 
   const [
-    { data: currentProfile },
     { data: profiles },
     { data: statuses },
     { data: workGroups },
@@ -32,7 +38,6 @@ export default async function Home() {
     { data: taskCategories },
     { data: projectOwners },
   ] = await Promise.all([
-    supabase.from("profiles").select("*").eq("id", auth.user.id).single(),
     supabase.from("profiles").select("*").order("full_name"),
     supabase.from("statuses").select("*").order("sort_order"),
     supabase.from("work_groups").select("*").order("name"),
@@ -55,7 +60,6 @@ export default async function Home() {
     supabase.from("task_categories").select("*"),
     supabase.from("project_owners").select("*"),
   ]);
-  if (!currentProfile) redirect("/login?error=profile");
   const resolvedAttachments = await Promise.all(
     (attachments ?? []).map(async (attachment) => {
       if (!attachment.file_path) return attachment;
