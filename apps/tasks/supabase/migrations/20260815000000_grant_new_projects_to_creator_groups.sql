@@ -30,4 +30,3 @@ $$;
 create trigger projects_grant_creator_groups
 after insert on public.projects
 for each row execute function public.grant_new_project_to_creator_groups();
-
