@@ -31,9 +31,13 @@ The repository uses npm workspaces. Use the workspace scripts in the root
    utility, token, dependency, or interaction.
 2. Search with `rg` for an existing implementation and for similar UI in the
    other apps.
-3. Preserve unrelated work in the worktree. Do not overwrite or reformat files
+3. Check `@ryanmeetup/ui` before using a native control or building an
+   app-local UI solution. When a suitable shared component exists, use it;
+   use native elements directly only when the shared package has no appropriate
+   component or there is a documented semantic or behavioral reason.
+4. Preserve unrelated work in the worktree. Do not overwrite or reformat files
    outside the requested scope.
-4. Treat the current source code and this file as more authoritative than old
+5. Treat the current source code and this file as more authoritative than old
    transfer guides. Update stale documentation when a change makes it wrong.
 
 ## Ownership and Package Boundaries
@@ -214,6 +218,11 @@ Rules:
 
 - Use the shared field components so labels, required markers, focus rings,
   placeholders, errors, and theme behavior remain consistent.
+- All search inputs must use the shared debounced search behavior established by
+  the task board. Update the input value immediately, debounce filtering and URL
+  state, show a loading spinner in the input while the query is pending, and
+  expose the same pending state over the main results area with `aria-busy`, a
+  visible loading status, and temporarily disabled/dimmed stale results.
 - Labels must remain visible; placeholders supplement labels and do not replace
   them.
 - Write placeholders and helper copy in the Ryan voice when appropriate, but
