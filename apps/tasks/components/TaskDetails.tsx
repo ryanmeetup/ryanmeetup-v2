@@ -468,7 +468,7 @@ export function TaskDetails({
           </span>
         }
       >
-        <div className="max-h-64 space-y-3 overflow-y-auto">
+        <div className="max-h-32 space-y-3 overflow-y-auto overscroll-contain pr-2">
           {timeline.map((item) => {
             const profile = data.profiles.find(
               (entry) =>
