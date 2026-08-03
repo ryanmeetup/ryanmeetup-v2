@@ -1,7 +1,7 @@
 "use client";
 
-import { Button } from "@ryanmeetup/ui";
-import { FiPlus, FiShield } from "react-icons/fi";
+import { Button, Tooltip } from "@ryanmeetup/ui";
+import { FiCheck, FiPlus, FiShield } from "react-icons/fi";
 import type { WorkspaceData } from "@/lib/types";
 import { withAccessPreview } from "@/lib/access-preview";
 import { ThemeToggle } from "./ThemeToggle";
@@ -10,10 +10,12 @@ export function TaskHeaderActions({
   data,
   demoMode,
   onNewTask,
+  onStatuses,
 }: {
   data: WorkspaceData;
   demoMode: boolean;
   onNewTask?: () => void;
+  onStatuses?: () => void;
 }) {
   const isPreviewing = Boolean(data.accessPreview);
   const isOwner =
@@ -30,7 +32,24 @@ export function TaskHeaderActions({
           Access
         </Button.Link>
       )}
-      {!isPreviewing && (onNewTask ? (
+      {isOwner && onStatuses && (
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          leftIcon={<FiCheck />}
+          onClick={onStatuses}
+        >
+          Statuses
+        </Button>
+      )}
+      {isPreviewing ? (
+        <Tooltip content="Exit access preview to create a new task">
+          <Button size="sm" leftIcon={<FiPlus />} disabled>
+            New task
+          </Button>
+        </Tooltip>
+      ) : onNewTask ? (
         <Button size="sm" leftIcon={<FiPlus />} onClick={onNewTask}>
           New task
         </Button>
@@ -42,7 +61,7 @@ export function TaskHeaderActions({
         >
           New task
         </Button.Link>
-      ))}
+      )}
       <ThemeToggle />
     </div>
   );

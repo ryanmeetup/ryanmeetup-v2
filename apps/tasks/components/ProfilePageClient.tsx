@@ -8,9 +8,8 @@ import { PasswordForm } from "./PasswordForm";
 import { ProjectsModal } from "./ProjectsModal";
 import { WorkGroupsModal as CategoriesModal } from "./WorkGroupsModal";
 import { TasksSidebar } from "./TasksSidebar";
-import { TeamSettingsModal } from "./TaskApp";
 import { TaskHeaderActions } from "./TaskHeaderActions";
-import { BetaBanner } from "./BetaBanner";
+import { TaskBanners } from "./TaskBanners";
 import type { WorkspaceData } from "@/lib/types";
 
 export function ProfilePageClient({
@@ -26,7 +25,6 @@ export function ProfilePageClient({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [projectOpen, setProjectOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
 
   return (
@@ -38,7 +36,6 @@ export function ProfilePageClient({
         setOpen={setSidebarOpen}
         onCreateCategory={() => setCategoryOpen(true)}
         onCreateProject={() => setProjectOpen(true)}
-        onTeamSettings={() => setSettingsOpen(true)}
       />
       <main className="min-w-0 lg:pl-64">
         <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-black/10 bg-[#f7f7f5]/90 px-4 backdrop-blur-xl dark:border-white/10 dark:bg-[#101010]/90 sm:px-6 lg:px-8">
@@ -52,7 +49,7 @@ export function ProfilePageClient({
           <p className="font-semibold">Profile</p>
           <TaskHeaderActions data={data} demoMode={false} />
         </header>
-        <BetaBanner />
+        <TaskBanners />
         <div className="p-4 sm:p-6 lg:p-8">
           <div className="mx-auto max-w-3xl">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-black/50 dark:text-white/50">
@@ -130,13 +127,6 @@ export function ProfilePageClient({
           <PasswordForm email={email} />
         </Modal>
       )}
-      <TeamSettingsModal
-        open={settingsOpen}
-        setOpen={setSettingsOpen}
-        data={data}
-        setData={setData}
-        demoMode={false}
-      />
     </div>
   );
 }

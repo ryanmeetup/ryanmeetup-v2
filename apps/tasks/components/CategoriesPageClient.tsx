@@ -6,9 +6,8 @@ import { FiMenu } from "react-icons/fi";
 import { WorkGroupsModal as CategoriesModal } from "./WorkGroupsModal";
 import { ProjectsModal } from "./ProjectsModal";
 import { TaskHeaderActions } from "./TaskHeaderActions";
-import { BetaBanner } from "./BetaBanner";
+import { TaskBanners } from "./TaskBanners";
 import { TasksSidebar } from "./TasksSidebar";
-import { TeamSettingsModal } from "./TaskApp";
 import type { WorkspaceData } from "@/lib/types";
 
 export function CategoriesPageClient({
@@ -22,7 +21,6 @@ export function CategoriesPageClient({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [projectCreateOpen, setProjectCreateOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-[#f7f7f5] text-black dark:bg-[#101010] dark:text-white">
@@ -33,7 +31,6 @@ export function CategoriesPageClient({
         setOpen={setSidebarOpen}
         onCreateCategory={() => setCreateOpen(true)}
         onCreateProject={() => setProjectCreateOpen(true)}
-        onTeamSettings={() => setSettingsOpen(true)}
       />
       <main className="min-w-0 lg:pl-64">
         <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-black/10 bg-[#f7f7f5]/90 px-4 backdrop-blur-xl dark:border-white/10 dark:bg-[#101010]/90 sm:px-6 lg:px-8">
@@ -47,7 +44,7 @@ export function CategoriesPageClient({
           <p className="font-semibold">Categories</p>
           <TaskHeaderActions data={data} demoMode={demoMode} />
         </header>
-        <BetaBanner />
+        <TaskBanners />
         <div className="p-4 sm:p-6 lg:p-8">
           <CategoriesModal
             open
@@ -79,13 +76,6 @@ export function CategoriesPageClient({
           createOnly
         />
       )}
-      <TeamSettingsModal
-        open={settingsOpen}
-        setOpen={setSettingsOpen}
-        data={data}
-        setData={setData}
-        demoMode={demoMode}
-      />
     </div>
   );
 }

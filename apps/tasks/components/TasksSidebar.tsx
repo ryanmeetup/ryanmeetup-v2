@@ -1,17 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { Avatar, IconButton, Pill, Tooltip } from "@ryanmeetup/ui";
+import {
+  AnimatedCollapse,
+  Avatar,
+  IconButton,
+  Pill,
+  Tooltip,
+} from "@ryanmeetup/ui";
 import {
   FiCalendar,
   FiChevronDown,
-  FiChevronRight,
   FiFolder,
   FiGrid,
   FiList,
   FiLogOut,
   FiPlus,
-  FiSettings,
   FiUser,
   FiX,
 } from "react-icons/fi";
@@ -27,7 +31,6 @@ export function TasksSidebar({
   setOpen,
   onCreateCategory,
   onCreateProject,
-  onTeamSettings,
 }: {
   data: WorkspaceData;
   demoMode: boolean;
@@ -35,7 +38,6 @@ export function TasksSidebar({
   setOpen: (open: boolean) => void;
   onCreateCategory: () => void;
   onCreateProject: () => void;
-  onTeamSettings: () => void;
 }) {
   const name = data.currentProfile.full_name || "Teammate";
   const isOwner =
@@ -122,7 +124,9 @@ export function TasksSidebar({
           </Tooltip>
         </nav>
         <div className="mt-8 flex min-h-0 flex-1 flex-col">
-          <section className="flex max-h-[70%] min-h-0 shrink-0 flex-col overflow-hidden border-b border-black/10 dark:border-white/10">
+          <section
+            className={`flex max-h-[70%] min-h-0 shrink-0 flex-col overflow-hidden ${categoriesExpanded ? "border-b border-black/10 dark:border-white/10" : ""}`}
+          >
             <div className="flex items-center justify-between px-3">
               <button
                 type="button"
@@ -130,7 +134,9 @@ export function TasksSidebar({
                 onClick={() => setCategoriesExpanded((current) => !current)}
                 className="-ml-1 inline-flex items-center gap-1 rounded px-1 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-black/45 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:text-white/45 dark:hover:text-white dark:focus-visible:ring-white/40"
               >
-                {categoriesExpanded ? <FiChevronDown /> : <FiChevronRight />}
+                <FiChevronDown
+                  className={`transition-transform duration-200 motion-reduce:transition-none ${categoriesExpanded ? "" : "-rotate-90"}`}
+                />
                 Categories
               </button>
               {isOwner && (
@@ -151,8 +157,10 @@ export function TasksSidebar({
                 </span>
               )}
             </div>
-            <div
-              className={`${categoriesExpanded ? "mt-2" : "hidden"} min-h-0 flex-1 scroll-pb-2 space-y-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]`}
+            <AnimatedCollapse
+              open={categoriesExpanded}
+              className={categoriesExpanded ? "mt-2 min-h-0 flex-1" : ""}
+              contentClassName="h-full scroll-pb-2 space-y-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]"
             >
               {data.categories.length === 0 && (
                 <p className="px-3 py-2 text-xs text-black/50 dark:text-white/50">
@@ -176,7 +184,7 @@ export function TasksSidebar({
                   <span className="truncate">{category.name}</span>
                 </Link>
               ))}
-            </div>
+            </AnimatedCollapse>
           </section>
           <section
             className={`flex min-h-0 flex-col overflow-hidden pt-4 ${projectsExpanded ? "flex-1" : "shrink-0"}`}
@@ -188,7 +196,9 @@ export function TasksSidebar({
                 onClick={() => setProjectsExpanded((current) => !current)}
                 className="-ml-1 inline-flex items-center gap-1 rounded px-1 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-black/45 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:text-white/45 dark:hover:text-white dark:focus-visible:ring-white/40"
               >
-                {projectsExpanded ? <FiChevronDown /> : <FiChevronRight />}
+                <FiChevronDown
+                  className={`transition-transform duration-200 motion-reduce:transition-none ${projectsExpanded ? "" : "-rotate-90"}`}
+                />
                 Projects
               </button>
               <span className="flex items-center gap-1">
@@ -209,8 +219,10 @@ export function TasksSidebar({
                 )}
               </span>
             </div>
-            <div
-              className={`${projectsExpanded ? "mt-2" : "hidden"} min-h-0 flex-1 scroll-pb-2 space-y-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]`}
+            <AnimatedCollapse
+              open={projectsExpanded}
+              className={projectsExpanded ? "mt-2 min-h-0 flex-1" : ""}
+              contentClassName="h-full scroll-pb-2 space-y-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]"
             >
               {activeProjects.length === 0 && (
                 <p className="px-3 py-2 text-xs text-black/50 dark:text-white/50">
@@ -230,21 +242,19 @@ export function TasksSidebar({
                   <span className="truncate">{project.name}</span>
                 </Link>
               ))}
-            </div>
+            </AnimatedCollapse>
           </section>
         </div>
         <div className="shrink-0 space-y-2 border-t border-black/10 pt-4 dark:border-white/10">
-          {isOwner && (
-            <button className="sidebar-link" onClick={onTeamSettings}>
-              <FiSettings />
-              Team settings
-            </button>
-          )}
           <div className="flex items-center gap-3 px-2 py-2">
             {demoMode ? (
               <div className="flex min-w-0 flex-1 items-center gap-3">
                 <Avatar name={name} src={data.currentProfile.avatar_url} />
-                <ProfileSummary name={name} demo />
+                <ProfileSummary
+                  name={name}
+                  role={data.currentProfile.app_role}
+                  demo
+                />
               </div>
             ) : (
               <Link
@@ -252,7 +262,10 @@ export function TasksSidebar({
                 className="-ml-2 flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-2 transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:hover:bg-white/10 dark:focus-visible:ring-white/40"
               >
                 <Avatar name={name} src={data.currentProfile.avatar_url} />
-                <ProfileSummary name={name} />
+                <ProfileSummary
+                  name={name}
+                  role={data.currentProfile.app_role}
+                />
               </Link>
             )}
             {!demoMode && (
@@ -277,16 +290,19 @@ export function TasksSidebar({
 
 function ProfileSummary({
   name,
+  role,
   demo = false,
 }: {
   name: string;
+  role?: "owner" | "member";
   demo?: boolean;
 }) {
   return (
     <span className="min-w-0 flex-1">
       <span className="block truncate text-sm font-semibold">{name}</span>
       <span className="block text-[10px] uppercase tracking-widest text-black/45 dark:text-white/45">
-        Team member{demo ? " · Demo" : ""}
+        {role === "owner" ? "Owner" : "Team member"}
+        {demo ? " · Demo" : ""}
       </span>
     </span>
   );

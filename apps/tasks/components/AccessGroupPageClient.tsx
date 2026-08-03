@@ -17,12 +17,11 @@ import { FiArrowLeft, FiMenu, FiTrash2 } from "react-icons/fi";
 import { accessGroupSlug } from "@/lib/access-groups";
 import { createClient } from "@/lib/supabase/client";
 import type { WorkspaceData } from "@/lib/types";
-import { BetaBanner } from "./BetaBanner";
+import { TaskBanners } from "./TaskBanners";
 import { ProjectsModal } from "./ProjectsModal";
 import { TasksSidebar } from "./TasksSidebar";
 import { TaskHeaderActions } from "./TaskHeaderActions";
 import { WorkGroupsModal as CategoriesModal } from "./WorkGroupsModal";
-import { TeamSettingsModal } from "./TaskApp";
 
 type Permission = "viewer" | "editor" | "manager";
 type AccessGroup = {
@@ -74,7 +73,6 @@ export function AccessGroupPageClient({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [projectCreateOpen, setProjectCreateOpen] = useState(false);
   const [categoryCreateOpen, setCategoryCreateOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const projectNames = useMemo(
     () => new Map(data.projects.map((project) => [project.id, project.name])),
     [data.projects],
@@ -177,7 +175,6 @@ export function AccessGroupPageClient({
         setOpen={setSidebarOpen}
         onCreateCategory={() => setCategoryCreateOpen(true)}
         onCreateProject={() => setProjectCreateOpen(true)}
-        onTeamSettings={() => setSettingsOpen(true)}
       />
       <main className="min-w-0 lg:pl-64">
         <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-black/10 bg-[#f7f7f5]/90 px-4 backdrop-blur-xl dark:border-white/10 dark:bg-[#101010]/90 sm:px-6 lg:px-8">
@@ -191,7 +188,7 @@ export function AccessGroupPageClient({
           <p className="truncate font-semibold">{group.name}</p>
           <TaskHeaderActions data={data} demoMode={false} />
         </header>
-        <BetaBanner />
+        <TaskBanners />
         <div className="p-4 sm:p-6 lg:p-8">
           <div className="mx-auto max-w-5xl space-y-6">
             <Button.Link
@@ -409,13 +406,6 @@ export function AccessGroupPageClient({
           createOnly
         />
       )}
-      <TeamSettingsModal
-        open={settingsOpen}
-        setOpen={setSettingsOpen}
-        data={data}
-        setData={setData}
-        demoMode={false}
-      />
       <ConfirmationDialog
         open={deleteOpen}
         setOpen={setDeleteOpen}

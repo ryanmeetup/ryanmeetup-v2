@@ -6,11 +6,9 @@ import { FiMenu } from "react-icons/fi";
 import { ProjectsModal } from "./ProjectsModal";
 import { WorkGroupsModal as CategoriesModal } from "./WorkGroupsModal";
 import { TaskHeaderActions } from "./TaskHeaderActions";
-import { BetaBanner } from "./BetaBanner";
+import { TaskBanners } from "./TaskBanners";
 import { TasksSidebar } from "./TasksSidebar";
-import { TeamSettingsModal } from "./TaskApp";
 import type { WorkspaceData } from "@/lib/types";
-import { AccessPreviewBanner } from "./AccessPreviewBanner";
 
 export function ProjectsPageClient({
   initialData,
@@ -23,7 +21,6 @@ export function ProjectsPageClient({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [categoryCreateOpen, setCategoryCreateOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-[#f7f7f5] text-black dark:bg-[#101010] dark:text-white">
@@ -34,7 +31,6 @@ export function ProjectsPageClient({
         setOpen={setSidebarOpen}
         onCreateCategory={() => setCategoryCreateOpen(true)}
         onCreateProject={() => setCreateOpen(true)}
-        onTeamSettings={() => setSettingsOpen(true)}
       />
 
       <main className="min-w-0 lg:pl-64">
@@ -49,8 +45,7 @@ export function ProjectsPageClient({
           <p className="font-semibold">Projects</p>
           <TaskHeaderActions data={data} demoMode={demoMode} />
         </header>
-        <BetaBanner />
-        <AccessPreviewBanner preview={data.accessPreview} />
+        <TaskBanners preview={data.accessPreview} />
 
         <div className="p-4 sm:p-6 lg:p-8">
           <ProjectsModal
@@ -83,15 +78,6 @@ export function ProjectsPageClient({
           setData={setData}
           demoMode={demoMode}
           createOnly
-        />
-      )}
-      {!data.accessPreview && (
-        <TeamSettingsModal
-          open={settingsOpen}
-          setOpen={setSettingsOpen}
-          data={data}
-          setData={setData}
-          demoMode={demoMode}
         />
       )}
     </div>
