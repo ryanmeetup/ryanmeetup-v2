@@ -8,10 +8,10 @@ async function authorizedUser() {
   if (!data.user) return null;
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id")
+    .select("id, onboarding_completed")
     .eq("id", data.user.id)
     .single();
-  return profile ? data.user : null;
+  return profile?.onboarding_completed ? data.user : null;
 }
 
 function serviceClient() {
@@ -25,6 +25,18 @@ function serviceClient() {
     : null;
 }
 
+function normalizeOwnerIds(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return [
+    ...new Set(
+      value.filter(
+        (profileId): profileId is string =>
+          typeof profileId === "string" && profileId.length > 0,
+      ),
+    ),
+  ];
+}
+
 export async function POST(request: Request) {
   const user = await authorizedUser();
   if (!user)
@@ -35,10 +47,11 @@ export async function POST(request: Request) {
       { error: "SUPABASE_SECRET_KEY is not configured" },
       { status: 503 },
     );
-  const { name, ownerIds = [] } = (await request.json()) as {
+  const { name, ownerIds: requestedOwnerIds = [] } = (await request.json()) as {
     name?: string;
-    ownerIds?: string[];
+    ownerIds?: unknown;
   };
+  const ownerIds = normalizeOwnerIds(requestedOwnerIds);
   if (!name?.trim())
     return NextResponse.json(
       { error: "A project name is required" },
@@ -52,11 +65,12 @@ export async function POST(request: Request) {
   if (error)
     return NextResponse.json({ error: error.message }, { status: 400 });
   if (ownerIds.length > 0) {
-    const { error: ownersError } = await client.from("project_owners").insert(
+    const { error: ownersError } = await client.from("project_owners").upsert(
       ownerIds.map((profile_id) => ({
         project_id: data.id,
         profile_id,
       })),
+      { onConflict: "project_id,profile_id" },
     );
     if (ownersError)
       return NextResponse.json({ error: ownersError.message }, { status: 400 });
@@ -73,11 +87,16 @@ export async function PATCH(request: Request) {
       { error: "SUPABASE_SECRET_KEY is not configured" },
       { status: 503 },
     );
-  const { id, name, archived, ownerIds } = (await request.json()) as {
+  const {
+    id,
+    name,
+    archived,
+    ownerIds: requestedOwnerIds,
+  } = (await request.json()) as {
     id?: string;
     name?: string;
     archived?: boolean;
-    ownerIds?: string[];
+    ownerIds?: unknown;
   };
   if (!id || (name !== undefined && !name.trim()))
     return NextResponse.json(
@@ -96,7 +115,8 @@ export async function PATCH(request: Request) {
     if (error)
       return NextResponse.json({ error: error.message }, { status: 400 });
   }
-  if (ownerIds !== undefined) {
+  if (requestedOwnerIds !== undefined) {
+    const ownerIds = normalizeOwnerIds(requestedOwnerIds);
     const { error: deleteError } = await client
       .from("project_owners")
       .delete()
@@ -104,9 +124,10 @@ export async function PATCH(request: Request) {
     if (deleteError)
       return NextResponse.json({ error: deleteError.message }, { status: 400 });
     if (ownerIds.length > 0) {
-      const { error: ownersError } = await client
-        .from("project_owners")
-        .insert(ownerIds.map((profile_id) => ({ project_id: id, profile_id })));
+      const { error: ownersError } = await client.from("project_owners").upsert(
+        ownerIds.map((profile_id) => ({ project_id: id, profile_id })),
+        { onConflict: "project_id,profile_id" },
+      );
       if (ownersError)
         return NextResponse.json(
           { error: ownersError.message },

@@ -213,25 +213,58 @@ export function WorkGroupsModal({
       size="xl"
       maxHeight="min(42rem, calc(100dvh - max(1rem, env(safe-area-inset-top)) - max(1rem, env(safe-area-inset-bottom))))"
       footer={
-        <div className="flex justify-end gap-3">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => setOpen(false)}
-            disabled={creating}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            form="create-category-form"
-            variant="action"
-            loading={creating}
-            loadingText="Creating..."
-          >
-            Create category
-          </Button>
-        </div>
+        <form
+          id="create-category-form"
+          className="grid gap-4"
+          onSubmit={addWorkGroup}
+        >
+          <div className="grid gap-3 lg:grid-cols-[minmax(16rem,1fr)_auto]">
+            <Input
+              label="New category"
+              name="category-name"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="Name"
+            />
+            <div className="flex items-end gap-1">
+              <label className="date-field">
+                <span>Color</span>
+                <input
+                  type="color"
+                  className="color-input !h-10 !w-10"
+                  value={color}
+                  onChange={(event) => setColor(event.target.value)}
+                />
+              </label>
+              <IconButton
+                label="Randomize category color"
+                size="md"
+                onClick={randomizeColor}
+                disabled={creating}
+              >
+                <FiRefreshCw />
+              </IconButton>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 border-t border-black/10 pt-4 dark:border-white/10">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setOpen(false)}
+              disabled={creating}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="action"
+              loading={creating}
+              loadingText="Creating..."
+            >
+              Create category
+            </Button>
+          </div>
+        </form>
       }
     >
       <section>
@@ -399,38 +432,6 @@ export function WorkGroupsModal({
           </div>
         )}
       </section>
-      <form
-        id="create-category-form"
-        className="mt-5 grid gap-3 border-t border-black/10 pt-5 dark:border-white/10 lg:grid-cols-[minmax(16rem,1fr)_auto]"
-        onSubmit={addWorkGroup}
-      >
-        <Input
-          label="New category"
-          name="category-name"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          placeholder="Name"
-        />
-        <div className="flex items-end gap-1">
-          <label className="date-field">
-            <span>Color</span>
-            <input
-              type="color"
-              className="color-input !h-10 !w-10"
-              value={color}
-              onChange={(event) => setColor(event.target.value)}
-            />
-          </label>
-          <IconButton
-            label="Randomize category color"
-            size="md"
-            onClick={randomizeColor}
-            disabled={creating}
-          >
-            <FiRefreshCw />
-          </IconButton>
-        </div>
-      </form>
     </Modal>
   );
 }
