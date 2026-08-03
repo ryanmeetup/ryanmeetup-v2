@@ -596,25 +596,25 @@ viewer, unrelated member, and user who receives overlapping grants.
 - App owners may manage all permissions in the app UI.
 - Support multiple app owners, with protection against removing the last one.
 - RLS, not client filtering, is the enforcement boundary.
+- New projects automatically grant viewer access to every access group the
+  creator belongs to at creation time.
 
 ## Open decisions for review
 
 These decisions should be resolved before implementation:
 
-1. **Project creation:** owner-only, members of selected groups, or every team
-   member? Recommendation: owner-only initially.
-2. **Project-manager grants:** may managers add both groups and direct users, or
+1. **Project-manager grants:** may managers add both groups and direct users, or
    should all access changes be owner-only? Recommendation: managers may manage
    grants for their project but not group membership.
-3. **Editor deletion:** may editors delete tasks and attachments, or only create
+2. **Editor deletion:** may editors delete tasks and attachments, or only create
    and edit them? Recommendation: allow deletion initially and rely on audit and
    confirmation behavior.
-4. **Comments for viewers:** strictly read-only, or may viewers comment?
+3. **Comments for viewers:** strictly read-only, or may viewers comment?
    Recommendation: strictly read-only; grant editor when participation is
    expected.
-5. **Initial groups and memberships:** exact users for Core Team, Documentary
+4. **Initial groups and memberships:** exact users for Core Team, Documentary
    Team, and Chapter Leads must be reviewed before migration.
-6. **Existing project grants:** every existing project needs an explicit access
+5. **Existing project grants:** every existing project needs an explicit access
    mapping before restrictive RLS is enabled.
 7. **General / Shared access:** decide which groups should see tasks currently
    lacking a project.
