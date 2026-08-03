@@ -13,6 +13,7 @@ import {
 } from "react";
 import {
   Avatar,
+  AnimatedCollapse,
   Button,
   Card,
   ConfirmationDialog,
@@ -27,7 +28,6 @@ import {
   Pill,
   PromptDialog,
   RichTextarea,
-  SuccessCallout,
   Tooltip,
   toast,
 } from "@ryanmeetup/ui";
@@ -35,7 +35,7 @@ import {
   FiCalendar,
   FiCheck,
   FiChevronDown,
-  FiChevronRight,
+  FiEdit2,
   FiFilter,
   FiFolder,
   FiGrid,
@@ -47,7 +47,6 @@ import {
   FiPlus,
   FiRefreshCw,
   FiSearch,
-  FiSettings,
   FiTrash2,
   FiUser,
   FiUsers,
@@ -64,14 +63,13 @@ import type {
   WorkspaceData,
 } from "@/lib/types";
 import { TaskHeaderActions } from "./TaskHeaderActions";
-import { BetaBanner } from "./BetaBanner";
+import { TaskBanners } from "./TaskBanners";
 import { TaskDetails } from "./TaskDetails";
 import { WorkGroupsModal as CategoriesModal } from "./WorkGroupsModal";
 import { ProjectsModal } from "./ProjectsModal";
 import { ProjectLinks } from "./ProjectLinks";
 import { useSidebarSections } from "@/hooks/useSidebarSections";
 import { withAccessPreview } from "@/lib/access-preview";
-import { AccessPreviewBanner } from "./AccessPreviewBanner";
 
 type View = "board" | "list";
 type Draft = Pick<
@@ -188,16 +186,18 @@ function CategoryBadge({ category }: { category: Category }) {
 
 function ProfileSummary({
   name,
+  role,
   demo = false,
 }: {
   name: string;
+  role?: "owner" | "member";
   demo?: boolean;
 }) {
   return (
     <span className="min-w-0 flex-1">
       <span className="block truncate text-sm font-semibold">{name}</span>
       <span className="block text-[10px] uppercase tracking-widest text-black/45 dark:text-white/45">
-        Team member
+        {role === "owner" ? "Owner" : "Team member"}
         {demo ? " · Demo" : ""}
       </span>
     </span>
@@ -275,7 +275,6 @@ export function TaskApp({
     setProjectsExpanded,
   } = useSidebarSections();
   const [taskOpen, setTaskOpen] = useState(initialTaskOpen);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [workGroupsOpen, setWorkGroupsOpen] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [taskMessage, setTaskMessage] = useState("");
@@ -284,6 +283,11 @@ export function TaskApp({
   const [taskPendingDelete, setTaskPendingDelete] = useState<Task | null>(null);
   const [taskDeleting, setTaskDeleting] = useState(false);
   const [dragOverStatusId, setDragOverStatusId] = useState<string | null>(null);
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+  const [dragTarget, setDragTarget] = useState<{
+    taskId: string;
+    edge: "before" | "after";
+  } | null>(null);
   const [editing, setEditing] = useState<Task | null>(null);
   const [draft, setDraft] = useState<Draft>(
     blankDraft(
@@ -584,7 +588,7 @@ export function TaskApp({
           ? "Task Board"
           : "All Tasks";
   useEffect(() => {
-    document.title = `${viewTitle} · Ryan Meetup`;
+    document.title = `${viewTitle} | Ryan Meetup Tasks`;
   }, [viewTitle]);
   const categoriesByTask = useMemo(() => {
     const result = new Map<string, Set<string>>();
@@ -635,11 +639,14 @@ export function TaskApp({
           );
         })
         .sort((a, b) =>
-          sort === "due"
-            ? (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999")
-            : sort === "priority"
-              ? priorities.indexOf(b.priority) - priorities.indexOf(a.priority)
-              : b.updated_at.localeCompare(a.updated_at),
+          view === "board"
+            ? a.board_position - b.board_position
+            : sort === "due"
+              ? (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999")
+              : sort === "priority"
+                ? priorities.indexOf(b.priority) -
+                  priorities.indexOf(a.priority)
+                : b.updated_at.localeCompare(a.updated_at),
         ),
     [
       assignee,
@@ -656,6 +663,7 @@ export function TaskApp({
       status,
       selectedPriority,
       visibility,
+      view,
       clock,
       selectedStatus,
     ],
@@ -742,6 +750,13 @@ export function TaskApp({
             title: draft.title.trim(),
             id: crypto.randomUUID(),
             created_by: data.currentProfile.id,
+            board_position:
+              Math.max(
+                0,
+                ...data.tasks
+                  .filter((item) => item.status_id === draft.status_id)
+                  .map((item) => item.board_position),
+              ) + 1024,
             created_at: now,
             updated_at: now,
           };
@@ -927,7 +942,39 @@ export function TaskApp({
     }
   }
 
-  async function moveTask(id: string, statusId: string) {
+  async function moveTask(
+    id: string,
+    statusId: string,
+    targetId?: string,
+    edge: "before" | "after" = "after",
+  ) {
+    const taskToMove = data.tasks.find((item) => item.id === id);
+    if (!taskToMove || targetId === id) return;
+    const destinationTasks = data.tasks
+      .filter((item) => item.status_id === statusId && item.id !== id)
+      .sort((a, b) => a.board_position - b.board_position);
+    const targetIndex = targetId
+      ? destinationTasks.findIndex((item) => item.id === targetId)
+      : -1;
+    let boardPosition: number;
+    if (targetIndex < 0) {
+      boardPosition = (destinationTasks.at(-1)?.board_position ?? 0) + 1024;
+    } else if (edge === "before") {
+      const targetPosition = destinationTasks[targetIndex].board_position;
+      const previousPosition =
+        destinationTasks[targetIndex - 1]?.board_position;
+      boardPosition =
+        previousPosition === undefined
+          ? targetPosition - 1024
+          : (previousPosition + targetPosition) / 2;
+    } else {
+      const targetPosition = destinationTasks[targetIndex].board_position;
+      const nextPosition = destinationTasks[targetIndex + 1]?.board_position;
+      boardPosition =
+        nextPosition === undefined
+          ? targetPosition + 1024
+          : (targetPosition + nextPosition) / 2;
+    }
     setData((current) => ({
       ...current,
       tasks: current.tasks.map((task) =>
@@ -935,17 +982,28 @@ export function TaskApp({
           ? {
               ...task,
               status_id: statusId,
+              board_position: boardPosition,
               ...completionLifecycle(statusId, current.statuses, task),
               updated_at: new Date().toISOString(),
             }
           : task,
       ),
     }));
-    if (!demoMode)
-      await createClient()
+    if (!demoMode) {
+      const { error } = await createClient()
         .from("tasks")
-        .update({ status_id: statusId })
+        .update({ status_id: statusId, board_position: boardPosition })
         .eq("id", id);
+      if (error) {
+        setData((current) => ({
+          ...current,
+          tasks: current.tasks.map((item) =>
+            item.id === id ? taskToMove : item,
+          ),
+        }));
+        toast.error(error.message);
+      }
+    }
   }
 
   const filterCount =
@@ -970,6 +1028,7 @@ export function TaskApp({
       <button
         draggable
         onDragStart={(event) => {
+          setDraggedTaskId(task.id);
           event.dataTransfer.setData("text/task-id", task.id);
           event.dataTransfer.effectAllowed = "move";
           const source = event.currentTarget;
@@ -1000,10 +1059,46 @@ export function TaskApp({
           );
           window.setTimeout(() => previewFrame.remove(), 0);
         }}
-        onDragEnd={() => setDragOverStatusId(null)}
+        onDragOver={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          if (draggedTaskId === task.id) return;
+          const bounds = event.currentTarget.getBoundingClientRect();
+          setDragOverStatusId(task.status_id);
+          setDragTarget({
+            taskId: task.id,
+            edge:
+              event.clientY < bounds.top + bounds.height / 2
+                ? "before"
+                : "after",
+          });
+        }}
+        onDrop={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const id = event.dataTransfer.getData("text/task-id");
+          const bounds = event.currentTarget.getBoundingClientRect();
+          const edge =
+            event.clientY < bounds.top + bounds.height / 2 ? "before" : "after";
+          setDragOverStatusId(null);
+          setDragTarget(null);
+          setDraggedTaskId(null);
+          void moveTask(id, task.status_id, task.id, edge);
+        }}
+        onDragEnd={() => {
+          setDragOverStatusId(null);
+          setDragTarget(null);
+          setDraggedTaskId(null);
+        }}
         onClick={() => openEdit(task)}
         key={task.id}
-        className="group w-full cursor-grab rounded-xl border border-black/10 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-black/25 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-black/20 active:cursor-grabbing dark:border-white/10 dark:bg-zinc-900 dark:hover:border-white/30"
+        className={`group w-full cursor-grab rounded-xl border border-black/10 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-black/25 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-black/20 active:cursor-grabbing dark:border-white/10 dark:bg-zinc-900 dark:hover:border-white/30 ${
+          dragTarget?.taskId === task.id
+            ? dragTarget.edge === "before"
+              ? "relative before:absolute before:-top-2 before:right-2 before:left-2 before:h-1 before:rounded-full before:bg-blue-500 before:content-[''] dark:before:bg-blue-400"
+              : "relative after:absolute after:-right-2 after:-bottom-2 after:left-2 after:h-1 after:rounded-full after:bg-blue-500 after:content-[''] dark:after:bg-blue-400"
+            : ""
+        }`}
       >
         <div className="mb-3 flex items-start justify-between gap-3">
           <span
@@ -1159,7 +1254,9 @@ export function TaskApp({
           </Tooltip>
         </nav>
         <div className="mt-8 flex min-h-0 flex-1 flex-col">
-          <section className="flex max-h-[70%] min-h-0 shrink-0 flex-col overflow-hidden border-b border-black/10 dark:border-white/10">
+          <section
+            className={`flex max-h-[70%] min-h-0 shrink-0 flex-col overflow-hidden ${categoriesExpanded ? "border-b border-black/10 dark:border-white/10" : ""}`}
+          >
             <div className="flex items-center justify-between px-3">
               <button
                 type="button"
@@ -1167,7 +1264,9 @@ export function TaskApp({
                 onClick={() => setCategoriesExpanded((current) => !current)}
                 className="-ml-1 inline-flex items-center gap-1 rounded px-1 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-black/45 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:text-white/45 dark:hover:text-white dark:focus-visible:ring-white/40"
               >
-                {categoriesExpanded ? <FiChevronDown /> : <FiChevronRight />}
+                <FiChevronDown
+                  className={`transition-transform duration-200 motion-reduce:transition-none ${categoriesExpanded ? "" : "-rotate-90"}`}
+                />
                 Categories
               </button>
               <span className="flex items-center gap-1">
@@ -1188,8 +1287,10 @@ export function TaskApp({
                 )}
               </span>
             </div>
-            <div
-              className={`${categoriesExpanded ? "mt-2" : "hidden"} min-h-0 flex-1 scroll-pb-2 space-y-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]`}
+            <AnimatedCollapse
+              open={categoriesExpanded}
+              className={categoriesExpanded ? "mt-2 min-h-0 flex-1" : ""}
+              contentClassName="h-full scroll-pb-2 space-y-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]"
             >
               {data.categories.length === 0 && (
                 <p className="px-3 py-2 text-xs text-black/50 dark:text-white/50">
@@ -1215,7 +1316,7 @@ export function TaskApp({
                   }
                 />
               ))}
-            </div>
+            </AnimatedCollapse>
           </section>
           <section
             className={`flex min-h-0 flex-col overflow-hidden pt-4 ${projectsExpanded ? "flex-1" : "shrink-0"}`}
@@ -1227,7 +1328,9 @@ export function TaskApp({
                 onClick={() => setProjectsExpanded((current) => !current)}
                 className="-ml-1 inline-flex items-center gap-1 rounded px-1 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-black/45 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:text-white/45 dark:hover:text-white dark:focus-visible:ring-white/40"
               >
-                {projectsExpanded ? <FiChevronDown /> : <FiChevronRight />}
+                <FiChevronDown
+                  className={`transition-transform duration-200 motion-reduce:transition-none ${projectsExpanded ? "" : "-rotate-90"}`}
+                />
                 Projects
               </button>
               <span className="flex items-center gap-1">
@@ -1248,8 +1351,10 @@ export function TaskApp({
                 )}
               </span>
             </div>
-            <div
-              className={`${projectsExpanded ? "mt-2" : "hidden"} min-h-0 flex-1 scroll-pb-2 space-y-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]`}
+            <AnimatedCollapse
+              open={projectsExpanded}
+              className={projectsExpanded ? "mt-2 min-h-0 flex-1" : ""}
+              contentClassName="h-full scroll-pb-2 space-y-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]"
             >
               {activeProjects.length === 0 && (
                 <p className="px-3 py-2 text-xs text-black/50 dark:text-white/50">
@@ -1269,19 +1374,10 @@ export function TaskApp({
                   leading={<FiFolder />}
                 />
               ))}
-            </div>
+            </AnimatedCollapse>
           </section>
         </div>
         <div className="shrink-0 space-y-2 border-t border-black/10 pt-4 dark:border-white/10">
-          {!data.accessPreview && (
-            <button
-              className="sidebar-link"
-              onClick={() => setSettingsOpen(true)}
-            >
-              <FiSettings />
-              Team settings
-            </button>
-          )}
           <div className="flex items-center gap-3 px-2 py-2">
             {demoMode ? (
               <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -1289,7 +1385,11 @@ export function TaskApp({
                   name={profileName(data.currentProfile)}
                   src={data.currentProfile.avatar_url}
                 />
-                <ProfileSummary name={profileName(data.currentProfile)} demo />
+                <ProfileSummary
+                  name={profileName(data.currentProfile)}
+                  role={data.currentProfile.app_role}
+                  demo
+                />
               </div>
             ) : (
               <Link
@@ -1300,7 +1400,10 @@ export function TaskApp({
                   name={profileName(data.currentProfile)}
                   src={data.currentProfile.avatar_url}
                 />
-                <ProfileSummary name={profileName(data.currentProfile)} />
+                <ProfileSummary
+                  name={profileName(data.currentProfile)}
+                  role={data.currentProfile.app_role}
+                />
               </Link>
             )}
             {!demoMode && (
@@ -1355,8 +1458,7 @@ export function TaskApp({
             onNewTask={() => openCreate()}
           />
         </header>
-        <BetaBanner />
-        <AccessPreviewBanner preview={data.accessPreview} />
+        <TaskBanners preview={data.accessPreview} />
         {demoMode && (
           <div className="border-b border-amber-300/40 bg-amber-50 px-4 py-2 text-center text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-100">
             Local demo mode · Add Supabase environment variables to enable team
@@ -1586,6 +1688,8 @@ export function TaskApp({
                         onDrop={(event) => {
                           event.preventDefault();
                           setDragOverStatusId(null);
+                          setDragTarget(null);
+                          setDraggedTaskId(null);
                           void moveTask(
                             event.dataTransfer.getData("text/task-id"),
                             item.id,
@@ -1597,9 +1701,7 @@ export function TaskApp({
                             : "bg-black/[0.035] dark:bg-white/[0.035]"
                         }`}
                       >
-                        <div
-                          className={`${isCollapsed ? "" : "mb-3"} flex items-center gap-2 px-1`}
-                        >
+                        <div className="flex items-center gap-2 px-1">
                           <i
                             className="h-2.5 w-2.5 rounded-full"
                             style={{ backgroundColor: item.color }}
@@ -1630,10 +1732,11 @@ export function TaskApp({
                             />
                           </button>
                         </div>
-                        <div
+                        <AnimatedCollapse
                           id={`status-column-${item.id}`}
-                          hidden={isCollapsed}
-                          className="space-y-3"
+                          open={!isCollapsed}
+                          className={isCollapsed ? "" : "mt-3"}
+                          contentClassName="space-y-3"
                         >
                           {columnTasks.map(taskCard)}
                           {columnTasks.length === 0 && (
@@ -1644,7 +1747,7 @@ export function TaskApp({
                               Drop a task here or add one
                             </button>
                           )}
-                        </div>
+                        </AnimatedCollapse>
                       </section>
                     );
                   })}
@@ -1990,6 +2093,24 @@ export function TaskApp({
                     }
                   />
                 </label>
+                <label className="date-field opacity-60">
+                  <span className="items-center">
+                    Reminder
+                    <Pill
+                      size="sm"
+                      className="!px-2 !py-0 text-[8px] leading-3 !tracking-[0.18em]"
+                    >
+                      Coming soon
+                    </Pill>
+                  </span>
+                  <input
+                    type="datetime-local"
+                    value=""
+                    disabled
+                    aria-label="Reminder (coming soon)"
+                    className="cursor-not-allowed"
+                  />
+                </label>
               </div>
             </div>
             {editing && (
@@ -2040,13 +2161,6 @@ export function TaskApp({
           createOnly
         />
       )}
-      <TeamSettingsModal
-        open={settingsOpen}
-        setOpen={setSettingsOpen}
-        data={data}
-        setData={setData}
-        demoMode={demoMode}
-      />
     </div>
   );
 }
@@ -2292,7 +2406,7 @@ export function WorkGroupsModalLegacy({
   );
 }
 
-export function TeamSettingsModal({
+export function StatusSettingsModal({
   open,
   setOpen,
   data,
@@ -2305,20 +2419,10 @@ export function TeamSettingsModal({
   setData: Dispatch<SetStateAction<WorkspaceData>>;
   demoMode: boolean;
 }) {
-  const [tab, setTab] = useState<"statuses" | "team">("statuses");
   const [name, setName] = useState("");
   const [color, setColor] = useState("#ee1a25");
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteName, setInviteName] = useState("");
-  const [inviting, setInviting] = useState(false);
-  const [teamMessage, setTeamMessage] = useState("");
-  const [teamMessageIsError, setTeamMessageIsError] = useState(false);
-  const [memberToRemove, setMemberToRemove] = useState<
-    WorkspaceData["profiles"][number] | null
-  >(null);
-  const [statusToRename, setStatusToRename] = useState<
-    WorkspaceData["statuses"][number] | null
-  >(null);
+  const [editingStatusId, setEditingStatusId] = useState<string | null>(null);
+  const [editingStatusName, setEditingStatusName] = useState("");
   const [statusToDelete, setStatusToDelete] = useState<
     WorkspaceData["statuses"][number] | null
   >(null);
@@ -2343,104 +2447,32 @@ export function TeamSettingsModal({
     const nextName = name.trim();
     if (!nextName || settingActionPending) return;
     setSettingActionPending(true);
-    if (tab === "statuses") {
-      let item: WorkspaceData["statuses"][number] = {
-        id: crypto.randomUUID(),
-        name: nextName,
-        color,
-        sort_order: data.statuses.length,
-        is_default: false,
-        is_completed: false,
-      };
-      try {
-        if (!demoMode) {
-          const result = await statusRequest<{ status: typeof item }>("POST", {
-            name: item.name,
-            color: item.color,
-          });
-          item = result.status;
-        }
-        setData((current) => ({
-          ...current,
-          statuses: [...current.statuses, item],
-        }));
-        setName("");
-        toast.success(`${item.name} added.`);
-      } catch (error) {
-        toast.error(
-          mutationErrorMessage(error, "The status could not be added."),
-        );
-      } finally {
-        setSettingActionPending(false);
-      }
-    }
-  }
-
-  async function inviteMember(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (inviting) return;
-    setInviting(true);
-    setTeamMessage("");
-    setTeamMessageIsError(false);
-    try {
-      if (demoMode) {
-        setData((current) => ({
-          ...current,
-          profiles: [
-            ...current.profiles,
-            {
-              id: crypto.randomUUID(),
-              full_name: inviteName.trim() || inviteEmail.split("@")[0],
-              avatar_url: null,
-              onboarding_completed: true,
-            },
-          ],
-        }));
-        setTeamMessage("Demo teammate added.");
-      } else {
-        const response = await fetch("/api/team", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: inviteEmail, fullName: inviteName }),
-        });
-        const result = (await response.json()) as { error?: string };
-        setTeamMessageIsError(!response.ok || Boolean(result.error));
-        setTeamMessage(result.error ?? "Invitation sent.");
-      }
-      setInviteEmail("");
-      setInviteName("");
-    } catch {
-      setTeamMessageIsError(true);
-      setTeamMessage("The invitation could not be sent.");
-    } finally {
-      setInviting(false);
-    }
-  }
-
-  async function removeMember(userId: string) {
-    setSettingActionPending(true);
-    setTeamMessage("");
-    setTeamMessageIsError(false);
+    let item: WorkspaceData["statuses"][number] = {
+      id: crypto.randomUUID(),
+      name: nextName,
+      color,
+      sort_order: data.statuses.length,
+      is_default: false,
+      is_completed: false,
+    };
     try {
       if (!demoMode) {
-        const response = await fetch("/api/team", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId }),
+        const result = await statusRequest<{ status: typeof item }>("POST", {
+          name: item.name,
+          color: item.color,
         });
-        const result = (await response.json()) as { error?: string };
-        if (result.error) {
-          setTeamMessageIsError(true);
-          setTeamMessage(result.error);
-          return;
-        }
+        item = result.status;
       }
       setData((current) => ({
         ...current,
-        profiles: current.profiles.filter((person) => person.id !== userId),
+        statuses: [...current.statuses, item],
       }));
-      setMemberToRemove(null);
-      setTeamMessage("Teammate removed.");
+      setName("");
+      toast.success(`${item.name} added.`);
+    } catch (error) {
+      toast.error(
+        mutationErrorMessage(error, "The status could not be added."),
+      );
     } finally {
       setSettingActionPending(false);
     }
@@ -2451,7 +2483,12 @@ export function TeamSettingsModal({
     currentName: string,
     nextName: string,
   ) {
-    if (!nextName || nextName === currentName) return;
+    if (!nextName) return;
+    if (nextName === currentName) {
+      setEditingStatusId(null);
+      setEditingStatusName("");
+      return;
+    }
     setSettingActionPending(true);
     try {
       if (!demoMode) {
@@ -2463,7 +2500,8 @@ export function TeamSettingsModal({
           item.id === id ? { ...item, name: nextName } : item,
         ),
       }));
-      setStatusToRename(null);
+      setEditingStatusId(null);
+      setEditingStatusName("");
       toast.success(`${nextName} updated.`);
     } catch (error) {
       toast.error(
@@ -2575,229 +2613,174 @@ export function TeamSettingsModal({
       <Modal
         open={open}
         setIsOpen={setOpen}
-        title="Team settings"
+        title="Status settings"
+        description="Completion statuses mark tasks complete when they enter the column and automatically archive them after 14 days. Moving a task back to an active status reopens it."
         hideActions
         size="lg"
         maxHeight="min(42rem, calc(100dvh - max(1rem, env(safe-area-inset-top)) - max(1rem, env(safe-area-inset-bottom))))"
         footer={
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setOpen(false)}
-              disabled={settingActionPending || inviting}
-            >
-              Cancel
-            </Button>
-            {tab === "statuses" ? (
+          <form
+            id="create-status-form"
+            className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void add();
+            }}
+          >
+            <Input
+              label="New status"
+              name="setting-name"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="Name"
+            />
+            <label className="date-field">
+              <span>Color</span>
+              <input
+                type="color"
+                className="color-input"
+                value={color}
+                onChange={(event) => setColor(event.target.value)}
+              />
+            </label>
+            <div className="flex justify-end gap-2 sm:col-span-2">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setOpen(false)}
+                disabled={settingActionPending}
+              >
+                Cancel
+              </Button>
               <Button
                 type="submit"
-                form="create-status-form"
                 loading={settingActionPending}
                 loadingText="Adding..."
               >
-                Add
+                Add status
               </Button>
-            ) : (
-              <Button
-                type="submit"
-                form="invite-team-member-form"
-                loading={inviting}
-                loadingText="Inviting..."
-              >
-                Invite teammate
-              </Button>
-            )}
-          </div>
+            </div>
+          </form>
         }
       >
-        <div className="mb-6 flex gap-2 overflow-x-auto">
-          {(["statuses", "team"] as const).map((item) => (
-            <button
-              key={item}
-              onClick={() => setTab(item)}
-              className={`view-button capitalize ${tab === item ? "view-button-active" : ""}`}
-            >
-              {item === "team" ? <FiUsers /> : <FiCheck />}
-              {item}
-            </button>
-          ))}
-        </div>
-        {tab === "team" ? (
+        <>
           <div className="space-y-3">
-            {data.profiles.map((person) => (
-              <div
-                key={person.id}
-                className="flex items-center gap-3 rounded-xl border border-black/10 p-3 dark:border-white/10"
-              >
-                <Avatar name={profileName(person)} src={person.avatar_url} />
-                <div className="flex-1">
-                  <p className="font-semibold">{profileName(person)}</p>
-                  <p className="text-xs text-black/50 dark:text-white/50">
-                    Team member
-                  </p>
-                </div>
-                {person.id !== data.currentProfile.id && (
-                  <IconButton
-                    label={`Remove ${profileName(person)}`}
-                    variant="danger"
-                    onClick={() => setMemberToRemove(person)}
-                  >
-                    <FiTrash2 />
-                  </IconButton>
-                )}
-              </div>
-            ))}
-            <form
-              id="invite-team-member-form"
-              className="mt-5 grid gap-3 border-t border-black/10 pt-5 dark:border-white/10 sm:grid-cols-2"
-              onSubmit={inviteMember}
-            >
-              <Input
-                label="Name"
-                name="invite-name"
-                value={inviteName}
-                onChange={(event) => setInviteName(event.target.value)}
-                placeholder="New Ryan"
-              />
-              <Input
-                label="Email"
-                name="invite-email"
-                type="email"
-                required
-                value={inviteEmail}
-                onChange={(event) => setInviteEmail(event.target.value)}
-                placeholder="ryan@example.com"
-              />
-              {teamMessageIsError ? (
-                <ErrorCallout className="sm:col-span-2">
-                  {teamMessage}
-                </ErrorCallout>
-              ) : teamMessage ? (
-                <SuccessCallout className="sm:col-span-2">
-                  {teamMessage}
-                </SuccessCallout>
-              ) : null}
-            </form>
-          </div>
-        ) : (
-          <>
-            <div className="space-y-3">
-              {[...data.statuses]
-                .sort((a, b) => a.sort_order - b.sort_order)
-                .map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center gap-3 rounded-xl border border-black/10 p-3 dark:border-white/10"
-                  >
-                    <i
-                      className="h-3 w-3 rounded-full"
-                      style={{ backgroundColor: item.color }}
-                    />
+            {[...data.statuses]
+              .sort((a, b) => a.sort_order - b.sort_order)
+              .map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center gap-3 rounded-xl border border-black/10 p-3 dark:border-white/10"
+                >
+                  <i
+                    className="h-3 w-3 rounded-full"
+                    style={{ backgroundColor: item.color }}
+                  />
+                  {editingStatusId === item.id ? (
+                    <form
+                      className="flex min-w-0 flex-1 items-center gap-2"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        void renameSetting(
+                          item.id,
+                          item.name,
+                          editingStatusName.trim(),
+                        );
+                      }}
+                    >
+                      <Input
+                        label={`Status name for ${item.name}`}
+                        hideLabel
+                        name={`status-name-${item.id}`}
+                        value={editingStatusName}
+                        onChange={(event) =>
+                          setEditingStatusName(event.target.value)
+                        }
+                        inputClassName="h-9"
+                        autoFocus
+                      />
+                      <IconButton
+                        type="submit"
+                        label={`Save ${item.name}`}
+                        disabled={
+                          settingActionPending || !editingStatusName.trim()
+                        }
+                      >
+                        <FiCheck />
+                      </IconButton>
+                      <IconButton
+                        type="button"
+                        label={`Cancel editing ${item.name}`}
+                        disabled={settingActionPending}
+                        onClick={() => {
+                          setEditingStatusId(null);
+                          setEditingStatusName("");
+                        }}
+                      >
+                        <FiX />
+                      </IconButton>
+                    </form>
+                  ) : (
                     <span className="flex-1 font-semibold">{item.name}</span>
-                    {"is_default" in item && item.is_default && (
-                      <Pill size="sm">Default</Pill>
-                    )}
-                    <button
-                      type="button"
-                      aria-pressed={item.is_completed}
-                      disabled={settingActionPending}
-                      onClick={() =>
-                        void toggleCompletedStatus(item.id, !item.is_completed)
-                      }
-                      className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-black/20 disabled:opacity-50 dark:focus:ring-white/30 ${item.is_completed ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-200" : "border-black/10 text-black/60 hover:text-black dark:border-white/10 dark:text-white/60 dark:hover:text-white"}`}
-                    >
-                      {item.is_completed ? "Completed" : "Mark completed"}
-                    </button>
-                    <IconButton
-                      label={`Move ${item.name} up`}
-                      onClick={() => void moveStatus(item.id, -1)}
-                    >
-                      <FiChevronDown className="rotate-180" />
-                    </IconButton>
-                    <IconButton
-                      label={`Move ${item.name} down`}
-                      onClick={() => void moveStatus(item.id, 1)}
-                    >
-                      <FiChevronDown />
-                    </IconButton>
-                    <IconButton
-                      label={`Rename ${item.name}`}
-                      onClick={() => setStatusToRename(item)}
-                    >
-                      <FiMoreHorizontal />
-                    </IconButton>
-                    <IconButton
-                      label={`Delete ${item.name}`}
-                      variant="danger"
-                      onClick={() => setStatusToDelete(item)}
-                    >
-                      <FiTrash2 />
-                    </IconButton>
-                  </div>
-                ))}
-            </div>
-            <form
-              id="create-status-form"
-              className="mt-5 grid gap-3 border-t border-black/10 pt-5 dark:border-white/10 sm:grid-cols-[1fr_auto]"
-              onSubmit={(event) => {
-                event.preventDefault();
-                void add();
-              }}
-            >
-              <Input
-                label="New status"
-                name="setting-name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="Name"
-              />
-              <label className="date-field">
-                <span>Color</span>
-                <input
-                  type="color"
-                  className="color-input"
-                  value={color}
-                  onChange={(event) => setColor(event.target.value)}
-                />
-              </label>
-            </form>
-          </>
-        )}
+                  )}
+                  {editingStatusId !== item.id && (
+                    <>
+                      {"is_default" in item && item.is_default && (
+                        <Pill size="sm">Default</Pill>
+                      )}
+                      <button
+                        type="button"
+                        aria-label={`${item.name} ${item.is_completed ? "currently completes tasks and archives them after 14 days" : "is an active workflow status"}`}
+                        aria-pressed={item.is_completed}
+                        disabled={settingActionPending}
+                        onClick={() =>
+                          void toggleCompletedStatus(
+                            item.id,
+                            !item.is_completed,
+                          )
+                        }
+                        className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-black/20 disabled:opacity-50 dark:focus:ring-white/30 ${item.is_completed ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-200" : "border-black/10 text-black/60 hover:text-black dark:border-white/10 dark:text-white/60 dark:hover:text-white"}`}
+                      >
+                        {item.is_completed
+                          ? "Completes tasks"
+                          : "Set as completion"}
+                      </button>
+                      <IconButton
+                        label={`Move ${item.name} up`}
+                        onClick={() => void moveStatus(item.id, -1)}
+                      >
+                        <FiChevronDown className="rotate-180" />
+                      </IconButton>
+                      <IconButton
+                        label={`Move ${item.name} down`}
+                        onClick={() => void moveStatus(item.id, 1)}
+                      >
+                        <FiChevronDown />
+                      </IconButton>
+                      <IconButton
+                        label={`Edit ${item.name}`}
+                        disabled={settingActionPending}
+                        onClick={() => {
+                          setEditingStatusId(item.id);
+                          setEditingStatusName(item.name);
+                        }}
+                      >
+                        <FiEdit2 />
+                      </IconButton>
+                      <IconButton
+                        label={`Delete ${item.name}`}
+                        variant="danger"
+                        onClick={() => setStatusToDelete(item)}
+                      >
+                        <FiTrash2 />
+                      </IconButton>
+                    </>
+                  )}
+                </div>
+              ))}
+          </div>
+        </>
       </Modal>
-      <ConfirmationDialog
-        open={Boolean(memberToRemove)}
-        setOpen={(nextOpen) => {
-          if (!nextOpen) setMemberToRemove(null);
-        }}
-        title="Remove teammate?"
-        description={`Remove ${memberToRemove ? profileName(memberToRemove) : "this teammate"} and revoke their access?`}
-        confirmLabel="Remove teammate"
-        pendingLabel="Removing..."
-        pending={settingActionPending}
-        destructive
-        onConfirm={() => {
-          if (memberToRemove) void removeMember(memberToRemove.id);
-        }}
-      />
-      <PromptDialog
-        open={Boolean(statusToRename)}
-        setOpen={(nextOpen) => {
-          if (!nextOpen) setStatusToRename(null);
-        }}
-        title="Rename status"
-        label="Status name"
-        initialValue={statusToRename?.name}
-        pending={settingActionPending}
-        onConfirm={(nextName) => {
-          if (statusToRename)
-            void renameSetting(
-              statusToRename.id,
-              statusToRename.name,
-              nextName,
-            );
-        }}
-      />
       <ConfirmationDialog
         open={Boolean(statusToDelete)}
         setOpen={(nextOpen) => {

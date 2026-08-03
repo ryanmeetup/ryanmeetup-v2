@@ -57,6 +57,7 @@ export type Task = {
   due_time: string | null;
   reminder_at: string | null;
   priority: Priority;
+  board_position: number;
   completed_at: string | null;
   archived_at: string | null;
   created_at: string;
