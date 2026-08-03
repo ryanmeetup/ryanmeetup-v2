@@ -38,3 +38,4 @@ export * from "./Textarea";
 export * from "./Tooltip";
 export * from "./Avatar";
 export * from "./Banner";
+export * from "./AnimatedCollapse";

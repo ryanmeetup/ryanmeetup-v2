@@ -1,6 +1,11 @@
 "use client";
 
-import { Dialog, DialogPanel, DialogTitle } from "@headlessui/react";
+import {
+  Dialog,
+  DialogDescription,
+  DialogPanel,
+  DialogTitle,
+} from "@headlessui/react";
 import { MdClose as Close } from "react-icons/md";
 import type { ReactNode } from "react";
 import { Button } from "./Button";
@@ -12,6 +17,7 @@ export type ModalProps = {
   open: boolean;
   setIsOpen: (open: boolean) => void;
   title: ReactNode;
+  description?: ReactNode;
   children: ReactNode;
   closable?: boolean;
   actions?: ReactNode;
@@ -43,6 +49,7 @@ const Modal = ({
   open,
   setIsOpen,
   title,
+  description,
   children,
   closable = true,
   actions,
@@ -113,6 +120,11 @@ const Modal = ({
         {title && (
           <div className="border-b border-black/10 px-5 py-4 dark:border-white/10">
             <h1 className="text-xl font-semibold">{title}</h1>
+            {description && (
+              <div className="mt-2 text-sm leading-relaxed text-black/65 dark:text-white/65">
+                {description}
+              </div>
+            )}
           </div>
         )}
         <div className="p-5">{children}</div>
@@ -145,9 +157,16 @@ const Modal = ({
           className={`mx-auto flex w-full min-h-0 flex-col ${sizeStyles[size]} rounded-2xl border border-black/15 bg-white p-6 shadow-[0_24px_80px_rgba(0,0,0,0.35)] ring-1 ring-black/5 dark:border-white/20 dark:bg-[#181818] dark:shadow-[0_28px_100px_rgba(0,0,0,0.85)] dark:ring-white/10 ${panelClassName ?? ""}`}
         >
           <div className="mb-4 flex w-full items-start justify-between gap-4">
-            <DialogTitle className="text-xl font-cooper capitalize text-black md:text-2xl dark:text-white">
-              {title}
-            </DialogTitle>
+            <div className="min-w-0">
+              <DialogTitle className="text-xl font-cooper capitalize text-black md:text-2xl dark:text-white">
+                {title}
+              </DialogTitle>
+              {description && (
+                <DialogDescription className="mt-3 text-sm leading-relaxed text-black/65 dark:text-white/65">
+                  {description}
+                </DialogDescription>
+              )}
+            </div>
             {closable && (
               <IconButton label="Close dialog" onClick={() => setIsOpen(false)}>
                 <Close className="h-5 w-5" />
