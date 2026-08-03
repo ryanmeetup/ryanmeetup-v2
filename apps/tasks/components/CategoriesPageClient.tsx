@@ -6,6 +6,7 @@ import { FiMenu, FiPlus } from "react-icons/fi";
 import { WorkGroupsModal as CategoriesModal } from "./WorkGroupsModal";
 import { ProjectsModal } from "./ProjectsModal";
 import { ThemeToggle } from "./ThemeToggle";
+import { BetaBanner } from "./BetaBanner";
 import { TasksSidebar } from "./TasksSidebar";
 import { TeamSettingsModal } from "./TaskApp";
 import type { WorkspaceData } from "@/lib/types";
@@ -27,6 +28,7 @@ export function CategoriesPageClient({ initialData, demoMode }: { initialData: W
           <Button className="ml-auto" size="sm" leftIcon={<FiPlus />} onClick={() => setCreateOpen(true)}>New category</Button>
           <ThemeToggle />
         </header>
+        <BetaBanner />
         <div className="p-4 sm:p-6 lg:p-8"><CategoriesModal open setOpen={() => undefined} data={data} setData={setData} demoMode={demoMode} embedded /></div>
       </main>
       {createOpen && <CategoriesModal open={createOpen} setOpen={setCreateOpen} data={data} setData={setData} demoMode={demoMode} createOnly />}

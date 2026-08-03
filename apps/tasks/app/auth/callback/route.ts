@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { tasksAppUrl } from "@/lib/app-url";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
@@ -10,7 +11,7 @@ export async function GET(request: Request) {
     : "/profile";
   if (code) {
     const { error } = await (await createClient()).auth.exchangeCodeForSession(code);
-    if (error) return NextResponse.redirect(new URL("/login?recovery=invalid", url.origin));
+    if (error) return NextResponse.redirect(tasksAppUrl("/login?recovery=invalid"));
   }
-  return NextResponse.redirect(new URL(destination, url.origin));
+  return NextResponse.redirect(tasksAppUrl(destination));
 }

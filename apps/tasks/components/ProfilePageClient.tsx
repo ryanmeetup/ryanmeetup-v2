@@ -10,6 +10,7 @@ import { WorkGroupsModal as CategoriesModal } from "./WorkGroupsModal";
 import { TasksSidebar } from "./TasksSidebar";
 import { TeamSettingsModal } from "./TaskApp";
 import { ThemeToggle } from "./ThemeToggle";
+import { BetaBanner } from "./BetaBanner";
 import type { WorkspaceData } from "@/lib/types";
 
 export function ProfilePageClient({ initialData, email, onboardingRequired }: { initialData: WorkspaceData; email: string; onboardingRequired: boolean }) {
@@ -29,6 +30,7 @@ export function ProfilePageClient({ initialData, email, onboardingRequired }: { 
           <p className="font-semibold">Profile</p>
           <span className="ml-auto"><ThemeToggle /></span>
         </header>
+        <BetaBanner />
         <div className="p-4 sm:p-6 lg:p-8">
           <div className="mx-auto max-w-3xl">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-black/50 dark:text-white/50">{onboardingRequired ? "Welcome" : "Your account"}</p>

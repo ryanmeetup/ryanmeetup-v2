@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { Button, Card, Heading, Input, SuccessCallout } from "@ryanmeetup/ui";
 import Link from "next/link";
+import { tasksAppUrl } from "@/lib/app-url";
 import { createClient } from "@/lib/supabase/client";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -15,7 +16,7 @@ export function ForgotPasswordForm() {
     event.preventDefault();
     setLoading(true);
     await createClient().auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${location.origin}/auth/callback?next=/reset-password`,
+      redirectTo: tasksAppUrl("/auth/callback?next=/reset-password"),
     });
     setLoading(false);
     setSent(true);

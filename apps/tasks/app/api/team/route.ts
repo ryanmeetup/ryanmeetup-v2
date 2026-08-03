@@ -1,5 +1,6 @@
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { tasksAppUrl } from "@/lib/app-url";
 import { createClient } from "@/lib/supabase/server";
 
 async function authorizeTeamMember() {
@@ -24,14 +25,6 @@ function adminClient() {
   });
 }
 
-function appOrigin(request: Request) {
-  const configuredOrigin = process.env.TASKS_APP_URL?.trim();
-  if (configuredOrigin) return configuredOrigin.replace(/\/$/, "");
-  if (process.env.NODE_ENV === "production")
-    return "https://tasks.ryanmeetup.com";
-  return new URL(request.url).origin;
-}
-
 export async function POST(request: Request) {
   if (!(await authorizeTeamMember()))
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
@@ -53,7 +46,7 @@ export async function POST(request: Request) {
       data: {
         full_name: fullName?.trim() || email.split("@")[0],
       },
-      redirectTo: new URL("/auth/callback", appOrigin(request)).toString(),
+      redirectTo: tasksAppUrl("/auth/callback"),
     },
   );
   if (error)

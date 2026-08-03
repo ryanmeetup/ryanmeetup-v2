@@ -9,6 +9,7 @@ import {
 import { ProjectsModal } from "./ProjectsModal";
 import { WorkGroupsModal as CategoriesModal } from "./WorkGroupsModal";
 import { ThemeToggle } from "./ThemeToggle";
+import { BetaBanner } from "./BetaBanner";
 import { TasksSidebar } from "./TasksSidebar";
 import { TeamSettingsModal } from "./TaskApp";
 import type { WorkspaceData } from "@/lib/types";
@@ -50,6 +51,7 @@ export function ProjectsPageClient({
           </Button>
           <ThemeToggle />
         </header>
+        <BetaBanner />
 
         <div className="p-4 sm:p-6 lg:p-8">
           <ProjectsModal
