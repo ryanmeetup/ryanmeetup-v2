@@ -1,11 +1,12 @@
 export type AvatarProps = {
   className?: string;
   name?: string | null;
-  size?: "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg";
   src?: string | null;
 };
 
 const sizeClasses = {
+  xs: "h-4 w-4 text-[7px]",
   sm: "h-6 w-6 text-[9px]",
   md: "h-8 w-8 text-[9px]",
   lg: "h-16 w-16 text-lg",

@@ -35,6 +35,7 @@ import {
   FiCalendar,
   FiCheck,
   FiChevronDown,
+  FiChevronRight,
   FiFilter,
   FiFolder,
   FiGrid,
@@ -62,11 +63,15 @@ import type {
   Task,
   WorkspaceData,
 } from "@/lib/types";
-import { ThemeToggle } from "./ThemeToggle";
+import { TaskHeaderActions } from "./TaskHeaderActions";
 import { BetaBanner } from "./BetaBanner";
 import { TaskDetails } from "./TaskDetails";
 import { WorkGroupsModal as CategoriesModal } from "./WorkGroupsModal";
 import { ProjectsModal } from "./ProjectsModal";
+import { ProjectLinks } from "./ProjectLinks";
+import { useSidebarSections } from "@/hooks/useSidebarSections";
+import { withAccessPreview } from "@/lib/access-preview";
+import { AccessPreviewBanner } from "./AccessPreviewBanner";
 
 type View = "board" | "list";
 type Draft = Pick<
@@ -253,20 +258,29 @@ function SidebarFilterButton({
 export function TaskApp({
   initialData,
   demoMode,
+  initialTaskOpen = false,
 }: {
   initialData: WorkspaceData;
   demoMode: boolean;
+  initialTaskOpen?: boolean;
 }) {
   const [data, setData] = useState(initialData);
   const [viewParam, setView] = useQueryParamState("view", "board");
   const view: View = viewParam === "list" ? "list" : "board";
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [taskOpen, setTaskOpen] = useState(false);
+  const {
+    categoriesExpanded,
+    setCategoriesExpanded,
+    projectsExpanded,
+    setProjectsExpanded,
+  } = useSidebarSections();
+  const [taskOpen, setTaskOpen] = useState(initialTaskOpen);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [workGroupsOpen, setWorkGroupsOpen] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [taskMessage, setTaskMessage] = useState("");
   const [taskSaving, setTaskSaving] = useState(false);
+  const [createAnother, setCreateAnother] = useState(false);
   const [taskPendingDelete, setTaskPendingDelete] = useState<Task | null>(null);
   const [taskDeleting, setTaskDeleting] = useState(false);
   const [dragOverStatusId, setDragOverStatusId] = useState<string | null>(null);
@@ -386,7 +400,7 @@ export function TaskApp({
   }, [data, demoMode]);
 
   useEffect(() => {
-    if (demoMode) return;
+    if (demoMode || initialData.accessPreview) return;
     const supabase = createClient();
     const channel = supabase
       .channel("tasks-live")
@@ -414,7 +428,6 @@ export function TaskApp({
           { data: projects },
           { data: categories },
           { data: taskCategories },
-          { data: projectOwners },
           { data: profiles },
           { data: taskAssignees },
           { data: taskLabels },
@@ -430,7 +443,6 @@ export function TaskApp({
           supabase.from("projects").select("*").order("name"),
           supabase.from("work_groups").select("*").order("name"),
           supabase.from("task_categories").select("*"),
-          supabase.from("project_owners").select("*"),
           supabase.from("profiles").select("*").order("full_name"),
           supabase.from("task_assignees").select("*"),
           supabase.from("task_labels").select("*"),
@@ -456,7 +468,6 @@ export function TaskApp({
           projects: projects ?? current.projects,
           categories: categories ?? current.categories,
           taskCategories: taskCategories ?? current.taskCategories,
-          projectOwners: projectOwners ?? current.projectOwners,
           profiles: profiles ?? current.profiles,
           currentProfile: profiles
             ? (() => {
@@ -475,7 +486,7 @@ export function TaskApp({
       void supabase.removeChannel(channel);
       void supabase.removeChannel(detailsChannel);
     };
-  }, [demoMode]);
+  }, [demoMode, initialData.accessPreview]);
 
   const profiles = useMemo(
     () => new Map(data.profiles.map((item) => [item.id, item])),
@@ -653,6 +664,7 @@ export function TaskApp({
   function openCreate(statusId?: string) {
     setTaskMessage("");
     setEditing(null);
+    setCreateAnother(false);
     const scopedDraft = blankDraft(
       statusId ??
         selectedStatus?.id ??
@@ -671,6 +683,7 @@ export function TaskApp({
   function openEdit(task: Task) {
     setTaskMessage("");
     setEditing(task);
+    setCreateAnother(false);
     setDraft({
       title: task.title,
       description: task.description,
@@ -862,6 +875,18 @@ export function TaskApp({
       }
     }
     setTaskSaving(false);
+    if (!editing && createAnother) {
+      setDraft({
+        ...blankDraft(draft.status_id),
+        status_id: draft.status_id,
+        priority: draft.priority,
+        category_ids: [...draft.category_ids],
+        project_id: draft.project_id,
+        assignee_id: draft.assignee_id,
+      });
+      toast.success("Task created. Add the next one.");
+      return;
+    }
     setTaskOpen(false);
     toast.success(editing ? "Task updated." : "Task created.");
   }
@@ -1136,26 +1161,41 @@ export function TaskApp({
         <div className="mt-8 flex min-h-0 flex-1 flex-col">
           <section className="flex max-h-[70%] min-h-0 shrink-0 flex-col overflow-hidden border-b border-black/10 dark:border-white/10">
             <div className="flex items-center justify-between px-3">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-black/45 dark:text-white/45">
+              <button
+                type="button"
+                aria-expanded={categoriesExpanded}
+                onClick={() => setCategoriesExpanded((current) => !current)}
+                className="-ml-1 inline-flex items-center gap-1 rounded px-1 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-black/45 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:text-white/45 dark:hover:text-white dark:focus-visible:ring-white/40"
+              >
+                {categoriesExpanded ? <FiChevronDown /> : <FiChevronRight />}
                 Categories
-              </p>
+              </button>
               <span className="flex items-center gap-1">
                 <Link
-                  href="/categories"
+                  href={withAccessPreview("/categories", data.accessPreview)}
                   className="text-[10px] font-semibold text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white"
                 >
                   Manage
                 </Link>
-                <IconButton
-                  label="Create category"
-                  size="sm"
-                  onClick={() => setWorkGroupsOpen(true)}
-                >
-                  <FiPlus />
-                </IconButton>
+                {!data.accessPreview && (
+                  <IconButton
+                    label="Create category"
+                    size="sm"
+                    onClick={() => setWorkGroupsOpen(true)}
+                  >
+                    <FiPlus />
+                  </IconButton>
+                )}
               </span>
             </div>
-            <div className="mt-2 min-h-0 flex-1 scroll-pb-2 space-y-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]">
+            <div
+              className={`${categoriesExpanded ? "mt-2" : "hidden"} min-h-0 flex-1 scroll-pb-2 space-y-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]`}
+            >
+              {data.categories.length === 0 && (
+                <p className="px-3 py-2 text-xs text-black/50 dark:text-white/50">
+                  No categories yet.
+                </p>
+              )}
               {data.categories.map((item) => (
                 <SidebarFilterButton
                   key={item.id}
@@ -1177,28 +1217,45 @@ export function TaskApp({
               ))}
             </div>
           </section>
-          <section className="flex min-h-0 flex-1 flex-col overflow-hidden pt-4">
+          <section
+            className={`flex min-h-0 flex-col overflow-hidden pt-4 ${projectsExpanded ? "flex-1" : "shrink-0"}`}
+          >
             <div className="flex items-center justify-between px-3">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-black/45 dark:text-white/45">
+              <button
+                type="button"
+                aria-expanded={projectsExpanded}
+                onClick={() => setProjectsExpanded((current) => !current)}
+                className="-ml-1 inline-flex items-center gap-1 rounded px-1 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-black/45 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:text-white/45 dark:hover:text-white dark:focus-visible:ring-white/40"
+              >
+                {projectsExpanded ? <FiChevronDown /> : <FiChevronRight />}
                 Projects
-              </p>
+              </button>
               <span className="flex items-center gap-1">
                 <Link
-                  href="/projects"
+                  href={withAccessPreview("/projects", data.accessPreview)}
                   className="text-[10px] font-semibold text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white"
                 >
                   Manage
                 </Link>
-                <IconButton
-                  label="Create project"
-                  size="sm"
-                  onClick={() => setProjectsOpen(true)}
-                >
-                  <FiPlus />
-                </IconButton>
+                {!data.accessPreview && (
+                  <IconButton
+                    label="Create project"
+                    size="sm"
+                    onClick={() => setProjectsOpen(true)}
+                  >
+                    <FiPlus />
+                  </IconButton>
+                )}
               </span>
             </div>
-            <div className="mt-2 min-h-0 flex-1 scroll-pb-2 space-y-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]">
+            <div
+              className={`${projectsExpanded ? "mt-2" : "hidden"} min-h-0 flex-1 scroll-pb-2 space-y-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]`}
+            >
+              {activeProjects.length === 0 && (
+                <p className="px-3 py-2 text-xs text-black/50 dark:text-white/50">
+                  No projects yet.
+                </p>
+              )}
               {activeProjects.map((item) => (
                 <SidebarFilterButton
                   key={item.id}
@@ -1216,13 +1273,15 @@ export function TaskApp({
           </section>
         </div>
         <div className="shrink-0 space-y-2 border-t border-black/10 pt-4 dark:border-white/10">
-          <button
-            className="sidebar-link"
-            onClick={() => setSettingsOpen(true)}
-          >
-            <FiSettings />
-            Team settings
-          </button>
+          {!data.accessPreview && (
+            <button
+              className="sidebar-link"
+              onClick={() => setSettingsOpen(true)}
+            >
+              <FiSettings />
+              Team settings
+            </button>
+          )}
           <div className="flex items-center gap-3 px-2 py-2">
             {demoMode ? (
               <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -1290,18 +1349,14 @@ export function TaskApp({
               </span>
             )}
           </div>
-          <div className="ml-auto flex items-center gap-3">
-            <Button
-              size="sm"
-              leftIcon={<FiPlus />}
-              onClick={() => openCreate()}
-            >
-              New task
-            </Button>
-            <ThemeToggle />
-          </div>
+          <TaskHeaderActions
+            data={data}
+            demoMode={demoMode}
+            onNewTask={() => openCreate()}
+          />
         </header>
         <BetaBanner />
+        <AccessPreviewBanner preview={data.accessPreview} />
         {demoMode && (
           <div className="border-b border-amber-300/40 bg-amber-50 px-4 py-2 text-center text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-100">
             Local demo mode · Add Supabase environment variables to enable team
@@ -1333,6 +1388,9 @@ export function TaskApp({
                 <p className="mt-2 text-sm text-black/70 dark:text-white/70 sm:text-base">
                   {scopeDescription}
                 </p>
+              )}
+              {selectedProject && (selectedProject.links ?? []).length > 0 && (
+                <ProjectLinks links={selectedProject.links} className="mt-3" />
               )}
             </div>
             <div className="flex rounded-lg border border-black/10 bg-white p-1 dark:border-white/10 dark:bg-white/5">
@@ -1736,6 +1794,18 @@ export function TaskApp({
               >
                 Delete task
               </Button>
+            )}
+            {!editing && (
+              <label className="flex w-fit cursor-pointer items-center gap-3 text-sm font-medium text-black/70 dark:text-white/70">
+                <input
+                  type="checkbox"
+                  checked={createAnother}
+                  onChange={(event) => setCreateAnother(event.target.checked)}
+                  disabled={taskSaving}
+                  className="h-4 w-4 rounded border-black/20 accent-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/20 dark:accent-white dark:focus-visible:ring-white/40"
+                />
+                Create another
+              </label>
             )}
             <div className="flex flex-col gap-3 sm:col-start-2 sm:flex-row">
               <Button

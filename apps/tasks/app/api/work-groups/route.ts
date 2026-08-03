@@ -20,7 +20,10 @@ async function authorizeTeamMember() {
     .select("id, onboarding_completed")
     .eq("id", auth.user.id)
     .single();
-  return profile?.onboarding_completed
+  if (!profile?.onboarding_completed)
+    return { user: null, error: "Not authorized" };
+  const { data: isOwner } = await supabase.rpc("is_app_owner");
+  return isOwner
     ? { user: auth.user, error: null }
     : { user: null, error: "Not authorized" };
 }

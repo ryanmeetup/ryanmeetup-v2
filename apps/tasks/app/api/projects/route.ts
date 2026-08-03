@@ -1,6 +1,29 @@
-import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import type { ProjectLink } from "@/lib/types";
+
+function validateLinks(value: unknown): ProjectLink[] | null {
+  if (!Array.isArray(value) || value.length > 10) return null;
+  const links: ProjectLink[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object") return null;
+    const { label, url } = item as { label?: unknown; url?: unknown };
+    if (typeof label !== "string" || typeof url !== "string") return null;
+    const trimmedLabel = label.trim();
+    const trimmedUrl = url.trim();
+    if (!trimmedLabel || trimmedLabel.length > 80 || trimmedUrl.length > 2048)
+      return null;
+    try {
+      const parsed = new URL(trimmedUrl);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:")
+        return null;
+    } catch {
+      return null;
+    }
+    links.push({ label: trimmedLabel, url: trimmedUrl });
+  }
+  return links;
+}
 
 async function authorizedUser() {
   const supabase = await createClient();
@@ -11,146 +34,105 @@ async function authorizedUser() {
     .select("id, onboarding_completed")
     .eq("id", data.user.id)
     .single();
-  return profile?.onboarding_completed ? data.user : null;
-}
-
-function serviceClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key =
-    process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
-  return url && key
-    ? createAdminClient(url, key, {
-        auth: { autoRefreshToken: false, persistSession: false },
-      })
-    : null;
-}
-
-function normalizeOwnerIds(value: unknown) {
-  if (!Array.isArray(value)) return [];
-  return [
-    ...new Set(
-      value.filter(
-        (profileId): profileId is string =>
-          typeof profileId === "string" && profileId.length > 0,
-      ),
-    ),
-  ];
+  return profile?.onboarding_completed ? { user: data.user, supabase } : null;
 }
 
 export async function POST(request: Request) {
-  const user = await authorizedUser();
-  if (!user)
+  const authorization = await authorizedUser();
+  if (!authorization)
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
-  const client = serviceClient();
-  if (!client)
-    return NextResponse.json(
-      { error: "SUPABASE_SECRET_KEY is not configured" },
-      { status: 503 },
-    );
+  const { user, supabase } = authorization;
+  const { data: isOwner } = await supabase.rpc("is_app_owner");
+  if (!isOwner)
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
   const {
     name,
     description,
-    ownerIds: requestedOwnerIds = [],
+    links: rawLinks = [],
   } = (await request.json()) as {
     name?: string;
     description?: string;
-    ownerIds?: unknown;
+    links?: unknown;
   };
-  const ownerIds = normalizeOwnerIds(requestedOwnerIds);
+  const links = validateLinks(rawLinks);
   if (!name?.trim())
     return NextResponse.json(
       { error: "A project name is required" },
       { status: 400 },
     );
-  const { data, error } = await client
+  if (!links)
+    return NextResponse.json(
+      { error: "Add valid HTTP or HTTPS project links" },
+      { status: 400 },
+    );
+  const { data, error } = await supabase
     .from("projects")
     .insert({
       name: name.trim(),
       description: description?.trim() || null,
+      links,
       created_by: user.id,
     })
     .select()
     .single();
   if (error)
     return NextResponse.json({ error: error.message }, { status: 400 });
-  if (ownerIds.length > 0) {
-    const { error: ownersError } = await client.from("project_owners").upsert(
-      ownerIds.map((profile_id) => ({
-        project_id: data.id,
-        profile_id,
-      })),
-      { onConflict: "project_id,profile_id" },
-    );
-    if (ownersError)
-      return NextResponse.json({ error: ownersError.message }, { status: 400 });
-  }
   return NextResponse.json({ project: data });
 }
 
 export async function PATCH(request: Request) {
-  if (!(await authorizedUser()))
+  const authorization = await authorizedUser();
+  if (!authorization)
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
-  const client = serviceClient();
-  if (!client)
-    return NextResponse.json(
-      { error: "SUPABASE_SECRET_KEY is not configured" },
-      { status: 503 },
-    );
+  const { supabase } = authorization;
   const {
     id,
     name,
     description,
+    links: rawLinks,
     archived,
-    ownerIds: requestedOwnerIds,
   } = (await request.json()) as {
     id?: string;
     name?: string;
     description?: string;
+    links?: unknown;
     archived?: boolean;
-    ownerIds?: unknown;
   };
+  const links = rawLinks === undefined ? undefined : validateLinks(rawLinks);
   if (!id || (name !== undefined && !name.trim()))
     return NextResponse.json(
       { error: "A project and valid update are required" },
       { status: 400 },
     );
+  if (links === null)
+    return NextResponse.json(
+      { error: "Add valid HTTP or HTTPS project links" },
+      { status: 400 },
+    );
+  const { data: canManage } = await supabase.rpc("can_manage_project", {
+    project_id: id,
+  });
+  if (!canManage)
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
   const updates: {
     name?: string;
     description?: string | null;
     archived_at?: string | null;
+    links?: ProjectLink[];
   } = {};
   if (name !== undefined) updates.name = name.trim();
   if (description !== undefined)
     updates.description = description.trim() || null;
+  if (links !== undefined) updates.links = links;
   if (archived !== undefined)
     updates.archived_at = archived ? new Date().toISOString() : null;
   if (Object.keys(updates).length > 0) {
-    const { error } = await client
+    const { error } = await supabase
       .from("projects")
       .update(updates)
       .eq("id", id);
     if (error)
       return NextResponse.json({ error: error.message }, { status: 400 });
-  }
-  if (requestedOwnerIds !== undefined) {
-    const ownerIds = normalizeOwnerIds(requestedOwnerIds);
-    const { error: deleteError } = await client
-      .from("project_owners")
-      .delete()
-      .eq("project_id", id);
-    if (deleteError)
-      return NextResponse.json({ error: deleteError.message }, { status: 400 });
-    if (ownerIds.length > 0) {
-      const { error: ownersError } = await client.from("project_owners").upsert(
-        ownerIds.map((profile_id) => ({ project_id: id, profile_id })),
-        { onConflict: "project_id,profile_id" },
-      );
-      if (ownersError)
-        return NextResponse.json(
-          { error: ownersError.message },
-          { status: 400 },
-        );
-    }
   }
   return NextResponse.json({ ok: true });
 }

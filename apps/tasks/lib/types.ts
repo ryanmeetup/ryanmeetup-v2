@@ -5,6 +5,7 @@ export type Profile = {
   full_name: string;
   avatar_url: string | null;
   onboarding_completed: boolean;
+  app_role?: "owner" | "member";
 };
 
 export type Status = {
@@ -31,9 +32,15 @@ export type Project = {
   id: string;
   name: string;
   description: string | null;
+  links: ProjectLink[];
   created_by: string;
   archived_at: string | null;
   created_at: string;
+};
+
+export type ProjectLink = {
+  label: string;
+  url: string;
 };
 
 export type Task = {
@@ -107,6 +114,11 @@ export type TaskLabel = { task_id: string; label_id: string };
 export type TaskCategory = { task_id: string; category_id: string };
 export type ProjectOwner = { project_id: string; profile_id: string };
 
+export type AccessPreview = {
+  groupId: string;
+  groupName: string;
+};
+
 export type WorkspaceData = {
   tasks: Task[];
   statuses: Status[];
@@ -124,4 +136,5 @@ export type WorkspaceData = {
   taskLabels: TaskLabel[];
   taskCategories: TaskCategory[];
   projectOwners: ProjectOwner[];
+  accessPreview?: AccessPreview;
 };

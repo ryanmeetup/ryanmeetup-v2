@@ -1,8 +1,22 @@
 # Tasks Access Control Specification
 
 Status: Draft for review
-Implementation status: Not started
+Implementation status: Group-only model implemented
 Last updated: August 3, 2026
+
+## Implemented model override
+
+The implemented authorization model is group-only for regular members. This
+supersedes the direct-user-grant portions of the original proposal below:
+
+- app owners retain unrestricted workspace access;
+- regular members receive project access only through access-group membership;
+- each access group may receive viewer, editor, or manager access to projects;
+- direct user project grants are no longer supported;
+- access-group names, descriptions, memberships, grants, and audit records are
+  owner-only metadata and are never exposed to regular members;
+- former direct-grant records are retained in a locked legacy table only for
+  rollback and do not contribute to effective permissions.
 
 ## Purpose
 
@@ -82,10 +96,10 @@ project, they must receive a manager grant in the same transaction.
 
 ### System roles
 
-| Role | Scope | Description |
-| --- | --- | --- |
-| `owner` | Entire app | Unrestricted content and administration access |
-| `member` | Granted resources | Access only through project grants |
+| Role     | Scope             | Description                                    |
+| -------- | ----------------- | ---------------------------------------------- |
+| `owner`  | Entire app        | Unrestricted content and administration access |
+| `member` | Granted resources | Access only through project grants             |
 
 The system role belongs on `profiles` and should be named `app_role` in code
 and the database to avoid confusion with project permissions.
@@ -104,21 +118,21 @@ viewer < editor < manager
 
 If a user receives multiple grants, the highest permission wins.
 
-| Capability | Viewer | Editor | Manager | App owner |
-| --- | :---: | :---: | :---: | :---: |
-| Discover and open project | Yes | Yes | Yes | Yes |
-| Read tasks and task details | Yes | Yes | Yes | Yes |
-| Create and edit tasks | No | Yes | Yes | Yes |
-| Move tasks within accessible projects | No | Yes | Yes | Yes |
-| Comment and upload attachments | No | Yes | Yes | Yes |
-| Delete task content | No | Yes | Yes | Yes |
-| Rename or archive the project | No | No | Yes | Yes |
-| Manage direct grants for that project | No | No | Yes | Yes |
-| Attach an existing access group to that project | No | No | Yes | Yes |
-| Change an access group's global membership | No | No | No | Yes |
-| Create, rename, or delete access groups | No | No | No | Yes |
-| Change app owners | No | No | No | Yes |
-| Access every project without a grant | No | No | No | Yes |
+| Capability                                      | Viewer | Editor | Manager | App owner |
+| ----------------------------------------------- | :----: | :----: | :-----: | :-------: |
+| Discover and open project                       |  Yes   |  Yes   |   Yes   |    Yes    |
+| Read tasks and task details                     |  Yes   |  Yes   |   Yes   |    Yes    |
+| Create and edit tasks                           |   No   |  Yes   |   Yes   |    Yes    |
+| Move tasks within accessible projects           |   No   |  Yes   |   Yes   |    Yes    |
+| Comment and upload attachments                  |   No   |  Yes   |   Yes   |    Yes    |
+| Delete task content                             |   No   |  Yes   |   Yes   |    Yes    |
+| Rename or archive the project                   |   No   |   No   |   Yes   |    Yes    |
+| Manage direct grants for that project           |   No   |   No   |   Yes   |    Yes    |
+| Attach an existing access group to that project |   No   |   No   |   Yes   |    Yes    |
+| Change an access group's global membership      |   No   |   No   |   No    |    Yes    |
+| Create, rename, or delete access groups         |   No   |   No   |   No    |    Yes    |
+| Change app owners                               |   No   |   No   |   No    |    Yes    |
+| Access every project without a grant            |   No   |   No   |   No    |    Yes    |
 
 Deletion can be narrowed later if editors should only delete content they
 created. The first version treats editing and deleting project content as the
@@ -142,12 +156,12 @@ can grant access only to `Documentary Team` and selected individuals.
 
 Example:
 
-| Project | Core Team | Documentary Team | Chapter Leads | Direct users |
-| --- | --- | --- | --- | --- |
-| National meetup | Editor | — | Viewer | — |
-| Ryan documentary | — | Editor | — | Producer: manager |
-| Chapter operations | Viewer | — | Editor | — |
-| Volunteer outreach | Manager | — | — | Selected volunteers: editor |
+| Project            | Core Team | Documentary Team | Chapter Leads | Direct users                |
+| ------------------ | --------- | ---------------- | ------------- | --------------------------- |
+| National meetup    | Editor    | —                | Viewer        | —                           |
+| Ryan documentary   | —         | Editor           | —             | Producer: manager           |
+| Chapter operations | Viewer    | —                | Editor        | —                           |
+| Volunteer outreach | Manager   | —                | —             | Selected volunteers: editor |
 
 ## Authorization rules
 

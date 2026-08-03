@@ -7,9 +7,17 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Tasks · Ryan Meetup",
-  description:
-    "The private team workspace for keeping Ryan Meetup work moving.",
+  title: "Internal workspace",
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+      noimageindex: true,
+    },
+  },
 };
 
 export default function RootLayout({

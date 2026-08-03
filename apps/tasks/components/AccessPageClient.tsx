@@ -1,0 +1,673 @@
+"use client";
+
+import { useMemo, useState, type FormEvent } from "react";
+import Link from "next/link";
+import {
+  Avatar,
+  Button,
+  Card,
+  ConfirmationDialog,
+  DropdownSelect,
+  IconButton,
+  Input,
+  Modal,
+  Textarea,
+  toast,
+} from "@ryanmeetup/ui";
+import {
+  FiEdit2,
+  FiEye,
+  FiFolder,
+  FiMenu,
+  FiPlus,
+  FiShield,
+  FiTrash2,
+  FiUsers,
+} from "react-icons/fi";
+import { createClient } from "@/lib/supabase/client";
+import { accessGroupSlug } from "@/lib/access-groups";
+import { accessPreviewHref } from "@/lib/access-preview";
+import type { Profile, Project, WorkspaceData } from "@/lib/types";
+import { BetaBanner } from "./BetaBanner";
+import { ProjectsModal } from "./ProjectsModal";
+import { TasksSidebar } from "./TasksSidebar";
+import { TaskHeaderActions } from "./TaskHeaderActions";
+import { WorkGroupsModal as CategoriesModal } from "./WorkGroupsModal";
+import { TeamSettingsModal } from "./TaskApp";
+
+type Permission = "viewer" | "editor" | "manager";
+type AccessGroup = {
+  id: string;
+  name: string;
+  description: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+type GroupMember = {
+  group_id: string;
+  profile_id: string;
+  added_by: string;
+  created_at: string;
+};
+type GroupGrant = {
+  project_id: string;
+  group_id: string;
+  permission: Permission;
+  granted_by: string;
+};
+export function AccessPageClient({
+  currentUserId,
+  initialData,
+  initialProfiles,
+  projects,
+  initialGroups,
+  initialMembers,
+  initialGroupGrants,
+}: {
+  currentUserId: string;
+  initialData: WorkspaceData;
+  initialProfiles: Profile[];
+  projects: Project[];
+  initialGroups: AccessGroup[];
+  initialMembers: GroupMember[];
+  initialGroupGrants: GroupGrant[];
+}) {
+  const [data, setData] = useState(initialData);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [projectCreateOpen, setProjectCreateOpen] = useState(false);
+  const [categoryCreateOpen, setCategoryCreateOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [groupCreateOpen, setGroupCreateOpen] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<AccessGroup | null>(null);
+  const [editingName, setEditingName] = useState("");
+  const [editingDescription, setEditingDescription] = useState("");
+  const [memberSelections, setMemberSelections] = useState<
+    Record<string, string>
+  >({});
+  const [profiles] = useState(initialProfiles);
+  const [groups, setGroups] = useState(initialGroups);
+  const [members, setMembers] = useState(initialMembers);
+  const [groupGrants, setGroupGrants] = useState(initialGroupGrants);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [deleteGroup, setDeleteGroup] = useState<AccessGroup | null>(null);
+  const projectNames = useMemo(
+    () => new Map(projects.map((project) => [project.id, project.name])),
+    [projects],
+  );
+  const editingMembers = editingGroup
+    ? members.filter((item) => item.group_id === editingGroup.id)
+    : [];
+  const editingGrants = editingGroup
+    ? groupGrants.filter((item) => item.group_id === editingGroup.id)
+    : [];
+
+  async function createGroup(event: FormEvent) {
+    event.preventDefault();
+    if (!name.trim()) return;
+    setSaving(true);
+    const { data, error } = await createClient()
+      .from("access_groups")
+      .insert({
+        name: name.trim(),
+        description: description.trim() || null,
+        created_by: currentUserId,
+      })
+      .select("*")
+      .single();
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    setGroups((current) =>
+      [...current, data].sort((a, b) => a.name.localeCompare(b.name)),
+    );
+    setName("");
+    setDescription("");
+    setGroupCreateOpen(false);
+    toast.success(`${data.name} created.`);
+  }
+
+  async function updateGroup(event: FormEvent) {
+    event.preventDefault();
+    if (!editingGroup || !editingName.trim()) return;
+    setSaving(true);
+    const { data: updated, error } = await createClient()
+      .from("access_groups")
+      .update({
+        name: editingName.trim(),
+        description: editingDescription.trim() || null,
+      })
+      .eq("id", editingGroup.id)
+      .select("*")
+      .single();
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    setGroups((current) =>
+      current.map((group) => (group.id === updated.id ? updated : group)),
+    );
+    setEditingGroup(null);
+  }
+  async function addMember(groupId: string, profileId: string) {
+    if (!profileId) return;
+    const { data: row, error } = await createClient()
+      .from("access_group_members")
+      .upsert({
+        group_id: groupId,
+        profile_id: profileId,
+        added_by: currentUserId,
+      })
+      .select("*")
+      .single();
+    if (error) return toast.error(error.message);
+    setMembers((current) => [
+      ...current.filter(
+        (item) => item.profile_id !== profileId || item.group_id !== groupId,
+      ),
+      row,
+    ]);
+  }
+  async function removeMember(groupId: string, profileId: string) {
+    const { error } = await createClient()
+      .from("access_group_members")
+      .delete()
+      .eq("group_id", groupId)
+      .eq("profile_id", profileId);
+    if (error) return toast.error(error.message);
+    setMembers((current) =>
+      current.filter(
+        (item) => item.group_id !== groupId || item.profile_id !== profileId,
+      ),
+    );
+  }
+  async function setGroupGrant(
+    groupId: string,
+    projectId: string,
+    permission: Permission,
+  ) {
+    if (!projectId) return;
+    const { data: row, error } = await createClient()
+      .from("project_group_grants")
+      .upsert({
+        group_id: groupId,
+        project_id: projectId,
+        permission,
+        granted_by: currentUserId,
+      })
+      .select("*")
+      .single();
+    if (error) return toast.error(error.message);
+    setGroupGrants((current) => [
+      ...current.filter(
+        (item) => item.group_id !== groupId || item.project_id !== projectId,
+      ),
+      row,
+    ]);
+  }
+  async function removeGroupGrant(groupId: string, projectId: string) {
+    const { error } = await createClient()
+      .from("project_group_grants")
+      .delete()
+      .eq("group_id", groupId)
+      .eq("project_id", projectId);
+    if (error) return toast.error(error.message);
+    setGroupGrants((current) =>
+      current.filter(
+        (item) => item.group_id !== groupId || item.project_id !== projectId,
+      ),
+    );
+  }
+  async function confirmDeleteGroup() {
+    if (!deleteGroup) return;
+    const { error } = await createClient()
+      .from("access_groups")
+      .delete()
+      .eq("id", deleteGroup.id);
+    if (error) return toast.error(error.message);
+    setGroups((current) =>
+      current.filter((item) => item.id !== deleteGroup.id),
+    );
+    setDeleteGroup(null);
+    setEditingGroup(null);
+  }
+
+  return (
+    <div className="min-h-screen bg-[#f7f7f5] text-black dark:bg-[#101010] dark:text-white">
+      <TasksSidebar
+        data={data}
+        demoMode={false}
+        open={sidebarOpen}
+        setOpen={setSidebarOpen}
+        onCreateCategory={() => setCategoryCreateOpen(true)}
+        onCreateProject={() => setProjectCreateOpen(true)}
+        onTeamSettings={() => setSettingsOpen(true)}
+      />
+      <main className="min-w-0 lg:pl-64">
+        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-black/10 bg-[#f7f7f5]/90 px-4 backdrop-blur-xl dark:border-white/10 dark:bg-[#101010]/90 sm:px-6 lg:px-8">
+          <IconButton
+            label="Open navigation"
+            className="lg:hidden"
+            onClick={() => setSidebarOpen(true)}
+          >
+            <FiMenu />
+          </IconButton>
+          <p className="font-semibold">Access & permissions</p>
+          <TaskHeaderActions data={data} demoMode={false} />
+        </header>
+        <BetaBanner />
+        <div className="p-4 sm:p-6 lg:p-8">
+          <div className="mx-auto max-w-6xl space-y-8">
+            <div>
+              <p className="flex items-center gap-2 text-2xl font-semibold">
+                <FiShield />
+                Access
+              </p>
+              <p className="mt-1 text-sm text-black/65 dark:text-white/65">
+                Decide who belongs to each group and which projects that group
+                can see.
+              </p>
+            </div>
+
+            <section aria-labelledby="groups-heading" className="space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <h2 id="groups-heading" className="text-xl font-semibold">
+                  Access groups
+                </h2>
+                <Button
+                  size="sm"
+                  leftIcon={<FiPlus />}
+                  onClick={() => setGroupCreateOpen(true)}
+                >
+                  New group
+                </Button>
+              </div>
+              {groups.length === 0 && (
+                <Card className="p-5 text-sm text-black/65 dark:text-white/65">
+                  No access groups yet.
+                </Card>
+              )}
+              <div className="grid auto-rows-fr gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {groups.map((group) => {
+                  const groupMembers = members.filter(
+                    (item) => item.group_id === group.id,
+                  );
+                  const grants = groupGrants.filter(
+                    (item) => item.group_id === group.id,
+                  );
+                  return (
+                    <Card key={group.id} className="flex h-full flex-col p-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="truncate font-semibold">
+                            {group.name}
+                          </h3>
+                          <p className="mt-1 pb-4 text-sm text-black/65 dark:text-white/65">
+                            {group.description || "No description yet."}
+                          </p>
+                        </div>
+                        <Link
+                          href={`/access/${accessGroupSlug(group.name)}`}
+                          aria-label={`Manage ${group.name}`}
+                          className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-black/10 text-black transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:border-white/10 dark:text-white dark:hover:bg-white/10 dark:focus-visible:ring-white/30"
+                        >
+                          <FiEdit2 />
+                        </Link>
+                      </div>
+                      <div className="mt-auto grid grid-cols-2 gap-3 border-t border-black/10 pt-4 dark:border-white/10">
+                        <div>
+                          <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-black/45 dark:text-white/45">
+                            <FiUsers /> Members
+                          </p>
+                          <div className="mt-2 flex items-center">
+                            <div className="flex -space-x-2">
+                              {groupMembers.slice(0, 3).map((member) => {
+                                const profile = profiles.find(
+                                  (item) => item.id === member.profile_id,
+                                );
+                                return profile ? (
+                                  <Avatar
+                                    key={profile.id}
+                                    name={profile.full_name}
+                                    src={profile.avatar_url}
+                                    size="sm"
+                                    className="ring-2 ring-white dark:ring-[#181818]"
+                                  />
+                                ) : null;
+                              })}
+                            </div>
+                            <span className="ml-2 text-sm font-semibold">
+                              {groupMembers.length}
+                            </span>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-black/45 dark:text-white/45">
+                            <FiFolder /> Projects
+                          </p>
+                          <p className="mt-2 text-sm font-semibold">
+                            {grants.length}
+                          </p>
+                        </div>
+                      </div>
+                      <Button.Link
+                        href={accessPreviewHref(group.id)}
+                        variant="secondary"
+                        size="sm"
+                        leftIcon={<FiEye />}
+                        className="mt-4 w-full"
+                      >
+                        View as this group
+                      </Button.Link>
+                    </Card>
+                  );
+                })}
+              </div>
+            </section>
+          </div>
+        </div>
+      </main>
+
+      {projectCreateOpen && (
+        <ProjectsModal
+          open={projectCreateOpen}
+          setOpen={setProjectCreateOpen}
+          data={data}
+          setData={setData}
+          demoMode={false}
+          createOnly
+        />
+      )}
+      {categoryCreateOpen && (
+        <CategoriesModal
+          open={categoryCreateOpen}
+          setOpen={setCategoryCreateOpen}
+          data={data}
+          setData={setData}
+          demoMode={false}
+          createOnly
+        />
+      )}
+      <TeamSettingsModal
+        open={settingsOpen}
+        setOpen={setSettingsOpen}
+        data={data}
+        setData={setData}
+        demoMode={false}
+      />
+      <Modal
+        open={groupCreateOpen}
+        setIsOpen={(open) => {
+          if (!saving) setGroupCreateOpen(open);
+        }}
+        title="New access group"
+        size="md"
+        hideActions
+      >
+        <form className="space-y-4" onSubmit={createGroup}>
+          <Input
+            label="Group name"
+            name="access-group-name"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Documentary Team"
+            disabled={saving}
+            autoFocus
+            required
+          />
+          <Textarea
+            id="access-group-description"
+            label="Description"
+            name="access-group-description"
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            rows={3}
+            placeholder="Who belongs here and why?"
+            disabled={saving}
+          />
+          <div className="flex justify-end gap-2 border-t border-black/10 pt-4 dark:border-white/10">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={saving}
+              onClick={() => setGroupCreateOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" loading={saving} loadingText="Creating...">
+              Create group
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        open={Boolean(editingGroup)}
+        setIsOpen={(open) => {
+          if (!open && !saving) setEditingGroup(null);
+        }}
+        title={editingGroup ? `Edit ${editingGroup.name}` : "Edit access group"}
+        size="lg"
+        hideActions
+      >
+        {editingGroup && (
+          <form className="space-y-6" onSubmit={updateGroup}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Input
+                label="Group name"
+                name="edit-access-group-name"
+                value={editingName}
+                onChange={(event) => setEditingName(event.target.value)}
+                disabled={saving}
+                required
+              />
+              <Textarea
+                id="edit-access-group-description"
+                label="Description"
+                name="edit-access-group-description"
+                value={editingDescription}
+                onChange={(event) => setEditingDescription(event.target.value)}
+                rows={2}
+                disabled={saving}
+              />
+            </div>
+            <div className="grid gap-6 border-t border-black/10 pt-5 dark:border-white/10 lg:grid-cols-2">
+              <div>
+                <DropdownSelect
+                  label="Add member"
+                  variant="field"
+                  value={memberSelections[editingGroup.id] ?? ""}
+                  onChange={(profileId) => {
+                    setMemberSelections((current) => ({
+                      ...current,
+                      [editingGroup.id]: "",
+                    }));
+                    void addMember(editingGroup.id, profileId);
+                  }}
+                  options={[
+                    { label: "Select a person…", value: "" },
+                    ...profiles
+                      .filter(
+                        (profile) =>
+                          !editingMembers.some(
+                            (item) => item.profile_id === profile.id,
+                          ),
+                      )
+                      .map((profile) => ({
+                        label: profile.full_name,
+                        value: profile.id,
+                        avatar: {
+                          name: profile.full_name,
+                          src: profile.avatar_url,
+                        },
+                      })),
+                  ]}
+                />
+                <ul className="mt-3 space-y-2">
+                  {editingMembers.map((member) => {
+                    const profile = profiles.find(
+                      (item) => item.id === member.profile_id,
+                    );
+                    return (
+                      <li
+                        key={member.profile_id}
+                        className="flex items-center justify-between gap-3 rounded-xl bg-black/5 px-3 py-2 text-sm dark:bg-white/5"
+                      >
+                        <span className="flex min-w-0 items-center gap-2">
+                          <Avatar
+                            name={profile?.full_name ?? "Unknown user"}
+                            src={profile?.avatar_url}
+                            size="sm"
+                          />
+                          <span className="truncate">
+                            {profile?.full_name ?? "Unknown user"}
+                          </span>
+                        </span>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          onClick={() =>
+                            removeMember(editingGroup.id, member.profile_id)
+                          }
+                        >
+                          Remove
+                        </Button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+              <GrantEditor
+                label="Project visibility"
+                projects={projects}
+                grants={editingGrants.map((grant) => ({
+                  id: grant.project_id,
+                  permission: grant.permission,
+                }))}
+                names={projectNames}
+                onAdd={(projectId, permission) =>
+                  setGroupGrant(editingGroup.id, projectId, permission)
+                }
+                onRemove={(projectId) =>
+                  removeGroupGrant(editingGroup.id, projectId)
+                }
+              />
+            </div>
+            <div className="flex flex-col-reverse justify-between gap-3 border-t border-black/10 pt-4 dark:border-white/10 sm:flex-row">
+              <Button
+                type="button"
+                variant="danger"
+                leftIcon={<FiTrash2 />}
+                onClick={() => setDeleteGroup(editingGroup)}
+              >
+                Delete group
+              </Button>
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={saving}
+                  onClick={() => setEditingGroup(null)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" loading={saving} loadingText="Saving...">
+                  Save changes
+                </Button>
+              </div>
+            </div>
+          </form>
+        )}
+      </Modal>
+
+      <ConfirmationDialog
+        open={Boolean(deleteGroup)}
+        setOpen={(open) => !open && setDeleteGroup(null)}
+        title="Delete access group?"
+        description={
+          deleteGroup
+            ? `This removes ${deleteGroup.name} and every project grant attached to it. Anyone relying on those grants may immediately lose access.`
+            : ""
+        }
+        confirmLabel="Delete group"
+        destructive
+        onConfirm={confirmDeleteGroup}
+      />
+    </div>
+  );
+}
+
+function GrantEditor({
+  label,
+  projects,
+  grants,
+  names,
+  onAdd,
+  onRemove,
+}: {
+  label: string;
+  projects: Project[];
+  grants: { id: string; permission: Permission }[];
+  names: Map<string, string>;
+  onAdd: (projectId: string, permission: Permission) => void;
+  onRemove: (projectId: string) => void;
+}) {
+  const [permission, setPermission] = useState<Permission>("viewer");
+  const [projectId, setProjectId] = useState("");
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-wider">{label}</p>
+      <div className="mt-2 grid gap-2 sm:grid-cols-[minmax(0,1fr)_12rem]">
+        <DropdownSelect
+          label="Project"
+          variant="field"
+          value={projectId}
+          onChange={(nextProjectId) => {
+            setProjectId("");
+            if (nextProjectId) onAdd(nextProjectId, permission);
+          }}
+          options={[
+            { label: "Select a project…", value: "" },
+            ...projects
+              .filter(
+                (project) => !grants.some((grant) => grant.id === project.id),
+              )
+              .map((project) => ({ label: project.name, value: project.id })),
+          ]}
+        />
+        <DropdownSelect
+          label="Permission"
+          variant="field"
+          value={permission}
+          onChange={(value) => setPermission(value as Permission)}
+          options={[
+            { label: "Viewer", value: "viewer" },
+            { label: "Editor", value: "editor" },
+            { label: "Manager", value: "manager" },
+          ]}
+        />
+      </div>
+      <ul className="mt-3 space-y-2">
+        {grants.map((grant) => (
+          <li
+            key={grant.id}
+            className="flex items-center justify-between gap-3 rounded-xl bg-black/5 px-3 py-2 text-sm dark:bg-white/5"
+          >
+            <span>
+              {names.get(grant.id) ?? "Unknown project"} ·{" "}
+              <span className="capitalize">{grant.permission}</span>
+            </span>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={() => onRemove(grant.id)}
+            >
+              Remove
+            </Button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}

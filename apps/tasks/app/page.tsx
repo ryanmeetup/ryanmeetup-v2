@@ -1,14 +1,35 @@
 import { TaskApp } from "@/components/TaskApp";
+import {
+  ACCESS_PREVIEW_PARAM,
+  applyAccessPreview,
+} from "@/lib/access-preview";
 import { demoData } from "@/lib/demo-data";
 import { createClient } from "@/lib/supabase/server";
 import type { WorkspaceData } from "@/lib/types";
 import { redirect } from "next/navigation";
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const query = await searchParams;
+  const initialTaskOpen = query["new-task"] === "1";
+  const requestedPreview =
+    typeof query[ACCESS_PREVIEW_PARAM] === "string"
+      ? query[ACCESS_PREVIEW_PARAM]
+      : undefined;
   const demoMode =
     !process.env.NEXT_PUBLIC_SUPABASE_URL ||
     !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  if (demoMode) return <TaskApp initialData={demoData} demoMode />;
+  if (demoMode)
+    return (
+      <TaskApp
+        initialData={demoData}
+        demoMode
+        initialTaskOpen={initialTaskOpen}
+      />
+    );
 
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
@@ -36,7 +57,6 @@ export default async function Home() {
     { data: taskAssignees },
     { data: taskLabels },
     { data: taskCategories },
-    { data: projectOwners },
   ] = await Promise.all([
     supabase.from("profiles").select("*").order("full_name"),
     supabase.from("statuses").select("*").order("sort_order"),
@@ -58,7 +78,6 @@ export default async function Home() {
     supabase.from("task_assignees").select("*"),
     supabase.from("task_labels").select("*"),
     supabase.from("task_categories").select("*"),
-    supabase.from("project_owners").select("*"),
   ]);
   const resolvedAttachments = await Promise.all(
     (attachments ?? []).map(async (attachment) => {
@@ -71,7 +90,7 @@ export default async function Home() {
         : attachment;
     }),
   );
-  const initialData: WorkspaceData = {
+  let initialData: WorkspaceData = {
     currentProfile,
     profiles: profiles ?? [],
     statuses: statuses ?? [],
@@ -87,7 +106,37 @@ export default async function Home() {
     taskAssignees: taskAssignees ?? [],
     taskLabels: taskLabels ?? [],
     taskCategories: taskCategories ?? [],
-    projectOwners: projectOwners ?? [],
+    projectOwners: [],
   };
-  return <TaskApp initialData={initialData} demoMode={false} />;
+  if (requestedPreview) {
+    const { data: isOwner } = await supabase.rpc("is_app_owner");
+    if (isOwner) {
+      const [{ data: previewGroup }, { data: previewGrants }] =
+        await Promise.all([
+          supabase
+            .from("access_groups")
+            .select("id, name")
+            .eq("id", requestedPreview)
+            .maybeSingle(),
+          supabase
+            .from("project_group_grants")
+            .select("project_id")
+            .eq("group_id", requestedPreview),
+        ]);
+      if (previewGroup) {
+        initialData = applyAccessPreview(
+          initialData,
+          { groupId: previewGroup.id, groupName: previewGroup.name },
+          (previewGrants ?? []).map((grant) => grant.project_id),
+        );
+      }
+    }
+  }
+  return (
+    <TaskApp
+      initialData={initialData}
+      demoMode={false}
+      initialTaskOpen={initialTaskOpen}
+    />
+  );
 }

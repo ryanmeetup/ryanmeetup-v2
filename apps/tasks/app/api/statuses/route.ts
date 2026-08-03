@@ -11,7 +11,9 @@ async function authorizeTeamMember() {
     .select("id, onboarding_completed")
     .eq("id", auth.user.id)
     .single();
-  return Boolean(profile?.onboarding_completed);
+  if (!profile?.onboarding_completed) return false;
+  const { data: isOwner } = await supabase.rpc("is_app_owner");
+  return Boolean(isOwner);
 }
 
 function serviceClient() {

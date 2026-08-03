@@ -64,7 +64,7 @@ const DropdownSelect = ({
           <span className="text-black/50 dark:text-white/50">{label}</span>
         )}
         <span className="inline-flex min-w-0 items-center gap-2">
-          {selected?.avatar && <Avatar size="sm" {...selected.avatar} />}
+          {selected?.avatar && <Avatar {...selected.avatar} size="xs" />}
           {selected?.color && (
             <i
               aria-hidden

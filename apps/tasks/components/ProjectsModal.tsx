@@ -8,13 +8,11 @@ import {
   type SetStateAction,
 } from "react";
 import {
-  Avatar,
   Button,
   FilterChip,
   IconButton,
   Input,
   Modal,
-  MultiSelect,
   Textarea,
   toast,
 } from "@ryanmeetup/ui";
@@ -22,12 +20,14 @@ import {
   FiArchive,
   FiEdit2,
   FiLoader,
+  FiPlus,
   FiRotateCcw,
   FiSearch,
-  FiUsers,
+  FiTrash2,
 } from "react-icons/fi";
 import { useSearchFilter } from "@ryanmeetup/hooks";
-import type { Project, WorkspaceData } from "@/lib/types";
+import type { Project, ProjectLink, WorkspaceData } from "@/lib/types";
+import { ProjectLinks } from "./ProjectLinks";
 
 export function ProjectsModal({
   open,
@@ -37,6 +37,7 @@ export function ProjectsModal({
   demoMode,
   embedded = false,
   createOnly = false,
+  readOnly = false,
 }: {
   open: boolean;
   setOpen: (open: boolean) => void;
@@ -45,9 +46,11 @@ export function ProjectsModal({
   demoMode: boolean;
   embedded?: boolean;
   createOnly?: boolean;
+  readOnly?: boolean;
 }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [links, setLinks] = useState<ProjectLink[]>([]);
   const [creating, setCreating] = useState(false);
   const [projectStatus, setProjectStatus] = useState<
     "active" | "archived" | "all"
@@ -55,11 +58,8 @@ export function ProjectsModal({
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [editingDescription, setEditingDescription] = useState("");
-  const [editingOwnerIds, setEditingOwnerIds] = useState<string[]>([]);
+  const [editingLinks, setEditingLinks] = useState<ProjectLink[]>([]);
   const [renaming, setRenaming] = useState(false);
-  const [newOwnerIds, setNewOwnerIds] = useState<string[]>([
-    data.currentProfile.id,
-  ]);
   const {
     query: projectQuery,
     setQuery: setProjectQuery,
@@ -68,7 +68,7 @@ export function ProjectsModal({
   } = useSearchFilter({
     data: data.projects,
     buildHaystack: (project) =>
-      `${project.name} ${project.description ?? ""}`.toLowerCase(),
+      `${project.name} ${project.description ?? ""} ${(project.links ?? []).map((link) => `${link.label} ${link.url}`).join(" ")}`.toLowerCase(),
     queryParam: "project-search",
   });
 
@@ -94,34 +94,28 @@ export function ProjectsModal({
     event.preventDefault();
     const projectName = name.trim();
     if (!projectName) return;
-    const ownerIds = [...new Set(newOwnerIds)];
     setCreating(true);
     try {
       let project: Project = {
         id: crypto.randomUUID(),
         name: projectName,
         description: description.trim() || null,
+        links,
         created_by: data.currentProfile.id,
         archived_at: null,
         created_at: new Date().toISOString(),
       };
       if (!demoMode)
         project = (
-          await request({ name: projectName, description, ownerIds }, "POST")
+          await request({ name: projectName, description, links }, "POST")
         ).project!;
       setData((current) => ({
         ...current,
         projects: [...current.projects, project],
-        projectOwners: [
-          ...current.projectOwners,
-          ...ownerIds.map((profile_id) => ({
-            project_id: project.id,
-            profile_id,
-          })),
-        ],
       }));
       setName("");
       setDescription("");
+      setLinks([]);
       toast.success(`${project.name} created.`);
       if (createOnly) setOpen(false);
     } catch (error) {
@@ -138,7 +132,6 @@ export function ProjectsModal({
   async function updateProject(project: Project, nextName: string) {
     if (!nextName) return;
     const nextDescription = editingDescription.trim() || null;
-    const ownerIds = [...new Set(editingOwnerIds)];
     setRenaming(true);
     try {
       if (!demoMode)
@@ -147,7 +140,7 @@ export function ProjectsModal({
             id: project.id,
             name: nextName,
             description: nextDescription,
-            ownerIds,
+            links: editingLinks,
           },
           "PATCH",
         );
@@ -155,18 +148,14 @@ export function ProjectsModal({
         ...current,
         projects: current.projects.map((item) =>
           item.id === project.id
-            ? { ...item, name: nextName, description: nextDescription }
+            ? {
+                ...item,
+                name: nextName,
+                description: nextDescription,
+                links: editingLinks,
+              }
             : item,
         ),
-        projectOwners: [
-          ...current.projectOwners.filter(
-            (item) => item.project_id !== project.id,
-          ),
-          ...ownerIds.map((profile_id) => ({
-            project_id: project.id,
-            profile_id,
-          })),
-        ],
       }));
       toast.success(`${nextName} updated.`);
       setEditingProjectId(null);
@@ -185,11 +174,7 @@ export function ProjectsModal({
     setEditingProjectId(project.id);
     setEditingName(project.name);
     setEditingDescription(project.description ?? "");
-    setEditingOwnerIds(
-      data.projectOwners
-        .filter((item) => item.project_id === project.id)
-        .map((item) => item.profile_id),
-    );
+    setEditingLinks(project.links ?? []);
   }
 
   async function toggleArchived(project: Project) {
@@ -231,19 +216,6 @@ export function ProjectsModal({
         .sort((a, b) => a.name.localeCompare(b.name)),
     [projectStatus, searchedProjects],
   );
-  const ownerOptions = useMemo(
-    () =>
-      data.profiles.map((profile) => ({
-        avatar: {
-          name: profile.full_name,
-          src: profile.avatar_url,
-        },
-        label: profile.full_name,
-        value: profile.id,
-      })),
-    [data.profiles],
-  );
-
   return (
     <>
       <Modal
@@ -261,21 +233,13 @@ export function ProjectsModal({
               className="grid gap-4"
               onSubmit={addProject}
             >
-              <div className="grid gap-3 md:grid-cols-2">
+              <div>
                 <Input
                   label="New project"
                   name="project-name"
                   value={name}
                   onChange={(event) => setName(event.target.value)}
                   placeholder="RyanCon 2027"
-                  disabled={creating}
-                />
-                <MultiSelect
-                  label="Initial owners"
-                  options={ownerOptions}
-                  value={newOwnerIds}
-                  onChange={setNewOwnerIds}
-                  placeholder="Select owners"
                   disabled={creating}
                 />
               </div>
@@ -287,6 +251,11 @@ export function ProjectsModal({
                 onChange={(event) => setDescription(event.target.value)}
                 placeholder="What is this project working toward?"
                 rows={2}
+                disabled={creating}
+              />
+              <ProjectLinksFields
+                links={links}
+                setLinks={setLinks}
                 disabled={creating}
               />
               <div className="flex justify-end gap-2 border-t border-black/10 pt-4 dark:border-white/10">
@@ -319,14 +288,15 @@ export function ProjectsModal({
       >
         {createOnly ? (
           <p className="text-sm text-black/60 dark:text-white/60">
-            Give the work a clear home. You can manage owners, descriptions, and
-            archive settings from the Projects page afterward.
+            Give the work a clear home. Assign access groups from Access &
+            permissions afterward.
           </p>
         ) : (
           <>
             <p className="mb-5 text-sm text-black/60 dark:text-white/60">
-              Projects collect related work across categories. Assign one or
-              more owners to drive the work, then archive it when it is over.
+              Projects collect related work across categories. Access is managed
+              through groups, and projects can be archived when the work is
+              over.
             </p>
             <div className="sticky top-0 z-20 -mx-1 mb-4 grid gap-3 bg-white px-1 pb-3 dark:bg-[#181818] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
               <div className="relative">
@@ -381,109 +351,69 @@ export function ProjectsModal({
                 </div>
               )}
               <div
-                className={`${searchPending ? "pointer-events-none opacity-55" : ""} grid auto-rows-fr items-stretch gap-4 transition-opacity md:grid-cols-2 ${embedded ? "xl:grid-cols-3" : ""}`}
+                className={`${searchPending ? "pointer-events-none opacity-55" : ""} grid items-stretch gap-4 transition-opacity md:grid-cols-2 ${embedded ? "xl:grid-cols-3" : ""}`}
               >
-              {projects.map((project) => {
-                const owners = data.projectOwners
-                  .filter((item) => item.project_id === project.id)
-                  .flatMap((item) => {
-                    const profile = data.profiles.find(
-                      (candidate) => candidate.id === item.profile_id,
-                    );
-                    return profile ? [profile] : [];
-                  });
-                const ownerSummary =
-                  owners.length === 0
-                    ? "Unassigned"
-                    : owners.length <= 2
-                      ? owners.map((owner) => owner.full_name).join(", ")
-                      : `${owners
-                          .slice(0, 2)
-                          .map((owner) => owner.full_name)
-                          .join(", ")} +${owners.length - 2}`;
-
-                return (
-                  <div
-                    key={project.id}
-                    className="flex h-full flex-col rounded-xl border border-black/10 bg-black/[0.015] px-4 py-3 dark:border-white/10 dark:bg-white/[0.025]"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="min-w-0 flex-1 py-1">
-                        <span
-                          className={`block truncate font-semibold ${project.archived_at ? "text-black/45 line-through dark:text-white/45" : ""}`}
-                        >
-                          {project.name}
-                        </span>
-                        {project.description && (
-                          <span className="mt-0.5 block line-clamp-2 text-xs text-black/60 dark:text-white/60">
-                            {project.description}
+                {projects.map((project) => {
+                  return (
+                    <div
+                      key={project.id}
+                      className="flex h-full flex-col rounded-xl border border-black/10 bg-black/[0.015] px-4 py-3 dark:border-white/10 dark:bg-white/[0.025]"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="min-w-0 flex-1 py-1">
+                          <span
+                            className={`block truncate font-semibold ${project.archived_at ? "text-black/45 line-through dark:text-white/45" : ""}`}
+                          >
+                            {project.name}
                           </span>
-                        )}
-                      </div>
-                      {project.archived_at && (
-                        <span className="mt-2 hidden text-[10px] font-semibold uppercase tracking-widest text-black/45 dark:text-white/45 sm:inline">
-                          Archived
-                        </span>
-                      )}
-                      <IconButton
-                        label={`Edit ${project.name}`}
-                        onClick={() => beginRename(project)}
-                      >
-                        <FiEdit2 />
-                      </IconButton>
-                      <IconButton
-                        label={`${project.archived_at ? "Restore" : "Archive"} ${project.name}`}
-                        onClick={() => void toggleArchived(project)}
-                      >
-                        {project.archived_at ? <FiRotateCcw /> : <FiArchive />}
-                      </IconButton>
-                    </div>
-
-                    <div className="mt-auto flex min-w-0 items-center gap-3 border-t border-black/10 pt-3 dark:border-white/10">
-                      {owners.length > 0 ? (
-                        <div
-                          className="flex shrink-0 -space-x-2"
-                          aria-label={`${owners.length} ${owners.length === 1 ? "owner" : "owners"}`}
-                        >
-                          {owners.slice(0, 3).map((owner) => (
-                            <Avatar
-                              key={owner.id}
-                              name={owner.full_name}
-                              src={owner.avatar_url}
-                              size="md"
-                              className="ring-2 ring-white dark:ring-[#181818]"
-                            />
-                          ))}
-                          {owners.length > 3 && (
-                            <span className="relative inline-grid h-8 w-8 shrink-0 place-items-center rounded-full border border-black/10 bg-zinc-100 text-[9px] font-bold text-black/65 ring-2 ring-white dark:border-white/15 dark:bg-zinc-800 dark:text-white/70 dark:ring-[#181818]">
-                              +{owners.length - 3}
+                          {project.description && (
+                            <span className="mt-0.5 block line-clamp-2 text-xs text-black/60 dark:text-white/60">
+                              {project.description}
                             </span>
                           )}
+                          {(project.links ?? []).length > 0 && (
+                            <ProjectLinks
+                              links={project.links}
+                              className="mt-2"
+                            />
+                          )}
                         </div>
-                      ) : (
-                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-dashed border-black/25 text-black/40 dark:border-white/25 dark:text-white/40">
-                          <FiUsers aria-hidden size={14} />
-                        </span>
-                      )}
-                      <div className="min-w-0">
-                        <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-black/40 dark:text-white/40">
-                          Owners
-                        </p>
-                        <p className="truncate text-xs font-medium text-black/65 dark:text-white/65">
-                          {ownerSummary}
-                        </p>
+                        {project.archived_at && (
+                          <span className="mt-2 hidden text-[10px] font-semibold uppercase tracking-widest text-black/45 dark:text-white/45 sm:inline">
+                            Archived
+                          </span>
+                        )}
+                        {!readOnly && (
+                          <>
+                            <IconButton
+                              label={`Edit ${project.name}`}
+                              onClick={() => beginRename(project)}
+                            >
+                              <FiEdit2 />
+                            </IconButton>
+                            <IconButton
+                              label={`${project.archived_at ? "Restore" : "Archive"} ${project.name}`}
+                              onClick={() => void toggleArchived(project)}
+                            >
+                              {project.archived_at ? (
+                                <FiRotateCcw />
+                              ) : (
+                                <FiArchive />
+                              )}
+                            </IconButton>
+                          </>
+                        )}
                       </div>
                     </div>
+                  );
+                })}
+                {projects.length === 0 && (
+                  <div
+                    className={`rounded-xl border border-dashed border-black/10 px-4 py-10 text-center text-sm text-black/55 dark:border-white/10 dark:text-white/55 md:col-span-2 ${embedded ? "xl:col-span-3" : ""}`}
+                  >
+                    No projects match this search and filter.
                   </div>
-                );
-              })}
-              {projects.length === 0 && (
-                <div
-                  className={`rounded-xl border border-dashed border-black/10 px-4 py-10 text-center text-sm text-black/55 dark:border-white/10 dark:text-white/55 md:col-span-2 ${embedded ? "xl:col-span-3" : ""}`}
-                >
-                  No projects match this search and filter.
-                </div>
-              )}
+                )}
               </div>
             </div>
           </>
@@ -502,7 +432,7 @@ export function ProjectsModal({
                 if (!nextOpen && !renaming) setEditingProjectId(null);
               }}
               title={`Edit ${project.name}`}
-              size="md"
+              size="lg"
               hideActions
             >
               <form
@@ -534,12 +464,9 @@ export function ProjectsModal({
                   placeholder="What is this project working toward?"
                   rows={3}
                 />
-                <MultiSelect
-                  label="Owners"
-                  options={ownerOptions}
-                  value={editingOwnerIds}
-                  onChange={setEditingOwnerIds}
-                  placeholder="Select owners"
+                <ProjectLinksFields
+                  links={editingLinks}
+                  setLinks={setEditingLinks}
                   disabled={renaming}
                 />
                 <div className="flex justify-end gap-2 border-t border-black/10 pt-4 dark:border-white/10">
@@ -564,5 +491,97 @@ export function ProjectsModal({
           );
         })()}
     </>
+  );
+}
+
+function ProjectLinksFields({
+  links,
+  setLinks,
+  disabled,
+}: {
+  links: ProjectLink[];
+  setLinks: Dispatch<SetStateAction<ProjectLink[]>>;
+  disabled: boolean;
+}) {
+  function update(index: number, field: keyof ProjectLink, value: string) {
+    setLinks((current) =>
+      current.map((link, linkIndex) =>
+        linkIndex === index ? { ...link, [field]: value } : link,
+      ),
+    );
+  }
+
+  return (
+    <fieldset
+      className="rounded-xl border border-black/10 bg-black/[0.015] p-3 dark:border-white/10 dark:bg-white/[0.025]"
+      aria-labelledby="project-links-label"
+    >
+      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+        <div>
+          <span id="project-links-label" className="text-sm font-semibold">
+            Useful links
+          </span>
+          {links.length === 0 && (
+            <p className="mt-1 pr-2 text-xs leading-relaxed text-black/55 dark:text-white/55">
+              Attach docs, designs, folders, or any other helpful web page.
+            </p>
+          )}
+        </div>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          leftIcon={<FiPlus aria-hidden />}
+          className="shrink-0 px-3 py-1.5 normal-case tracking-normal"
+          disabled={disabled || links.length >= 10}
+          onClick={() =>
+            setLinks((current) => [...current, { label: "", url: "" }])
+          }
+        >
+          Add link
+        </Button>
+      </div>
+      <div className={links.length > 0 ? "mt-3 space-y-2" : undefined}>
+        {links.map((link, index) => (
+          <div
+            key={index}
+            className="grid gap-2 rounded-lg border border-black/10 bg-white/60 p-3 dark:border-white/10 dark:bg-black/10 sm:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)_auto] sm:items-end"
+          >
+            <Input
+              label="Label"
+              name={`project-link-label-${index}`}
+              value={link.label}
+              placeholder="Design file"
+              maxLength={80}
+              required
+              disabled={disabled}
+              onChange={(event) => update(index, "label", event.target.value)}
+            />
+            <Input
+              label="URL"
+              name={`project-link-url-${index}`}
+              type="url"
+              value={link.url}
+              placeholder="https://…"
+              required
+              disabled={disabled}
+              onChange={(event) => update(index, "url", event.target.value)}
+            />
+            <IconButton
+              type="button"
+              label={`Remove ${link.label || "link"}`}
+              disabled={disabled}
+              onClick={() =>
+                setLinks((current) =>
+                  current.filter((_, linkIndex) => linkIndex !== index),
+                )
+              }
+            >
+              <FiTrash2 />
+            </IconButton>
+          </div>
+        ))}
+      </div>
+    </fieldset>
   );
 }

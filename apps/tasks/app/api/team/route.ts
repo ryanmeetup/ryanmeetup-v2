@@ -12,7 +12,9 @@ async function authorizeTeamMember() {
     .select("id, onboarding_completed")
     .eq("id", auth.user.id)
     .single();
-  return profile?.onboarding_completed ? auth.user : null;
+  if (!profile?.onboarding_completed) return null;
+  const { data: isOwner } = await supabase.rpc("is_app_owner");
+  return isOwner ? auth.user : null;
 }
 
 function adminClient() {
