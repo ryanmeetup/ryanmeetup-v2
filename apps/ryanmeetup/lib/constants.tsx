@@ -287,8 +287,24 @@ export const gallery = [
     title: "Ryans Own Manhattan, December 2025",
   },
   {
+    imageUrl: "/group-photos/ryansteps.jpeg",
+    title: "The Ryan Steps, March 2026",
+  },
+  {
     imageUrl: "/group-photos/philly.jpg",
     title: "St. Ryan's Day III, March 2026",
+  },
+  {
+    imageUrl: "/group-photos/ryancoaster.jpeg",
+    title: "Ryde the Ryan Coaster, July 2026",
+  },
+  {
+    imageUrl: "/group-photos/rbc.jpeg",
+    title: "Ryan Baseball Classic, July 2026",
+  },
+  {
+    imageUrl: "/group-photos/ryaniowa.jpeg",
+    title: "Welcome to Ryan, July 2026",
   },
 ];
 
@@ -352,5 +368,10 @@ export const landingGallery = [
     imageUrl: "/group-photos/ryami.webp",
     title: "Ryami Vice, May 2024",
     city: "Miami, FL",
+  },
+  {
+    imageUrl: "/group-photos/ryancoaster.jpeg",
+    title: "Ryde the Ryan Coaster, July 2026",
+    city: "Minneapolis, MN",
   },
 ];

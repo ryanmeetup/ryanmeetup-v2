@@ -61,18 +61,17 @@ const Info = () => {
 const Actions = () => {
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
         <Button.Link
           href="/events"
           leftIcon={<Calendar className="h-5 w-5" />}
           variant="primary"
           size="md"
           fullWidth
-          className="w-full"
+          className="w-full whitespace-nowrap"
           newTab={false}
         >
-          <span className="sm:hidden">upcoming events</span>
-          <span className="hidden sm:inline">upcoming events</span>
+          Upcoming events
         </Button.Link>
         <Button.Link
           href="/chapters"
@@ -80,11 +79,10 @@ const Actions = () => {
           variant="secondary"
           size="md"
           fullWidth
-          className="w-full"
+          className="w-full whitespace-nowrap"
           newTab={false}
         >
-          <span className="sm:hidden">Find your chapter</span>
-          <span className="hidden sm:inline">Find your chapter</span>
+          Find your chapter
         </Button.Link>
       </div>
     </div>

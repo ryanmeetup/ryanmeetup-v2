@@ -78,7 +78,7 @@ const RotatingGallery = (props: RotatingGalleryProps) => {
   const nextIndex = (activeSlide + 1) % items.length;
 
   return (
-    <div className="relative h-60 overflow-hidden rounded-3xl border border-black/10 shadow-2xl sm:h-80 lg:h-[360px] dark:border-white/10 [perspective:1200px]">
+    <div className="relative h-60 overflow-hidden rounded-3xl border border-black/10 shadow-2xl sm:h-80 lg:h-[360px] 2xl:h-[400px] dark:border-white/10 [perspective:1200px]">
       <div className="pointer-events-none absolute inset-y-6 left-2 z-0 w-16 -translate-x-1 overflow-hidden rounded-2xl border border-white/20 bg-black/10 opacity-60 shadow-lg sm:inset-y-8 sm:left-3 sm:w-20 sm:-translate-x-2">
         <NextImage
           className="h-full w-full object-cover"
