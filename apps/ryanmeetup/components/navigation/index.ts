@@ -4,3 +4,4 @@ export * from "./RouteMenu";
 export * from "./MobileMenu";
 export * from "./ThemeToggle";
 export * from "./NewFooter";
+export * from "./Banner";
