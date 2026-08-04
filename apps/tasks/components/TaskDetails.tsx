@@ -486,13 +486,13 @@ export function TaskDetails({
                 className="flex items-start gap-2 border-l-2 border-black/10 pl-3 text-sm dark:border-white/10"
               >
                 <Avatar
-                  name={profile?.full_name || "A teammate"}
+                  name={profile?.full_name || "System"}
                   size="sm"
                   src={profile?.avatar_url}
                 />
                 <span className="min-w-0 flex-1">
                   <span className="block">
-                    <strong>{profile?.full_name || "A teammate"}</strong>{" "}
+                    <strong>{profile?.full_name || "System"}</strong>{" "}
                     {item.kind === "comment" ? item.body : item.action}
                   </span>
                   <time className="text-xs text-black/45 dark:text-white/45">
