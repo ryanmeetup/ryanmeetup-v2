@@ -131,8 +131,25 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
+  const { data: activity, error: activityError } = await supabase
+    .from("task_activity")
+    .insert({
+      task_id: taskId,
+      actor_id: authData.user.id,
+      action: `attached “${file.name}”`,
+      details: { attachment_id: id },
+    })
+    .select("*")
+    .single();
+  if (activityError)
+    console.error("Attachment activity creation failed", {
+      taskId,
+      attachmentId: id,
+      code: activityError.code,
+    });
   return NextResponse.json({
     attachment: { ...attachment, url: signed.data.signedUrl },
+    activity,
   });
 }
 

@@ -26,7 +26,7 @@ import {
   FiTrash2,
   FiUsers,
 } from "react-icons/fi";
-import { createClient } from "@/lib/supabase/client";
+import { accessMutation } from "@/lib/access-mutations";
 import { accessGroupSlug } from "@/lib/access-groups";
 import { accessPreviewHref, userAccessPreviewHref } from "@/lib/access-preview";
 import type { Profile, Project, WorkspaceData } from "@/lib/types";
@@ -117,17 +117,8 @@ export function AccessPageClient({
     event.preventDefault();
     if (!name.trim()) return;
     setSaving(true);
-    const { data, error } = await createClient()
-      .from("access_groups")
-      .insert({
-        name: name.trim(),
-        description: description.trim() || null,
-        created_by: currentUserId,
-      })
-      .select("*")
-      .single();
+    const { group: data } = await accessMutation<{ group: AccessGroup }>({ action: "group.create", name: name.trim(), description: description.trim() || null });
     setSaving(false);
-    if (error) return toast.error(error.message);
     setGroups((current) =>
       [...current, data].sort((a, b) => a.name.localeCompare(b.name)),
     );
@@ -141,17 +132,8 @@ export function AccessPageClient({
     event.preventDefault();
     if (!editingGroup || !editingName.trim()) return;
     setSaving(true);
-    const { data: updated, error } = await createClient()
-      .from("access_groups")
-      .update({
-        name: editingName.trim(),
-        description: editingDescription.trim() || null,
-      })
-      .eq("id", editingGroup.id)
-      .select("*")
-      .single();
+    const { group: updated } = await accessMutation<{ group: AccessGroup }>({ action: "group.update", id: editingGroup.id, name: editingName.trim(), description: editingDescription.trim() || null });
     setSaving(false);
-    if (error) return toast.error(error.message);
     setGroups((current) =>
       current.map((group) => (group.id === updated.id ? updated : group)),
     );
@@ -159,16 +141,7 @@ export function AccessPageClient({
   }
   async function addMember(groupId: string, profileId: string) {
     if (!profileId) return;
-    const { data: row, error } = await createClient()
-      .from("access_group_members")
-      .upsert({
-        group_id: groupId,
-        profile_id: profileId,
-        added_by: currentUserId,
-      })
-      .select("*")
-      .single();
-    if (error) return toast.error(error.message);
+    const { member: row } = await accessMutation<{ member: GroupMember }>({ action: "member.set", groupId, profileId });
     setMembers((current) => [
       ...current.filter(
         (item) => item.profile_id !== profileId || item.group_id !== groupId,
@@ -177,12 +150,7 @@ export function AccessPageClient({
     ]);
   }
   async function removeMember(groupId: string, profileId: string) {
-    const { error } = await createClient()
-      .from("access_group_members")
-      .delete()
-      .eq("group_id", groupId)
-      .eq("profile_id", profileId);
-    if (error) return toast.error(error.message);
+    await accessMutation({ action: "member.delete", groupId, profileId });
     setMembers((current) =>
       current.filter(
         (item) => item.group_id !== groupId || item.profile_id !== profileId,
@@ -195,17 +163,7 @@ export function AccessPageClient({
     permission: Permission,
   ) {
     if (!projectId) return;
-    const { data: row, error } = await createClient()
-      .from("project_group_grants")
-      .upsert({
-        group_id: groupId,
-        project_id: projectId,
-        permission,
-        granted_by: currentUserId,
-      })
-      .select("*")
-      .single();
-    if (error) return toast.error(error.message);
+    const { grant: row } = await accessMutation<{ grant: GroupGrant }>({ action: "grant.set", groupId, projectId, permission });
     setGroupGrants((current) => [
       ...current.filter(
         (item) => item.group_id !== groupId || item.project_id !== projectId,
@@ -214,12 +172,7 @@ export function AccessPageClient({
     ]);
   }
   async function removeGroupGrant(groupId: string, projectId: string) {
-    const { error } = await createClient()
-      .from("project_group_grants")
-      .delete()
-      .eq("group_id", groupId)
-      .eq("project_id", projectId);
-    if (error) return toast.error(error.message);
+    await accessMutation({ action: "grant.delete", groupId, projectId });
     setGroupGrants((current) =>
       current.filter(
         (item) => item.group_id !== groupId || item.project_id !== projectId,
@@ -228,11 +181,7 @@ export function AccessPageClient({
   }
   async function confirmDeleteGroup() {
     if (!deleteGroup) return;
-    const { error } = await createClient()
-      .from("access_groups")
-      .delete()
-      .eq("id", deleteGroup.id);
-    if (error) return toast.error(error.message);
+    await accessMutation({ action: "group.delete", id: deleteGroup.id });
     setGroups((current) =>
       current.filter((item) => item.id !== deleteGroup.id),
     );

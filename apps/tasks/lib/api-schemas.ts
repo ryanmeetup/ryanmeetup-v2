@@ -35,12 +35,18 @@ export function statusCreateSchema(value: unknown) {
 }
 
 export function statusPatchSchema(value: unknown) {
-  const body = objectWithKeys(value, ["id", "name", "isCompleted", "orderedIds"]);
+  const body = objectWithKeys(value, ["id", "name", "isCompleted", "orderedIds", "expectedRevision"]);
   if (!body) return null;
   if (body.orderedIds !== undefined) {
     if (!Array.isArray(body.orderedIds) || body.orderedIds.length > 100) return null;
     const orderedIds = body.orderedIds.map(uuid);
-    return orderedIds.every(Boolean) ? { orderedIds: orderedIds as string[] } : null;
+    const expectedRevision = body.expectedRevision;
+    return orderedIds.every(Boolean) &&
+      typeof expectedRevision === "number" &&
+      Number.isSafeInteger(expectedRevision) &&
+      expectedRevision >= 0
+      ? { orderedIds: orderedIds as string[], expectedRevision }
+      : null;
   }
   const id = uuid(body.id);
   const name = body.name === undefined ? undefined : text(body.name, 80);

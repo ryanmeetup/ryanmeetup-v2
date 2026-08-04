@@ -12,21 +12,12 @@ export async function POST(request: Request) {
   if ("response" in parsed) return parsed.response;
   const context = await privilegedContext({ owner: true });
   if ("response" in context) return context.response;
-  const { data: finalStatus, error: readError } = await context.admin
-    .from("statuses").select("sort_order").order("sort_order", { ascending: false }).limit(1).maybeSingle();
-  if (readError) {
-    console.error("Status ordering read failed", { actorId: context.user.id, code: readError.code });
-    return apiError(500, "OPERATION_FAILED", "The status could not be created.");
-  }
-  const { data, error } = await context.admin.from("statuses").insert({
-    name: parsed.data.name,
-    color: parsed.data.color,
-    sort_order: (finalStatus?.sort_order ?? -1) + 1,
-    is_default: false,
-    is_completed: false,
-  }).select("*").single();
-  if (error) {
-    console.error("Status creation failed", { actorId: context.user.id, code: error.code });
+  const { data, error } = await context.admin.rpc("create_status", {
+    status_name: parsed.data.name,
+    status_color: parsed.data.color,
+  }).single();
+  if (error || !data || typeof data !== "object" || !("id" in data) || typeof data.id !== "string") {
+    console.error("Status creation failed", { actorId: context.user.id, code: error?.code });
     return apiError(400, "OPERATION_FAILED", "The status could not be created.");
   }
   if (!(await auditPrivilegedAction(context.admin, context.user, {
@@ -45,25 +36,20 @@ export async function PATCH(request: Request) {
     const orderedIds = [...new Set(parsed.data.orderedIds)];
     if (orderedIds.length !== parsed.data.orderedIds.length)
       return apiError(400, "INVALID_REQUEST", "Each status must appear once.");
-    const { data: statuses, error: readError } = await context.admin.from("statuses").select("*");
-    if (readError) {
-      console.error("Status reorder read failed", { actorId: context.user.id, code: readError.code });
-      return apiError(500, "OPERATION_FAILED", "The statuses could not be reordered.");
-    }
-    if (statuses.length !== orderedIds.length || statuses.some((status) => !orderedIds.includes(status.id)))
-      return apiError(409, "CONFLICT", "The status list changed. Refresh and try again.");
-    const order = new Map(orderedIds.map((id, index) => [id, index]));
-    const { data, error } = await context.admin.from("statuses").upsert(
-      statuses.map((status) => ({ ...status, sort_order: order.get(status.id) })),
-    ).select("*");
+    const { data, error } = await context.admin.rpc("reorder_statuses", {
+      ordered_status_ids: orderedIds,
+      expected_revision: parsed.data.expectedRevision,
+    });
     if (error) {
       console.error("Status reorder failed", { actorId: context.user.id, code: error.code });
+      if (error.code === "40001" || error.code === "P0002")
+        return apiError(409, "CONFLICT", "The status list changed. Refresh and try again.");
       return apiError(400, "OPERATION_FAILED", "The statuses could not be reordered.");
     }
     if (!(await auditPrivilegedAction(context.admin, context.user, {
       action: "status.reorder", targetType: "status_collection", metadata: { count: orderedIds.length },
     }))) return apiError(500, "AUDIT_FAILED", "The statuses were reordered, but the audit record could not be saved.");
-    return NextResponse.json({ statuses: data });
+    return NextResponse.json({ statuses: data ?? [] });
   }
 
   const updates = {
@@ -87,10 +73,11 @@ export async function DELETE(request: Request) {
   if ("response" in parsed) return parsed.response;
   const context = await privilegedContext({ owner: true });
   if ("response" in context) return context.response;
-  const { data, error } = await context.admin.from("statuses").delete()
-    .eq("id", parsed.data.id).select("id").single();
-  if (error) {
-    console.error("Status deletion failed", { actorId: context.user.id, code: error.code });
+  const { data, error } = await context.admin.rpc("delete_status", {
+    status_id: parsed.data.id,
+  }).single();
+  if (error || !data || typeof data !== "object" || !("id" in data) || typeof data.id !== "string") {
+    console.error("Status deletion failed", { actorId: context.user.id, code: error?.code });
     return apiError(400, "OPERATION_FAILED", "The status could not be deleted.");
   }
   if (!(await auditPrivilegedAction(context.admin, context.user, {

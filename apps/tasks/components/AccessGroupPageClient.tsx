@@ -21,7 +21,7 @@ import {
   FiTrash2,
 } from "react-icons/fi";
 import { accessGroupSlug } from "@/lib/access-groups";
-import { createClient } from "@/lib/supabase/client";
+import { accessMutation } from "@/lib/access-mutations";
 import type { WorkspaceData } from "@/lib/types";
 import { TaskBanners } from "./TaskBanners";
 import { ProjectsModal } from "./ProjectsModal";
@@ -52,7 +52,6 @@ type GroupGrant = {
 };
 
 export function AccessGroupPageClient({
-  currentUserId,
   initialData,
   group: initialGroup,
   initialMembers,
@@ -96,14 +95,8 @@ export function AccessGroupPageClient({
     event.preventDefault();
     if (!name.trim()) return;
     setSaving(true);
-    const { data: updated, error } = await createClient()
-      .from("access_groups")
-      .update({ name: name.trim(), description: description.trim() || null })
-      .eq("id", group.id)
-      .select("*")
-      .single();
+    const { group: updated } = await accessMutation<{ group: AccessGroup }>({ action: "group.update", id: group.id, name: name.trim(), description: description.trim() || null });
     setSaving(false);
-    if (error) return toast.error(error.message);
     setGroup(updated);
     toast.success(`${updated.name} updated.`);
     const nextSlug = accessGroupSlug(updated.name);
@@ -117,16 +110,7 @@ export function AccessGroupPageClient({
       data.profiles.find((profile) => profile.id === profileId)?.full_name ??
       "Member";
     setMemberId("");
-    const { data: row, error } = await createClient()
-      .from("access_group_members")
-      .upsert({
-        group_id: group.id,
-        profile_id: profileId,
-        added_by: currentUserId,
-      })
-      .select("*")
-      .single();
-    if (error) return toast.error(error.message);
+    const { member: row } = await accessMutation<{ member: GroupMember }>({ action: "member.set", groupId: group.id, profileId });
     setMembers((current) => [
       ...current.filter((item) => item.profile_id !== profileId),
       row,
@@ -137,12 +121,7 @@ export function AccessGroupPageClient({
     const profileName =
       data.profiles.find((profile) => profile.id === profileId)?.full_name ??
       "Member";
-    const { error } = await createClient()
-      .from("access_group_members")
-      .delete()
-      .eq("group_id", group.id)
-      .eq("profile_id", profileId);
-    if (error) return toast.error(error.message);
+    await accessMutation({ action: "member.delete", groupId: group.id, profileId });
     setMembers((current) =>
       current.filter((item) => item.profile_id !== profileId),
     );
@@ -152,17 +131,7 @@ export function AccessGroupPageClient({
     if (!nextProjectId) return;
     const projectName = projectNames.get(nextProjectId) ?? "Project";
     setProjectId("");
-    const { data: row, error } = await createClient()
-      .from("project_group_grants")
-      .upsert({
-        group_id: group.id,
-        project_id: nextProjectId,
-        permission,
-        granted_by: currentUserId,
-      })
-      .select("*")
-      .single();
-    if (error) return toast.error(error.message);
+    const { grant: row } = await accessMutation<{ grant: GroupGrant }>({ action: "grant.set", groupId: group.id, projectId: nextProjectId, permission });
     setGrants((current) => [
       ...current.filter((item) => item.project_id !== nextProjectId),
       row,
@@ -173,23 +142,14 @@ export function AccessGroupPageClient({
   }
   async function removeGrant(nextProjectId: string) {
     const projectName = projectNames.get(nextProjectId) ?? "Project";
-    const { error } = await createClient()
-      .from("project_group_grants")
-      .delete()
-      .eq("group_id", group.id)
-      .eq("project_id", nextProjectId);
-    if (error) return toast.error(error.message);
+    await accessMutation({ action: "grant.delete", groupId: group.id, projectId: nextProjectId });
     setGrants((current) =>
       current.filter((item) => item.project_id !== nextProjectId),
     );
     toast.success(`${projectName} removed from ${group.name}.`);
   }
   async function deleteGroup() {
-    const { error } = await createClient()
-      .from("access_groups")
-      .delete()
-      .eq("id", group.id);
-    if (error) return toast.error(error.message);
+    await accessMutation({ action: "group.delete", id: group.id });
     router.push("/access");
     router.refresh();
   }
