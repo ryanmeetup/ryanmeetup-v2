@@ -115,7 +115,7 @@ export function ProfileForm({
       setAvatarFile(null);
       setAvatarPreview(result.profile.avatar_url);
       if (onboardingRequired) {
-        window.location.assign("/");
+        window.location.href = "/";
         return;
       }
       setMessage("Profile saved.");

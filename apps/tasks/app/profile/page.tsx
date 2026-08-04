@@ -17,18 +17,16 @@ export default async function ProfilePage() {
   const demoMode = isWorkspaceDemo();
   if (demoMode) redirect("/");
 
+  let data: WorkspaceData;
+  let email: string;
+
   try {
-    const { data: initialData, user } = await loadWorkspacePage(
+    const result = await loadWorkspacePage(
       ["profiles", "statuses", "categories", "projects"],
       { requireOnboarding: false },
     );
-    return (
-      <ProfilePageClient
-        initialData={initialData}
-        email={user.email ?? ""}
-        onboardingRequired={!initialData.currentProfile.onboarding_completed}
-      />
-    );
+    data = result.data;
+    email = result.user.email ?? "";
   } catch (error) {
     if (!(error instanceof WorkspaceLoadError)) throw error;
 
@@ -43,7 +41,7 @@ export default async function ProfilePage() {
       .maybeSingle();
     if (!profile) redirect("/login?error=profile");
 
-    const fallbackData: WorkspaceData = {
+    data = {
       currentProfile: profile,
       profiles: [profile],
       statuses: [],
@@ -60,12 +58,14 @@ export default async function ProfilePage() {
       taskLabels: [],
       taskCategories: [],
     };
-    return (
-      <ProfilePageClient
-        initialData={fallbackData}
-        email={auth.user.email ?? ""}
-        onboardingRequired={!profile.onboarding_completed}
-      />
-    );
+    email = auth.user.email ?? "";
   }
+
+  return (
+    <ProfilePageClient
+      initialData={data}
+      email={email}
+      onboardingRequired={!data.currentProfile.onboarding_completed}
+    />
+  );
 }

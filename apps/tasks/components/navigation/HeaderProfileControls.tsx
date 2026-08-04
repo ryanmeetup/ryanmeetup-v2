@@ -49,7 +49,7 @@ export function HeaderProfileControls({
           label="Sign out"
           onClick={async () => {
             await createClient().auth.signOut();
-            location.assign("/login");
+            window.location.href = "/login";
           }}
         >
           <FiLogOut />

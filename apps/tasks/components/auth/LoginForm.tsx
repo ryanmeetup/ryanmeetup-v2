@@ -49,7 +49,7 @@ export function LoginForm() {
       setEmailError(true);
       setPasswordError(true);
       setMessage("Error: username or password is incorrect");
-    } else location.assign("/");
+    } else window.location.href = "/";
   }
 
   return (

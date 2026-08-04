@@ -78,7 +78,7 @@ export function PasswordForm({
     setConfirmation("");
     setMessage("Password updated.");
     toast.success("Password updated.");
-    if (recovery) window.setTimeout(() => location.assign("/"), 1200);
+    if (recovery) window.setTimeout(() => { window.location.href = "/"; }, 1200);
   }
 
   const passwordAction = (
