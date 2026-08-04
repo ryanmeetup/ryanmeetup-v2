@@ -1,10 +1,26 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ToastHost } from "@ryanmeetup/ui";
-import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = localFont({
+  src: "./fonts/InterVariable.woff2",
+  display: "swap",
+  weight: "100 900",
+});
+
+const themeBootstrapScript = `
+try {
+  const theme = localStorage.getItem("theme") === "light" ? "light" : "dark";
+  document.documentElement.classList.toggle("dark", theme === "dark");
+  document.documentElement.style.colorScheme = theme;
+} catch (_) {
+  document.documentElement.classList.add("dark");
+  document.documentElement.style.colorScheme = "dark";
+}
+`;
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://tasks.ryanmeetup.com"),
@@ -56,11 +72,19 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
+      <head>
+        <script
+          nonce={nonce}
+          dangerouslySetInnerHTML={{ __html: themeBootstrapScript }}
+        />
+      </head>
       <body className={inter.className}>
         <ThemeProvider>
           {children}

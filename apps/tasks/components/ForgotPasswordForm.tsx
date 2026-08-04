@@ -16,7 +16,10 @@ export function ForgotPasswordForm() {
     event.preventDefault();
     setLoading(true);
     await createClient().auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: tasksAppUrl("/auth/callback?next=/reset-password"),
+      redirectTo: tasksAppUrl(
+        "/auth/callback?next=/reset-password",
+        window.location.origin,
+      ),
     });
     setLoading(false);
     setSent(true);

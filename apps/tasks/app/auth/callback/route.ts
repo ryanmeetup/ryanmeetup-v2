@@ -11,7 +11,10 @@ export async function GET(request: Request) {
     : "/profile";
   if (code) {
     const { error } = await (await createClient()).auth.exchangeCodeForSession(code);
-    if (error) return NextResponse.redirect(tasksAppUrl("/login?recovery=invalid"));
+    if (error)
+      return NextResponse.redirect(
+        tasksAppUrl("/login?recovery=invalid", request),
+      );
   }
-  return NextResponse.redirect(tasksAppUrl(destination));
+  return NextResponse.redirect(tasksAppUrl(destination, request));
 }

@@ -27,7 +27,10 @@ export async function POST(request: Request) {
   const fullName = parsed.data.fullName || fallbackName;
   const { data, error } = await context.admin.auth.admin.inviteUserByEmail(
     parsed.data.email,
-    { data: { full_name: fullName }, redirectTo: tasksAppUrl("/auth/callback") },
+    {
+      data: { full_name: fullName },
+      redirectTo: tasksAppUrl("/auth/callback", request),
+    },
   );
   if (error) {
     console.error("Team invitation failed", { actorId: context.user.id, code: error.code });

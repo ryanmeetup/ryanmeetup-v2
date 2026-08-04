@@ -12,6 +12,16 @@ import {
 
 type Theme = "light" | "dark";
 
+function getStoredTheme(): Theme {
+  if (typeof window === "undefined") return "dark";
+
+  try {
+    return localStorage.getItem("theme") === "light" ? "light" : "dark";
+  } catch {
+    return "dark";
+  }
+}
+
 const ThemeContext = createContext<{
   theme: Theme;
   setTheme: (theme: Theme) => void;
@@ -23,7 +33,7 @@ function applyTheme(theme: Theme) {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("dark");
+  const [theme, setThemeState] = useState<Theme>(getStoredTheme);
 
   const setTheme = useCallback((nextTheme: Theme) => {
     setThemeState(nextTheme);
@@ -36,16 +46,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    let savedTheme: string | null = null;
-    try {
-      savedTheme = localStorage.getItem("theme");
-    } catch {
-      // Use the dark default when browser storage is unavailable.
-    }
-    const initialTheme = savedTheme === "light" ? "light" : "dark";
-    setThemeState(initialTheme);
-    applyTheme(initialTheme);
-
     function syncTheme(event: StorageEvent) {
       if (
         event.key === "theme" &&

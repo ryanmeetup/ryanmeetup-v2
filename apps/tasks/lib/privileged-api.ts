@@ -6,6 +6,7 @@ import {
   type User,
 } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { tasksAppOrigin } from "@/lib/app-url";
 import { createClient } from "@/lib/supabase/server";
 
 const MAX_JSON_BYTES = 16 * 1024;
@@ -41,15 +42,11 @@ export function apiError(
 }
 
 function allowedOrigin(request: Request) {
-  const configured = process.env.TASKS_APP_URL;
-  if (configured) {
-    try {
-      return new URL(configured).origin;
-    } catch {
-      return null;
-    }
+  try {
+    return tasksAppOrigin(request);
+  } catch {
+    return null;
   }
-  return process.env.NODE_ENV === "production" ? null : new URL(request.url).origin;
 }
 
 function enforceMutationOrigin(request: Request) {
