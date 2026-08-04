@@ -41,23 +41,21 @@ import {
 } from "react-icons/fi";
 import Link from "next/link";
 import { useQueryParamState, useSearchFilter } from "@ryanmeetup/hooks";
-import type {
-  Category,
-  Priority,
-  Task,
-  WorkspaceData,
-} from "@/lib/types";
+import type { Category, Priority, Task, WorkspaceData } from "@/lib/types";
 import { TaskHeaderActions } from "./TaskHeaderActions";
 import { TaskBanners } from "./TaskBanners";
 import { TaskEditor } from "./TaskEditor";
-import { WorkGroupsModal as CategoriesModal } from "./WorkGroupsModal";
+import { CategoriesModal } from "./CategoriesModal";
 import { ProjectsModal } from "./ProjectsModal";
 import { ProjectLinks } from "./ProjectLinks";
 import { useSidebarSections } from "@/hooks/useSidebarSections";
 import { withAccessPreview } from "@/lib/access-preview";
 import { useWorkspaceData } from "@/hooks/useWorkspaceData";
 import { useTaskFilters } from "@/hooks/useTaskFilters";
-import { createTaskMutationService, type TaskDraft } from "@/lib/task-mutations";
+import {
+  createTaskMutationService,
+  type TaskDraft,
+} from "@/lib/task-mutations";
 
 export { StatusSettingsModal } from "./TaskAdministration";
 
@@ -78,7 +76,6 @@ function blankDraft(statusId: string): Draft {
     title: "",
     description: "",
     status_id: statusId,
-    work_group_id: null,
     project_id: null,
     assignee_id: null,
     start_date: null,
@@ -204,7 +201,7 @@ export function TaskApp({
   } = useSidebarSections();
   const [taskOpen, setTaskOpen] = useState(initialTaskOpen);
   const [taskDetailsOpen, setTaskDetailsOpen] = useState(false);
-  const [workGroupsOpen, setWorkGroupsOpen] = useState(false);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [taskMessage, setTaskMessage] = useState("");
   const [taskSaving, setTaskSaving] = useState(false);
@@ -236,9 +233,22 @@ export function TaskApp({
       `${task.title} ${task.description ?? ""}`.toLowerCase(),
   });
   const {
-    assignee, setAssignee, group, setGroup, project, setProject, status,
-    setStatus, priority, setPriority, visibility, setVisibility, sort, setSort,
-    clock, clear: clearTaskFilters,
+    assignee,
+    setAssignee,
+    group,
+    setGroup,
+    project,
+    setProject,
+    status,
+    setStatus,
+    priority,
+    setPriority,
+    visibility,
+    setVisibility,
+    sort,
+    setSort,
+    clock,
+    clear: clearTaskFilters,
   } = useTaskFilters(setSearch);
   const [collapsedStatusIds, setCollapsedStatusIds] =
     useState<Set<string> | null>(null);
@@ -329,13 +339,15 @@ export function TaskApp({
       if (selectedProject) params.set("project", selectedProject.id);
       else if (project === "none") params.set("project", "none");
       if (selectedAssignee) params.set("assignee", selectedAssignee.id);
-      else if (assignee.toLowerCase() === "unassigned") params.set("assignee", "unassigned");
+      else if (assignee.toLowerCase() === "unassigned")
+        params.set("assignee", "unassigned");
       if (selectedCategory) params.set("category", selectedCategory.id);
       if (selectedPriority) params.set("priority", selectedPriority);
       if (search.trim()) params.set("search", search.trim());
       const response = await fetch(`/api/tasks?${params}`);
       const result = (await response.json()) as {
-        error?: string; tasks?: Task[];
+        error?: string;
+        tasks?: Task[];
         taskAssignees?: WorkspaceData["taskAssignees"];
         taskCategories?: WorkspaceData["taskCategories"];
         taskLabels?: WorkspaceData["taskLabels"];
@@ -345,17 +357,37 @@ export function TaskApp({
         throw new Error(result.error ?? "Tasks could not be loaded.");
       setData((current) => {
         const ids = new Set(result.tasks!.map((task) => task.id));
-        const mergeRows = <T extends { task_id: string }>(oldRows: T[], rows: T[]) =>
-          replace ? rows : [...oldRows.filter((row) => !ids.has(row.task_id)), ...rows];
-        return { ...current,
-          tasks: replace ? result.tasks! : [...current.tasks, ...result.tasks!.filter((task) => !current.tasks.some((item) => item.id === task.id))],
-          taskAssignees: mergeRows(current.taskAssignees, result.taskAssignees ?? []),
-          taskCategories: mergeRows(current.taskCategories, result.taskCategories ?? []),
+        const mergeRows = <T extends { task_id: string }>(
+          oldRows: T[],
+          rows: T[],
+        ) =>
+          replace
+            ? rows
+            : [...oldRows.filter((row) => !ids.has(row.task_id)), ...rows];
+        return {
+          ...current,
+          tasks: replace
+            ? result.tasks!
+            : [
+                ...current.tasks,
+                ...result.tasks!.filter(
+                  (task) => !current.tasks.some((item) => item.id === task.id),
+                ),
+              ],
+          taskAssignees: mergeRows(
+            current.taskAssignees,
+            result.taskAssignees ?? [],
+          ),
+          taskCategories: mergeRows(
+            current.taskCategories,
+            result.taskCategories ?? [],
+          ),
           taskLabels: mergeRows(current.taskLabels, result.taskLabels ?? []),
           taskPage: result.page,
         };
       });
-      loadedVisibility.current = visibility === "archived" ? "archived" : "active";
+      loadedVisibility.current =
+        visibility === "archived" ? "archived" : "active";
     } catch (error) {
       toast.error(mutationErrorMessage(error, "Tasks could not be loaded."));
     } finally {
@@ -535,7 +567,6 @@ export function TaskApp({
       title: task.title,
       description: task.description,
       status_id: task.status_id,
-      work_group_id: task.work_group_id,
       project_id: task.project_id,
       category_ids: [...(categoriesByTask.get(task.id) ?? [])],
       assignee_id: task.assignee_id,
@@ -583,7 +614,10 @@ export function TaskApp({
       setTaskOpen(false);
       toast.success(editing ? "Task updated." : "Task created.");
     } catch (error) {
-      const message = mutationErrorMessage(error, "The task could not be saved.");
+      const message = mutationErrorMessage(
+        error,
+        "The task could not be saved.",
+      );
       setTaskMessage(message);
       toast.error(message);
     } finally {
@@ -599,13 +633,20 @@ export function TaskApp({
       setTaskOpen(false);
       toast.success("Task deleted.");
     } catch (error) {
-      toast.error(mutationErrorMessage(error, "The task could not be deleted."));
+      toast.error(
+        mutationErrorMessage(error, "The task could not be deleted."),
+      );
     } finally {
       setTaskDeleting(false);
     }
   }
 
-  async function moveTask(id: string, statusId: string, targetId?: string, edge: "before" | "after" = "after") {
+  async function moveTask(
+    id: string,
+    statusId: string,
+    targetId?: string,
+    edge: "before" | "after" = "after",
+  ) {
     try {
       await mutations.move(id, statusId, targetId, edge);
     } catch (error) {
@@ -860,7 +901,7 @@ export function TaskApp({
                   <IconButton
                     label="Create category"
                     size="sm"
-                    onClick={() => setWorkGroupsOpen(true)}
+                    onClick={() => setCategoriesOpen(true)}
                   >
                     <FiPlus />
                   </IconButton>
@@ -1447,7 +1488,9 @@ export function TaskApp({
                   variant="secondary"
                   loading={taskPageLoading}
                   loadingText="Loading tasks..."
-                  onClick={() => void loadTaskPage((data.taskPage?.page ?? 0) + 1)}
+                  onClick={() =>
+                    void loadTaskPage((data.taskPage?.page ?? 0) + 1)
+                  }
                 >
                   Load more tasks ({data.tasks.length} of {data.taskPage.total})
                 </Button>
@@ -1491,10 +1534,10 @@ export function TaskApp({
           if (taskPendingDelete) void removeTask(taskPendingDelete.id);
         }}
       />
-      {workGroupsOpen && (
+      {categoriesOpen && (
         <CategoriesModal
-          open={workGroupsOpen}
-          setOpen={setWorkGroupsOpen}
+          open={categoriesOpen}
+          setOpen={setCategoriesOpen}
           data={data}
           setData={setData}
           demoMode={demoMode}

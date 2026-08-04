@@ -4,7 +4,7 @@ import { useState } from "react";
 import { IconButton } from "@ryanmeetup/ui";
 import { FiMenu } from "react-icons/fi";
 import { ProjectsModal } from "./ProjectsModal";
-import { WorkGroupsModal as CategoriesModal } from "./WorkGroupsModal";
+import { CategoriesModal } from "./CategoriesModal";
 import { TaskHeaderActions } from "./TaskHeaderActions";
 import { TaskBanners } from "./TaskBanners";
 import { TasksSidebar } from "./TasksSidebar";

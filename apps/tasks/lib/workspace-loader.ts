@@ -61,17 +61,19 @@ export type WorkspaceCollection = Exclude<
 export const TASK_PAGE_SIZE = 50;
 
 export const WORKSPACE_COLUMNS = {
-  profiles: "id,full_name,avatar_url,onboarding_completed,task_details_open_by_default,app_role",
+  profiles:
+    "id,full_name,avatar_url,onboarding_completed,task_details_open_by_default,app_role",
   statuses: "id,name,color,sort_order,order_revision,is_default,is_completed",
-  workGroups: "id,name,description,color,created_by",
   categories: "id,name,description,color,created_by",
   projects: "id,name,description,links,created_by,archived_at,created_at",
   projectOwners: "project_id,profile_id",
-  tasks: "id,title,description,status_id,work_group_id,project_id,assignee_id,created_by,start_date,due_date,due_time,reminder_at,priority,board_position,completed_at,archived_at,created_at,updated_at",
+  tasks:
+    "id,title,description,status_id,project_id,assignee_id,created_by,start_date,due_date,due_time,reminder_at,priority,board_position,completed_at,archived_at,created_at,updated_at",
   subtasks: "id,task_id,title,is_completed,sort_order,created_by,created_at",
   comments: "id,task_id,body,created_by,created_at",
   activity: "id,task_id,actor_id,action,details,created_at",
-  attachments: "id,task_id,name,url,file_path,mime_type,size_bytes,created_by,created_at",
+  attachments:
+    "id,task_id,name,url,file_path,mime_type,size_bytes,created_by,created_at",
   labels: "id,name,color,created_by",
   taskAssignees: "task_id,profile_id",
   taskLabels: "task_id,label_id",
@@ -82,7 +84,6 @@ const columns = WORKSPACE_COLUMNS;
 const emptyWorkspace = (): Omit<WorkspaceData, "currentProfile"> => ({
   profiles: [],
   statuses: [],
-  workGroups: [],
   categories: [],
   projects: [],
   projectOwners: [],
@@ -102,28 +103,74 @@ export async function loadWorkspace(
   userId: string,
   collections: readonly WorkspaceCollection[],
 ): Promise<WorkspaceData | null> {
-  const queries: Record<WorkspaceCollection, () => PromiseLike<QueryResult<unknown[] | null>>> = {
-    profiles: () => supabase.from("profiles").select(columns.profiles).order("full_name"),
-    statuses: () => supabase.from("statuses").select(columns.statuses).order("sort_order"),
-    workGroups: () => supabase.from("work_groups").select(columns.workGroups).order("name"),
-    categories: () => supabase.from("work_groups").select(columns.categories).order("name"),
-    projects: () => supabase.from("projects").select(columns.projects).order("name"),
-    projectOwners: () => supabase.from("project_owners").select(columns.projectOwners),
+  const queries: Record<
+    WorkspaceCollection,
+    () => PromiseLike<QueryResult<unknown[] | null>>
+  > = {
+    profiles: () =>
+      supabase.from("profiles").select(columns.profiles).order("full_name"),
+    statuses: () =>
+      supabase.from("statuses").select(columns.statuses).order("sort_order"),
+    categories: () =>
+      supabase.from("work_groups").select(columns.categories).order("name"),
+    projects: () =>
+      supabase.from("projects").select(columns.projects).order("name"),
+    projectOwners: () =>
+      supabase.from("project_owners").select(columns.projectOwners),
     tasks: () =>
-      supabase.from("tasks").select(columns.tasks).order("updated_at", { ascending: false }).range(0, TASK_PAGE_SIZE - 1),
-    subtasks: () => supabase.from("subtasks").select(columns.subtasks).order("sort_order").limit(TASK_PAGE_SIZE),
-    comments: () => supabase.from("task_comments").select(columns.comments).order("created_at").limit(TASK_PAGE_SIZE),
+      supabase
+        .from("tasks")
+        .select(columns.tasks)
+        .order("updated_at", { ascending: false })
+        .range(0, TASK_PAGE_SIZE - 1),
+    subtasks: () =>
+      supabase
+        .from("subtasks")
+        .select(columns.subtasks)
+        .order("sort_order")
+        .limit(TASK_PAGE_SIZE),
+    comments: () =>
+      supabase
+        .from("task_comments")
+        .select(columns.comments)
+        .order("created_at")
+        .limit(TASK_PAGE_SIZE),
     activity: () =>
-      supabase.from("task_activity").select(columns.activity).order("created_at", { ascending: false }).limit(TASK_PAGE_SIZE),
-    attachments: () => supabase.from("task_attachments").select(columns.attachments).order("created_at").limit(TASK_PAGE_SIZE),
+      supabase
+        .from("task_activity")
+        .select(columns.activity)
+        .order("created_at", { ascending: false })
+        .limit(TASK_PAGE_SIZE),
+    attachments: () =>
+      supabase
+        .from("task_attachments")
+        .select(columns.attachments)
+        .order("created_at")
+        .limit(TASK_PAGE_SIZE),
     labels: () => supabase.from("labels").select(columns.labels).order("name"),
-    taskAssignees: () => supabase.from("task_assignees").select(columns.taskAssignees).limit(TASK_PAGE_SIZE),
-    taskLabels: () => supabase.from("task_labels").select(columns.taskLabels).limit(TASK_PAGE_SIZE),
-    taskCategories: () => supabase.from("task_categories").select(columns.taskCategories).limit(TASK_PAGE_SIZE),
+    taskAssignees: () =>
+      supabase
+        .from("task_assignees")
+        .select(columns.taskAssignees)
+        .limit(TASK_PAGE_SIZE),
+    taskLabels: () =>
+      supabase
+        .from("task_labels")
+        .select(columns.taskLabels)
+        .limit(TASK_PAGE_SIZE),
+    taskCategories: () =>
+      supabase
+        .from("task_categories")
+        .select(columns.taskCategories)
+        .limit(TASK_PAGE_SIZE),
   };
 
   const [profileResult, ...results] = await Promise.all([
-    supabase.from("profiles").select(columns.profiles).eq("id", userId).maybeSingle(),
+    supabase
+      .from("profiles")
+      .select(columns.profiles)
+      .eq("id", userId)
+      .maybeSingle(),
     ...collections.map((collection) => queries[collection]()),
   ]);
   if (profileResult.error) {

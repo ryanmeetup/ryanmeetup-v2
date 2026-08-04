@@ -34,7 +34,7 @@ import { TaskBanners } from "./TaskBanners";
 import { ProjectsModal } from "./ProjectsModal";
 import { TasksSidebar } from "./TasksSidebar";
 import { TaskHeaderActions } from "./TaskHeaderActions";
-import { WorkGroupsModal as CategoriesModal } from "./WorkGroupsModal";
+import { CategoriesModal } from "./CategoriesModal";
 import { StatusSettingsModal } from "./TaskApp";
 
 type Permission = "viewer" | "editor" | "manager";
@@ -117,7 +117,11 @@ export function AccessPageClient({
     event.preventDefault();
     if (!name.trim()) return;
     setSaving(true);
-    const { group: data } = await accessMutation<{ group: AccessGroup }>({ action: "group.create", name: name.trim(), description: description.trim() || null });
+    const { group: data } = await accessMutation<{ group: AccessGroup }>({
+      action: "group.create",
+      name: name.trim(),
+      description: description.trim() || null,
+    });
     setSaving(false);
     setGroups((current) =>
       [...current, data].sort((a, b) => a.name.localeCompare(b.name)),
@@ -132,7 +136,12 @@ export function AccessPageClient({
     event.preventDefault();
     if (!editingGroup || !editingName.trim()) return;
     setSaving(true);
-    const { group: updated } = await accessMutation<{ group: AccessGroup }>({ action: "group.update", id: editingGroup.id, name: editingName.trim(), description: editingDescription.trim() || null });
+    const { group: updated } = await accessMutation<{ group: AccessGroup }>({
+      action: "group.update",
+      id: editingGroup.id,
+      name: editingName.trim(),
+      description: editingDescription.trim() || null,
+    });
     setSaving(false);
     setGroups((current) =>
       current.map((group) => (group.id === updated.id ? updated : group)),
@@ -141,7 +150,11 @@ export function AccessPageClient({
   }
   async function addMember(groupId: string, profileId: string) {
     if (!profileId) return;
-    const { member: row } = await accessMutation<{ member: GroupMember }>({ action: "member.set", groupId, profileId });
+    const { member: row } = await accessMutation<{ member: GroupMember }>({
+      action: "member.set",
+      groupId,
+      profileId,
+    });
     setMembers((current) => [
       ...current.filter(
         (item) => item.profile_id !== profileId || item.group_id !== groupId,
@@ -163,7 +176,12 @@ export function AccessPageClient({
     permission: Permission,
   ) {
     if (!projectId) return;
-    const { grant: row } = await accessMutation<{ grant: GroupGrant }>({ action: "grant.set", groupId, projectId, permission });
+    const { grant: row } = await accessMutation<{ grant: GroupGrant }>({
+      action: "grant.set",
+      groupId,
+      projectId,
+      permission,
+    });
     setGroupGrants((current) => [
       ...current.filter(
         (item) => item.group_id !== groupId || item.project_id !== projectId,

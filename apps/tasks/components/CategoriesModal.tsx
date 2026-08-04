@@ -38,7 +38,7 @@ function randomCategoryColor(exclude?: string) {
   return color;
 }
 
-export type WorkGroupsModalProps = {
+export type CategoriesModalProps = {
   open: boolean;
   setOpen: (value: boolean) => void;
   data: WorkspaceData;
@@ -48,7 +48,7 @@ export type WorkGroupsModalProps = {
   createOnly?: boolean;
 };
 
-export function WorkGroupsModal({
+export function CategoriesModal({
   open,
   setOpen,
   data,
@@ -56,7 +56,7 @@ export function WorkGroupsModal({
   demoMode,
   embedded = false,
   createOnly = false,
-}: WorkGroupsModalProps) {
+}: CategoriesModalProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [color, setColor] = useState(() => randomCategoryColor());
@@ -92,7 +92,7 @@ export function WorkGroupsModal({
     });
     const result = (await response.json()) as {
       error?: string;
-      workGroup?: Category;
+      category?: Category;
     };
     if (!response.ok)
       throw new Error(result.error ?? "The category could not be updated.");
@@ -115,7 +115,7 @@ export function WorkGroupsModal({
       if (!demoMode)
         category = (
           await request("POST", { name: nextName, description, color })
-        ).workGroup!;
+        ).category!;
       setData((current) => ({
         ...current,
         categories: [...current.categories, category],

@@ -14,12 +14,7 @@ import {
   Textarea,
   toast,
 } from "@ryanmeetup/ui";
-import {
-  FiArrowDown,
-  FiArrowLeft,
-  FiMenu,
-  FiTrash2,
-} from "react-icons/fi";
+import { FiArrowDown, FiArrowLeft, FiMenu, FiTrash2 } from "react-icons/fi";
 import { accessGroupSlug } from "@/lib/access-groups";
 import { accessMutation } from "@/lib/access-mutations";
 import type { WorkspaceData } from "@/lib/types";
@@ -27,7 +22,7 @@ import { TaskBanners } from "./TaskBanners";
 import { ProjectsModal } from "./ProjectsModal";
 import { TasksSidebar } from "./TasksSidebar";
 import { TaskHeaderActions } from "./TaskHeaderActions";
-import { WorkGroupsModal as CategoriesModal } from "./WorkGroupsModal";
+import { CategoriesModal } from "./CategoriesModal";
 
 type Permission = "viewer" | "editor" | "manager";
 type AccessGroup = {
@@ -83,19 +78,22 @@ export function AccessGroupPageClient({
     [data.projects],
   );
   const availableMembers = data.profiles.filter(
-    (profile) =>
-      !members.some((member) => member.profile_id === profile.id),
+    (profile) => !members.some((member) => member.profile_id === profile.id),
   );
   const availableProjects = data.projects.filter(
-    (project) =>
-      !grants.some((grant) => grant.project_id === project.id),
+    (project) => !grants.some((grant) => grant.project_id === project.id),
   );
 
   async function saveGroup(event: FormEvent) {
     event.preventDefault();
     if (!name.trim()) return;
     setSaving(true);
-    const { group: updated } = await accessMutation<{ group: AccessGroup }>({ action: "group.update", id: group.id, name: name.trim(), description: description.trim() || null });
+    const { group: updated } = await accessMutation<{ group: AccessGroup }>({
+      action: "group.update",
+      id: group.id,
+      name: name.trim(),
+      description: description.trim() || null,
+    });
     setSaving(false);
     setGroup(updated);
     toast.success(`${updated.name} updated.`);
@@ -110,7 +108,11 @@ export function AccessGroupPageClient({
       data.profiles.find((profile) => profile.id === profileId)?.full_name ??
       "Member";
     setMemberId("");
-    const { member: row } = await accessMutation<{ member: GroupMember }>({ action: "member.set", groupId: group.id, profileId });
+    const { member: row } = await accessMutation<{ member: GroupMember }>({
+      action: "member.set",
+      groupId: group.id,
+      profileId,
+    });
     setMembers((current) => [
       ...current.filter((item) => item.profile_id !== profileId),
       row,
@@ -121,7 +123,11 @@ export function AccessGroupPageClient({
     const profileName =
       data.profiles.find((profile) => profile.id === profileId)?.full_name ??
       "Member";
-    await accessMutation({ action: "member.delete", groupId: group.id, profileId });
+    await accessMutation({
+      action: "member.delete",
+      groupId: group.id,
+      profileId,
+    });
     setMembers((current) =>
       current.filter((item) => item.profile_id !== profileId),
     );
@@ -131,7 +137,12 @@ export function AccessGroupPageClient({
     if (!nextProjectId) return;
     const projectName = projectNames.get(nextProjectId) ?? "Project";
     setProjectId("");
-    const { grant: row } = await accessMutation<{ grant: GroupGrant }>({ action: "grant.set", groupId: group.id, projectId: nextProjectId, permission });
+    const { grant: row } = await accessMutation<{ grant: GroupGrant }>({
+      action: "grant.set",
+      groupId: group.id,
+      projectId: nextProjectId,
+      permission,
+    });
     setGrants((current) => [
       ...current.filter((item) => item.project_id !== nextProjectId),
       row,
@@ -142,7 +153,11 @@ export function AccessGroupPageClient({
   }
   async function removeGrant(nextProjectId: string) {
     const projectName = projectNames.get(nextProjectId) ?? "Project";
-    await accessMutation({ action: "grant.delete", groupId: group.id, projectId: nextProjectId });
+    await accessMutation({
+      action: "grant.delete",
+      groupId: group.id,
+      projectId: nextProjectId,
+    });
     setGrants((current) =>
       current.filter((item) => item.project_id !== nextProjectId),
     );
@@ -325,9 +340,7 @@ export function AccessGroupPageClient({
                         label="Permission"
                         variant="field"
                         value={permission}
-                        onChange={(value) =>
-                          setPermission(value as Permission)
-                        }
+                        onChange={(value) => setPermission(value as Permission)}
                         options={[
                           { label: "Viewer", value: "viewer" },
                           { label: "Editor", value: "editor" },

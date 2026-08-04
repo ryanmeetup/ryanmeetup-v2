@@ -6,7 +6,7 @@ import { FiLock, FiMenu } from "react-icons/fi";
 import { ProfileForm } from "./ProfileForm";
 import { PasswordForm } from "./PasswordForm";
 import { ProjectsModal } from "./ProjectsModal";
-import { WorkGroupsModal as CategoriesModal } from "./WorkGroupsModal";
+import { CategoriesModal } from "./CategoriesModal";
 import { TasksSidebar } from "./TasksSidebar";
 import { TaskHeaderActions } from "./TaskHeaderActions";
 import { TaskBanners } from "./TaskBanners";

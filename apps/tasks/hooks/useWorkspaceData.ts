@@ -49,8 +49,7 @@ function restoreWorkspace(
     taskLabels: restored.taskLabels ?? [],
     statuses: (restored.statuses ?? initial.statuses).map((status) => ({
       ...status,
-      is_completed:
-        status.is_completed ?? status.name.toLowerCase() === "done",
+      is_completed: status.is_completed ?? status.name.toLowerCase() === "done",
     })),
     tasks: restored.tasks.map((task) => ({
       ...task,
@@ -63,11 +62,7 @@ function restoreWorkspace(
   };
 }
 
-function replaceByKey<T>(
-  rows: T[],
-  row: T,
-  key: (value: T) => string,
-): T[] {
+function replaceByKey<T>(rows: T[], row: T, key: (value: T) => string): T[] {
   const rowKey = key(row);
   const index = rows.findIndex((value) => key(value) === rowKey);
   if (index === -1) return [...rows, row];
@@ -173,7 +168,9 @@ export function useWorkspaceData(
       const pageSize = dataRef.current.taskPage?.pageSize ?? 100;
       const { data: tasks } = await supabase
         .from("tasks")
-        .select("id,title,description,status_id,work_group_id,project_id,assignee_id,created_by,start_date,due_date,due_time,reminder_at,priority,board_position,completed_at,archived_at,created_at,updated_at")
+        .select(
+          "id,title,description,status_id,project_id,assignee_id,created_by,start_date,due_date,due_time,reminder_at,priority,board_position,completed_at,archived_at,created_at,updated_at",
+        )
         .or(`archived_at.is.null,archived_at.gt.${new Date().toISOString()}`)
         .order("updated_at", { ascending: false })
         .limit(pageSize);
@@ -207,9 +204,7 @@ export function useWorkspaceData(
           if (payload.eventType === "DELETE") {
             return {
               ...current,
-              tasks: removeByKey(current.tasks, row, (item) =>
-                String(item.id),
-              ),
+              tasks: removeByKey(current.tasks, row, (item) => String(item.id)),
             };
           }
           const task = row as Task;
@@ -233,7 +228,7 @@ export function useWorkspaceData(
       },
     );
 
-    const applyTaskChild = <T,>(
+    const applyTaskChild = <T>(
       payload: RealtimePayload,
       field:
         | "subtasks"
@@ -331,10 +326,8 @@ export function useWorkspaceData(
             if (payload.eventType === "DELETE") {
               return {
                 ...current,
-                attachments: removeByKey(
-                  current.attachments,
-                  row,
-                  (item) => String(item.id),
+                attachments: removeByKey(current.attachments, row, (item) =>
+                  String(item.id),
                 ),
               };
             }
@@ -343,7 +336,8 @@ export function useWorkspaceData(
             const existing = current.attachments.find(
               (item) => item.id === attachment.id,
             );
-            if (attachment.file_path) queueAttachmentSigning(attachment.file_path);
+            if (attachment.file_path)
+              queueAttachmentSigning(attachment.file_path);
             return {
               ...current,
               attachments: replaceByKey(

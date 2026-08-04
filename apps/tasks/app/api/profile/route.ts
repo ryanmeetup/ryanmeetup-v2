@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { profileSchema } from "@/lib/api-schemas";
 import { displayNameError, normalizeDisplayName } from "@/lib/display-name";
+import { databaseFailure, logServerFailure } from "@/lib/server/api-response";
 import {
   apiError,
   auditPrivilegedAction,
@@ -21,7 +22,11 @@ export async function PATCH(request: Request) {
     parsed.data.avatarPath !== undefined &&
     parsed.data.avatarPath !== `${context.user.id}/avatar`
   ) {
-    return apiError(400, "INVALID_REQUEST", "The selected avatar is not valid.");
+    return apiError(
+      400,
+      "INVALID_REQUEST",
+      "The selected avatar is not valid.",
+    );
   }
   const avatarUrl = parsed.data.avatarPath
     ? `${context.admin.storage.from("profile-avatars").getPublicUrl(parsed.data.avatarPath).data.publicUrl}?v=${Date.now()}`
@@ -39,20 +44,27 @@ export async function PATCH(request: Request) {
     .select("*")
     .single();
   if (error) {
-    console.error("Profile update failed", { actorId: context.user.id, code: error.code });
-    return apiError(400, "OPERATION_FAILED", "Your profile could not be saved.");
+    return databaseFailure(request, "profile.update", error, {
+      error: "Your profile could not be saved. Try again.",
+    });
   }
   const { error: authError } = await context.supabase.auth.updateUser({
     data: { full_name: name, ...(avatarUrl ? { avatar_url: avatarUrl } : {}) },
   });
-  if (authError) console.error("Profile auth metadata update failed", { actorId: context.user.id });
-  if (!(await auditPrivilegedAction(context.admin, context.user, {
-    action: "profile.update",
-    targetType: "profile",
-    targetId: context.user.id,
-    metadata: { avatarUpdated: Boolean(avatarUrl) },
-  }))) {
-    return apiError(500, "AUDIT_FAILED", "Your profile was saved, but its audit record could not be saved.");
+  if (authError) logServerFailure(request, "profile.auth-metadata", authError);
+  if (
+    !(await auditPrivilegedAction(context.admin, context.user, {
+      action: "profile.update",
+      targetType: "profile",
+      targetId: context.user.id,
+      metadata: { avatarUpdated: Boolean(avatarUrl) },
+    }))
+  ) {
+    return apiError(
+      500,
+      "AUDIT_FAILED",
+      "Your profile was saved, but its audit record could not be saved.",
+    );
   }
   return NextResponse.json({ profile });
 }

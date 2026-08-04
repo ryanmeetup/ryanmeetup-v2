@@ -1,15 +1,32 @@
 "use client";
 
-type ApiErrorBody = { error?: string };
+type ApiErrorBody = { code?: string; error?: string; requestId?: string };
+
+export class ApiMutationError extends Error {
+  constructor(
+    message: string,
+    readonly code = "OPERATION_FAILED",
+    readonly requestId?: string,
+  ) {
+    super(message);
+    this.name = "ApiMutationError";
+  }
+}
 
 export async function mutate<T>(url: string, init: RequestInit): Promise<T> {
   const response = await fetch(url, {
     ...init,
-    headers: init.body instanceof FormData
-      ? init.headers
-      : { "Content-Type": "application/json", ...init.headers },
+    headers:
+      init.body instanceof FormData
+        ? init.headers
+        : { "Content-Type": "application/json", ...init.headers },
   });
   const result = (await response.json()) as T & ApiErrorBody;
-  if (!response.ok) throw new Error(result.error ?? "The operation could not be completed.");
+  if (!response.ok)
+    throw new ApiMutationError(
+      result.error ?? "The operation could not be completed. Try again.",
+      result.code,
+      result.requestId ?? response.headers.get("x-request-id") ?? undefined,
+    );
   return result;
 }

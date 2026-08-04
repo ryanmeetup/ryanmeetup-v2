@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { inviteSchema, userDeleteSchema } from "@/lib/api-schemas";
 import { tasksAppUrl } from "@/lib/app-url";
+import { databaseFailure } from "@/lib/server/api-response";
 import {
   apiError,
   auditPrivilegedAction,
@@ -17,11 +18,20 @@ export async function POST(request: Request) {
 
   const allowed = await consumeInviteLimit(context.admin, context.user.id);
   if (allowed === null)
-    return apiError(503, "SERVICE_UNAVAILABLE", "Invitations are temporarily unavailable.");
+    return apiError(
+      503,
+      "SERVICE_UNAVAILABLE",
+      "Invitations are temporarily unavailable.",
+    );
   if (!allowed)
-    return apiError(429, "RATE_LIMITED", "Too many invitations were sent. Try again later.", {
-      "Retry-After": "3600",
-    });
+    return apiError(
+      429,
+      "RATE_LIMITED",
+      "Too many invitations were sent. Try again later.",
+      {
+        "Retry-After": "3600",
+      },
+    );
 
   const fallbackName = parsed.data.email.split("@")[0];
   const fullName = parsed.data.fullName || fallbackName;
@@ -33,15 +43,24 @@ export async function POST(request: Request) {
     },
   );
   if (error) {
-    console.error("Team invitation failed", { actorId: context.user.id, code: error.code });
-    return apiError(400, "OPERATION_FAILED", "The invitation could not be sent.");
+    return databaseFailure(request, "team.invite", error, {
+      error:
+        "The invitation could not be sent. Check the address and try again.",
+      conflictError: "That person has already been invited.",
+    });
   }
-  if (!(await auditPrivilegedAction(context.admin, context.user, {
-    action: "team.invite",
-    targetType: "profile",
-    targetId: data.user.id,
-  }))) {
-    return apiError(500, "AUDIT_FAILED", "The invitation was sent, but its audit record could not be saved.");
+  if (
+    !(await auditPrivilegedAction(context.admin, context.user, {
+      action: "team.invite",
+      targetType: "profile",
+      targetId: data.user.id,
+    }))
+  ) {
+    return apiError(
+      500,
+      "AUDIT_FAILED",
+      "The invitation was sent, but its audit record could not be saved.",
+    );
   }
   return NextResponse.json({
     profile: {
@@ -61,19 +80,32 @@ export async function DELETE(request: Request) {
   const context = await privilegedContext({ owner: true });
   if ("response" in context) return context.response;
   if (parsed.data.userId === context.user.id)
-    return apiError(400, "INVALID_REQUEST", "You cannot remove your own account.");
+    return apiError(
+      400,
+      "INVALID_REQUEST",
+      "You cannot remove your own account.",
+    );
 
-  const { error } = await context.admin.auth.admin.deleteUser(parsed.data.userId);
+  const { error } = await context.admin.auth.admin.deleteUser(
+    parsed.data.userId,
+  );
   if (error) {
-    console.error("Team member removal failed", { actorId: context.user.id, code: error.code });
-    return apiError(400, "OPERATION_FAILED", "The teammate could not be removed.");
+    return databaseFailure(request, "team.remove", error, {
+      error: "The teammate could not be removed. Try again.",
+    });
   }
-  if (!(await auditPrivilegedAction(context.admin, context.user, {
-    action: "team.remove",
-    targetType: "profile",
-    targetId: parsed.data.userId,
-  }))) {
-    return apiError(500, "AUDIT_FAILED", "The teammate was removed, but its audit record could not be saved.");
+  if (
+    !(await auditPrivilegedAction(context.admin, context.user, {
+      action: "team.remove",
+      targetType: "profile",
+      targetId: parsed.data.userId,
+    }))
+  ) {
+    return apiError(
+      500,
+      "AUDIT_FAILED",
+      "The teammate was removed, but its audit record could not be saved.",
+    );
   }
   return NextResponse.json({ ok: true });
 }

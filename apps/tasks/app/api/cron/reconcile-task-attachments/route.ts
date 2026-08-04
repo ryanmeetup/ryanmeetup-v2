@@ -1,5 +1,6 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { getAdminClient } from "@/lib/server/admin-client";
+import { apiError, databaseFailure } from "@/lib/server/api-response";
 
 export const runtime = "nodejs";
 
@@ -11,22 +12,20 @@ export async function GET(request: Request) {
   )
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
-  const secretKey =
-    process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!secretKey)
-    return NextResponse.json(
-      { error: "Storage reconciliation is unavailable." },
-      { status: 503 },
+  const admin = getAdminClient();
+  if (!admin)
+    return apiError(
+      503,
+      "SERVICE_UNAVAILABLE",
+      "Storage reconciliation is unavailable.",
     );
-
-  const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, secretKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
   const { data, error } = await admin.rpc(
     "list_orphaned_task_attachment_paths",
   );
   if (error)
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return databaseFailure(request, "attachment-reconciliation.list", error, {
+      error: "Storage reconciliation could not be completed.",
+    });
 
   const paths = (data ?? []).map((row: { path: string }) => row.path);
   if (paths.length === 0)
@@ -36,9 +35,13 @@ export async function GET(request: Request) {
     .from("task-attachments")
     .remove(paths);
   if (removeError)
-    return NextResponse.json(
-      { error: removeError.message, inspected: paths.length, removed: 0 },
-      { status: 500 },
+    return databaseFailure(
+      request,
+      "attachment-reconciliation.remove",
+      removeError,
+      {
+        error: "Storage reconciliation could not be completed.",
+      },
     );
 
   return NextResponse.json({ inspected: paths.length, removed: paths.length });

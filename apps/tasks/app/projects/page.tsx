@@ -1,8 +1,10 @@
-import { redirect } from "next/navigation";
 import { ProjectsPageClient } from "@/components/ProjectsPageClient";
 import { demoData } from "@/lib/demo-data";
-import { createClient } from "@/lib/supabase/server";
-import { loadWorkspace, requireQueryData } from "@/lib/workspace-loader";
+import { requireQueryData } from "@/lib/workspace-loader";
+import {
+  isWorkspaceDemo,
+  loadWorkspacePage,
+} from "@/lib/server/workspace-page-loader";
 import {
   ACCESS_PREVIEW_PARAM,
   applyAccessPreview,
@@ -29,23 +31,24 @@ export default async function ProjectsPage({
     typeof query[USER_ACCESS_PREVIEW_PARAM] === "string"
       ? query[USER_ACCESS_PREVIEW_PARAM]
       : undefined;
-  const demoMode =
-    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  const demoMode = isWorkspaceDemo();
   if (demoMode) return <ProjectsPageClient initialData={demoData} demoMode />;
 
-  const supabase = await createClient();
-  const auth = requireQueryData("authenticated user", await supabase.auth.getUser());
-  if (!auth.user) redirect("/login");
-
-  let initialData = await loadWorkspace(supabase, auth.user.id, [
-    "profiles", "projects", "projectOwners", "categories", "statuses",
+  const loaded = await loadWorkspacePage([
+    "profiles",
+    "projects",
+    "projectOwners",
+    "categories",
+    "statuses",
   ]);
-  if (!initialData) redirect("/login?error=profile");
-  if (!initialData.currentProfile.onboarding_completed) redirect("/profile");
+  const { supabase } = loaded;
+  let initialData = loaded.data;
 
   if (requestedGroupPreview || requestedUserPreview) {
-    const isOwner = requireQueryData("owner access", await supabase.rpc("is_app_owner"));
+    const isOwner = requireQueryData(
+      "owner access",
+      await supabase.rpc("is_app_owner"),
+    );
     if (isOwner) {
       const resolvedPreview = await resolveAccessPreview(supabase, {
         groupId: requestedGroupPreview,

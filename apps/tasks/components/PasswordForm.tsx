@@ -64,9 +64,13 @@ export function PasswordForm({
     const { error } = await supabase.auth.updateUser({ password });
     setSaving(false);
     if (error) {
+      const message =
+        error.code === "same_password"
+          ? "Choose a password you have not used before."
+          : "Your password could not be updated. Try again.";
       setHasError(true);
-      setMessage(error.message);
-      toast.error(error.message);
+      setMessage(message);
+      toast.error(message);
       return;
     }
     setCurrentPassword("");

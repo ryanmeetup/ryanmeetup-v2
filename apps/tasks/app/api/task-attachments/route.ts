@@ -1,25 +1,16 @@
-import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { getAdminClient } from "@/lib/server/admin-client";
+import { databaseFailure, logServerFailure } from "@/lib/server/api-response";
+import { authorize } from "@/lib/server/auth";
 import {
   detectAttachmentMimeType,
   MAX_ATTACHMENT_SIZE,
 } from "@/lib/task-attachments";
-import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
-function createStorageAdmin() {
-  const secretKey =
-    process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!secretKey) return null;
-
-  return createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, secretKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
-
 async function removeObject(path: string) {
-  const admin = createStorageAdmin();
+  const admin = getAdminClient();
   if (!admin) return new Error("Attachment Storage cleanup is unavailable.");
 
   const { error } = await admin.storage.from("task-attachments").remove([path]);
@@ -27,13 +18,9 @@ async function removeObject(path: string) {
 }
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const { data: authData } = await supabase.auth.getUser();
-  if (!authData.user)
-    return NextResponse.json(
-      { error: "Authentication required." },
-      { status: 401 },
-    );
+  const authorization = await authorize();
+  if ("response" in authorization) return authorization.response;
+  const { supabase, user } = authorization;
 
   const formData = await request.formData();
   const taskId = formData.get("taskId");
@@ -67,7 +54,7 @@ export async function POST(request: Request) {
       { status: 415 },
     );
 
-  const admin = createStorageAdmin();
+  const admin = getAdminClient();
   if (!admin)
     return NextResponse.json(
       { error: "Attachment uploads are unavailable." },
@@ -81,10 +68,9 @@ export async function POST(request: Request) {
     .from("task-attachments")
     .upload(path, bytes, { contentType: mimeType, upsert: false });
   if (uploaded.error)
-    return NextResponse.json(
-      { error: uploaded.error.message },
-      { status: 400 },
-    );
+    return databaseFailure(request, "attachment.upload", uploaded.error, {
+      error: "The attachment could not be uploaded. Try again.",
+    });
 
   const attachment = {
     id,
@@ -94,7 +80,7 @@ export async function POST(request: Request) {
     file_path: path,
     mime_type: mimeType,
     size_bytes: file.size,
-    created_by: authData.user.id,
+    created_by: user.id,
     created_at: new Date().toISOString(),
   };
   const { error: rowError } = await supabase
@@ -102,14 +88,10 @@ export async function POST(request: Request) {
     .insert(attachment);
   if (rowError) {
     const cleanupError = await removeObject(path);
-    return NextResponse.json(
-      {
-        error: cleanupError
-          ? `${rowError.message} Storage cleanup was deferred.`
-          : rowError.message,
-      },
-      { status: 400 },
-    );
+    return databaseFailure(request, "attachment.record", rowError, {
+      error: "The attachment could not be saved. Try again.",
+      relatedFailures: { storageCleanup: cleanupError },
+    });
   }
 
   const signed = await admin.storage
@@ -121,32 +103,26 @@ export async function POST(request: Request) {
       .delete()
       .eq("id", id);
     const objectCleanupError = await removeObject(path);
-    const cleanupDeferred = Boolean(rowCleanupError || objectCleanupError);
-    return NextResponse.json(
-      {
-        error: cleanupDeferred
-          ? `${signed.error.message} Cleanup was deferred.`
-          : signed.error.message,
+    return databaseFailure(request, "attachment.sign", signed.error, {
+      error: "The attachment was uploaded but could not be opened. Try again.",
+      relatedFailures: {
+        rowCleanup: rowCleanupError,
+        objectCleanup: objectCleanupError,
       },
-      { status: 500 },
-    );
+    });
   }
   const { data: activity, error: activityError } = await supabase
     .from("task_activity")
     .insert({
       task_id: taskId,
-      actor_id: authData.user.id,
+      actor_id: user.id,
       action: `attached “${file.name}”`,
       details: { attachment_id: id },
     })
     .select("*")
     .single();
   if (activityError)
-    console.error("Attachment activity creation failed", {
-      taskId,
-      attachmentId: id,
-      code: activityError.code,
-    });
+    logServerFailure(request, "attachment.activity", activityError);
   return NextResponse.json({
     attachment: { ...attachment, url: signed.data.signedUrl },
     activity,
@@ -154,13 +130,9 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const supabase = await createClient();
-  const { data: authData } = await supabase.auth.getUser();
-  if (!authData.user)
-    return NextResponse.json(
-      { error: "Authentication required." },
-      { status: 401 },
-    );
+  const authorization = await authorize();
+  if ("response" in authorization) return authorization.response;
+  const { supabase } = authorization;
 
   const id = new URL(request.url).searchParams.get("id");
   if (!id)
@@ -175,7 +147,9 @@ export async function DELETE(request: Request) {
     .eq("id", id)
     .maybeSingle();
   if (lookupError)
-    return NextResponse.json({ error: lookupError.message }, { status: 400 });
+    return databaseFailure(request, "attachment.lookup", lookupError, {
+      error: "The attachment could not be found. Refresh and try again.",
+    });
   if (!attachment)
     return NextResponse.json(
       { error: "Attachment not found." },
@@ -197,17 +171,15 @@ export async function DELETE(request: Request) {
     .delete()
     .eq("id", id);
   if (rowError)
-    return NextResponse.json({ error: rowError.message }, { status: 403 });
+    return databaseFailure(request, "attachment.delete", rowError, {
+      error: "The attachment could not be removed. Try again.",
+    });
 
   if (!attachment.file_path) return NextResponse.json({ deleted: true });
 
   const cleanupError = await removeObject(attachment.file_path);
   if (cleanupError) {
-    console.error("Task attachment Storage cleanup deferred", {
-      attachmentId: id,
-      path: attachment.file_path,
-      error: cleanupError.message,
-    });
+    logServerFailure(request, "attachment.cleanup", cleanupError);
   }
 
   return NextResponse.json({

@@ -1,13 +1,12 @@
 # Tasks Access Control Specification
 
-Status: Draft for review
-Implementation status: Group-only model implemented
-Last updated: August 3, 2026
+Status: Implemented
+Implementation status: Group-only, fail-closed model implemented
+Last updated: August 4, 2026
 
-## Implemented model override
+## Implemented model
 
-The implemented authorization model is group-only for regular members. This
-supersedes the direct-user-grant portions of the original proposal below:
+The authorization model is group-only for regular members:
 
 - app owners retain unrestricted workspace access;
 - regular members receive project access only through access-group membership;
@@ -18,6 +17,27 @@ supersedes the direct-user-grant portions of the original proposal below:
 - former direct-grant records are retained in a locked legacy table only for
   rollback and do not contribute to effective permissions.
 
+## Security invariants
+
+These invariants are mandatory. A schema migration, policy, helper function,
+API route, or rollout procedure must not weaken them:
+
+1. **No implicit grants.** An onboarded regular member has no project access
+   unless a current access-group membership joins to an explicit grant for that
+   project. Being a team member, project creator, task creator, assignee, or a
+   row in legacy `project_owners` or `project_user_grants` data never grants
+   access. Only the `owner` app role is globally authorized.
+2. **No rollout bypass in authorization.** Deployment-readiness checks happen
+   when applying the fail-closed migration. RLS and authorization helpers must
+   never broaden access because grants, owners, attachment paths, or other
+   rollout data are incomplete. Incomplete state must reject the migration or
+   deny the request; it must never grant every member manager access.
+3. **No project without an initial group grant.** Project creation and its
+   initial group grants are one atomic transaction. The database rejects and
+   rolls back creation when the creator belongs to no eligible access group or
+   no initial group grant can be created. Existing projects must all have a
+   reviewed group grant before the fail-closed migration can apply.
+
 ## Purpose
 
 The Tasks app needs authorization boundaries for confidential work. Examples
@@ -25,11 +45,11 @@ include the Ryan documentary, paid projects, national events, chapter work, and
 small volunteer assignments. A user who does not have access to a project must
 not be able to discover that project or any data attached to it.
 
-This document proposes a hybrid authorization model:
+The Tasks app uses this authorization model:
 
 - app owners have unrestricted access to the entire workspace;
 - reusable access groups grant project access to stable teams;
-- direct project grants support individual exceptions and one-off volunteers;
+- regular members receive access only through reusable access groups;
 - project permissions cascade to tasks and all task-related records;
 - Supabase Row Level Security (RLS) is the source of truth.
 
@@ -39,7 +59,7 @@ UI filtering is not considered a security control.
 
 - Keep confidential projects invisible to unauthorized users.
 - Make recurring access easy to administer through groups.
-- Allow an individual to be added without creating a new group.
+- Keep all regular-member access explicit through group membership.
 - Give app owners complete administrative and content access.
 - Support read-only, editing, and project-management permissions.
 - Make effective access understandable and auditable.
@@ -78,21 +98,21 @@ not be able to enumerate every group in the workspace.
 
 ### Project grant
 
-A permission assigned to either an access group or an individual user for one
-project.
+A permission assigned to an access group for one project.
 
 ### Effective permission
 
-The highest permission a user receives from all direct and group grants for a
-project. App owners always receive the highest effective permission.
+The highest permission a user receives from their group grants for a project.
+App owners always receive the highest effective permission.
 
 ### Project creator
 
 The user recorded in `projects.created_by`. Creation history does not itself
 replace an explicit permission grant. When a non-owner is allowed to create a
-project, they must receive a manager grant in the same transaction.
+project. Creation succeeds only when the database can atomically grant the
+creator's groups initial access.
 
-## Proposed roles
+## Roles
 
 ### System roles
 
@@ -127,8 +147,7 @@ If a user receives multiple grants, the highest permission wins.
 | Comment and upload attachments                  |   No   |  Yes   |   Yes   |    Yes    |
 | Delete task content                             |   No   |  Yes   |   Yes   |    Yes    |
 | Rename or archive the project                   |   No   |   No   |   Yes   |    Yes    |
-| Manage direct grants for that project           |   No   |   No   |   Yes   |    Yes    |
-| Attach an existing access group to that project |   No   |   No   |   Yes   |    Yes    |
+| Manage project group grants                     |   No   |   No   |   No    |    Yes    |
 | Change an access group's global membership      |   No   |   No   |   No    |    Yes    |
 | Create, rename, or delete access groups         |   No   |   No   |   No    |    Yes    |
 | Change app owners                               |   No   |   No   |   No    |    Yes    |
@@ -146,41 +165,37 @@ Initial groups may include:
 - `Documentary Team`
 - `Chapter Leads`
 
-One-off volunteers should normally receive a direct project grant. A reusable
-volunteer group should only be created if substantially the same volunteers
-need access to several projects.
+One-off volunteers receive access through a narrowly scoped access group. The
+group may contain one member when an individual exception is required.
 
 `Core Team` must not imply automatic access to every project. Most projects can
 grant access to that group, while a sensitive project such as the documentary
-can grant access only to `Documentary Team` and selected individuals.
+can grant access only to `Documentary Team`.
 
 Example:
 
-| Project            | Core Team | Documentary Team | Chapter Leads | Direct users                |
-| ------------------ | --------- | ---------------- | ------------- | --------------------------- |
-| National meetup    | Editor    | —                | Viewer        | —                           |
-| Ryan documentary   | —         | Editor           | —             | Producer: manager           |
-| Chapter operations | Viewer    | —                | Editor        | —                           |
-| Volunteer outreach | Manager   | —                | —             | Selected volunteers: editor |
+| Project            | Core Team | Documentary Team | Chapter Leads | Volunteer Team |
+| ------------------ | --------- | ---------------- | ------------- | -------------- |
+| National meetup    | Editor    | —                | Viewer        | —              |
+| Ryan documentary   | —         | Editor           | —             | —              |
+| Chapter operations | Viewer    | —                | Editor        | —              |
+| Volunteer outreach | Manager   | —                | —             | Editor         |
 
 ## Authorization rules
 
 1. An app owner is authorized for every application action.
-2. A regular user must have a direct or group grant for the project.
+2. A regular user must belong to a group with an explicit grant for the project.
 3. When several grants apply, the highest project permission wins.
 4. Grants are additive in version one; there are no explicit deny rules.
-5. A project manager may manage that project's grants but may not edit the
-   underlying membership of an access group.
-6. A project manager may only grant access to users and groups they are allowed
-   to discover through the management UI and RLS policies.
-7. A user may not assign a task to, move a task into, or reference a project
+5. Only app owners may manage project grants or access-group membership.
+6. A user may not assign a task to, move a task into, or reference a project
    they cannot access.
-8. A user may not assign a task to a person who cannot access its project.
-9. Removing the last source of access takes effect immediately.
-10. Archiving a project does not change its access rules.
-11. A project creator receives a manager grant atomically if they are not an
-    app owner.
-12. Category and label membership never grants project access.
+7. A user may not assign a task to a person who cannot access its project.
+8. Removing the last source of access takes effect immediately.
+9. Archiving a project does not change its access rules.
+10. Project creation atomically grants viewer access to every eligible group of
+    the creator and fails if no such group grant can be established.
+11. Category and label membership never grants project access.
 
 ## Projectless tasks
 
@@ -190,9 +205,7 @@ owner's access preview. Because there is no project grant to confer editor
 access, every onboarded member may manage these shared tasks. Project-backed
 tasks continue to require their normal project permissions.
 
-## Proposed database model
-
-Names are provisional and can change during review.
+## Database model
 
 ### Enum types
 
@@ -249,19 +262,6 @@ project_group_grants
   primary key (project_id, group_id)
 ```
 
-### Direct project grants
-
-```text
-project_user_grants
-  project_id uuid -> projects.id on delete cascade
-  profile_id uuid -> profiles.id on delete cascade
-  permission project_permission
-  granted_by uuid -> profiles.id
-  created_at timestamptz
-  updated_at timestamptz
-  primary key (project_id, profile_id)
-```
-
 ### Audit events
 
 ```text
@@ -282,9 +282,12 @@ are preferred over client-written audit records.
 
 ### Existing `project_owners`
 
-The current `project_owners` table records owners but does not enforce access.
-It should be migrated into `project_user_grants` with `manager` permission and
-then retired. Keeping both concepts would make effective access ambiguous.
+The `project_owners` table records display metadata but does not enforce
+access. Its rows grant no permission. The table is retained for compatibility
+until clients no longer require it, then it can be retired.
+
+The locked `project_user_grants` table likewise contains legacy rollback data
+only. Authorization functions and policies must not read it.
 
 ## Central authorization functions
 
@@ -306,10 +309,9 @@ can_edit_task(task_id uuid) -> boolean
 The permission function should:
 
 1. return `manager` for an app owner;
-2. collect the user's direct grant;
-3. collect grants inherited from access-group memberships;
-4. return the highest permission found;
-5. return null when no grant applies.
+2. collect grants inherited from access-group memberships;
+3. return the highest permission found;
+4. return null when no group grant applies.
 
 Indexes are required on every user, group, project, and task foreign key used
 by these checks.
@@ -321,11 +323,11 @@ by these checks.
 - Only users who can view a project may select it.
 - Only project managers and app owners may update project settings.
 - Only app owners may hard-delete a project in version one.
-- Project managers may manage grants for their project.
+- Only app owners may manage project grants.
 - Only app owners may create, rename, delete, or change membership in access
   groups.
-- Regular users should see only group metadata required to explain their own
-  access or manage a project they control.
+- Access-group names, memberships, grants, and audit records are owner-only
+  metadata.
 
 ### Tasks
 
@@ -395,7 +397,8 @@ Implementation requirements:
 - When service credentials are genuinely required, authorize the precise
   operation before creating or using the service client.
 - Group administration and app-role changes require `is_app_owner()`.
-- Project updates and grant changes require `can_manage_project(project_id)`.
+- Project updates require `can_manage_project(project_id)`; grant changes
+  additionally require `is_app_owner()`.
 - Validate that referenced users and groups exist and are eligible.
 - Never trust a role, user ID, group ID, or permission supplied by the browser.
 - Return `404` rather than confirming the existence of a hidden project where
@@ -447,10 +450,9 @@ Add an Access area containing:
 
 ### Project access settings
 
-Project managers and owners can open an Access panel for a project containing:
+App owners can open an Access panel for a project containing:
 
 - group grants;
-- direct user grants;
 - the permission attached to each grant;
 - each user's effective access and its source, such as
   `Editor through Core Team`;
@@ -458,8 +460,7 @@ Project managers and owners can open an Access panel for a project containing:
 - warnings when an existing assignee would lose access;
 - owner access shown as `App owner`, without requiring a project grant.
 
-Project managers may attach or remove discoverable groups for their project,
-but only app owners can alter a group's global membership.
+Only app owners may attach or remove groups or alter a group's membership.
 
 ### Board and navigation behavior
 
@@ -508,14 +509,16 @@ work unexpectedly.
 4. Promote the selected initial app owner.
 5. Create initial access groups and memberships from an explicitly reviewed
    mapping.
-6. Convert `project_owners` rows into direct `manager` grants.
-7. Add grants for every existing project. Do not infer confidential membership
-   from task assignment alone.
+6. Treat `project_owners` as non-authoritative compatibility metadata; do not
+   convert it into effective access.
+7. Add group grants for every existing project. Do not infer confidential
+   membership from task assignment alone.
 8. Create `General / Shared`, grant its intended groups, and migrate projectless
    tasks into it.
 9. Update task attachment paths or establish a secure lookup for legacy paths.
-10. Replace broad RLS policies with the centralized authorization policies in
-    one reviewed migration.
+10. Replace broad RLS policies with centralized authorization policies in one
+    reviewed, fail-closed migration. The migration must reject incomplete
+    rollout data instead of exposing a runtime bypass.
 11. Update server routes so service-role access cannot bypass authorization.
 12. Update initial page queries, realtime refreshes, client state, and UI.
 13. Verify access using multiple real test accounts before enabling management
@@ -551,6 +554,11 @@ viewer, unrelated member, and user who receives overlapping grants.
 - An inaccessible user cannot be assigned to a restricted task.
 - The last app owner cannot be demoted or deleted.
 - Direct database requests and API requests enforce the same permissions.
+- A regular member with no applicable group grant receives no project access,
+  including while rollout data is incomplete.
+- No authorization helper or RLS policy contains a rollout/readiness fallback.
+- Creating a project for a creator with no eligible group is rejected and
+  leaves no project row behind.
 
 ### Required UI cases
 
@@ -574,11 +582,10 @@ viewer, unrelated member, and user who receives overlapping grants.
 - After release, review audit events and denied-request logs for unexpected
   access failures without logging sensitive record contents.
 
-## Decisions already made
+## Implemented decisions
 
-- Use a hybrid of reusable groups and direct user grants.
-- Use groups as the primary mechanism for stable teams.
-- Use direct grants for exceptions and one-off participants.
+- Use reusable groups as the only project-grant mechanism for regular members.
+- Represent individual exceptions with narrowly scoped groups.
 - Support `viewer`, `editor`, and `manager` project permissions.
 - Add a global `owner` system role.
 - App owners have unrestricted application access.
@@ -587,40 +594,37 @@ viewer, unrelated member, and user who receives overlapping grants.
 - App owners may manage all permissions in the app UI.
 - Support multiple app owners, with protection against removing the last one.
 - RLS, not client filtering, is the enforcement boundary.
-- New projects automatically grant viewer access to every access group the
-  creator belongs to at creation time.
+- New projects atomically grant viewer access to every eligible access group
+  the creator belongs to; creation fails when no initial grant can be created.
+- Authorization is always fail-closed. Rollout readiness never changes a
+  request-time permission result.
 
 ## Open decisions for review
 
-These decisions should be resolved before implementation:
+These product decisions remain open:
 
-1. **Project-manager grants:** may managers add both groups and direct users, or
-   should all access changes be owner-only? Recommendation: managers may manage
-   grants for their project but not group membership.
-2. **Editor deletion:** may editors delete tasks and attachments, or only create
+1. **Editor deletion:** may editors delete tasks and attachments, or only create
    and edit them? Recommendation: allow deletion initially and rely on audit and
    confirmation behavior.
-3. **Comments for viewers:** strictly read-only, or may viewers comment?
+2. **Comments for viewers:** strictly read-only, or may viewers comment?
    Recommendation: strictly read-only; grant editor when participation is
    expected.
-4. **Initial groups and memberships:** exact users for Core Team, Documentary
+3. **Initial groups and memberships:** exact users for Core Team, Documentary
    Team, and Chapter Leads must be reviewed before migration.
-5. **Existing project grants:** every existing project needs an explicit access
+4. **Existing project grants:** every existing project needs an explicit access
    mapping before restrictive RLS is enabled.
-7. **General / Shared access:** decide which groups should see tasks currently
+5. **General / Shared access:** decide which groups should see tasks currently
    lacking a project.
-8. **Owner user management:** determine whether owners may deactivate accounts
+6. **Owner user management:** determine whether owners may deactivate accounts
    in version one or only change application roles.
-9. **Audit visibility:** owner-only or also visible to the relevant project
-   managers? Recommendation: owner-only initially.
-10. **Hard deletion:** decide whether the first version should support permanent
+7. **Hard deletion:** decide whether the first version should support permanent
     deletion of projects/groups or archive them only. Recommendation: archive
     projects; allow group deletion only when it has no active grants.
 
 ## Implementation phases
 
-No phase should begin until this specification and its open decisions are
-approved.
+The phases below describe the implemented rollout sequence and remaining
+validation work.
 
 ### Phase 1: Authorization foundation
 

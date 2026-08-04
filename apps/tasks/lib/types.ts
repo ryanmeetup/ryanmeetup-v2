@@ -27,9 +27,6 @@ export type Category = {
   created_by: string;
 };
 
-/** Kept for the legacy settings component while categories replace work groups. */
-export type WorkGroup = Category;
-
 export type Project = {
   id: string;
   name: string;
@@ -50,7 +47,6 @@ export type Task = {
   title: string;
   description: string | null;
   status_id: string;
-  work_group_id: string | null;
   project_id: string | null;
   assignee_id: string | null;
   created_by: string;
@@ -126,7 +122,6 @@ export type AccessPreview = {
 export type WorkspaceData = {
   tasks: Task[];
   statuses: Status[];
-  workGroups: WorkGroup[];
   categories: Category[];
   projects: Project[];
   profiles: Profile[];

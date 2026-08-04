@@ -1,24 +1,59 @@
 "use client";
 
-import { useState, type Dispatch, type FormEvent, type SetStateAction } from "react";
-import { Button, ConfirmationDialog, IconButton, Input, Modal, Pill, PromptDialog, toast } from "@ryanmeetup/ui";
-import { FiCheck, FiChevronDown, FiEdit2, FiMoreHorizontal, FiRefreshCw, FiTrash2, FiX } from "react-icons/fi";
+import {
+  useState,
+  type Dispatch,
+  type FormEvent,
+  type SetStateAction,
+} from "react";
+import {
+  Button,
+  ConfirmationDialog,
+  IconButton,
+  Input,
+  Modal,
+  Pill,
+  PromptDialog,
+  toast,
+} from "@ryanmeetup/ui";
+import {
+  FiCheck,
+  FiChevronDown,
+  FiEdit2,
+  FiMoreHorizontal,
+  FiRefreshCw,
+  FiTrash2,
+  FiX,
+} from "react-icons/fi";
 import { mutate } from "@/lib/mutation-client";
 import type { WorkspaceData } from "@/lib/types";
 
-const workGroupColors = [
-  "#dc2626", "#ea580c", "#d97706", "#65a30d", "#059669", "#0891b2",
-  "#2563eb", "#4f46e5", "#7c3aed", "#c026d3", "#db2777", "#475569",
+const categoryColors = [
+  "#dc2626",
+  "#ea580c",
+  "#d97706",
+  "#65a30d",
+  "#059669",
+  "#0891b2",
+  "#2563eb",
+  "#4f46e5",
+  "#7c3aed",
+  "#c026d3",
+  "#db2777",
+  "#475569",
 ];
 const archiveDelayMs = 14 * 24 * 60 * 60 * 1000;
 
 function mutationErrorMessage(error: unknown, fallback: string) {
-  return typeof error === "object" && error !== null && "message" in error && typeof error.message === "string"
+  return typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof error.message === "string"
     ? error.message
     : fallback;
 }
 
-export function WorkGroupsModalLegacy({
+export function CategoriesModalLegacy({
   open,
   setOpen,
   data,
@@ -45,11 +80,11 @@ export function WorkGroupsModalLegacy({
   const [groupActionPending, setGroupActionPending] = useState(false);
 
   function randomizeColor() {
-    const choices = workGroupColors.filter((option) => option !== color);
+    const choices = categoryColors.filter((option) => option !== color);
     setColor(choices[Math.floor(Math.random() * choices.length)]);
   }
 
-  async function addWorkGroup(event: FormEvent<HTMLFormElement>) {
+  async function addCategory(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const groupName = name.trim();
     if (!groupName) return;
@@ -63,8 +98,18 @@ export function WorkGroupsModalLegacy({
     };
     if (!demoMode) {
       try {
-        const result = await mutate<{ workGroup: typeof item }>("/api/work-groups", { method: "POST", body: JSON.stringify({ name: item.name, description: item.description, color: item.color }) });
-        item = result.workGroup;
+        const result = await mutate<{ category: typeof item }>(
+          "/api/categories",
+          {
+            method: "POST",
+            body: JSON.stringify({
+              name: item.name,
+              description: item.description,
+              color: item.color,
+            }),
+          },
+        );
+        item = result.category;
       } catch (error) {
         setMessage(mutationErrorMessage(error, "Category creation failed."));
         return;
@@ -72,13 +117,13 @@ export function WorkGroupsModalLegacy({
     }
     setData((current) => ({
       ...current,
-      workGroups: [...current.workGroups, item],
+      categories: [...current.categories, item],
     }));
     setName("");
-    setMessage("Work group created.");
+    setMessage("Category created.");
   }
 
-  async function renameWorkGroup(
+  async function renameCategory(
     id: string,
     currentName: string,
     nextName: string,
@@ -87,8 +132,16 @@ export function WorkGroupsModalLegacy({
     setGroupActionPending(true);
     if (!demoMode) {
       try {
-        const existing = data.workGroups.find((item) => item.id === id);
-        await mutate("/api/work-groups", { method: "PATCH", body: JSON.stringify({ id, name: nextName, description: existing?.description ?? null, color: existing?.color ?? "#475569" }) });
+        const existing = data.categories.find((item) => item.id === id);
+        await mutate("/api/categories", {
+          method: "PATCH",
+          body: JSON.stringify({
+            id,
+            name: nextName,
+            description: existing?.description ?? null,
+            color: existing?.color ?? "#475569",
+          }),
+        });
       } catch (error) {
         setMessage(mutationErrorMessage(error, "Category update failed."));
         setGroupActionPending(false);
@@ -97,7 +150,7 @@ export function WorkGroupsModalLegacy({
     }
     setData((current) => ({
       ...current,
-      workGroups: current.workGroups.map((item) =>
+      categories: current.categories.map((item) =>
         item.id === id ? { ...item, name: nextName } : item,
       ),
     }));
@@ -105,11 +158,14 @@ export function WorkGroupsModalLegacy({
     setGroupActionPending(false);
   }
 
-  async function deleteWorkGroup(id: string) {
+  async function deleteCategory(id: string) {
     setGroupActionPending(true);
     if (!demoMode) {
       try {
-        await mutate("/api/work-groups", { method: "DELETE", body: JSON.stringify({ id }) });
+        await mutate("/api/categories", {
+          method: "DELETE",
+          body: JSON.stringify({ id }),
+        });
       } catch (error) {
         setMessage(mutationErrorMessage(error, "Category deletion failed."));
         setGroupActionPending(false);
@@ -118,9 +174,9 @@ export function WorkGroupsModalLegacy({
     }
     setData((current) => ({
       ...current,
-      workGroups: current.workGroups.filter((item) => item.id !== id),
-      tasks: current.tasks.map((task) =>
-        task.work_group_id === id ? { ...task, work_group_id: null } : task,
+      categories: current.categories.filter((item) => item.id !== id),
+      taskCategories: current.taskCategories.filter(
+        (item) => item.category_id !== id,
       ),
     }));
     setGroupToDelete(null);
@@ -132,12 +188,12 @@ export function WorkGroupsModalLegacy({
       <Modal
         open={open}
         setIsOpen={setOpen}
-        title="Work groups"
+        title="Categories"
         hideActions
         size="xl"
       >
         <div className="space-y-3">
-          {data.workGroups.map((item) => (
+          {data.categories.map((item) => (
             <div
               key={item.id}
               className="flex items-center gap-3 rounded-xl border border-black/10 p-3 dark:border-white/10"
@@ -167,11 +223,11 @@ export function WorkGroupsModalLegacy({
         </div>
         <form
           className="mt-5 grid gap-3 border-t border-black/10 pt-5 dark:border-white/10 lg:grid-cols-[minmax(16rem,1fr)_auto_auto_auto]"
-          onSubmit={addWorkGroup}
+          onSubmit={addCategory}
         >
           <Input
-            label="New work group"
-            name="work-group-name"
+            label="New category"
+            name="category-name"
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder="Name"
@@ -203,7 +259,7 @@ export function WorkGroupsModalLegacy({
               Cancel
             </Button>
             <Button type="submit" variant="action">
-              Create group
+              Create category
             </Button>
           </div>
           {message && (
@@ -221,17 +277,13 @@ export function WorkGroupsModalLegacy({
         setOpen={(nextOpen) => {
           if (!nextOpen) setGroupToRename(null);
         }}
-        title="Rename work group"
-        label="Work group name"
+        title="Rename category"
+        label="Category name"
         initialValue={groupToRename?.name}
         pending={groupActionPending}
         onConfirm={(nextName) => {
           if (groupToRename)
-            void renameWorkGroup(
-              groupToRename.id,
-              groupToRename.name,
-              nextName,
-            );
+            void renameCategory(groupToRename.id, groupToRename.name, nextName);
         }}
       />
       <ConfirmationDialog
@@ -239,14 +291,14 @@ export function WorkGroupsModalLegacy({
         setOpen={(nextOpen) => {
           if (!nextOpen) setGroupToDelete(null);
         }}
-        title="Delete work group?"
-        description="Tasks in this work group will become ungrouped."
-        confirmLabel="Delete work group"
+        title="Delete category?"
+        description="This category will be removed from every task using it."
+        confirmLabel="Delete category"
         pendingLabel="Deleting..."
         pending={groupActionPending}
         destructive
         onConfirm={() => {
-          if (groupToDelete) void deleteWorkGroup(groupToDelete.id);
+          if (groupToDelete) void deleteCategory(groupToDelete.id);
         }}
       />
     </>

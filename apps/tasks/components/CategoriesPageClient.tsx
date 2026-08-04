@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { IconButton } from "@ryanmeetup/ui";
 import { FiMenu } from "react-icons/fi";
-import { WorkGroupsModal as CategoriesModal } from "./WorkGroupsModal";
+import { CategoriesModal } from "./CategoriesModal";
 import { ProjectsModal } from "./ProjectsModal";
 import { TaskHeaderActions } from "./TaskHeaderActions";
 import { TaskBanners } from "./TaskBanners";
