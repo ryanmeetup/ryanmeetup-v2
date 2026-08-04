@@ -18,11 +18,8 @@ export async function loadWorkspacePage(
   }: { owner?: boolean; requireOnboarding?: boolean } = {},
 ) {
   const supabase = await createClient();
-  const auth = requireQueryData(
-    "authenticated user",
-    await supabase.auth.getUser(),
-  );
-  if (!auth.user) redirect("/login");
+  const { data: auth, error: authError } = await supabase.auth.getUser();
+  if (authError || !auth.user) redirect("/login");
   if (owner) {
     const isOwner = requireQueryData(
       "owner access",
