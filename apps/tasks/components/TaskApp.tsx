@@ -761,120 +761,40 @@ export function TaskApp({
         ],
       }));
     } else {
-      const supabase = createClient();
       const { category_ids: categoryIds, ...taskDraft } = draft;
-      if (editing) {
-        const { error } = await supabase
-          .from("tasks")
-          .update({ ...taskDraft, title: draft.title.trim() })
-          .eq("id", editing.id);
-        if (error) {
-          setTaskMessage(error.message);
-          toast.error(error.message);
-          setTaskSaving(false);
-          return;
-        }
-        if (draft.assignee_id)
-          await supabase.from("task_assignees").upsert({
-            task_id: editing.id,
-            profile_id: draft.assignee_id,
-          });
-        setData((current) => ({
-          ...current,
-          tasks: current.tasks.map((task) =>
-            task.id === editing.id
-              ? {
-                  ...task,
-                  ...taskDraft,
-                  ...completionLifecycle(
-                    draft.status_id,
-                    current.statuses,
-                    task,
-                  ),
-                  title: draft.title.trim(),
-                  updated_at: now,
-                }
-              : task,
-          ),
-        }));
-        await supabase
-          .from("task_categories")
-          .delete()
-          .eq("task_id", editing.id);
-        if (categoryIds.length > 0)
-          await supabase.from("task_categories").insert(
-            categoryIds.map((category_id) => ({
-              task_id: editing.id,
-              category_id,
-            })),
-          );
-        setData((current) => ({
-          ...current,
-          taskCategories: [
-            ...current.taskCategories.filter(
-              (item) => item.task_id !== editing.id,
-            ),
-            ...categoryIds.map((category_id) => ({
-              task_id: editing.id,
-              category_id,
-            })),
-          ],
-        }));
-      } else {
-        const coreDraft = {
-          title: draft.title,
-          description: draft.description,
-          status_id: draft.status_id,
-          work_group_id: draft.work_group_id,
-          project_id: draft.project_id,
-          assignee_id: draft.assignee_id,
-          start_date: draft.start_date,
-          due_date: draft.due_date,
-          priority: draft.priority,
-        };
-        const { data: saved, error } = await supabase
-          .from("tasks")
-          .insert({
-            ...coreDraft,
-            title: draft.title.trim(),
-            created_by: data.currentProfile.id,
-          })
-          .select("*")
-          .single();
-        if (error || !saved) {
-          const errorMessage =
-            error?.message ?? "The task could not be created.";
-          setTaskMessage(errorMessage);
-          toast.error(errorMessage);
-          setTaskSaving(false);
-          return;
-        }
-        const task: Task = {
-          ...saved,
-          due_time: saved.due_time ?? null,
-          reminder_at: saved.reminder_at ?? null,
-        };
-        setData((current) => ({
-          ...current,
-          tasks: [task, ...current.tasks.filter((item) => item.id !== task.id)],
-        }));
-        if (task.assignee_id)
-          await supabase.from("task_assignees").upsert({
-            task_id: task.id,
-            profile_id: task.assignee_id,
-          });
-        if (categoryIds.length > 0) {
-          const taskCategories = categoryIds.map((category_id) => ({
-            task_id: task.id,
-            category_id,
-          }));
-          await supabase.from("task_categories").insert(taskCategories);
-          setData((current) => ({
-            ...current,
-            taskCategories: [...current.taskCategories, ...taskCategories],
-          }));
-        }
+      const response = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: editing?.id, task: taskDraft, categoryIds }),
+      });
+      const result = (await response.json()) as {
+        task?: Task;
+        assignees?: WorkspaceData["taskAssignees"];
+        categories?: WorkspaceData["taskCategories"];
+        error?: string;
+      };
+      if (!response.ok || !result.task) {
+        const message = result.error ?? "The task could not be saved.";
+        setTaskMessage(message);
+        toast.error(message);
+        setTaskSaving(false);
+        return;
       }
+      const saved = result.task;
+      setData((current) => ({
+        ...current,
+        tasks: editing
+          ? current.tasks.map((item) => (item.id === saved.id ? saved : item))
+          : [saved, ...current.tasks.filter((item) => item.id !== saved.id)],
+        taskAssignees: [
+          ...current.taskAssignees.filter((item) => item.task_id !== saved.id),
+          ...(result.assignees ?? []),
+        ],
+        taskCategories: [
+          ...current.taskCategories.filter((item) => item.task_id !== saved.id),
+          ...(result.categories ?? []),
+        ],
+      }));
     }
     setTaskSaving(false);
     if (!editing && createAnother) {

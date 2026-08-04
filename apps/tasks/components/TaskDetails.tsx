@@ -26,6 +26,7 @@ import {
   FiTrash2,
 } from "react-icons/fi";
 import { createClient } from "@/lib/supabase/client";
+import { MAX_ATTACHMENT_SIZE } from "@/lib/task-attachments";
 import type {
   Subtask,
   Task,
@@ -44,7 +45,6 @@ type TaskDetailsProps = {
 };
 
 const now = () => new Date().toISOString();
-const maxAttachmentSize = 10 * 1024 * 1024;
 
 export function TaskDetails({
   className,
@@ -57,6 +57,7 @@ export function TaskDetails({
   const [comment, setComment] = useState("");
   const [draggingFiles, setDraggingFiles] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState(false);
+  const [detailSaving, setDetailSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const subtasks = data.subtasks.filter((item) => item.task_id === task.id);
   const attachments = data.attachments.filter(
@@ -90,7 +91,18 @@ export function TaskDetails({
       ...current,
       activity: [activity, ...current.activity],
     }));
-    if (!demoMode) await createClient().from("task_activity").insert(activity);
+    if (!demoMode) {
+      const { error } = await createClient()
+        .from("task_activity")
+        .insert(activity);
+      if (error) {
+        setData((current) => ({
+          ...current,
+          activity: current.activity.filter((item) => item.id !== activity.id),
+        }));
+        toast.error(`Activity could not be recorded: ${error.message}`);
+      }
+    }
   }
 
   async function addSubtask() {
@@ -110,8 +122,58 @@ export function TaskDetails({
       subtasks: [...current.subtasks, item],
     }));
     setSubtaskTitle("");
-    if (!demoMode) await createClient().from("subtasks").insert(item);
-    await recordActivity(`added checklist item “${title}”`);
+    if (demoMode) {
+      await recordActivity(`added checklist item “${title}”`);
+      return;
+    }
+    setDetailSaving(true);
+    try {
+      const response = await fetch("/api/task-details", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "subtask",
+          id: item.id,
+          taskId: task.id,
+          value: title,
+          sortOrder: item.sort_order,
+        }),
+      });
+      const result = (await response.json()) as {
+        subtask?: Subtask;
+        activity?: TaskActivity;
+        error?: string;
+      };
+      if (!response.ok || !result.subtask || !result.activity)
+        throw new Error(
+          result.error ?? "The checklist item could not be added.",
+        );
+      setData((current) => ({
+        ...current,
+        subtasks: current.subtasks.map((entry) =>
+          entry.id === item.id ? result.subtask! : entry,
+        ),
+        activity: [
+          result.activity!,
+          ...current.activity.filter(
+            (entry) => entry.id !== result.activity!.id,
+          ),
+        ],
+      }));
+    } catch (error) {
+      setData((current) => ({
+        ...current,
+        subtasks: current.subtasks.filter((entry) => entry.id !== item.id),
+      }));
+      setSubtaskTitle(title);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "The checklist item could not be added.",
+      );
+    } finally {
+      setDetailSaving(false);
+    }
   }
 
   async function toggleSubtask(item: Subtask) {
@@ -124,10 +186,39 @@ export function TaskDetails({
       ),
     }));
     if (!demoMode)
-      await createClient()
-        .from("subtasks")
-        .update({ is_completed: !item.is_completed })
-        .eq("id", item.id);
+      try {
+        const response = await fetch("/api/task-details", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: item.id, completed: !item.is_completed }),
+        });
+        const result = (await response.json()) as {
+          subtask?: Subtask;
+          error?: string;
+        };
+        if (!response.ok || !result.subtask)
+          throw new Error(
+            result.error ?? "The checklist item could not be updated.",
+          );
+        setData((current) => ({
+          ...current,
+          subtasks: current.subtasks.map((entry) =>
+            entry.id === item.id ? result.subtask! : entry,
+          ),
+        }));
+      } catch (error) {
+        setData((current) => ({
+          ...current,
+          subtasks: current.subtasks.map((entry) =>
+            entry.id === item.id ? item : entry,
+          ),
+        }));
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "The checklist item could not be updated.",
+        );
+      }
   }
 
   async function removeSubtask(item: Subtask) {
@@ -136,7 +227,27 @@ export function TaskDetails({
       subtasks: current.subtasks.filter((entry) => entry.id !== item.id),
     }));
     if (!demoMode)
-      await createClient().from("subtasks").delete().eq("id", item.id);
+      try {
+        const response = await fetch(
+          `/api/task-details?id=${encodeURIComponent(item.id)}`,
+          { method: "DELETE" },
+        );
+        const result = (await response.json()) as { error?: string };
+        if (!response.ok)
+          throw new Error(
+            result.error ?? "The checklist item could not be removed.",
+          );
+      } catch (error) {
+        setData((current) => ({
+          ...current,
+          subtasks: [...current.subtasks, item],
+        }));
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "The checklist item could not be removed.",
+        );
+      }
   }
 
   async function addComment() {
@@ -154,7 +265,42 @@ export function TaskDetails({
       comments: [...current.comments, item],
     }));
     setComment("");
-    if (!demoMode) await createClient().from("task_comments").insert(item);
+    if (!demoMode)
+      try {
+        const response = await fetch("/api/task-details", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            kind: "comment",
+            id: item.id,
+            taskId: task.id,
+            value: body,
+          }),
+        });
+        const result = (await response.json()) as {
+          comment?: TaskComment;
+          error?: string;
+        };
+        if (!response.ok || !result.comment)
+          throw new Error(result.error ?? "The comment could not be added.");
+        setData((current) => ({
+          ...current,
+          comments: current.comments.map((entry) =>
+            entry.id === item.id ? result.comment! : entry,
+          ),
+        }));
+      } catch (error) {
+        setData((current) => ({
+          ...current,
+          comments: current.comments.filter((entry) => entry.id !== item.id),
+        }));
+        setComment(body);
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "The comment could not be added.",
+        );
+      }
   }
 
   async function addAttachment(attachment: TaskAttachment) {
@@ -172,27 +318,33 @@ export function TaskDetails({
   }
 
   async function uploadFile(file: File) {
-    const id = crypto.randomUUID();
-    const path = `${task.id}/${id}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
-    let url = "#";
     if (!demoMode) {
-      const supabase = createClient();
-      const result = await supabase.storage
-        .from("task-attachments")
-        .upload(path, file);
-      if (result.error) throw result.error;
-      const signed = await supabase.storage
-        .from("task-attachments")
-        .createSignedUrl(path, 60 * 60);
-      if (signed.error) throw signed.error;
-      url = signed.data.signedUrl;
+      const formData = new FormData();
+      formData.set("taskId", task.id);
+      formData.set("file", file);
+      const response = await fetch("/api/task-attachments", {
+        method: "POST",
+        body: formData,
+      });
+      const result = (await response.json()) as {
+        attachment?: TaskAttachment;
+        error?: string;
+      };
+      if (!response.ok || !result.attachment)
+        throw new Error(result.error ?? "The upload was rejected.");
+      setData((current) => ({
+        ...current,
+        attachments: [...current.attachments, result.attachment!],
+      }));
+      await recordActivity(`attached “${result.attachment.name}”`);
+      return;
     }
     await addAttachment({
-      id,
+      id: crypto.randomUUID(),
       task_id: task.id,
       name: file.name,
-      url,
-      file_path: demoMode ? null : path,
+      url: "#",
+      file_path: null,
       mime_type: file.type || null,
       size_bytes: file.size,
       created_by: data.currentProfile.id,
@@ -203,7 +355,7 @@ export function TaskDetails({
   async function uploadFiles(files: File[]) {
     if (uploadingFiles || files.length === 0) return;
     const validFiles = files.filter((file) => {
-      if (file.size <= maxAttachmentSize) return true;
+      if (file.size <= MAX_ATTACHMENT_SIZE) return true;
       toast.error(`${file.name} is larger than the 10 MB file limit.`);
       return false;
     });
@@ -235,14 +387,28 @@ export function TaskDetails({
       ...current,
       attachments: current.attachments.filter((entry) => entry.id !== item.id),
     }));
-    if (!demoMode) {
-      const supabase = createClient();
-      if (item.file_path)
-        await supabase.storage
-          .from("task-attachments")
-          .remove([item.file_path]);
-      await supabase.from("task_attachments").delete().eq("id", item.id);
-    }
+    if (!demoMode)
+      try {
+        const response = await fetch(
+          `/api/task-attachments?id=${encodeURIComponent(item.id)}`,
+          { method: "DELETE" },
+        );
+        const result = (await response.json()) as { error?: string };
+        if (!response.ok)
+          throw new Error(
+            result.error ?? "The attachment could not be removed.",
+          );
+      } catch (error) {
+        setData((current) => ({
+          ...current,
+          attachments: [...current.attachments, item],
+        }));
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "The attachment could not be removed.",
+        );
+      }
   }
 
   const completed = subtasks.filter((item) => item.is_completed).length;
@@ -330,6 +496,8 @@ export function TaskDetails({
             variant="action"
             leftIcon={<FiPlus />}
             onClick={() => void addSubtask()}
+            loading={detailSaving}
+            disabled={detailSaving || !subtaskTitle.trim()}
           >
             Add
           </Button>
