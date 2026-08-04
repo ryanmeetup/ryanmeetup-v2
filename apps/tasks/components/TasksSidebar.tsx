@@ -1,25 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import {
-  AnimatedCollapse,
-  Avatar,
-  IconButton,
-  Pill,
-  Tooltip,
-} from "@ryanmeetup/ui";
+import { AnimatedCollapse, IconButton, Pill, Tooltip } from "@ryanmeetup/ui";
 import {
   FiCalendar,
   FiChevronDown,
   FiFolder,
   FiGrid,
   FiList,
-  FiLogOut,
   FiPlus,
   FiUser,
   FiX,
 } from "react-icons/fi";
-import { createClient } from "@/lib/supabase/client";
 import type { WorkspaceData } from "@/lib/types";
 import { useSidebarSections } from "@/hooks/useSidebarSections";
 import { withAccessPreview } from "@/lib/access-preview";
@@ -266,66 +258,7 @@ export function TasksSidebar({
             </AnimatedCollapse>
           </section>
         </div>
-        <div className="shrink-0 space-y-2 border-t border-black/10 pt-4 dark:border-white/10">
-          <div className="flex items-center gap-3 px-2 py-2">
-            {demoMode ? (
-              <div className="flex min-w-0 flex-1 items-center gap-3">
-                <Avatar name={name} src={data.currentProfile.avatar_url} />
-                <ProfileSummary
-                  name={name}
-                  role={data.currentProfile.app_role}
-                  demo
-                />
-              </div>
-            ) : (
-              <Link
-                href="/profile"
-                className="-ml-2 flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-2 transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:hover:bg-white/10 dark:focus-visible:ring-white/40"
-              >
-                <Avatar name={name} src={data.currentProfile.avatar_url} />
-                <ProfileSummary
-                  name={name}
-                  role={data.currentProfile.app_role}
-                />
-              </Link>
-            )}
-            {!demoMode && (
-              <Tooltip content="Sign out" placement="right">
-                <IconButton
-                  tooltip={false}
-                  label="Sign out"
-                  onClick={async () => {
-                    await createClient().auth.signOut();
-                    location.assign("/login");
-                  }}
-                >
-                  <FiLogOut />
-                </IconButton>
-              </Tooltip>
-            )}
-          </div>
-        </div>
       </aside>
     </>
-  );
-}
-
-function ProfileSummary({
-  name,
-  role,
-  demo = false,
-}: {
-  name: string;
-  role?: "owner" | "member";
-  demo?: boolean;
-}) {
-  return (
-    <span className="min-w-0 flex-1">
-      <span className="block truncate text-sm font-semibold">{name}</span>
-      <span className="block text-[10px] uppercase tracking-widest text-black/45 dark:text-white/45">
-        {role === "owner" ? "Owner" : "Team member"}
-        {demo ? " · Demo" : ""}
-      </span>
-    </span>
   );
 }

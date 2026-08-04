@@ -5,6 +5,7 @@ import { FiCheck, FiPlus, FiShield } from "react-icons/fi";
 import type { WorkspaceData } from "@/lib/types";
 import { withAccessPreview } from "@/lib/access-preview";
 import { ThemeToggle } from "./ThemeToggle";
+import { HeaderProfileControls } from "./HeaderProfileControls";
 
 export function TaskHeaderActions({
   data,
@@ -73,6 +74,10 @@ export function TaskHeaderActions({
         </Button.Link>
       )}
       <ThemeToggle />
+      <HeaderProfileControls
+        profile={data.currentProfile}
+        demoMode={demoMode}
+      />
     </div>
   );
 }

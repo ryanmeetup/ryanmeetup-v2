@@ -41,7 +41,6 @@ import {
   FiGrid,
   FiList,
   FiLoader,
-  FiLogOut,
   FiMenu,
   FiMoreHorizontal,
   FiPlus,
@@ -180,26 +179,6 @@ function CategoryBadge({ category }: { category: Category }) {
       }}
     >
       {category.name}
-    </span>
-  );
-}
-
-function ProfileSummary({
-  name,
-  role,
-  demo = false,
-}: {
-  name: string;
-  role?: "owner" | "member";
-  demo?: boolean;
-}) {
-  return (
-    <span className="min-w-0 flex-1">
-      <span className="block truncate text-sm font-semibold">{name}</span>
-      <span className="block text-[10px] uppercase tracking-widest text-black/45 dark:text-white/45">
-        {role === "owner" ? "Owner" : "Team member"}
-        {demo ? " · Demo" : ""}
-      </span>
     </span>
   );
 }
@@ -1411,51 +1390,6 @@ export function TaskApp({
               ))}
             </AnimatedCollapse>
           </section>
-        </div>
-        <div className="shrink-0 space-y-2 border-t border-black/10 pt-4 dark:border-white/10">
-          <div className="flex items-center gap-3 px-2 py-2">
-            {demoMode ? (
-              <div className="flex min-w-0 flex-1 items-center gap-3">
-                <Avatar
-                  name={profileName(data.currentProfile)}
-                  src={data.currentProfile.avatar_url}
-                />
-                <ProfileSummary
-                  name={profileName(data.currentProfile)}
-                  role={data.currentProfile.app_role}
-                  demo
-                />
-              </div>
-            ) : (
-              <Link
-                href="/profile"
-                className="flex min-w-0 flex-1 items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/40"
-              >
-                <Avatar
-                  name={profileName(data.currentProfile)}
-                  src={data.currentProfile.avatar_url}
-                />
-                <ProfileSummary
-                  name={profileName(data.currentProfile)}
-                  role={data.currentProfile.app_role}
-                />
-              </Link>
-            )}
-            {!demoMode && (
-              <Tooltip content="Sign out" placement="right">
-                <IconButton
-                  tooltip={false}
-                  label="Sign out"
-                  onClick={async () => {
-                    await createClient().auth.signOut();
-                    location.assign("/login");
-                  }}
-                >
-                  <FiLogOut />
-                </IconButton>
-              </Tooltip>
-            )}
-          </div>
         </div>
       </aside>
 
