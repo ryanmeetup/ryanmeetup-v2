@@ -12,7 +12,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
-  title: "Task board",
+  title: "Task Board",
 };
 
 export default async function Home({

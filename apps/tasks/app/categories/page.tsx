@@ -6,7 +6,7 @@ import type { WorkspaceData } from "@/lib/types";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Work groups",
+  title: "Work Groups",
 };
 
 export default async function CategoriesPage() {

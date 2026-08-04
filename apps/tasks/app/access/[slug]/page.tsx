@@ -6,7 +6,7 @@ import type { WorkspaceData } from "@/lib/types";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Access group",
+  title: "Access Group",
 };
 
 export default async function AccessGroupPage({
