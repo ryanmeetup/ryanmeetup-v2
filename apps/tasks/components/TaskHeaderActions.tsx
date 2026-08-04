@@ -23,16 +23,6 @@ export function TaskHeaderActions({
     !isPreviewing && (demoMode || data.currentProfile.app_role === "owner");
   return (
     <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
-      {isOwner && (
-        <Button.Link
-          href="/access"
-          variant="secondary"
-          size="sm"
-          leftIcon={<FiShield />}
-        >
-          Access
-        </Button.Link>
-      )}
       {isOwner &&
         (onStatuses ? (
           <Button
@@ -54,6 +44,16 @@ export function TaskHeaderActions({
             Statuses
           </Button.Link>
         ))}
+      {isOwner && (
+        <Button.Link
+          href="/access"
+          variant="secondary"
+          size="sm"
+          leftIcon={<FiShield />}
+        >
+          Access
+        </Button.Link>
+      )}
       {isPreviewing ? (
         <Tooltip content="Exit access preview to create a new task">
           <Button size="sm" leftIcon={<FiPlus />} disabled>

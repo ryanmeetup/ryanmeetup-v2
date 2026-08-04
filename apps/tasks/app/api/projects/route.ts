@@ -49,10 +49,12 @@ export async function POST(request: Request) {
     name,
     description,
     links: rawLinks = [],
+    ownerIds = [],
   } = (await request.json()) as {
     name?: string;
     description?: string;
     links?: unknown;
+    ownerIds?: string[];
   };
   const links = validateLinks(rawLinks);
   if (!name?.trim())
@@ -63,6 +65,11 @@ export async function POST(request: Request) {
   if (!links)
     return NextResponse.json(
       { error: "Add valid HTTP or HTTPS project links" },
+      { status: 400 },
+    );
+  if (!Array.isArray(ownerIds) || ownerIds.some((id) => typeof id !== "string"))
+    return NextResponse.json(
+      { error: "Select valid project owners" },
       { status: 400 },
     );
   const { data, error } = await supabase
@@ -77,6 +84,16 @@ export async function POST(request: Request) {
     .single();
   if (error)
     return NextResponse.json({ error: error.message }, { status: 400 });
+  if (ownerIds.length > 0) {
+    const { error: ownersError } = await supabase.from("project_owners").insert(
+      [...new Set(ownerIds)].map((profile_id) => ({
+        project_id: data.id,
+        profile_id,
+      })),
+    );
+    if (ownersError)
+      return NextResponse.json({ error: ownersError.message }, { status: 400 });
+  }
   return NextResponse.json({ project: data });
 }
 
@@ -91,12 +108,14 @@ export async function PATCH(request: Request) {
     description,
     links: rawLinks,
     archived,
+    ownerIds,
   } = (await request.json()) as {
     id?: string;
     name?: string;
     description?: string;
     links?: unknown;
     archived?: boolean;
+    ownerIds?: string[];
   };
   const links = rawLinks === undefined ? undefined : validateLinks(rawLinks);
   if (!id || (name !== undefined && !name.trim()))
@@ -107,6 +126,15 @@ export async function PATCH(request: Request) {
   if (links === null)
     return NextResponse.json(
       { error: "Add valid HTTP or HTTPS project links" },
+      { status: 400 },
+    );
+  if (
+    ownerIds !== undefined &&
+    (!Array.isArray(ownerIds) ||
+      ownerIds.some((ownerId) => typeof ownerId !== "string"))
+  )
+    return NextResponse.json(
+      { error: "Select valid project owners" },
       { status: 400 },
     );
   const { data: canManage } = await supabase.rpc("can_manage_project", {
@@ -133,6 +161,30 @@ export async function PATCH(request: Request) {
       .eq("id", id);
     if (error)
       return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+  if (ownerIds !== undefined) {
+    const { error: deleteError } = await supabase
+      .from("project_owners")
+      .delete()
+      .eq("project_id", id);
+    if (deleteError)
+      return NextResponse.json({ error: deleteError.message }, { status: 400 });
+    const normalizedOwnerIds = [...new Set(ownerIds)];
+    if (normalizedOwnerIds.length > 0) {
+      const { error: insertError } = await supabase
+        .from("project_owners")
+        .insert(
+          normalizedOwnerIds.map((profile_id) => ({
+            project_id: id,
+            profile_id,
+          })),
+        );
+      if (insertError)
+        return NextResponse.json(
+          { error: insertError.message },
+          { status: 400 },
+        );
+    }
   }
   return NextResponse.json({ ok: true });
 }

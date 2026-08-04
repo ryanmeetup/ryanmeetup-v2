@@ -9,10 +9,12 @@ import {
 } from "react";
 import {
   Button,
+  Avatar,
   FilterChip,
   IconButton,
   Input,
   Modal,
+  MultiSelect,
   Textarea,
   toast,
 } from "@ryanmeetup/ui";
@@ -25,6 +27,7 @@ import {
   FiRotateCcw,
   FiSearch,
   FiTrash2,
+  FiUsers,
 } from "react-icons/fi";
 import { useSearchFilter } from "@ryanmeetup/hooks";
 import { withAccessPreview } from "@/lib/access-preview";
@@ -61,7 +64,11 @@ export function ProjectsModal({
   const [editingName, setEditingName] = useState("");
   const [editingDescription, setEditingDescription] = useState("");
   const [editingLinks, setEditingLinks] = useState<ProjectLink[]>([]);
+  const [editingOwnerIds, setEditingOwnerIds] = useState<string[]>([]);
   const [renaming, setRenaming] = useState(false);
+  const [newOwnerIds, setNewOwnerIds] = useState<string[]>([
+    data.currentProfile.id,
+  ]);
   const {
     query: projectQuery,
     setQuery: setProjectQuery,
@@ -109,11 +116,21 @@ export function ProjectsModal({
       };
       if (!demoMode)
         project = (
-          await request({ name: projectName, description, links }, "POST")
+          await request(
+            { name: projectName, description, links, ownerIds: newOwnerIds },
+            "POST",
+          )
         ).project!;
       setData((current) => ({
         ...current,
         projects: [...current.projects, project],
+        projectOwners: [
+          ...current.projectOwners,
+          ...newOwnerIds.map((profile_id) => ({
+            project_id: project.id,
+            profile_id,
+          })),
+        ],
       }));
       setName("");
       setDescription("");
@@ -143,6 +160,7 @@ export function ProjectsModal({
             name: nextName,
             description: nextDescription,
             links: editingLinks,
+            ownerIds: editingOwnerIds,
           },
           "PATCH",
         );
@@ -158,6 +176,15 @@ export function ProjectsModal({
               }
             : item,
         ),
+        projectOwners: [
+          ...current.projectOwners.filter(
+            (item) => item.project_id !== project.id,
+          ),
+          ...editingOwnerIds.map((profile_id) => ({
+            project_id: project.id,
+            profile_id,
+          })),
+        ],
       }));
       toast.success(`${nextName} updated.`);
       setEditingProjectId(null);
@@ -177,6 +204,11 @@ export function ProjectsModal({
     setEditingName(project.name);
     setEditingDescription(project.description ?? "");
     setEditingLinks(project.links ?? []);
+    setEditingOwnerIds(
+      data.projectOwners
+        .filter((item) => item.project_id === project.id)
+        .map((item) => item.profile_id),
+    );
   }
 
   async function toggleArchived(project: Project) {
@@ -218,6 +250,15 @@ export function ProjectsModal({
         .sort((a, b) => a.name.localeCompare(b.name)),
     [projectStatus, searchedProjects],
   );
+  const ownerOptions = useMemo(
+    () =>
+      data.profiles.map((profile) => ({
+        avatar: { name: profile.full_name, src: profile.avatar_url },
+        label: profile.full_name,
+        value: profile.id,
+      })),
+    [data.profiles],
+  );
   return (
     <>
       <Modal
@@ -253,6 +294,14 @@ export function ProjectsModal({
                 onChange={(event) => setDescription(event.target.value)}
                 placeholder="What is this project working toward?"
                 rows={2}
+                disabled={creating}
+              />
+              <MultiSelect
+                label="Project owners"
+                options={ownerOptions}
+                value={newOwnerIds}
+                onChange={setNewOwnerIds}
+                placeholder="Select owners"
                 disabled={creating}
               />
               <ProjectLinksFields
@@ -296,9 +345,9 @@ export function ProjectsModal({
         ) : (
           <>
             <p className="mb-5 text-sm text-black/60 dark:text-white/60">
-              Projects collect related work across categories. Access is managed
-              through groups, and projects can be archived when the work is
-              over.
+              Projects collect related work across categories. Owners show who
+              is driving each work stream; project access is still managed
+              separately through groups.
             </p>
             <div className="sticky top-0 z-20 -mx-1 mb-4 grid gap-3 bg-white px-1 pb-3 dark:bg-[#181818] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
               <div className="relative">
@@ -356,6 +405,23 @@ export function ProjectsModal({
                 className={`${searchPending ? "pointer-events-none opacity-55" : ""} grid items-stretch gap-4 transition-opacity md:grid-cols-2 ${embedded ? "xl:grid-cols-3" : ""}`}
               >
                 {projects.map((project) => {
+                  const owners = data.projectOwners
+                    .filter((item) => item.project_id === project.id)
+                    .flatMap((item) => {
+                      const profile = data.profiles.find(
+                        (candidate) => candidate.id === item.profile_id,
+                      );
+                      return profile ? [profile] : [];
+                    });
+                  const ownerSummary =
+                    owners.length === 0
+                      ? "Unassigned"
+                      : owners.length <= 2
+                        ? owners.map((owner) => owner.full_name).join(", ")
+                        : `${owners
+                            .slice(0, 2)
+                            .map((owner) => owner.full_name)
+                            .join(", ")} +${owners.length - 2}`;
                   return (
                     <div
                       key={project.id}
@@ -406,8 +472,36 @@ export function ProjectsModal({
                           </>
                         )}
                       </div>
-                      {embedded && (
-                        <div className="mt-auto flex justify-end pt-3">
+                      <div className="mt-auto flex min-w-0 items-center gap-3 border-t border-black/10 pt-3 dark:border-white/10">
+                        {owners.length > 0 ? (
+                          <div
+                            className="flex shrink-0 -space-x-2"
+                            aria-label={`${owners.length} ${owners.length === 1 ? "owner" : "owners"}`}
+                          >
+                            {owners.slice(0, 3).map((owner) => (
+                              <Avatar
+                                key={owner.id}
+                                name={owner.full_name}
+                                src={owner.avatar_url}
+                                size="md"
+                                className="ring-2 ring-white dark:ring-[#181818]"
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-dashed border-black/25 text-black/40 dark:border-white/25 dark:text-white/40">
+                            <FiUsers aria-hidden size={14} />
+                          </span>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-black/40 dark:text-white/40">
+                            Owners
+                          </p>
+                          <p className="truncate text-xs font-medium text-black/65 dark:text-white/65">
+                            {ownerSummary}
+                          </p>
+                        </div>
+                        {embedded && (
                           <Button.Link
                             href={withAccessPreview(
                               `/?project=${encodeURIComponent(project.name)}`,
@@ -419,8 +513,8 @@ export function ProjectsModal({
                           >
                             Open board
                           </Button.Link>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -484,6 +578,14 @@ export function ProjectsModal({
                 <ProjectLinksFields
                   links={editingLinks}
                   setLinks={setEditingLinks}
+                  disabled={renaming}
+                />
+                <MultiSelect
+                  label="Project owners"
+                  options={ownerOptions}
+                  value={editingOwnerIds}
+                  onChange={setEditingOwnerIds}
+                  placeholder="Select owners"
                   disabled={renaming}
                 />
                 <div className="flex justify-end gap-2 border-t border-black/10 pt-4 dark:border-white/10">

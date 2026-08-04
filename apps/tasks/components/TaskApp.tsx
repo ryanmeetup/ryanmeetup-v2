@@ -47,7 +47,6 @@ import {
   FiRefreshCw,
   FiSearch,
   FiTrash2,
-  FiUser,
   FiUsers,
   FiX,
 } from "react-icons/fi";
@@ -566,17 +565,13 @@ export function TaskApp({
   const scopeName = selectedProject?.name ?? selectedCategory?.name;
   const scopeDescription =
     selectedProject?.description ?? selectedCategory?.description;
-  const viewTitle = scopeName
-    ? `${scopeName} ${visibility === "archived" ? "Archived Tasks" : view === "board" ? "Board" : "Tasks"}`
+  const taskScopeTitle = scopeName
+    ? `${scopeName}${isMyTasks ? " · My Tasks" : ""}`
     : isMyTasks
-      ? visibility === "archived"
-        ? "My Archived Tasks"
-        : "My Tasks"
-      : visibility === "archived"
-        ? "Archived Tasks"
-        : view === "board"
-          ? "Task Board"
-          : "All Tasks";
+      ? "My Tasks"
+      : "All Tasks";
+  const viewTitle =
+    visibility === "archived" ? `${taskScopeTitle} · Archived` : taskScopeTitle;
   useEffect(() => {
     document.title = `${viewTitle} | Ryan Meetup Tasks`;
   }, [viewTitle]);
@@ -999,7 +994,7 @@ export function TaskApp({
   }
 
   const filterCount =
-    [assignee, group, project, status, priority].filter(
+    [isMyTasks ? "all" : assignee, group, project, status, priority].filter(
       (value) => value !== "all",
     ).length + (visibility === "archived" ? 1 : 0);
   const taskCard = (task: Task) => {
@@ -1194,65 +1189,13 @@ export function TaskApp({
           </IconButton>
         </div>
         <nav className="mt-8 space-y-1" aria-label="Main navigation">
-          {viewingAsGroup ? (
-            <Tooltip
-              content="My Tasks is unavailable when viewing as an access group because a group is not a task assignee."
-              placement="right"
-              triggerClassName="w-full"
-            >
-              <button
-                type="button"
-                aria-disabled="true"
-                className="sidebar-link w-full cursor-not-allowed opacity-40"
-                onClick={(event) => event.preventDefault()}
-              >
-                <FiUser />
-                My Tasks
-              </button>
-            </Tooltip>
-          ) : (
-            <button
-              onClick={() => {
-                if (isMyTasks) {
-                  setAssignee("all");
-                  setSidebarOpen(false);
-                  return;
-                }
-                setAssignee(myTasksName);
-                setGroup("all");
-                setProject("all");
-                setStatus("all");
-                setPriority("all");
-                setVisibility("active");
-                setView("list");
-                setSidebarOpen(false);
-              }}
-              className={`sidebar-link ${isMyTasks ? "sidebar-link-active" : ""}`}
-            >
-              <FiUser />
-              My Tasks
-            </button>
-          )}
-          <button
-            onClick={() => {
-              setView("board");
-              setSidebarOpen(false);
-            }}
-            className={`sidebar-link ${view === "board" ? "sidebar-link-active" : ""}`}
+          <Link
+            href={withAccessPreview("/", data.accessPreview)}
+            className={`sidebar-link ${!scopeName && assignee === "all" && status === "all" && priority === "all" && visibility === "active" ? "sidebar-link-active" : ""}`}
           >
             <FiGrid />
-            Board
-          </button>
-          <button
-            onClick={() => {
-              setView("list");
-              setSidebarOpen(false);
-            }}
-            className={`sidebar-link ${view === "list" ? "sidebar-link-active" : ""}`}
-          >
-            <FiList />
-            List
-          </button>
+            All Tasks
+          </Link>
           <Tooltip
             content="Calendar view is coming soon"
             placement="right"
@@ -1465,23 +1408,61 @@ export function TaskApp({
                 <ProjectLinks links={selectedProject.links} className="mt-3" />
               )}
             </div>
-            <div className="flex rounded-lg border border-black/10 bg-white p-1 dark:border-white/10 dark:bg-white/5">
-              <button
-                aria-pressed={view === "board"}
-                onClick={() => setView("board")}
-                className={`view-button ${view === "board" ? "view-button-active" : ""}`}
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <div
+                role="group"
+                className="flex rounded-lg border border-black/10 bg-white p-1 dark:border-white/10 dark:bg-white/5"
+                aria-label="Task scope"
               >
-                <FiGrid />
-                Board
-              </button>
-              <button
-                aria-pressed={view === "list"}
-                onClick={() => setView("list")}
-                className={`view-button ${view === "list" ? "view-button-active" : ""}`}
+                <button
+                  aria-pressed={assignee === "all"}
+                  onClick={() => setAssignee("all")}
+                  className={`view-button ${assignee === "all" ? "view-button-active" : ""}`}
+                >
+                  All
+                </button>
+                {viewingAsGroup ? (
+                  <Tooltip content="Mine is unavailable when viewing as an access group because a group is not a task assignee.">
+                    <button
+                      type="button"
+                      disabled
+                      className="view-button opacity-40"
+                    >
+                      Mine
+                    </button>
+                  </Tooltip>
+                ) : (
+                  <button
+                    aria-pressed={isMyTasks}
+                    onClick={() => setAssignee(myTasksName)}
+                    className={`view-button ${isMyTasks ? "view-button-active" : ""}`}
+                  >
+                    Mine
+                  </button>
+                )}
+              </div>
+              <div
+                role="group"
+                className="flex rounded-lg border border-black/10 bg-white p-1 dark:border-white/10 dark:bg-white/5"
+                aria-label="Task layout"
               >
-                <FiList />
-                List
-              </button>
+                <button
+                  aria-pressed={view === "board"}
+                  onClick={() => setView("board")}
+                  className={`view-button ${view === "board" ? "view-button-active" : ""}`}
+                >
+                  <FiGrid />
+                  Board
+                </button>
+                <button
+                  aria-pressed={view === "list"}
+                  onClick={() => setView("list")}
+                  className={`view-button ${view === "list" ? "view-button-active" : ""}`}
+                >
+                  <FiList />
+                  List
+                </button>
+              </div>
             </div>
           </div>
           <Card size="sm" className="mb-6">
