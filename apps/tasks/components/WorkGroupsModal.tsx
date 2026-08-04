@@ -18,12 +18,14 @@ import {
 } from "@ryanmeetup/ui";
 import { useSearchFilter } from "@ryanmeetup/hooks";
 import {
+  FiArrowRight,
   FiEdit2,
   FiLoader,
   FiRefreshCw,
   FiSearch,
   FiTrash2,
 } from "react-icons/fi";
+import { withAccessPreview } from "@/lib/access-preview";
 import type { Category, WorkspaceData } from "@/lib/types";
 
 function randomCategoryColor(exclude?: string) {
@@ -337,48 +339,65 @@ export function WorkGroupsModal({
               <div
                 className={`${searchPending ? "pointer-events-none opacity-55" : ""} grid auto-rows-fr items-stretch gap-4 transition-opacity md:grid-cols-2 ${embedded ? "xl:grid-cols-3" : ""}`}
               >
-              {categories.map((category) => (
-                <div
-                  key={category.id}
-                  className="flex h-full flex-col rounded-xl border border-black/10 bg-black/[0.015] p-4 dark:border-white/10 dark:bg-white/[0.025]"
-                >
-                  <div className="flex items-start gap-3">
-                    <span
-                      aria-hidden
-                      className="mt-1 h-4 w-4 shrink-0 rounded-full ring-4 ring-black/5 dark:ring-white/5"
-                      style={{ backgroundColor: category.color }}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold">{category.name}</p>
-                      {category.description && (
-                        <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-black/60 dark:text-white/60">
-                          {category.description}
+                {categories.map((category) => (
+                  <div
+                    key={category.id}
+                    className="flex h-full flex-col rounded-xl border border-black/10 bg-black/[0.015] p-4 dark:border-white/10 dark:bg-white/[0.025]"
+                  >
+                    <div className="flex items-start gap-3">
+                      <span
+                        aria-hidden
+                        className="mt-1 h-4 w-4 shrink-0 rounded-full ring-4 ring-black/5 dark:ring-white/5"
+                        style={{ backgroundColor: category.color }}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-semibold">
+                          {category.name}
                         </p>
-                      )}
+                        {category.description && (
+                          <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-black/60 dark:text-white/60">
+                            {category.description}
+                          </p>
+                        )}
+                      </div>
+                      <IconButton
+                        label={`Edit ${category.name}`}
+                        onClick={() => beginEdit(category)}
+                      >
+                        <FiEdit2 />
+                      </IconButton>
+                      <IconButton
+                        label={`Delete ${category.name}`}
+                        variant="danger"
+                        onClick={() => setPendingDelete(category)}
+                      >
+                        <FiTrash2 />
+                      </IconButton>
                     </div>
-                    <IconButton
-                      label={`Edit ${category.name}`}
-                      onClick={() => beginEdit(category)}
-                    >
-                      <FiEdit2 />
-                    </IconButton>
-                    <IconButton
-                      label={`Delete ${category.name}`}
-                      variant="danger"
-                      onClick={() => setPendingDelete(category)}
-                    >
-                      <FiTrash2 />
-                    </IconButton>
+                    {embedded && (
+                      <div className="mt-auto flex justify-end pt-3">
+                        <Button.Link
+                          href={withAccessPreview(
+                            `/?category=${encodeURIComponent(category.name)}`,
+                            data.accessPreview,
+                          )}
+                          variant="secondary"
+                          size="sm"
+                          rightIcon={<FiArrowRight aria-hidden />}
+                        >
+                          Open board
+                        </Button.Link>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
-              {categories.length === 0 && (
-                <div
-                  className={`rounded-xl border border-dashed border-black/10 px-4 py-10 text-center text-sm text-black/55 dark:border-white/10 dark:text-white/55 md:col-span-2 ${embedded ? "xl:col-span-3" : ""}`}
-                >
-                  No categories match this search.
-                </div>
-              )}
+                ))}
+                {categories.length === 0 && (
+                  <div
+                    className={`rounded-xl border border-dashed border-black/10 px-4 py-10 text-center text-sm text-black/55 dark:border-white/10 dark:text-white/55 md:col-span-2 ${embedded ? "xl:col-span-3" : ""}`}
+                  >
+                    No categories match this search.
+                  </div>
+                )}
               </div>
             </div>
           </>

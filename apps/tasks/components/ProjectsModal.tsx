@@ -18,6 +18,7 @@ import {
 } from "@ryanmeetup/ui";
 import {
   FiArchive,
+  FiArrowRight,
   FiEdit2,
   FiLoader,
   FiPlus,
@@ -26,6 +27,7 @@ import {
   FiTrash2,
 } from "react-icons/fi";
 import { useSearchFilter } from "@ryanmeetup/hooks";
+import { withAccessPreview } from "@/lib/access-preview";
 import type { Project, ProjectLink, WorkspaceData } from "@/lib/types";
 import { ProjectLinks } from "./ProjectLinks";
 
@@ -404,6 +406,21 @@ export function ProjectsModal({
                           </>
                         )}
                       </div>
+                      {embedded && (
+                        <div className="mt-auto flex justify-end pt-3">
+                          <Button.Link
+                            href={withAccessPreview(
+                              `/?project=${encodeURIComponent(project.name)}`,
+                              data.accessPreview,
+                            )}
+                            variant="secondary"
+                            size="sm"
+                            rightIcon={<FiArrowRight aria-hidden />}
+                          >
+                            Open board
+                          </Button.Link>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
