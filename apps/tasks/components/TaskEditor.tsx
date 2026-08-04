@@ -12,7 +12,6 @@ const priorities: Priority[] = ["low", "medium", "high", "urgent"];
 function profileName(profile: { full_name: string }) {
   return profile.full_name || "Teammate";
 }
-
 export function TaskEditor({
   taskOpen, setTaskOpen, editing, taskDetailsOpen, setTaskDetailsOpen,
   createAnother, setCreateAnother, taskSaving, draft, setDraft, statuses,
@@ -337,4 +336,3 @@ export function TaskEditor({
       </Modal>
   );
 }
-
