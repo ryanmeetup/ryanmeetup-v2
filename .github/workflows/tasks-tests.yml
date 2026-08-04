@@ -1,0 +1,44 @@
+name: Tasks tests
+
+on:
+  pull_request:
+    paths:
+      - "apps/tasks/**"
+      - "packages/**"
+      - "package-lock.json"
+      - ".github/workflows/tasks-tests.yml"
+  push:
+    branches: [main]
+
+concurrency:
+  group: tasks-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/tasks
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: npm ci
+        working-directory: .
+      - run: supabase start
+      - name: Export local Supabase browser credentials
+        run: |
+          source <(supabase status -o env)
+          echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$PUBLISHABLE_KEY" >> "$GITHUB_ENV"
+      - run: npx eslint tests vitest.config.mts playwright.config.ts
+      - run: npm test
+      - run: npm run test:db
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
