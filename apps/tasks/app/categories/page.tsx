@@ -1,4 +1,4 @@
-import { CategoriesPageClient } from "@/components/CategoriesPageClient";
+import { CategoriesPageClient } from "@/components/categories";
 import { demoData } from "@/lib/demo-data";
 import {
   isWorkspaceDemo,

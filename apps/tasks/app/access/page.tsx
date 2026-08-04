@@ -1,4 +1,4 @@
-import { AccessPageClient } from "@/components/AccessPageClient";
+import { AccessPageClient } from "@/components/access";
 import { requireQueryData } from "@/lib/workspace-loader";
 import { loadWorkspacePage } from "@/lib/server/workspace-page-loader";
 import type { Metadata } from "next";

@@ -42,12 +42,11 @@ import {
 import Link from "next/link";
 import { useQueryParamState, useSearchFilter } from "@ryanmeetup/hooks";
 import type { Category, Priority, Task, WorkspaceData } from "@/lib/types";
-import { TaskHeaderActions } from "./TaskHeaderActions";
-import { TaskBanners } from "./TaskBanners";
+import { TaskBanners } from "@/components/global";
+import { TaskHeaderActions } from "@/components/navigation";
 import { TaskEditor } from "./TaskEditor";
-import { CategoriesModal } from "./CategoriesModal";
-import { ProjectsModal } from "./ProjectsModal";
-import { ProjectLinks } from "./ProjectLinks";
+import { CategoriesModal } from "@/components/categories";
+import { ProjectLinks, ProjectsModal } from "@/components/projects";
 import { useSidebarSections } from "@/hooks/useSidebarSections";
 import { withAccessPreview } from "@/lib/access-preview";
 import { useWorkspaceData } from "@/hooks/useWorkspaceData";

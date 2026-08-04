@@ -5,7 +5,7 @@ import { Button, Card, Heading, Input, SuccessCallout } from "@ryanmeetup/ui";
 import Link from "next/link";
 import { tasksAppUrl } from "@/lib/app-url";
 import { createClient } from "@/lib/supabase/client";
-import { ThemeToggle } from "./ThemeToggle";
+import { ThemeToggle } from "@/components/global";
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState("");

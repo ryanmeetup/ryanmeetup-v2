@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { ProfilePageClient } from "@/components/ProfilePageClient";
+import { ProfilePageClient } from "@/components/profile";
 import {
   isWorkspaceDemo,
   loadWorkspacePage,

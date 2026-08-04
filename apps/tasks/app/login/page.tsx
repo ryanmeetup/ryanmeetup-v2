@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { LoginForm } from "@/components/LoginForm";
+import { LoginForm } from "@/components/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
 

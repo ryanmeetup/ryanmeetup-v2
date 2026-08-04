@@ -1,4 +1,4 @@
-import { TaskApp } from "@/components/TaskApp";
+import { TaskApp } from "@/components/tasks";
 import {
   ACCESS_PREVIEW_PARAM,
   applyAccessPreview,

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Card, Heading } from "@ryanmeetup/ui";
-import { PasswordForm } from "@/components/PasswordForm";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { PasswordForm } from "@/components/auth";
+import { ThemeToggle } from "@/components/global";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {

@@ -13,7 +13,7 @@ import {
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { ThemeToggle } from "./ThemeToggle";
+import { ThemeToggle } from "@/components/global";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");

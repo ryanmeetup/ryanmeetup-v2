@@ -30,12 +30,11 @@ import { accessMutation } from "@/lib/access-mutations";
 import { accessGroupSlug } from "@/lib/access-groups";
 import { accessPreviewHref, userAccessPreviewHref } from "@/lib/access-preview";
 import type { Profile, Project, WorkspaceData } from "@/lib/types";
-import { TaskBanners } from "./TaskBanners";
-import { ProjectsModal } from "./ProjectsModal";
-import { TasksSidebar } from "./TasksSidebar";
-import { TaskHeaderActions } from "./TaskHeaderActions";
-import { CategoriesModal } from "./CategoriesModal";
-import { StatusSettingsModal } from "./TaskApp";
+import { CategoriesModal } from "@/components/categories";
+import { TaskBanners } from "@/components/global";
+import { TaskHeaderActions, TasksSidebar } from "@/components/navigation";
+import { ProjectsModal } from "@/components/projects";
+import { StatusSettingsModal } from "@/components/tasks";
 
 type Permission = "viewer" | "editor" | "manager";
 type AccessGroup = {

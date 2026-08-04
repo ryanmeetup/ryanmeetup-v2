@@ -18,11 +18,10 @@ import { FiArrowDown, FiArrowLeft, FiMenu, FiTrash2 } from "react-icons/fi";
 import { accessGroupSlug } from "@/lib/access-groups";
 import { accessMutation } from "@/lib/access-mutations";
 import type { WorkspaceData } from "@/lib/types";
-import { TaskBanners } from "./TaskBanners";
-import { ProjectsModal } from "./ProjectsModal";
-import { TasksSidebar } from "./TasksSidebar";
-import { TaskHeaderActions } from "./TaskHeaderActions";
-import { CategoriesModal } from "./CategoriesModal";
+import { CategoriesModal } from "@/components/categories";
+import { TaskBanners } from "@/components/global";
+import { TaskHeaderActions, TasksSidebar } from "@/components/navigation";
+import { ProjectsModal } from "@/components/projects";
 
 type Permission = "viewer" | "editor" | "manager";
 type AccessGroup = {

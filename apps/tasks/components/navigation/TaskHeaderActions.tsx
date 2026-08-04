@@ -4,7 +4,7 @@ import { Button, Tooltip } from "@ryanmeetup/ui";
 import { FiCheck, FiPlus, FiShield } from "react-icons/fi";
 import type { WorkspaceData } from "@/lib/types";
 import { withAccessPreview } from "@/lib/access-preview";
-import { ThemeToggle } from "./ThemeToggle";
+import { ThemeToggle } from "@/components/global";
 import { HeaderProfileControls } from "./HeaderProfileControls";
 
 export function TaskHeaderActions({

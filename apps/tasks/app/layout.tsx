@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import { ThemeProvider } from "@/components/ThemeProvider";
+import { ThemeProvider } from "@/components/global";
 import { ToastHost } from "@ryanmeetup/ui";
 import localFont from "next/font/local";
 import "./globals.css";

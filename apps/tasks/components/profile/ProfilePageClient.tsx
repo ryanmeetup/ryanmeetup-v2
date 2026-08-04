@@ -4,12 +4,11 @@ import { useState } from "react";
 import { Button, Heading, IconButton, Modal } from "@ryanmeetup/ui";
 import { FiLock, FiMenu } from "react-icons/fi";
 import { ProfileForm } from "./ProfileForm";
-import { PasswordForm } from "./PasswordForm";
-import { ProjectsModal } from "./ProjectsModal";
-import { CategoriesModal } from "./CategoriesModal";
-import { TasksSidebar } from "./TasksSidebar";
-import { TaskHeaderActions } from "./TaskHeaderActions";
-import { TaskBanners } from "./TaskBanners";
+import { PasswordForm } from "@/components/auth";
+import { CategoriesModal } from "@/components/categories";
+import { TaskBanners } from "@/components/global";
+import { TaskHeaderActions, TasksSidebar } from "@/components/navigation";
+import { ProjectsModal } from "@/components/projects";
 import type { WorkspaceData } from "@/lib/types";
 
 export function ProfilePageClient({

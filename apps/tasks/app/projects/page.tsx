@@ -1,4 +1,4 @@
-import { ProjectsPageClient } from "@/components/ProjectsPageClient";
+import { ProjectsPageClient } from "@/components/projects";
 import { demoData } from "@/lib/demo-data";
 import { requireQueryData } from "@/lib/workspace-loader";
 import {
