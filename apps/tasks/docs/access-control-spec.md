@@ -186,8 +186,9 @@ Example:
 
 The schema allows `tasks.project_id` to be null. These tasks belong to the
 shared workspace and are visible to every onboarded member, including in an
-owner's access preview. Projectless tasks do not inherit a project's edit
-permissions; the normal project-based write policies remain unchanged.
+owner's access preview. Because there is no project grant to confer editor
+access, every onboarded member may manage these shared tasks. Project-backed
+tasks continue to require their normal project permissions.
 
 ## Proposed database model
 

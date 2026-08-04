@@ -8,7 +8,7 @@ grant usage on schema extensions to authenticated;
 -- the boundary under test.
 grant select, insert, update, delete on public.projects, public.tasks, public.project_owners to authenticated;
 set local search_path = public, extensions;
-select extensions.plan(35);
+select extensions.plan(38);
 
 insert into auth.users (id, email) values
   ('10000000-0000-4000-8000-000000000001', 'owner@test.invalid'),
@@ -74,6 +74,11 @@ select '40000000-0000-4000-8000-000000000001', 'Auth test other task', id,
   '10000000-0000-4000-8000-000000000001', '30000000-0000-4000-8000-000000000002'
 from public.statuses order by sort_order limit 1;
 
+insert into public.tasks (id, title, status_id, created_by, project_id)
+select '40000000-0000-4000-8000-000000000002', 'Auth test shared task', id,
+  '10000000-0000-4000-8000-000000000001', null
+from public.statuses order by sort_order limit 1;
+
 set local role authenticated;
 
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000002', true);
@@ -137,6 +142,16 @@ select is(public.project_permission_for('30000000-0000-4000-8000-000000000001'),
 select is((select count(*) from public.projects where id = '30000000-0000-4000-8000-000000000001'), 0::bigint, 'project RLS denies the zero-group user');
 select is((select count(*) from public.tasks where id = '40000000-0000-4000-8000-000000000001'), 0::bigint, 'task RLS denies the zero-group user');
 select is((select count(*) from public.project_owners), 0::bigint, 'zero-group user cannot enumerate project owner metadata');
+select is(public.can_edit_task('40000000-0000-4000-8000-000000000002'), true, 'onboarded members can edit a shared projectless task');
+select lives_ok(
+  $$update public.tasks set board_position = 2048 where id = '40000000-0000-4000-8000-000000000002'$$,
+  'onboarded members can move a shared projectless task'
+);
+select is(
+  (select board_position from public.tasks where id = '40000000-0000-4000-8000-000000000002'),
+  2048::double precision,
+  'the shared task move is persisted'
+);
 
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000007', true);
 select throws_ok(
