@@ -14,6 +14,7 @@ export type Status = {
   name: string;
   color: string;
   sort_order: number;
+  order_revision: number;
   is_default: boolean;
   is_completed: boolean;
 };
@@ -139,5 +140,11 @@ export type WorkspaceData = {
   taskLabels: TaskLabel[];
   taskCategories: TaskCategory[];
   projectOwners: ProjectOwner[];
+  taskPage?: {
+    page: number;
+    pageSize: number;
+    total: number;
+    hasMore: boolean;
+  };
   accessPreview?: AccessPreview;
 };

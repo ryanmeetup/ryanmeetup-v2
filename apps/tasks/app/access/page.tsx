@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { AccessPageClient } from "@/components/AccessPageClient";
 import { createClient } from "@/lib/supabase/server";
-import type { WorkspaceData } from "@/lib/types";
+import { loadWorkspace, requireQueryData } from "@/lib/workspace-loader";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -15,61 +15,31 @@ export default async function AccessPage({
 }) {
   const query = await searchParams;
   const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
+  const auth = requireQueryData("authenticated user", await supabase.auth.getUser());
   if (!auth.user) redirect("/login");
-  const { data: isOwner } = await supabase.rpc("is_app_owner");
+  const isOwner = requireQueryData("owner access", await supabase.rpc("is_app_owner"));
   if (!isOwner) notFound();
 
-  const [
-    { data: profiles },
-    { data: projects },
-    { data: groups },
-    { data: members },
-    { data: groupGrants },
-    { data: statuses },
-    { data: categories },
-  ] = await Promise.all([
-    supabase.from("profiles").select("*").order("full_name"),
-    supabase.from("projects").select("*").order("name"),
+  const [workspaceData, groupsResult, membersResult, grantsResult] = await Promise.all([
+    loadWorkspace(supabase, auth.user.id, ["profiles", "projects", "statuses", "categories"]),
     supabase.from("access_groups").select("*").order("name"),
     supabase.from("access_group_members").select("*"),
     supabase.from("project_group_grants").select("*"),
-    supabase.from("statuses").select("*").order("sort_order"),
-    supabase.from("work_groups").select("*").order("name"),
   ]);
-
-  const currentProfile = profiles?.find(
-    (profile) => profile.id === auth.user.id,
-  );
-  if (!currentProfile) redirect("/login?error=profile");
-  const workspaceData: WorkspaceData = {
-    currentProfile,
-    profiles: profiles ?? [],
-    projects: projects ?? [],
-    projectOwners: [],
-    statuses: statuses ?? [],
-    categories: categories ?? [],
-    workGroups: [],
-    tasks: [],
-    subtasks: [],
-    comments: [],
-    activity: [],
-    attachments: [],
-    labels: [],
-    taskAssignees: [],
-    taskLabels: [],
-    taskCategories: [],
-  };
+  if (!workspaceData) redirect("/login?error=profile");
+  const groups = requireQueryData("access groups", groupsResult);
+  const members = requireQueryData("access group members", membersResult);
+  const groupGrants = requireQueryData("project group grants", grantsResult);
 
   return (
     <AccessPageClient
       currentUserId={auth.user.id}
       initialData={workspaceData}
-      initialProfiles={profiles ?? []}
-      projects={projects ?? []}
-      initialGroups={groups ?? []}
-      initialMembers={members ?? []}
-      initialGroupGrants={groupGrants ?? []}
+      initialProfiles={workspaceData.profiles}
+      projects={workspaceData.projects}
+      initialGroups={groups}
+      initialMembers={members}
+      initialGroupGrants={groupGrants}
       initialStatusSettingsOpen={query.statuses === "1"}
     />
   );

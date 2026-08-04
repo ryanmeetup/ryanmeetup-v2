@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { ProfilePageClient } from "@/components/ProfilePageClient";
 import { createClient } from "@/lib/supabase/server";
-import type { WorkspaceData } from "@/lib/types";
+import { loadWorkspace, requireQueryData } from "@/lib/workspace-loader";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -14,46 +14,17 @@ export default async function ProfilePage() {
     !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (demoMode) redirect("/");
   const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
+  const auth = requireQueryData("authenticated user", await supabase.auth.getUser());
   if (!auth.user) redirect("/login");
-  const [
-    { data: profile, error },
-    { data: profiles },
-    { data: statuses },
-    { data: categories },
-    { data: projects },
-  ] = await Promise.all([
-    supabase.from("profiles").select("*").eq("id", auth.user.id).single(),
-    supabase.from("profiles").select("*").order("full_name"),
-    supabase.from("statuses").select("*").order("sort_order"),
-    supabase.from("work_groups").select("*").order("name"),
-    supabase.from("projects").select("*").order("name"),
+  const initialData = await loadWorkspace(supabase, auth.user.id, [
+    "profiles", "statuses", "categories", "projects",
   ]);
-  if (error) throw error;
-  if (!profile) redirect("/?error=profile");
-  const initialData: WorkspaceData = {
-    currentProfile: profile,
-    profiles: profiles ?? [],
-    statuses: statuses ?? [],
-    categories: categories ?? [],
-    projects: projects ?? [],
-    projectOwners: [],
-    workGroups: [],
-    tasks: [],
-    subtasks: [],
-    comments: [],
-    activity: [],
-    attachments: [],
-    labels: [],
-    taskAssignees: [],
-    taskLabels: [],
-    taskCategories: [],
-  };
+  if (!initialData) redirect("/?error=profile");
   return (
     <ProfilePageClient
       initialData={initialData}
       email={auth.user.email ?? ""}
-      onboardingRequired={!profile.onboarding_completed}
+      onboardingRequired={!initialData.currentProfile.onboarding_completed}
     />
   );
 }

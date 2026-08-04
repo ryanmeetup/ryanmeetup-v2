@@ -7,7 +7,7 @@ import {
 import { resolveAccessPreview } from "@/lib/access-preview-server";
 import { demoData } from "@/lib/demo-data";
 import { createClient } from "@/lib/supabase/server";
-import type { WorkspaceData } from "@/lib/types";
+import { loadWorkspace, requireQueryData, TASK_PAGE_SIZE, WORKSPACE_COLUMNS } from "@/lib/workspace-loader";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
@@ -43,84 +43,40 @@ export default async function Home({
     );
 
   const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
+  const auth = requireQueryData("authenticated user", await supabase.auth.getUser());
   if (!auth.user) redirect("/login");
-  const { data: currentProfile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", auth.user.id)
-    .single();
-  if (!currentProfile) redirect("/login?error=profile");
-  if (!currentProfile.onboarding_completed) redirect("/profile");
-
-  const [
-    { data: profiles },
-    { data: statuses },
-    { data: workGroups },
-    { data: categories },
-    { data: projects },
-    { data: tasks },
-    { data: subtasks },
-    { data: comments },
-    { data: activity },
-    { data: attachments },
-    { data: labels },
-    { data: taskAssignees },
-    { data: taskLabels },
-    { data: taskCategories },
-  ] = await Promise.all([
-    supabase.from("profiles").select("*").order("full_name"),
-    supabase.from("statuses").select("*").order("sort_order"),
-    supabase.from("work_groups").select("*").order("name"),
-    supabase.from("work_groups").select("*").order("name"),
-    supabase.from("projects").select("*").order("name"),
-    supabase
-      .from("tasks")
-      .select("*")
-      .order("updated_at", { ascending: false }),
-    supabase.from("subtasks").select("*").order("sort_order"),
-    supabase.from("task_comments").select("*").order("created_at"),
-    supabase
-      .from("task_activity")
-      .select("*")
-      .order("created_at", { ascending: false }),
-    supabase.from("task_attachments").select("*").order("created_at"),
-    supabase.from("labels").select("*").order("name"),
-    supabase.from("task_assignees").select("*"),
-    supabase.from("task_labels").select("*"),
-    supabase.from("task_categories").select("*"),
+  let initialData = await loadWorkspace(supabase, auth.user.id, [
+    "profiles", "statuses", "workGroups", "categories", "projects",
+    "labels",
   ]);
-  const resolvedAttachments = await Promise.all(
-    (attachments ?? []).map(async (attachment) => {
-      if (!attachment.file_path) return attachment;
-      const signed = await supabase.storage
-        .from("task-attachments")
-        .createSignedUrl(attachment.file_path, 60 * 60);
-      return signed.data?.signedUrl
-        ? { ...attachment, url: signed.data.signedUrl }
-        : attachment;
-    }),
-  );
-  let initialData: WorkspaceData = {
-    currentProfile,
-    profiles: profiles ?? [],
-    statuses: statuses ?? [],
-    workGroups: workGroups ?? [],
-    categories: categories ?? [],
-    projects: projects ?? [],
-    tasks: tasks ?? [],
-    subtasks: subtasks ?? [],
-    comments: comments ?? [],
-    activity: activity ?? [],
-    attachments: resolvedAttachments,
-    labels: labels ?? [],
-    taskAssignees: taskAssignees ?? [],
-    taskLabels: taskLabels ?? [],
-    taskCategories: taskCategories ?? [],
-    projectOwners: [],
+  if (!initialData) redirect("/login?error=profile");
+  if (!initialData.currentProfile.onboarding_completed) redirect("/profile");
+  const archiveBoundary = new Date().toISOString();
+  const taskResult = await supabase
+    .from("tasks")
+    .select(WORKSPACE_COLUMNS.tasks, { count: "exact" })
+    .or(`archived_at.is.null,archived_at.gt.${archiveBoundary}`)
+    .order("updated_at", { ascending: false })
+    .range(0, TASK_PAGE_SIZE - 1);
+  const tasks = requireQueryData("active tasks", taskResult);
+  const taskIds = tasks.map((task) => task.id);
+  const [assigneeResult, categoryResult, labelResult] = taskIds.length
+    ? await Promise.all([
+        supabase.from("task_assignees").select(WORKSPACE_COLUMNS.taskAssignees).in("task_id", taskIds),
+        supabase.from("task_categories").select(WORKSPACE_COLUMNS.taskCategories).in("task_id", taskIds),
+        supabase.from("task_labels").select(WORKSPACE_COLUMNS.taskLabels).in("task_id", taskIds),
+      ])
+    : [{ data: [], error: null }, { data: [], error: null }, { data: [], error: null }];
+  initialData = {
+    ...initialData,
+    tasks,
+    taskAssignees: requireQueryData("task assignees", assigneeResult),
+    taskCategories: requireQueryData("task categories", categoryResult),
+    taskLabels: requireQueryData("task labels", labelResult),
+    taskPage: { page: 0, pageSize: TASK_PAGE_SIZE, total: taskResult.count ?? tasks.length, hasMore: tasks.length < (taskResult.count ?? 0) },
   };
   if (requestedGroupPreview || requestedUserPreview) {
-    const { data: isOwner } = await supabase.rpc("is_app_owner");
+    const isOwner = requireQueryData("owner access", await supabase.rpc("is_app_owner"));
     if (isOwner) {
       const resolvedPreview = await resolveAccessPreview(supabase, {
         groupId: requestedGroupPreview,
@@ -133,6 +89,15 @@ export default async function Home({
           resolvedPreview.preview,
           resolvedPreview.projectIds,
         );
+        initialData = {
+          ...initialData,
+          taskPage: {
+            page: 0,
+            pageSize: TASK_PAGE_SIZE,
+            total: initialData.tasks.length,
+            hasMore: false,
+          },
+        };
       }
     }
   }

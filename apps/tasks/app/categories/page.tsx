@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { CategoriesPageClient } from "@/components/CategoriesPageClient";
 import { demoData } from "@/lib/demo-data";
 import { createClient } from "@/lib/supabase/server";
-import type { WorkspaceData } from "@/lib/types";
+import { loadWorkspace, requireQueryData } from "@/lib/workspace-loader";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -16,36 +16,12 @@ export default async function CategoriesPage() {
   if (demoMode) return <CategoriesPageClient initialData={demoData} demoMode />;
 
   const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
+  const auth = requireQueryData("authenticated user", await supabase.auth.getUser());
   if (!auth.user) redirect("/login");
-  const [{ data: currentProfile }, { data: profiles }, { data: statuses }, { data: categories }, { data: projects }] =
-    await Promise.all([
-      supabase.from("profiles").select("*").eq("id", auth.user.id).single(),
-      supabase.from("profiles").select("*").order("full_name"),
-      supabase.from("statuses").select("*").order("sort_order"),
-      supabase.from("work_groups").select("*").order("name"),
-      supabase.from("projects").select("*").order("name"),
-    ]);
-  if (!currentProfile) redirect("/login?error=profile");
-  if (!currentProfile.onboarding_completed) redirect("/profile");
-
-  const initialData: WorkspaceData = {
-    currentProfile,
-    profiles: profiles ?? [],
-    statuses: statuses ?? [],
-    categories: categories ?? [],
-    workGroups: [],
-    projects: projects ?? [],
-    projectOwners: [],
-    tasks: [],
-    subtasks: [],
-    comments: [],
-    activity: [],
-    attachments: [],
-    labels: [],
-    taskAssignees: [],
-    taskLabels: [],
-    taskCategories: [],
-  };
+  const initialData = await loadWorkspace(supabase, auth.user.id, [
+    "profiles", "statuses", "categories", "projects",
+  ]);
+  if (!initialData) redirect("/login?error=profile");
+  if (!initialData.currentProfile.onboarding_completed) redirect("/profile");
   return <CategoriesPageClient initialData={initialData} demoMode={false} />;
 }
