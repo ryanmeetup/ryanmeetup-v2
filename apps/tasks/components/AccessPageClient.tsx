@@ -332,7 +332,7 @@ export function AccessPageClient({
         <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-black/10 bg-[#f7f7f5]/90 px-4 backdrop-blur-xl dark:border-white/10 dark:bg-[#101010]/90 sm:px-6 lg:px-8">
           <IconButton
             label="Open navigation"
-            className="lg:hidden"
+            tooltipTriggerClassName="lg:hidden"
             onClick={() => setSidebarOpen(true)}
           >
             <FiMenu />
@@ -395,13 +395,15 @@ export function AccessPageClient({
                             {group.description || "No description yet."}
                           </p>
                         </div>
-                        <Link
-                          href={`/access/${accessGroupSlug(group.name)}`}
-                          aria-label={`Manage ${group.name}`}
-                          className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-black/10 text-black transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:border-white/10 dark:text-white dark:hover:bg-white/10 dark:focus-visible:ring-white/30"
-                        >
-                          <FiEdit2 />
-                        </Link>
+                        <Tooltip content={`Manage ${group.name}`}>
+                          <Link
+                            href={`/access/${accessGroupSlug(group.name)}`}
+                            aria-label={`Manage ${group.name}`}
+                            className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-black/10 text-black transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:border-white/10 dark:text-white dark:hover:bg-white/10 dark:focus-visible:ring-white/30"
+                          >
+                            <FiEdit2 />
+                          </Link>
+                        </Tooltip>
                       </div>
                       <div className="mt-auto grid grid-cols-2 gap-3 border-t border-black/10 pt-4 dark:border-white/10">
                         <div>
@@ -553,6 +555,7 @@ export function AccessPageClient({
                                 >
                                   <IconButton
                                     label="You cannot remove your own owner account"
+                                    tooltip={false}
                                     variant="danger"
                                     aria-disabled="true"
                                     className="cursor-not-allowed opacity-40 hover:translate-y-0 hover:border-red-500/20 hover:bg-transparent hover:shadow-none dark:hover:border-red-400/25 dark:hover:bg-transparent"

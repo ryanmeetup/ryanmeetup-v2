@@ -150,7 +150,7 @@ const RotatingGallery = (props: RotatingGalleryProps) => {
         label="Show previous photo"
         size="md"
         variant="overlay"
-        className="absolute left-3 top-1/2 z-30 -translate-y-1/2"
+        tooltipTriggerClassName="absolute left-3 top-1/2 z-30 -translate-y-1/2"
       >
         <ChevronLeft className="h-4 w-4" aria-hidden="true" />
       </IconButton>
@@ -161,7 +161,7 @@ const RotatingGallery = (props: RotatingGalleryProps) => {
         label="Show next photo"
         size="md"
         variant="overlay"
-        className="absolute right-3 top-1/2 z-30 -translate-y-1/2"
+        tooltipTriggerClassName="absolute right-3 top-1/2 z-30 -translate-y-1/2"
       >
         <ChevronRight className="h-4 w-4" aria-hidden="true" />
       </IconButton>

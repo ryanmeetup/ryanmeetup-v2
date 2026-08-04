@@ -78,8 +78,12 @@ export function PasswordForm({
   }
 
   const passwordAction = (
-    <Tooltip content={showPassword ? "Hide password" : "Show password"} placement="left">
+    <Tooltip
+      content={showPassword ? "Hide password" : "Show password"}
+      placement="left"
+    >
       <IconButton
+        tooltip={false}
         label={showPassword ? "Hide password" : "Show password"}
         variant="plain"
         onClick={() => setShowPassword((visible) => !visible)}
@@ -141,9 +145,18 @@ export function PasswordForm({
         }}
         trailingAction={passwordAction}
       />
-      {hasError ? <ErrorCallout>{message}</ErrorCallout> : message ? <SuccessCallout>{message}</SuccessCallout> : null}
+      {hasError ? (
+        <ErrorCallout>{message}</ErrorCallout>
+      ) : message ? (
+        <SuccessCallout>{message}</SuccessCallout>
+      ) : null}
       <div className="flex justify-end">
-        <Button type="submit" leftIcon={<FiLock />} loading={saving} loadingText="Updating...">
+        <Button
+          type="submit"
+          leftIcon={<FiLock />}
+          loading={saving}
+          loadingText="Updating..."
+        >
           Update password
         </Button>
       </div>

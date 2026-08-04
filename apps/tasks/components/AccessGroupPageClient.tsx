@@ -180,7 +180,7 @@ export function AccessGroupPageClient({
         <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-black/10 bg-[#f7f7f5]/90 px-4 backdrop-blur-xl dark:border-white/10 dark:bg-[#101010]/90 sm:px-6 lg:px-8">
           <IconButton
             label="Open navigation"
-            className="lg:hidden"
+            tooltipTriggerClassName="lg:hidden"
             onClick={() => setSidebarOpen(true)}
           >
             <FiMenu />

@@ -81,7 +81,7 @@ export function TasksSidebar({
           </Link>
           <IconButton
             label="Close navigation"
-            className="lg:hidden"
+            tooltipTriggerClassName="lg:hidden"
             onClick={() => setOpen(false)}
           >
             <FiX />
@@ -292,6 +292,7 @@ export function TasksSidebar({
             {!demoMode && (
               <Tooltip content="Sign out" placement="right">
                 <IconButton
+                  tooltip={false}
                   label="Sign out"
                   onClick={async () => {
                     await createClient().auth.signOut();

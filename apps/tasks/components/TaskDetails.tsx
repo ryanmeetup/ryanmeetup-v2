@@ -14,6 +14,7 @@ import {
   IconButton,
   Input,
   Textarea,
+  Tooltip,
   toast,
 } from "@ryanmeetup/ui";
 import {
@@ -279,14 +280,18 @@ export function TaskDetails({
           <div className="max-h-[min(11.7rem,22.75svh)] space-y-3 overflow-y-auto overscroll-contain pr-2">
             {subtasks.map((item) => (
               <div key={item.id} className="flex items-center gap-2">
-                <button
-                  type="button"
-                  aria-label={`${item.is_completed ? "Reopen" : "Complete"} ${item.title}`}
-                  onClick={() => void toggleSubtask(item)}
-                  className={`grid h-5 w-5 shrink-0 place-items-center rounded border ${item.is_completed ? "border-emerald-500 bg-emerald-500 text-white" : "border-black/20 dark:border-white/25"}`}
+                <Tooltip
+                  content={`${item.is_completed ? "Reopen" : "Complete"} ${item.title}`}
                 >
-                  {item.is_completed && <FiCheck aria-hidden />}
-                </button>
+                  <button
+                    type="button"
+                    aria-label={`${item.is_completed ? "Reopen" : "Complete"} ${item.title}`}
+                    onClick={() => void toggleSubtask(item)}
+                    className={`grid h-5 w-5 shrink-0 place-items-center rounded border ${item.is_completed ? "border-emerald-500 bg-emerald-500 text-white" : "border-black/20 dark:border-white/25"}`}
+                  >
+                    {item.is_completed && <FiCheck aria-hidden />}
+                  </button>
+                </Tooltip>
                 <span
                   className={`min-w-0 flex-1 text-sm ${item.is_completed ? "text-black/45 line-through dark:text-white/45" : ""}`}
                 >

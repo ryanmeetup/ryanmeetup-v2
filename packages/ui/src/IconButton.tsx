@@ -1,10 +1,14 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { Tooltip } from "./Tooltip";
 
 export type IconButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   children: ReactNode;
   label: string;
   size?: "sm" | "md";
   variant?: "subtle" | "overlay" | "plain" | "danger";
+  tooltip?: ReactNode | false;
+  tooltipPlacement?: "top" | "right" | "bottom" | "left";
+  tooltipTriggerClassName?: string;
 };
 
 const sizeStyles = { sm: "h-8 w-8", md: "h-10 w-10" };
@@ -24,18 +28,34 @@ const IconButton = ({
   className,
   label,
   size = "sm",
+  tooltip,
+  tooltipPlacement = "top",
+  tooltipTriggerClassName,
   variant = "subtle",
   type = "button",
   ...buttonProps
-}: IconButtonProps) => (
-  <button
-    {...buttonProps}
-    type={type}
-    aria-label={label}
-    className={`inline-flex items-center justify-center transition duration-300 ease-in-out focus-visible:outline-none focus-visible:ring-2 ${sizeStyles[size]} ${variantStyles[variant]} ${className ?? ""}`}
-  >
-    {children}
-  </button>
-);
+}: IconButtonProps) => {
+  const button = (
+    <button
+      {...buttonProps}
+      type={type}
+      aria-label={label}
+      className={`inline-flex items-center justify-center transition duration-300 ease-in-out focus-visible:outline-none focus-visible:ring-2 ${sizeStyles[size]} ${variantStyles[variant]} ${className ?? ""}`}
+    >
+      {children}
+    </button>
+  );
+
+  if (tooltip === false) return button;
+  return (
+    <Tooltip
+      content={tooltip ?? label}
+      placement={tooltipPlacement}
+      triggerClassName={tooltipTriggerClassName}
+    >
+      {button}
+    </Tooltip>
+  );
+};
 
 export { IconButton };

@@ -10,6 +10,7 @@ export function ThemeToggle() {
   return (
     <Tooltip content="Toggle color theme">
       <IconButton
+        tooltip={false}
         label="Toggle color theme"
         size="md"
         onClick={() => setTheme(theme === "dark" ? "light" : "dark")}

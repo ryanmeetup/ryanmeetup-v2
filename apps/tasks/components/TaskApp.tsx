@@ -1205,7 +1205,7 @@ export function TaskApp({
           </Link>
           <IconButton
             label="Close navigation"
-            className="lg:hidden"
+            tooltipTriggerClassName="lg:hidden"
             onClick={() => setSidebarOpen(false)}
           >
             <FiX />
@@ -1441,6 +1441,7 @@ export function TaskApp({
             {!demoMode && (
               <Tooltip content="Sign out" placement="right">
                 <IconButton
+                  tooltip={false}
                   label="Sign out"
                   onClick={async () => {
                     await createClient().auth.signOut();
@@ -1459,7 +1460,7 @@ export function TaskApp({
         <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-black/10 bg-[#f7f7f5]/90 px-4 backdrop-blur-xl dark:border-white/10 dark:bg-[#101010]/90 sm:px-6 lg:px-8">
           <IconButton
             label="Open navigation"
-            className="lg:hidden"
+            tooltipTriggerClassName="lg:hidden"
             onClick={() => setSidebarOpen(true)}
           >
             <FiMenu />
@@ -1744,25 +1745,23 @@ export function TaskApp({
                           <span className="text-xs text-black/40 dark:text-white/40">
                             {columnTasks.length}
                           </span>
-                          <button
-                            aria-label={`Add task to ${item.name}`}
-                            className="ml-auto rounded p-1 text-black/40 hover:bg-black/5 hover:text-black dark:text-white/40 dark:hover:bg-white/10 dark:hover:text-white"
+                          <IconButton
+                            label={`Add task to ${item.name}`}
+                            tooltipTriggerClassName="ml-auto"
                             onClick={() => openCreate(item.id)}
                           >
                             <FiPlus />
-                          </button>
-                          <button
-                            type="button"
-                            aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${item.name}`}
+                          </IconButton>
+                          <IconButton
+                            label={`${isCollapsed ? "Expand" : "Collapse"} ${item.name}`}
                             aria-expanded={!isCollapsed}
                             aria-controls={`status-column-${item.id}`}
-                            className="rounded p-1 text-black/40 hover:bg-black/5 hover:text-black focus:outline-none focus:ring-2 focus:ring-black/20 dark:text-white/40 dark:hover:bg-white/10 dark:hover:text-white dark:focus:ring-white/30"
                             onClick={() => toggleStatusSection(item.id)}
                           >
                             <FiChevronDown
                               className={`transition-transform ${isCollapsed ? "-rotate-90" : ""}`}
                             />
-                          </button>
+                          </IconButton>
                         </div>
                         <AnimatedCollapse
                           id={`status-column-${item.id}`}

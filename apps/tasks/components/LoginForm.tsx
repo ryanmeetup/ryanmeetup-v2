@@ -100,6 +100,7 @@ export function LoginForm() {
                 placement="left"
               >
                 <IconButton
+                  tooltip={false}
                   label={showPassword ? "Hide password" : "Show password"}
                   variant="plain"
                   onClick={() => setShowPassword((visible) => !visible)}

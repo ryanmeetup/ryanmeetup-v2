@@ -15,6 +15,7 @@ import {
 } from "react";
 import { FiCornerDownRight } from "react-icons/fi";
 import { LuIndentDecrease, LuIndentIncrease } from "react-icons/lu";
+import { IconButton } from "./IconButton";
 import {
   markdownToHtml,
   normalizeRichTextValue,
@@ -215,34 +216,34 @@ const RichTextarea = forwardRef<HTMLTextAreaElement, RichTextareaProps>(
             onPointerDown={retainSelection}
             onClick={retainSelection}
           >
-            <button
-              type="button"
-              aria-label="Outdent list item"
-              className="rounded-full p-2 hover:bg-white/10 disabled:opacity-40"
+            <IconButton
+              label="Outdent list item"
+              variant="plain"
+              className="hover:bg-white/10 disabled:opacity-40"
               onClick={() =>
                 editor?.chain().focus().liftListItem(listItemType).run()
               }
             >
               <LuIndentDecrease />
-            </button>
-            <button
-              type="button"
-              aria-label="Indent list item"
-              className="rounded-full p-2 hover:bg-white/10"
+            </IconButton>
+            <IconButton
+              label="Indent list item"
+              variant="plain"
+              className="hover:bg-white/10"
               onClick={() =>
                 editor?.chain().focus().sinkListItem(listItemType).run()
               }
             >
               <LuIndentIncrease />
-            </button>
-            <button
-              type="button"
-              aria-label="Move to next field"
-              className="rounded-full p-2 hover:bg-white/10"
+            </IconButton>
+            <IconButton
+              label="Move to next field"
+              variant="plain"
+              className="hover:bg-white/10"
               onClick={focusNextField}
             >
               <FiCornerDownRight />
-            </button>
+            </IconButton>
           </div>
         )}
       </div>
