@@ -275,6 +275,7 @@ export function TaskApp({
     setProjectsExpanded,
   } = useSidebarSections();
   const [taskOpen, setTaskOpen] = useState(initialTaskOpen);
+  const [taskDetailsOpen, setTaskDetailsOpen] = useState(false);
   const [workGroupsOpen, setWorkGroupsOpen] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [taskMessage, setTaskMessage] = useState("");
@@ -682,6 +683,7 @@ export function TaskApp({
   function openCreate(statusId?: string) {
     setTaskMessage("");
     setEditing(null);
+    setTaskDetailsOpen(false);
     setCreateAnother(false);
     const scopedDraft = blankDraft(
       statusId ??
@@ -701,6 +703,7 @@ export function TaskApp({
   function openEdit(task: Task) {
     setTaskMessage("");
     setEditing(task);
+    setTaskDetailsOpen(data.currentProfile.task_details_open_by_default);
     setCreateAnother(false);
     setDraft({
       title: task.title,
@@ -1915,7 +1918,8 @@ export function TaskApp({
         setIsOpen={setTaskOpen}
         title={editing ? "Edit task" : "A new thing to do"}
         hideActions
-        size={editing ? "2xl" : "lg"}
+        size={editing && taskDetailsOpen ? "2xl" : "lg"}
+        panelClassName="transition-[max-width] duration-300 ease-out motion-reduce:transition-none"
         footer={
           <div className="grid w-full gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
             {editing && (
@@ -1972,7 +1976,9 @@ export function TaskApp({
           <div
             className={
               editing
-                ? "grid items-start gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]"
+                ? taskDetailsOpen
+                  ? "grid items-start transition-[grid-template-columns,gap] duration-300 ease-out motion-reduce:transition-none lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-8"
+                  : "grid items-start transition-[grid-template-columns,gap] duration-300 ease-out motion-reduce:transition-none lg:grid-cols-[minmax(0,1fr)_0fr] lg:gap-0"
                 : ""
             }
           >
@@ -2143,15 +2149,63 @@ export function TaskApp({
                   />
                 </label>
               </div>
+              {editing && !taskDetailsOpen && (
+                <button
+                  type="button"
+                  aria-expanded="false"
+                  aria-controls="task-secondary-details"
+                  className="group flex w-full items-center gap-4 rounded-xl border border-black/15 bg-black/[0.025] p-4 text-left transition hover:border-black/30 hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:border-white/15 dark:bg-white/[0.035] dark:hover:border-white/30 dark:hover:bg-white/[0.07] dark:focus-visible:ring-white/30"
+                  onClick={() => setTaskDetailsOpen(true)}
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold">
+                      Task details
+                    </span>
+                    <span className="mt-1 block text-xs text-black/55 dark:text-white/55">
+                      Checklist, attachments, comments, and activity
+                    </span>
+                  </span>
+                  <span className="flex shrink-0 items-center gap-2 text-xs font-semibold text-black/55 dark:text-white/55">
+                    Show
+                    <FiChevronDown className="transition-transform group-hover:translate-y-0.5 motion-reduce:transform-none" />
+                  </span>
+                </button>
+              )}
             </div>
             {editing && (
-              <TaskDetails
-                className="!border-t-0 !pt-0 lg:border-l lg:border-black/10 lg:pl-8 lg:dark:border-white/10"
-                task={editing}
-                data={data}
-                setData={setData}
-                demoMode={demoMode}
-              />
+              <AnimatedCollapse
+                id="task-secondary-details"
+                open={taskDetailsOpen}
+                className="min-w-0"
+                contentClassName="min-w-0 lg:border-l lg:border-black/10 lg:pl-8 lg:dark:border-white/10"
+              >
+                <div className="mb-5 flex items-center justify-between gap-3 border-b border-black/10 pb-3 dark:border-white/10">
+                  <div>
+                    <p className="text-sm font-semibold">Task details</p>
+                    <p className="text-xs text-black/55 dark:text-white/55">
+                      Checklist, files, conversation, and history
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    rightIcon={<FiChevronDown className="rotate-180" />}
+                    aria-expanded="true"
+                    aria-controls="task-secondary-details"
+                    onClick={() => setTaskDetailsOpen(false)}
+                  >
+                    Hide details
+                  </Button>
+                </div>
+                <TaskDetails
+                  className="!border-t-0 !pt-0"
+                  task={editing}
+                  data={data}
+                  setData={setData}
+                  demoMode={demoMode}
+                />
+              </AnimatedCollapse>
             )}
           </div>
           <ErrorCallout>{taskMessage}</ErrorCallout>

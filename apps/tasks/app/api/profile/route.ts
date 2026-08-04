@@ -9,14 +9,21 @@ export async function PATCH(request: Request) {
   if (!auth.user)
     return NextResponse.json({ error: "Not authorized" }, { status: 401 });
 
-  const { displayName, avatarPath } = (await request.json()) as {
-    displayName?: string;
-    avatarPath?: string;
-  };
+  const { displayName, avatarPath, taskDetailsOpenByDefault } =
+    (await request.json()) as {
+      displayName?: string;
+      avatarPath?: string;
+      taskDetailsOpenByDefault?: boolean;
+    };
   const name = normalizeDisplayName(displayName ?? "");
   const validationError = displayNameError(name);
   if (validationError)
     return NextResponse.json({ error: validationError }, { status: 400 });
+  if (typeof taskDetailsOpenByDefault !== "boolean")
+    return NextResponse.json(
+      { error: "Choose a default task-details setting." },
+      { status: 400 },
+    );
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key =
     process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -39,8 +46,13 @@ export async function PATCH(request: Request) {
   const updates: {
     full_name: string;
     onboarding_completed: boolean;
+    task_details_open_by_default: boolean;
     avatar_url?: string;
-  } = { full_name: name, onboarding_completed: true };
+  } = {
+    full_name: name,
+    onboarding_completed: true,
+    task_details_open_by_default: taskDetailsOpenByDefault,
+  };
   if (avatarUrl) updates.avatar_url = avatarUrl;
   const { data: profile, error } = await admin
     .from("profiles")

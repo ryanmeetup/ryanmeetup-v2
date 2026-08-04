@@ -6,6 +6,7 @@ export const demoData: WorkspaceData = {
     full_name: "Ryan",
     avatar_url: null,
     onboarding_completed: true,
+    task_details_open_by_default: false,
   },
   profiles: [
     {
@@ -13,18 +14,21 @@ export const demoData: WorkspaceData = {
       full_name: "Ryan",
       avatar_url: null,
       onboarding_completed: true,
+      task_details_open_by_default: false,
     },
     {
       id: "alex",
       full_name: "Alex Ryan",
       avatar_url: null,
       onboarding_completed: true,
+      task_details_open_by_default: false,
     },
     {
       id: "jordan",
       full_name: "Jordan Ryan",
       avatar_url: null,
       onboarding_completed: true,
+      task_details_open_by_default: false,
     },
   ],
   statuses: [

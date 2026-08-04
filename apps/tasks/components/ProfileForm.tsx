@@ -41,6 +41,9 @@ export function ProfileForm({
   const [hasError, setHasError] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState(profile.avatar_url);
+  const [taskDetailsOpenByDefault, setTaskDetailsOpenByDefault] = useState(
+    profile.task_details_open_by_default,
+  );
 
   useEffect(
     () => () => {
@@ -96,7 +99,11 @@ export function ProfileForm({
       const response = await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ displayName: normalizedName, avatarPath }),
+        body: JSON.stringify({
+          displayName: normalizedName,
+          avatarPath,
+          taskDetailsOpenByDefault,
+        }),
       });
       const result = (await response.json()) as {
         error?: string;
@@ -190,6 +197,33 @@ export function ProfileForm({
       <p className="-mt-3 text-xs text-black/55 dark:text-white/55">
         Your sign-in email cannot be changed here.
       </p>
+      {!onboardingRequired && (
+        <label className="flex cursor-pointer items-center justify-between gap-5 rounded-xl border border-black/10 bg-black/[0.02] p-4 transition hover:border-black/20 dark:border-white/10 dark:bg-white/[0.025] dark:hover:border-white/20">
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold">
+              Open task details by default
+            </span>
+            <span className="mt-1 block text-xs leading-relaxed text-black/55 dark:text-white/55">
+              Show checklists, attachments, comments, and activity whenever you
+              edit a task.
+            </span>
+          </span>
+          <span className="relative inline-flex shrink-0">
+            <input
+              type="checkbox"
+              role="switch"
+              checked={taskDetailsOpenByDefault}
+              disabled={saving}
+              onChange={(event) =>
+                setTaskDetailsOpenByDefault(event.target.checked)
+              }
+              className="peer sr-only"
+            />
+            <span className="h-7 w-12 rounded-full bg-black/15 transition peer-checked:bg-black peer-focus-visible:ring-2 peer-focus-visible:ring-black/30 peer-focus-visible:ring-offset-2 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 dark:bg-white/20 dark:peer-checked:bg-white dark:peer-focus-visible:ring-white/40 dark:peer-focus-visible:ring-offset-[#181818]" />
+            <span className="pointer-events-none absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5 dark:bg-black" />
+          </span>
+        </label>
+      )}
       {hasError ? (
         <ErrorCallout>{message}</ErrorCallout>
       ) : message ? (

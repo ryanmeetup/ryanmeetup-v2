@@ -59,6 +59,7 @@ export async function POST(request: Request) {
       full_name: fullName?.trim() || email.trim().split("@")[0],
       avatar_url: null,
       onboarding_completed: false,
+      task_details_open_by_default: false,
       app_role: "member",
     },
   });

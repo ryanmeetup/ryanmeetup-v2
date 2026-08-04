@@ -5,6 +5,7 @@ export type Profile = {
   full_name: string;
   avatar_url: string | null;
   onboarding_completed: boolean;
+  task_details_open_by_default: boolean;
   app_role?: "owner" | "member";
 };
 
