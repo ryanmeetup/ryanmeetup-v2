@@ -1,138 +1,63 @@
-import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-
-async function authorizeTeamMember() {
-  if (
-    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-  ) {
-    return {
-      user: null,
-      error: "Supabase public credentials are not configured",
-    };
-  }
-  const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return { user: null, error: "Not authorized" };
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id, onboarding_completed")
-    .eq("id", auth.user.id)
-    .single();
-  if (!profile?.onboarding_completed)
-    return { user: null, error: "Not authorized" };
-  const { data: isOwner } = await supabase.rpc("is_app_owner");
-  return isOwner
-    ? { user: auth.user, error: null }
-    : { user: null, error: "Not authorized" };
-}
-
-function authorizationResponse(error: string) {
-  return NextResponse.json(
-    { error },
-    { status: error.includes("not configured") ? 503 : 403 },
-  );
-}
-
-function serviceClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key =
-    process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return null;
-  return createAdminClient(url, key, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-}
-
-const validColor = (value: unknown): value is string =>
-  typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value);
+import { idSchema, workGroupSchema } from "@/lib/api-schemas";
+import {
+  apiError,
+  auditPrivilegedAction,
+  privilegedContext,
+  readJson,
+} from "@/lib/privileged-api";
 
 export async function POST(request: Request) {
-  const authorization = await authorizeTeamMember();
-  if (!authorization.user) return authorizationResponse(authorization.error);
-  const user = authorization.user;
-  const client = serviceClient();
-  if (!client)
-    return NextResponse.json(
-      { error: "SUPABASE_SECRET_KEY is not configured" },
-      { status: 503 },
-    );
-  const { name, description, color } = (await request.json()) as {
-    name?: string;
-    description?: string;
-    color?: string;
-  };
-  if (!name?.trim() || !validColor(color))
-    return NextResponse.json(
-      { error: "A name and valid color are required" },
-      { status: 400 },
-    );
-  const { data, error } = await client
-    .from("work_groups")
-    .insert({
-      name: name.trim(),
-      description: description?.trim() || null,
-      color,
-      created_by: user.id,
-    })
-    .select()
-    .single();
-  if (error)
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  const parsed = await readJson(request, (value) => workGroupSchema(value));
+  if ("response" in parsed) return parsed.response;
+  const context = await privilegedContext({ owner: true });
+  if ("response" in context) return context.response;
+  const { data, error } = await context.admin.from("work_groups").insert({
+    name: parsed.data.name,
+    description: parsed.data.description,
+    color: parsed.data.color,
+    created_by: context.user.id,
+  }).select().single();
+  if (error) {
+    console.error("Work group creation failed", { actorId: context.user.id, code: error.code });
+    return apiError(400, "OPERATION_FAILED", "The category could not be created.");
+  }
+  if (!(await auditPrivilegedAction(context.admin, context.user, {
+    action: "work_group.create", targetType: "work_group", targetId: data.id,
+  }))) return apiError(500, "AUDIT_FAILED", "The category was created, but its audit record could not be saved.");
   return NextResponse.json({ workGroup: data });
 }
 
 export async function PATCH(request: Request) {
-  const authorization = await authorizeTeamMember();
-  if (!authorization.user) return authorizationResponse(authorization.error);
-  const client = serviceClient();
-  if (!client)
-    return NextResponse.json(
-      { error: "SUPABASE_SECRET_KEY is not configured" },
-      { status: 503 },
-    );
-  const { id, name, description, color } = (await request.json()) as {
-    id?: string;
-    name?: string;
-    description?: string;
-    color?: string;
-  };
-  if (!id || !name?.trim() || !validColor(color))
-    return NextResponse.json(
-      { error: "A category, name, and valid color are required" },
-      { status: 400 },
-    );
-  const { error } = await client
-    .from("work_groups")
-    .update({
-      name: name.trim(),
-      description: description?.trim() || null,
-      color,
-    })
-    .eq("id", id);
-  if (error)
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  const parsed = await readJson(request, (value) => workGroupSchema(value, true));
+  if ("response" in parsed) return parsed.response;
+  const context = await privilegedContext({ owner: true });
+  if ("response" in context) return context.response;
+  const { error } = await context.admin.from("work_groups").update({
+    name: parsed.data.name, description: parsed.data.description, color: parsed.data.color,
+  }).eq("id", parsed.data.id!);
+  if (error) {
+    console.error("Work group update failed", { actorId: context.user.id, code: error.code });
+    return apiError(400, "OPERATION_FAILED", "The category could not be updated.");
+  }
+  if (!(await auditPrivilegedAction(context.admin, context.user, {
+    action: "work_group.update", targetType: "work_group", targetId: parsed.data.id,
+  }))) return apiError(500, "AUDIT_FAILED", "The category was updated, but its audit record could not be saved.");
   return NextResponse.json({ ok: true });
 }
 
 export async function DELETE(request: Request) {
-  const authorization = await authorizeTeamMember();
-  if (!authorization.user) return authorizationResponse(authorization.error);
-  const client = serviceClient();
-  if (!client)
-    return NextResponse.json(
-      { error: "SUPABASE_SECRET_KEY is not configured" },
-      { status: 503 },
-    );
-  const { id } = (await request.json()) as { id?: string };
-  if (!id)
-    return NextResponse.json(
-      { error: "A category is required" },
-      { status: 400 },
-    );
-  const { error } = await client.from("work_groups").delete().eq("id", id);
-  if (error)
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  const parsed = await readJson(request, idSchema);
+  if ("response" in parsed) return parsed.response;
+  const context = await privilegedContext({ owner: true });
+  if ("response" in context) return context.response;
+  const { error } = await context.admin.from("work_groups").delete().eq("id", parsed.data.id);
+  if (error) {
+    console.error("Work group deletion failed", { actorId: context.user.id, code: error.code });
+    return apiError(400, "OPERATION_FAILED", "The category could not be deleted.");
+  }
+  if (!(await auditPrivilegedAction(context.admin, context.user, {
+    action: "work_group.delete", targetType: "work_group", targetId: parsed.data.id,
+  }))) return apiError(500, "AUDIT_FAILED", "The category was deleted, but its audit record could not be saved.");
   return NextResponse.json({ ok: true });
 }

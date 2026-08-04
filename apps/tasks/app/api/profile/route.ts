@@ -1,70 +1,58 @@
 import { NextResponse } from "next/server";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
-import { createClient } from "@/lib/supabase/server";
+import { profileSchema } from "@/lib/api-schemas";
 import { displayNameError, normalizeDisplayName } from "@/lib/display-name";
+import {
+  apiError,
+  auditPrivilegedAction,
+  privilegedContext,
+  readJson,
+} from "@/lib/privileged-api";
 
 export async function PATCH(request: Request) {
-  const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user)
-    return NextResponse.json({ error: "Not authorized" }, { status: 401 });
+  const parsed = await readJson(request, profileSchema);
+  if ("response" in parsed) return parsed.response;
+  const context = await privilegedContext();
+  if ("response" in context) return context.response;
 
-  const { displayName, avatarPath, taskDetailsOpenByDefault } =
-    (await request.json()) as {
-      displayName?: string;
-      avatarPath?: string;
-      taskDetailsOpenByDefault?: boolean;
-    };
-  const name = normalizeDisplayName(displayName ?? "");
+  const name = normalizeDisplayName(parsed.data.displayName);
   const validationError = displayNameError(name);
-  if (validationError)
-    return NextResponse.json({ error: validationError }, { status: 400 });
-  if (typeof taskDetailsOpenByDefault !== "boolean")
-    return NextResponse.json(
-      { error: "Choose a default task-details setting." },
-      { status: 400 },
-    );
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key =
-    process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key)
-    return NextResponse.json(
-      { error: "Profile updates are not configured." },
-      { status: 503 },
-    );
-  const admin = createAdminClient(url, key, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-  if (avatarPath !== undefined && avatarPath !== `${auth.user.id}/avatar`)
-    return NextResponse.json(
-      { error: "The selected avatar is not valid." },
-      { status: 400 },
-    );
-  const avatarUrl = avatarPath
-    ? `${admin.storage.from("profile-avatars").getPublicUrl(avatarPath).data.publicUrl}?v=${Date.now()}`
+  if (validationError) return apiError(400, "INVALID_REQUEST", validationError);
+  if (
+    parsed.data.avatarPath !== undefined &&
+    parsed.data.avatarPath !== `${context.user.id}/avatar`
+  ) {
+    return apiError(400, "INVALID_REQUEST", "The selected avatar is not valid.");
+  }
+  const avatarUrl = parsed.data.avatarPath
+    ? `${context.admin.storage.from("profile-avatars").getPublicUrl(parsed.data.avatarPath).data.publicUrl}?v=${Date.now()}`
     : undefined;
-  const updates: {
-    full_name: string;
-    onboarding_completed: boolean;
-    task_details_open_by_default: boolean;
-    avatar_url?: string;
-  } = {
+  const updates = {
     full_name: name,
     onboarding_completed: true,
-    task_details_open_by_default: taskDetailsOpenByDefault,
+    task_details_open_by_default: parsed.data.taskDetailsOpenByDefault,
+    ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
   };
-  if (avatarUrl) updates.avatar_url = avatarUrl;
-  const { data: profile, error } = await admin
+  const { data: profile, error } = await context.admin
     .from("profiles")
     .update(updates)
-    .eq("id", auth.user.id)
+    .eq("id", context.user.id)
     .select("*")
     .single();
-  if (error)
-    return NextResponse.json({ error: error.message }, { status: 400 });
-
-  await supabase.auth.updateUser({
+  if (error) {
+    console.error("Profile update failed", { actorId: context.user.id, code: error.code });
+    return apiError(400, "OPERATION_FAILED", "Your profile could not be saved.");
+  }
+  const { error: authError } = await context.supabase.auth.updateUser({
     data: { full_name: name, ...(avatarUrl ? { avatar_url: avatarUrl } : {}) },
   });
+  if (authError) console.error("Profile auth metadata update failed", { actorId: context.user.id });
+  if (!(await auditPrivilegedAction(context.admin, context.user, {
+    action: "profile.update",
+    targetType: "profile",
+    targetId: context.user.id,
+    metadata: { avatarUpdated: Boolean(avatarUrl) },
+  }))) {
+    return apiError(500, "AUDIT_FAILED", "Your profile was saved, but its audit record could not be saved.");
+  }
   return NextResponse.json({ profile });
 }

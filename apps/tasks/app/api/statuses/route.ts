@@ -1,174 +1,100 @@
-import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-
-async function authorizeTeamMember() {
-  const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return false;
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id, onboarding_completed")
-    .eq("id", auth.user.id)
-    .single();
-  if (!profile?.onboarding_completed) return false;
-  const { data: isOwner } = await supabase.rpc("is_app_owner");
-  return Boolean(isOwner);
-}
-
-function serviceClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key =
-    process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return null;
-  return createAdminClient(url, key, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-}
-
-const validColor = (value: unknown): value is string =>
-  typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value);
+import { idSchema, statusCreateSchema, statusPatchSchema } from "@/lib/api-schemas";
+import {
+  apiError,
+  auditPrivilegedAction,
+  privilegedContext,
+  readJson,
+} from "@/lib/privileged-api";
 
 export async function POST(request: Request) {
-  if (!(await authorizeTeamMember()))
-    return NextResponse.json({ error: "Not authorized" }, { status: 403 });
-  const client = serviceClient();
-  if (!client)
-    return NextResponse.json(
-      { error: "Supabase server credentials are not configured" },
-      { status: 503 },
-    );
-  const { name, color } = (await request.json()) as {
-    name?: string;
-    color?: string;
-  };
-  if (!name?.trim() || !validColor(color))
-    return NextResponse.json(
-      { error: "A name and valid color are required" },
-      { status: 400 },
-    );
-  const { data: finalStatus } = await client
-    .from("statuses")
-    .select("sort_order")
-    .order("sort_order", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  const { data, error } = await client
-    .from("statuses")
-    .insert({
-      name: name.trim(),
-      color,
-      sort_order: (finalStatus?.sort_order ?? -1) + 1,
-      is_default: false,
-      is_completed: false,
-    })
-    .select("*")
-    .single();
-  if (error)
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  const parsed = await readJson(request, statusCreateSchema);
+  if ("response" in parsed) return parsed.response;
+  const context = await privilegedContext({ owner: true });
+  if ("response" in context) return context.response;
+  const { data: finalStatus, error: readError } = await context.admin
+    .from("statuses").select("sort_order").order("sort_order", { ascending: false }).limit(1).maybeSingle();
+  if (readError) {
+    console.error("Status ordering read failed", { actorId: context.user.id, code: readError.code });
+    return apiError(500, "OPERATION_FAILED", "The status could not be created.");
+  }
+  const { data, error } = await context.admin.from("statuses").insert({
+    name: parsed.data.name,
+    color: parsed.data.color,
+    sort_order: (finalStatus?.sort_order ?? -1) + 1,
+    is_default: false,
+    is_completed: false,
+  }).select("*").single();
+  if (error) {
+    console.error("Status creation failed", { actorId: context.user.id, code: error.code });
+    return apiError(400, "OPERATION_FAILED", "The status could not be created.");
+  }
+  if (!(await auditPrivilegedAction(context.admin, context.user, {
+    action: "status.create", targetType: "status", targetId: data.id,
+  }))) return apiError(500, "AUDIT_FAILED", "The status was created, but its audit record could not be saved.");
   return NextResponse.json({ status: data });
 }
 
 export async function PATCH(request: Request) {
-  if (!(await authorizeTeamMember()))
-    return NextResponse.json({ error: "Not authorized" }, { status: 403 });
-  const client = serviceClient();
-  if (!client)
-    return NextResponse.json(
-      { error: "Supabase server credentials are not configured" },
-      { status: 503 },
-    );
-  const body = (await request.json()) as {
-    id?: string;
-    name?: string;
-    isCompleted?: boolean;
-    orderedIds?: string[];
-  };
+  const parsed = await readJson(request, statusPatchSchema);
+  if ("response" in parsed) return parsed.response;
+  const context = await privilegedContext({ owner: true });
+  if ("response" in context) return context.response;
 
-  if (body.orderedIds) {
-    const orderedIds = [...new Set(body.orderedIds)];
-    const { data: statuses, error: readError } = await client
-      .from("statuses")
-      .select("*");
-    if (readError)
-      return NextResponse.json({ error: readError.message }, { status: 400 });
-    if (
-      statuses.length !== orderedIds.length ||
-      statuses.some((status) => !orderedIds.includes(status.id))
-    ) {
-      return NextResponse.json(
-        { error: "The status list changed. Refresh and try again." },
-        { status: 409 },
-      );
+  if (Array.isArray(parsed.data.orderedIds)) {
+    const orderedIds = [...new Set(parsed.data.orderedIds)];
+    if (orderedIds.length !== parsed.data.orderedIds.length)
+      return apiError(400, "INVALID_REQUEST", "Each status must appear once.");
+    const { data: statuses, error: readError } = await context.admin.from("statuses").select("*");
+    if (readError) {
+      console.error("Status reorder read failed", { actorId: context.user.id, code: readError.code });
+      return apiError(500, "OPERATION_FAILED", "The statuses could not be reordered.");
     }
+    if (statuses.length !== orderedIds.length || statuses.some((status) => !orderedIds.includes(status.id)))
+      return apiError(409, "CONFLICT", "The status list changed. Refresh and try again.");
     const order = new Map(orderedIds.map((id, index) => [id, index]));
-    const { data, error } = await client
-      .from("statuses")
-      .upsert(
-        statuses.map((status) => ({
-          ...status,
-          sort_order: order.get(status.id),
-        })),
-      )
-      .select("*");
-    if (error)
-      return NextResponse.json({ error: error.message }, { status: 400 });
+    const { data, error } = await context.admin.from("statuses").upsert(
+      statuses.map((status) => ({ ...status, sort_order: order.get(status.id) })),
+    ).select("*");
+    if (error) {
+      console.error("Status reorder failed", { actorId: context.user.id, code: error.code });
+      return apiError(400, "OPERATION_FAILED", "The statuses could not be reordered.");
+    }
+    if (!(await auditPrivilegedAction(context.admin, context.user, {
+      action: "status.reorder", targetType: "status_collection", metadata: { count: orderedIds.length },
+    }))) return apiError(500, "AUDIT_FAILED", "The statuses were reordered, but the audit record could not be saved.");
     return NextResponse.json({ statuses: data });
   }
 
-  if (!body.id)
-    return NextResponse.json(
-      { error: "A status is required" },
-      { status: 400 },
-    );
-  const updates: { name?: string; is_completed?: boolean } = {};
-  if (body.name !== undefined) {
-    if (!body.name.trim())
-      return NextResponse.json(
-        { error: "A status name is required" },
-        { status: 400 },
-      );
-    updates.name = body.name.trim();
+  const updates = {
+    ...(parsed.data.name !== undefined ? { name: parsed.data.name } : {}),
+    ...(parsed.data.isCompleted !== undefined ? { is_completed: parsed.data.isCompleted } : {}),
+  };
+  const { data, error } = await context.admin.from("statuses").update(updates)
+    .eq("id", parsed.data.id).select("*").single();
+  if (error) {
+    console.error("Status update failed", { actorId: context.user.id, code: error.code });
+    return apiError(400, "OPERATION_FAILED", "The status could not be updated.");
   }
-  if (body.isCompleted !== undefined) updates.is_completed = body.isCompleted;
-  if (Object.keys(updates).length === 0)
-    return NextResponse.json(
-      { error: "No status changes were provided" },
-      { status: 400 },
-    );
-  const { data, error } = await client
-    .from("statuses")
-    .update(updates)
-    .eq("id", body.id)
-    .select("*")
-    .single();
-  if (error)
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  if (!(await auditPrivilegedAction(context.admin, context.user, {
+    action: "status.update", targetType: "status", targetId: parsed.data.id,
+  }))) return apiError(500, "AUDIT_FAILED", "The status was updated, but its audit record could not be saved.");
   return NextResponse.json({ status: data });
 }
 
 export async function DELETE(request: Request) {
-  if (!(await authorizeTeamMember()))
-    return NextResponse.json({ error: "Not authorized" }, { status: 403 });
-  const client = serviceClient();
-  if (!client)
-    return NextResponse.json(
-      { error: "Supabase server credentials are not configured" },
-      { status: 503 },
-    );
-  const { id } = (await request.json()) as { id?: string };
-  if (!id)
-    return NextResponse.json(
-      { error: "A status is required" },
-      { status: 400 },
-    );
-  const { data, error } = await client
-    .from("statuses")
-    .delete()
-    .eq("id", id)
-    .select("id")
-    .single();
-  if (error)
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  const parsed = await readJson(request, idSchema);
+  if ("response" in parsed) return parsed.response;
+  const context = await privilegedContext({ owner: true });
+  if ("response" in context) return context.response;
+  const { data, error } = await context.admin.from("statuses").delete()
+    .eq("id", parsed.data.id).select("id").single();
+  if (error) {
+    console.error("Status deletion failed", { actorId: context.user.id, code: error.code });
+    return apiError(400, "OPERATION_FAILED", "The status could not be deleted.");
+  }
+  if (!(await auditPrivilegedAction(context.admin, context.user, {
+    action: "status.delete", targetType: "status", targetId: parsed.data.id,
+  }))) return apiError(500, "AUDIT_FAILED", "The status was deleted, but its audit record could not be saved.");
   return NextResponse.json({ id: data.id });
 }

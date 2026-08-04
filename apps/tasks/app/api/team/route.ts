@@ -1,62 +1,49 @@
-import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { inviteSchema, userDeleteSchema } from "@/lib/api-schemas";
 import { tasksAppUrl } from "@/lib/app-url";
-import { createClient } from "@/lib/supabase/server";
-
-async function authorizeTeamMember() {
-  const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return null;
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id, onboarding_completed")
-    .eq("id", auth.user.id)
-    .single();
-  if (!profile?.onboarding_completed) return null;
-  const { data: isOwner } = await supabase.rpc("is_app_owner");
-  return isOwner ? auth.user : null;
-}
-
-function adminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key =
-    process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return null;
-  return createAdminClient(url, key, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-}
+import {
+  apiError,
+  auditPrivilegedAction,
+  consumeInviteLimit,
+  privilegedContext,
+  readJson,
+} from "@/lib/privileged-api";
 
 export async function POST(request: Request) {
-  if (!(await authorizeTeamMember()))
-    return NextResponse.json({ error: "Not authorized" }, { status: 403 });
-  const admin = adminClient();
-  if (!admin)
-    return NextResponse.json(
-      { error: "SUPABASE_SECRET_KEY is not configured" },
-      { status: 503 },
-    );
-  const { email, fullName } = (await request.json()) as {
-    email?: string;
-    fullName?: string;
-  };
-  if (!email?.trim())
-    return NextResponse.json({ error: "Email is required" }, { status: 400 });
-  const { data, error } = await admin.auth.admin.inviteUserByEmail(
-    email.trim(),
-    {
-      data: {
-        full_name: fullName?.trim() || email.split("@")[0],
-      },
-      redirectTo: tasksAppUrl("/auth/callback"),
-    },
+  const parsed = await readJson(request, inviteSchema);
+  if ("response" in parsed) return parsed.response;
+  const context = await privilegedContext({ owner: true });
+  if ("response" in context) return context.response;
+
+  const allowed = await consumeInviteLimit(context.admin, context.user.id);
+  if (allowed === null)
+    return apiError(503, "SERVICE_UNAVAILABLE", "Invitations are temporarily unavailable.");
+  if (!allowed)
+    return apiError(429, "RATE_LIMITED", "Too many invitations were sent. Try again later.", {
+      "Retry-After": "3600",
+    });
+
+  const fallbackName = parsed.data.email.split("@")[0];
+  const fullName = parsed.data.fullName || fallbackName;
+  const { data, error } = await context.admin.auth.admin.inviteUserByEmail(
+    parsed.data.email,
+    { data: { full_name: fullName }, redirectTo: tasksAppUrl("/auth/callback") },
   );
-  if (error)
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) {
+    console.error("Team invitation failed", { actorId: context.user.id, code: error.code });
+    return apiError(400, "OPERATION_FAILED", "The invitation could not be sent.");
+  }
+  if (!(await auditPrivilegedAction(context.admin, context.user, {
+    action: "team.invite",
+    targetType: "profile",
+    targetId: data.user.id,
+  }))) {
+    return apiError(500, "AUDIT_FAILED", "The invitation was sent, but its audit record could not be saved.");
+  }
   return NextResponse.json({
     profile: {
       id: data.user.id,
-      full_name: fullName?.trim() || email.trim().split("@")[0],
+      full_name: fullName,
       avatar_url: null,
       onboarding_completed: false,
       task_details_open_by_default: false,
@@ -66,23 +53,24 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const requester = await authorizeTeamMember();
-  if (!requester)
-    return NextResponse.json({ error: "Not authorized" }, { status: 403 });
-  const admin = adminClient();
-  if (!admin)
-    return NextResponse.json(
-      { error: "SUPABASE_SECRET_KEY is not configured" },
-      { status: 503 },
-    );
-  const { userId } = (await request.json()) as { userId?: string };
-  if (!userId || userId === requester.id)
-    return NextResponse.json(
-      { error: "You cannot remove your own account" },
-      { status: 400 },
-    );
-  const { error } = await admin.auth.admin.deleteUser(userId);
-  if (error)
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  const parsed = await readJson(request, userDeleteSchema);
+  if ("response" in parsed) return parsed.response;
+  const context = await privilegedContext({ owner: true });
+  if ("response" in context) return context.response;
+  if (parsed.data.userId === context.user.id)
+    return apiError(400, "INVALID_REQUEST", "You cannot remove your own account.");
+
+  const { error } = await context.admin.auth.admin.deleteUser(parsed.data.userId);
+  if (error) {
+    console.error("Team member removal failed", { actorId: context.user.id, code: error.code });
+    return apiError(400, "OPERATION_FAILED", "The teammate could not be removed.");
+  }
+  if (!(await auditPrivilegedAction(context.admin, context.user, {
+    action: "team.remove",
+    targetType: "profile",
+    targetId: parsed.data.userId,
+  }))) {
+    return apiError(500, "AUDIT_FAILED", "The teammate was removed, but its audit record could not be saved.");
+  }
   return NextResponse.json({ ok: true });
 }
