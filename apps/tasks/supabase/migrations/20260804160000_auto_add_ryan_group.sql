@@ -1,6 +1,4 @@
--- Keep the default access-group membership in the same transaction that
--- creates a new user's profile. If the Members group has not been created yet,
--- profile creation still succeeds and no membership is inserted.
+-- Auto-add new users to the 'Ryan' access group for basic app access.
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -20,7 +18,7 @@ begin
   insert into public.access_group_members (group_id, profile_id, added_by)
   select access_group.id, new.id, new.id
   from public.access_groups as access_group
-  where lower(access_group.name) = 'members'
+  where lower(access_group.name) = 'ryan'
   on conflict (group_id, profile_id) do nothing;
 
   return new;

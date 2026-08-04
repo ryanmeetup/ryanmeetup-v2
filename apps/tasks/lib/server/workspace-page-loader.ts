@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
   loadWorkspace,
+  WorkspaceLoadError,
   requireQueryData,
   type WorkspaceCollection,
 } from "@/lib/workspace-loader";
@@ -27,7 +28,17 @@ export async function loadWorkspacePage(
     );
     if (!isOwner) notFound();
   }
-  const data = await loadWorkspace(supabase, auth.user.id, collections);
+
+  let data;
+  try {
+    data = await loadWorkspace(supabase, auth.user.id, collections);
+  } catch (error) {
+    if (error instanceof WorkspaceLoadError) {
+      redirect("/profile");
+    }
+    throw error;
+  }
+
   if (!data) redirect("/login?error=profile");
   if (requireOnboarding && !data.currentProfile.onboarding_completed)
     redirect("/profile");
