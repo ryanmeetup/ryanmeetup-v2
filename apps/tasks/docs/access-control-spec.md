@@ -184,20 +184,10 @@ Example:
 
 ## Projectless tasks
 
-The current schema allows `tasks.project_id` to be null. A projectless task has
-no reliable project boundary and could accidentally expose confidential work.
-
-Recommended approach:
-
-- create a normal `General / Shared` project;
-- explicitly grant the intended groups access to it;
-- migrate existing projectless tasks into it;
-- make `tasks.project_id` required after migration;
-- present `General / Shared` unobtrusively in the UI if most users do not need
-  to think about it as a formal project.
-
-This keeps every task under the same authorization model. It is safer and
-simpler than inventing separate visibility rules for projectless tasks.
+The schema allows `tasks.project_id` to be null. These tasks belong to the
+shared workspace and are visible to every onboarded member, including in an
+owner's access preview. Projectless tasks do not inherit a project's edit
+permissions; the normal project-based write policies remain unchanged.
 
 ## Proposed database model
 

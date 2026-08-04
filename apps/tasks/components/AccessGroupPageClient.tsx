@@ -10,10 +10,16 @@ import {
   DropdownSelect,
   IconButton,
   Input,
+  Pill,
   Textarea,
   toast,
 } from "@ryanmeetup/ui";
-import { FiArrowLeft, FiMenu, FiTrash2 } from "react-icons/fi";
+import {
+  FiArrowDown,
+  FiArrowLeft,
+  FiMenu,
+  FiTrash2,
+} from "react-icons/fi";
 import { accessGroupSlug } from "@/lib/access-groups";
 import { createClient } from "@/lib/supabase/client";
 import type { WorkspaceData } from "@/lib/types";
@@ -77,6 +83,14 @@ export function AccessGroupPageClient({
     () => new Map(data.projects.map((project) => [project.id, project.name])),
     [data.projects],
   );
+  const availableMembers = data.profiles.filter(
+    (profile) =>
+      !members.some((member) => member.profile_id === profile.id),
+  );
+  const availableProjects = data.projects.filter(
+    (project) =>
+      !grants.some((grant) => grant.project_id === project.id),
+  );
 
   async function saveGroup(event: FormEvent) {
     event.preventDefault();
@@ -99,6 +113,9 @@ export function AccessGroupPageClient({
 
   async function addMember(profileId: string) {
     if (!profileId) return;
+    const profileName =
+      data.profiles.find((profile) => profile.id === profileId)?.full_name ??
+      "Member";
     setMemberId("");
     const { data: row, error } = await createClient()
       .from("access_group_members")
@@ -114,8 +131,12 @@ export function AccessGroupPageClient({
       ...current.filter((item) => item.profile_id !== profileId),
       row,
     ]);
+    toast.success(`${profileName} added to ${group.name}.`);
   }
   async function removeMember(profileId: string) {
+    const profileName =
+      data.profiles.find((profile) => profile.id === profileId)?.full_name ??
+      "Member";
     const { error } = await createClient()
       .from("access_group_members")
       .delete()
@@ -125,9 +146,11 @@ export function AccessGroupPageClient({
     setMembers((current) =>
       current.filter((item) => item.profile_id !== profileId),
     );
+    toast.success(`${profileName} removed from ${group.name}.`);
   }
   async function addGrant(nextProjectId: string) {
     if (!nextProjectId) return;
+    const projectName = projectNames.get(nextProjectId) ?? "Project";
     setProjectId("");
     const { data: row, error } = await createClient()
       .from("project_group_grants")
@@ -144,8 +167,12 @@ export function AccessGroupPageClient({
       ...current.filter((item) => item.project_id !== nextProjectId),
       row,
     ]);
+    toast.success(
+      `${group.name} can now access ${projectName} as ${permission}.`,
+    );
   }
   async function removeGrant(nextProjectId: string) {
+    const projectName = projectNames.get(nextProjectId) ?? "Project";
     const { error } = await createClient()
       .from("project_group_grants")
       .delete()
@@ -155,6 +182,7 @@ export function AccessGroupPageClient({
     setGrants((current) =>
       current.filter((item) => item.project_id !== nextProjectId),
     );
+    toast.success(`${projectName} removed from ${group.name}.`);
   }
   async function deleteGroup() {
     const { error } = await createClient()
@@ -236,8 +264,8 @@ export function AccessGroupPageClient({
                 </div>
               </Card>
             </form>
-            <div className="grid gap-6 lg:grid-cols-2">
-              <Card className="flex min-h-[28rem] flex-col p-5">
+            <div className="grid items-stretch gap-6 lg:grid-cols-2">
+              <Card className="flex h-full min-h-[28rem] flex-col p-5">
                 <h2 className="font-semibold">
                   Members{" "}
                   <span className="text-black/45 dark:text-white/45">
@@ -245,21 +273,15 @@ export function AccessGroupPageClient({
                   </span>
                 </h2>
                 <div className="mt-4">
-                  <DropdownSelect
-                    label="Add member"
-                    variant="field"
-                    value={memberId}
-                    onChange={(value) => void addMember(value)}
-                    options={[
-                      { label: "Select a person…", value: "" },
-                      ...data.profiles
-                        .filter(
-                          (profile) =>
-                            !members.some(
-                              (member) => member.profile_id === profile.id,
-                            ),
-                        )
-                        .map((profile) => ({
+                  {availableMembers.length > 0 ? (
+                    <DropdownSelect
+                      label="Add member"
+                      variant="field"
+                      value={memberId}
+                      onChange={(value) => void addMember(value)}
+                      options={[
+                        { label: "Select a person…", value: "" },
+                        ...availableMembers.map((profile) => ({
                           label: profile.full_name,
                           value: profile.id,
                           avatar: {
@@ -267,10 +289,21 @@ export function AccessGroupPageClient({
                             src: profile.avatar_url,
                           },
                         })),
-                    ]}
-                  />
+                      ]}
+                    />
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-black/15 px-4 py-3 text-sm text-black/65 dark:border-white/15 dark:text-white/65">
+                      Everyone is already a member of this group.
+                    </div>
+                  )}
                 </div>
-                <ul className="mt-3 max-h-72 flex-1 space-y-2 overflow-y-auto pr-1">
+                {members.length > 4 && (
+                  <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-black/60 dark:text-white/60">
+                    <FiArrowDown aria-hidden="true" />
+                    Scroll to see all {members.length} members
+                  </p>
+                )}
+                <ul className="mt-2 max-h-72 flex-1 space-y-2 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]">
                   {members.map((member) => {
                     const profile = data.profiles.find(
                       (item) => item.id === member.profile_id,
@@ -290,81 +323,113 @@ export function AccessGroupPageClient({
                             {profile?.full_name ?? "Unknown user"}
                           </span>
                         </span>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="secondary"
+                        <IconButton
+                          label={`Remove ${profile?.full_name ?? "member"} from ${group.name}`}
+                          variant="danger"
                           onClick={() => removeMember(member.profile_id)}
                         >
-                          Remove
-                        </Button>
+                          <FiTrash2 />
+                        </IconButton>
                       </li>
                     );
                   })}
                 </ul>
               </Card>
-              <Card className="flex min-h-[28rem] flex-col p-5">
+              <Card className="h-full min-h-[28rem] p-5">
                 <h2 className="font-semibold">
                   Project visibility{" "}
                   <span className="text-black/45 dark:text-white/45">
                     ({grants.length})
                   </span>
                 </h2>
-                <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_11rem]">
-                  <DropdownSelect
-                    label="Project"
-                    variant="field"
-                    value={projectId}
-                    onChange={(value) => void addGrant(value)}
-                    options={[
-                      { label: "Select a project…", value: "" },
-                      ...data.projects
-                        .filter(
-                          (project) =>
-                            !grants.some(
-                              (grant) => grant.project_id === project.id,
-                            ),
-                        )
-                        .map((project) => ({
-                          label: project.name,
-                          value: project.id,
-                        })),
-                    ]}
-                  />
-                  <DropdownSelect
-                    label="Permission"
-                    variant="field"
-                    value={permission}
-                    onChange={(value) => setPermission(value as Permission)}
-                    options={[
-                      { label: "Viewer", value: "viewer" },
-                      { label: "Editor", value: "editor" },
-                      { label: "Manager", value: "manager" },
-                    ]}
-                  />
-                </div>
-                <ul className="mt-3 max-h-72 flex-1 space-y-2 overflow-y-auto pr-1">
-                  {grants.map((grant) => (
-                    <li
-                      key={grant.project_id}
-                      className="flex items-center justify-between gap-3 rounded-xl bg-black/5 px-3 py-2 text-sm dark:bg-white/5"
-                    >
-                      <span>
-                        {projectNames.get(grant.project_id) ??
-                          "Unknown project"}{" "}
-                        · <span className="capitalize">{grant.permission}</span>
-                      </span>
+                <p className="mt-1 text-sm text-black/65 dark:text-white/65">
+                  Choose which projects this group can access.
+                </p>
+                {availableProjects.length > 0 ? (
+                  <>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_11rem]">
+                      <DropdownSelect
+                        label="Project"
+                        variant="field"
+                        value={projectId}
+                        onChange={setProjectId}
+                        options={[
+                          { label: "Select a project…", value: "" },
+                          ...availableProjects.map((project) => ({
+                            label: project.name,
+                            value: project.id,
+                          })),
+                        ]}
+                      />
+                      <DropdownSelect
+                        label="Permission"
+                        variant="field"
+                        value={permission}
+                        onChange={(value) =>
+                          setPermission(value as Permission)
+                        }
+                        options={[
+                          { label: "Viewer", value: "viewer" },
+                          { label: "Editor", value: "editor" },
+                          { label: "Manager", value: "manager" },
+                        ]}
+                      />
+                    </div>
+                    <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-xs text-black/60 dark:text-white/60">
+                        {permission === "viewer" &&
+                          "Viewers can see projects and tasks but cannot make changes."}
+                        {permission === "editor" &&
+                          "Editors can view and update project tasks."}
+                        {permission === "manager" &&
+                          "Managers can update tasks and manage project access."}
+                      </p>
                       <Button
                         type="button"
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => removeGrant(grant.project_id)}
+                        className="self-end whitespace-nowrap sm:shrink-0"
+                        disabled={!projectId}
+                        onClick={() => void addGrant(projectId)}
                       >
-                        Remove
+                        Add access
                       </Button>
-                    </li>
-                  ))}
-                </ul>
+                    </div>
+                  </>
+                ) : (
+                  <div className="mt-4 rounded-xl border border-dashed border-black/15 px-4 py-3 text-sm text-black/65 dark:border-white/15 dark:text-white/65">
+                    Every project is already visible to this group.
+                  </div>
+                )}
+                {grants.length > 0 ? (
+                  <ul className="mt-4 max-h-72 space-y-2 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]">
+                    {grants.map((grant) => (
+                      <li
+                        key={grant.project_id}
+                        className="flex items-center justify-between gap-3 rounded-xl border border-black/5 bg-black/[0.035] px-3 py-2.5 text-sm dark:border-white/5 dark:bg-white/[0.035]"
+                      >
+                        <span className="flex min-w-0 items-center gap-2.5">
+                          <span className="truncate font-medium">
+                            {projectNames.get(grant.project_id) ??
+                              "Unknown project"}
+                          </span>
+                          <Pill variant="neutral" size="sm">
+                            {grant.permission}
+                          </Pill>
+                        </span>
+                        <IconButton
+                          label={`Remove access to ${projectNames.get(grant.project_id) ?? "project"}`}
+                          variant="danger"
+                          onClick={() => removeGrant(grant.project_id)}
+                        >
+                          <FiTrash2 />
+                        </IconButton>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="mt-4 rounded-xl border border-dashed border-black/15 px-4 py-6 text-center text-sm text-black/60 dark:border-white/15 dark:text-white/60">
+                    This group can’t see any projects yet.
+                  </div>
+                )}
               </Card>
             </div>
             <Card className="flex items-center justify-between gap-4 border-red-500/25 p-5">

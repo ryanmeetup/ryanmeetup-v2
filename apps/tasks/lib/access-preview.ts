@@ -34,7 +34,8 @@ export function applyAccessPreview(
     visibleProjectIds.has(project.id),
   );
   const tasks = data.tasks.filter(
-    (task) => task.project_id && visibleProjectIds.has(task.project_id),
+    (task) =>
+      task.project_id === null || visibleProjectIds.has(task.project_id),
   );
   const visibleTaskIds = new Set(tasks.map((task) => task.id));
 
