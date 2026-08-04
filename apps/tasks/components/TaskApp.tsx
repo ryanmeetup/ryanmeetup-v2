@@ -6,10 +6,8 @@ import {
   useMemo,
   useRef,
   useState,
-  type Dispatch,
   type FormEvent,
   type ReactNode,
-  type SetStateAction,
 } from "react";
 import {
   Avatar,
@@ -19,23 +17,16 @@ import {
   ConfirmationDialog,
   DropdownSelect,
   EmptyState,
-  ErrorCallout,
   FormattedText,
   Heading,
   IconButton,
-  Input,
-  Modal,
   Pill,
-  PromptDialog,
-  RichTextarea,
   Tooltip,
   toast,
 } from "@ryanmeetup/ui";
 import {
   FiCalendar,
-  FiCheck,
   FiChevronDown,
-  FiEdit2,
   FiFilter,
   FiFolder,
   FiGrid,
@@ -44,61 +35,35 @@ import {
   FiMenu,
   FiMoreHorizontal,
   FiPlus,
-  FiRefreshCw,
   FiSearch,
-  FiTrash2,
   FiUsers,
   FiX,
 } from "react-icons/fi";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
 import { useQueryParamState, useSearchFilter } from "@ryanmeetup/hooks";
 import type {
   Category,
   Priority,
-  Status,
   Task,
   WorkspaceData,
 } from "@/lib/types";
 import { TaskHeaderActions } from "./TaskHeaderActions";
 import { TaskBanners } from "./TaskBanners";
-import { TaskDetails } from "./TaskDetails";
+import { TaskEditor } from "./TaskEditor";
 import { WorkGroupsModal as CategoriesModal } from "./WorkGroupsModal";
 import { ProjectsModal } from "./ProjectsModal";
 import { ProjectLinks } from "./ProjectLinks";
 import { useSidebarSections } from "@/hooks/useSidebarSections";
 import { withAccessPreview } from "@/lib/access-preview";
+import { useWorkspaceData } from "@/hooks/useWorkspaceData";
+import { useTaskFilters } from "@/hooks/useTaskFilters";
+import { createTaskMutationService, type TaskDraft } from "@/lib/task-mutations";
+
+export { StatusSettingsModal } from "./TaskAdministration";
 
 type View = "board" | "list";
-type Draft = Pick<
-  Task,
-  | "title"
-  | "description"
-  | "status_id"
-  | "work_group_id"
-  | "project_id"
-  | "assignee_id"
-  | "start_date"
-  | "due_date"
-  | "due_time"
-  | "reminder_at"
-  | "priority"
-> & { category_ids: string[] };
+type Draft = TaskDraft;
 const priorities: Priority[] = ["low", "medium", "high", "urgent"];
-const workGroupColors = [
-  "#dc2626",
-  "#ea580c",
-  "#d97706",
-  "#65a30d",
-  "#059669",
-  "#0891b2",
-  "#2563eb",
-  "#4f46e5",
-  "#7c3aed",
-  "#c026d3",
-  "#db2777",
-  "#475569",
-];
 const priorityStyles: Record<Priority, string> = {
   low: "border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200",
   medium:
@@ -107,25 +72,6 @@ const priorityStyles: Record<Priority, string> = {
   urgent:
     "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-200",
 };
-
-const archiveDelayMs = 14 * 24 * 60 * 60 * 1000;
-
-function completionLifecycle(
-  statusId: string,
-  statuses: Status[],
-  current?: Pick<Task, "completed_at" | "archived_at">,
-) {
-  if (!statuses.find((item) => item.id === statusId)?.is_completed) {
-    return { completed_at: null, archived_at: null };
-  }
-  const completedAt = current?.completed_at ?? new Date().toISOString();
-  return {
-    completed_at: completedAt,
-    archived_at:
-      current?.archived_at ??
-      new Date(new Date(completedAt).getTime() + archiveDelayMs).toISOString(),
-  };
-}
 
 function blankDraft(statusId: string): Draft {
   return {
@@ -242,7 +188,11 @@ export function TaskApp({
   demoMode: boolean;
   initialTaskOpen?: boolean;
 }) {
-  const [data, setData] = useState(initialData);
+  const { data, setData, getData } = useWorkspaceData(initialData, demoMode);
+  const mutations = useMemo(
+    () => createTaskMutationService({ demoMode, getData, setData }),
+    [demoMode, getData, setData],
+  );
   const [viewParam, setView] = useQueryParamState("view", "board");
   const view: View = viewParam === "list" ? "list" : "board";
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -261,6 +211,8 @@ export function TaskApp({
   const [createAnother, setCreateAnother] = useState(false);
   const [taskPendingDelete, setTaskPendingDelete] = useState<Task | null>(null);
   const [taskDeleting, setTaskDeleting] = useState(false);
+  const [taskPageLoading, setTaskPageLoading] = useState(false);
+  const loadedVisibility = useRef<"active" | "archived">("active");
   const [dragOverStatusId, setDragOverStatusId] = useState<string | null>(null);
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragTarget, setDragTarget] = useState<{
@@ -283,24 +235,13 @@ export function TaskApp({
     buildHaystack: (task) =>
       `${task.title} ${task.description ?? ""}`.toLowerCase(),
   });
-  const [assignee, setAssignee] = useQueryParamState("assignee", "all");
-  const [group, setGroup] = useQueryParamState("category", "all");
-  const [project, setProject] = useQueryParamState("project", "all");
-  const [status, setStatus] = useQueryParamState("status", "all");
-  const [priority, setPriority] = useQueryParamState("priority", "all");
-  const [visibility, setVisibility] = useQueryParamState(
-    "visibility",
-    "active",
-  );
-  const [sort, setSort] = useState("updated");
-  const [clock, setClock] = useState(() => Date.now());
+  const {
+    assignee, setAssignee, group, setGroup, project, setProject, status,
+    setStatus, priority, setPriority, visibility, setVisibility, sort, setSort,
+    clock, clear: clearTaskFilters,
+  } = useTaskFilters(setSearch);
   const [collapsedStatusIds, setCollapsedStatusIds] =
     useState<Set<string> | null>(null);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setClock(Date.now()), 60_000);
-    return () => window.clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     const saved = localStorage.getItem("ryanmeetup.tasks.collapsed-statuses");
@@ -332,144 +273,6 @@ export function TaskApp({
       return next;
     });
   }
-
-  useEffect(() => {
-    if (!demoMode) return;
-    const saved = localStorage.getItem("ryanmeetup.tasks.workspace");
-    if (saved) {
-      try {
-        const restored = JSON.parse(saved) as WorkspaceData;
-        queueMicrotask(() =>
-          setData({
-            ...initialData,
-            ...restored,
-            subtasks: restored.subtasks ?? [],
-            comments: restored.comments ?? [],
-            activity: restored.activity ?? [],
-            attachments: restored.attachments ?? [],
-            labels: restored.labels ?? [],
-            projects: restored.projects ?? [],
-            categories: restored.categories ?? initialData.categories,
-            taskCategories: restored.taskCategories ?? [],
-            projectOwners: restored.projectOwners ?? [],
-            taskAssignees: restored.taskAssignees ?? [],
-            taskLabels: restored.taskLabels ?? [],
-            statuses: (restored.statuses ?? initialData.statuses).map(
-              (item) => ({
-                ...item,
-                is_completed:
-                  item.is_completed ?? item.name.toLowerCase() === "done",
-              }),
-            ),
-            tasks: restored.tasks.map((task) => ({
-              ...task,
-              due_time: task.due_time ?? null,
-              reminder_at: task.reminder_at ?? null,
-              project_id: task.project_id ?? null,
-              completed_at: task.completed_at ?? null,
-              archived_at: task.archived_at ?? null,
-            })),
-          }),
-        );
-      } catch {
-        localStorage.removeItem("ryanmeetup.tasks.workspace");
-      }
-    }
-  }, [demoMode, initialData]);
-
-  useEffect(() => {
-    if (demoMode)
-      localStorage.setItem("ryanmeetup.tasks.workspace", JSON.stringify(data));
-  }, [data, demoMode]);
-
-  useEffect(() => {
-    if (demoMode || initialData.accessPreview) return;
-    const supabase = createClient();
-    const channel = supabase
-      .channel("tasks-live")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "tasks" },
-        async () => {
-          const { data: tasks } = await supabase
-            .from("tasks")
-            .select("*")
-            .order("updated_at", { ascending: false });
-          if (tasks) setData((current) => ({ ...current, tasks }));
-        },
-      )
-      .subscribe();
-    const detailsChannel = supabase
-      .channel("task-details-live")
-      .on("postgres_changes", { event: "*", schema: "public" }, async () => {
-        const [
-          { data: subtasks },
-          { data: comments },
-          { data: activity },
-          { data: attachments },
-          { data: labels },
-          { data: projects },
-          { data: categories },
-          { data: taskCategories },
-          { data: profiles },
-          { data: taskAssignees },
-          { data: taskLabels },
-        ] = await Promise.all([
-          supabase.from("subtasks").select("*").order("sort_order"),
-          supabase.from("task_comments").select("*").order("created_at"),
-          supabase
-            .from("task_activity")
-            .select("*")
-            .order("created_at", { ascending: false }),
-          supabase.from("task_attachments").select("*").order("created_at"),
-          supabase.from("labels").select("*").order("name"),
-          supabase.from("projects").select("*").order("name"),
-          supabase.from("work_groups").select("*").order("name"),
-          supabase.from("task_categories").select("*"),
-          supabase.from("profiles").select("*").order("full_name"),
-          supabase.from("task_assignees").select("*"),
-          supabase.from("task_labels").select("*"),
-        ]);
-        const refreshedAttachments = await Promise.all(
-          (attachments ?? []).map(async (attachment) => {
-            if (!attachment.file_path) return attachment;
-            const signed = await supabase.storage
-              .from("task-attachments")
-              .createSignedUrl(attachment.file_path, 60 * 60);
-            return signed.data?.signedUrl
-              ? { ...attachment, url: signed.data.signedUrl }
-              : attachment;
-          }),
-        );
-        setData((current) => ({
-          ...current,
-          subtasks: subtasks ?? current.subtasks,
-          comments: comments ?? current.comments,
-          activity: activity ?? current.activity,
-          attachments: attachments ? refreshedAttachments : current.attachments,
-          labels: labels ?? current.labels,
-          projects: projects ?? current.projects,
-          categories: categories ?? current.categories,
-          taskCategories: taskCategories ?? current.taskCategories,
-          profiles: profiles ?? current.profiles,
-          currentProfile: profiles
-            ? (() => {
-                const profile = profiles.find(
-                  (item) => item.id === current.currentProfile.id,
-                );
-                return profile ?? current.currentProfile;
-              })()
-            : current.currentProfile,
-          taskAssignees: taskAssignees ?? current.taskAssignees,
-          taskLabels: taskLabels ?? current.taskLabels,
-        }));
-      })
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-      void supabase.removeChannel(detailsChannel);
-    };
-  }, [demoMode, initialData.accessPreview]);
 
   const profiles = useMemo(
     () => new Map(data.profiles.map((item) => [item.id, item])),
@@ -517,6 +320,55 @@ export function TaskApp({
       : priorities.find(
           (item) => item.toLowerCase() === priority.toLowerCase(),
         );
+  async function loadTaskPage(page: number, replace = false) {
+    if (demoMode || taskPageLoading) return;
+    setTaskPageLoading(true);
+    try {
+      const params = new URLSearchParams({ page: String(page), visibility });
+      if (selectedStatus) params.set("status", selectedStatus.id);
+      if (selectedProject) params.set("project", selectedProject.id);
+      else if (project === "none") params.set("project", "none");
+      if (selectedAssignee) params.set("assignee", selectedAssignee.id);
+      else if (assignee.toLowerCase() === "unassigned") params.set("assignee", "unassigned");
+      if (selectedCategory) params.set("category", selectedCategory.id);
+      if (selectedPriority) params.set("priority", selectedPriority);
+      if (search.trim()) params.set("search", search.trim());
+      const response = await fetch(`/api/tasks?${params}`);
+      const result = (await response.json()) as {
+        error?: string; tasks?: Task[];
+        taskAssignees?: WorkspaceData["taskAssignees"];
+        taskCategories?: WorkspaceData["taskCategories"];
+        taskLabels?: WorkspaceData["taskLabels"];
+        page?: NonNullable<WorkspaceData["taskPage"]>;
+      };
+      if (!response.ok || !result.tasks || !result.page)
+        throw new Error(result.error ?? "Tasks could not be loaded.");
+      setData((current) => {
+        const ids = new Set(result.tasks!.map((task) => task.id));
+        const mergeRows = <T extends { task_id: string }>(oldRows: T[], rows: T[]) =>
+          replace ? rows : [...oldRows.filter((row) => !ids.has(row.task_id)), ...rows];
+        return { ...current,
+          tasks: replace ? result.tasks! : [...current.tasks, ...result.tasks!.filter((task) => !current.tasks.some((item) => item.id === task.id))],
+          taskAssignees: mergeRows(current.taskAssignees, result.taskAssignees ?? []),
+          taskCategories: mergeRows(current.taskCategories, result.taskCategories ?? []),
+          taskLabels: mergeRows(current.taskLabels, result.taskLabels ?? []),
+          taskPage: result.page,
+        };
+      });
+      loadedVisibility.current = visibility === "archived" ? "archived" : "active";
+    } catch (error) {
+      toast.error(mutationErrorMessage(error, "Tasks could not be loaded."));
+    } finally {
+      setTaskPageLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!demoMode && visibility !== loadedVisibility.current)
+      void loadTaskPage(0, true);
+    // Fetching is intentionally tied to the archive partition transition.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demoMode, visibility]);
   useEffect(() => {
     if (assignee !== "all" && profiles.has(assignee) && selectedAssignee) {
       setAssignee(profileName(selectedAssignee));
@@ -698,221 +550,68 @@ export function TaskApp({
 
   async function saveTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!draft.title.trim()) {
-      setTaskMessage("A task title is required.");
-      toast.error("A task title is required.");
-      return;
-    }
-    if (!draft.status_id) {
-      setTaskMessage("A status is required.");
-      toast.error("A status is required.");
-      return;
-    }
-    if (!draft.priority) {
-      setTaskMessage("A priority is required.");
-      toast.error("A priority is required.");
-      return;
-    }
-    if (draft.category_ids.length === 0) {
-      setTaskMessage("Select at least one category.");
-      toast.error("Select at least one category.");
+    const validationMessage = !draft.title.trim()
+      ? "A task title is required."
+      : !draft.status_id
+        ? "A status is required."
+        : !draft.priority
+          ? "A priority is required."
+          : draft.category_ids.length === 0
+            ? "Select at least one category."
+            : null;
+    if (validationMessage) {
+      setTaskMessage(validationMessage);
+      toast.error(validationMessage);
       return;
     }
     setTaskMessage("");
     setTaskSaving(true);
-    const now = new Date().toISOString();
-    if (demoMode) {
-      const { category_ids: categoryIds, ...taskDraft } = draft;
-      const task: Task = editing
-        ? {
-            ...editing,
-            ...taskDraft,
-            ...completionLifecycle(draft.status_id, data.statuses, editing),
-            title: draft.title.trim(),
-            updated_at: now,
-          }
-        : {
-            ...taskDraft,
-            ...completionLifecycle(draft.status_id, data.statuses),
-            title: draft.title.trim(),
-            id: crypto.randomUUID(),
-            created_by: data.currentProfile.id,
-            board_position:
-              Math.max(
-                0,
-                ...data.tasks
-                  .filter((item) => item.status_id === draft.status_id)
-                  .map((item) => item.board_position),
-              ) + 1024,
-            created_at: now,
-            updated_at: now,
-          };
-      setData((current) => ({
-        ...current,
-        tasks: editing
-          ? current.tasks.map((item) => (item.id === editing.id ? task : item))
-          : [task, ...current.tasks],
-        taskCategories: [
-          ...current.taskCategories.filter((item) => item.task_id !== task.id),
-          ...categoryIds.map((category_id) => ({
-            task_id: task.id,
-            category_id,
-          })),
-        ],
-      }));
-    } else {
-      const { category_ids: categoryIds, ...taskDraft } = draft;
-      const response = await fetch("/api/tasks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: editing?.id, task: taskDraft, categoryIds }),
-      });
-      const result = (await response.json()) as {
-        task?: Task;
-        assignees?: WorkspaceData["taskAssignees"];
-        categories?: WorkspaceData["taskCategories"];
-        error?: string;
-      };
-      if (!response.ok || !result.task) {
-        const message = result.error ?? "The task could not be saved.";
-        setTaskMessage(message);
-        toast.error(message);
-        setTaskSaving(false);
+    try {
+      const saved = await mutations.save(draft, editing);
+      mutations.applySaved(saved, Boolean(editing));
+      if (!editing && createAnother) {
+        setDraft({
+          ...blankDraft(draft.status_id),
+          priority: draft.priority,
+          category_ids: [...draft.category_ids],
+          project_id: draft.project_id,
+          assignee_id: draft.assignee_id,
+        });
+        toast.success("Task created. Add the next one.");
         return;
       }
-      const saved = result.task;
-      setData((current) => ({
-        ...current,
-        tasks: editing
-          ? current.tasks.map((item) => (item.id === saved.id ? saved : item))
-          : [saved, ...current.tasks.filter((item) => item.id !== saved.id)],
-        taskAssignees: [
-          ...current.taskAssignees.filter((item) => item.task_id !== saved.id),
-          ...(result.assignees ?? []),
-        ],
-        taskCategories: [
-          ...current.taskCategories.filter((item) => item.task_id !== saved.id),
-          ...(result.categories ?? []),
-        ],
-      }));
+      setTaskOpen(false);
+      toast.success(editing ? "Task updated." : "Task created.");
+    } catch (error) {
+      const message = mutationErrorMessage(error, "The task could not be saved.");
+      setTaskMessage(message);
+      toast.error(message);
+    } finally {
+      setTaskSaving(false);
     }
-    setTaskSaving(false);
-    if (!editing && createAnother) {
-      setDraft({
-        ...blankDraft(draft.status_id),
-        status_id: draft.status_id,
-        priority: draft.priority,
-        category_ids: [...draft.category_ids],
-        project_id: draft.project_id,
-        assignee_id: draft.assignee_id,
-      });
-      toast.success("Task created. Add the next one.");
-      return;
-    }
-    setTaskOpen(false);
-    toast.success(editing ? "Task updated." : "Task created.");
   }
 
   async function removeTask(id: string) {
     setTaskDeleting(true);
     try {
-      if (!demoMode) {
-        const { error } = await createClient()
-          .from("tasks")
-          .delete()
-          .eq("id", id);
-        if (error) {
-          toast.error(error.message);
-          return;
-        }
-      }
-      setData((current) => ({
-        ...current,
-        tasks: current.tasks.filter((item) => item.id !== id),
-        subtasks: current.subtasks.filter((item) => item.task_id !== id),
-        comments: current.comments.filter((item) => item.task_id !== id),
-        activity: current.activity.filter((item) => item.task_id !== id),
-        attachments: current.attachments.filter((item) => item.task_id !== id),
-        taskAssignees: current.taskAssignees.filter(
-          (item) => item.task_id !== id,
-        ),
-        taskLabels: current.taskLabels.filter((item) => item.task_id !== id),
-        taskCategories: current.taskCategories.filter(
-          (item) => item.task_id !== id,
-        ),
-      }));
+      await mutations.remove(id);
       setTaskPendingDelete(null);
       setTaskOpen(false);
       toast.success("Task deleted.");
+    } catch (error) {
+      toast.error(mutationErrorMessage(error, "The task could not be deleted."));
     } finally {
       setTaskDeleting(false);
     }
   }
 
-  async function moveTask(
-    id: string,
-    statusId: string,
-    targetId?: string,
-    edge: "before" | "after" = "after",
-  ) {
-    const taskToMove = data.tasks.find((item) => item.id === id);
-    if (!taskToMove || targetId === id) return;
-    const destinationTasks = data.tasks
-      .filter((item) => item.status_id === statusId && item.id !== id)
-      .sort((a, b) => a.board_position - b.board_position);
-    const targetIndex = targetId
-      ? destinationTasks.findIndex((item) => item.id === targetId)
-      : -1;
-    let boardPosition: number;
-    if (targetIndex < 0) {
-      boardPosition = (destinationTasks.at(-1)?.board_position ?? 0) + 1024;
-    } else if (edge === "before") {
-      const targetPosition = destinationTasks[targetIndex].board_position;
-      const previousPosition =
-        destinationTasks[targetIndex - 1]?.board_position;
-      boardPosition =
-        previousPosition === undefined
-          ? targetPosition - 1024
-          : (previousPosition + targetPosition) / 2;
-    } else {
-      const targetPosition = destinationTasks[targetIndex].board_position;
-      const nextPosition = destinationTasks[targetIndex + 1]?.board_position;
-      boardPosition =
-        nextPosition === undefined
-          ? targetPosition + 1024
-          : (targetPosition + nextPosition) / 2;
-    }
-    setData((current) => ({
-      ...current,
-      tasks: current.tasks.map((task) =>
-        task.id === id
-          ? {
-              ...task,
-              status_id: statusId,
-              board_position: boardPosition,
-              ...completionLifecycle(statusId, current.statuses, task),
-              updated_at: new Date().toISOString(),
-            }
-          : task,
-      ),
-    }));
-    if (!demoMode) {
-      const { error } = await createClient()
-        .from("tasks")
-        .update({ status_id: statusId, board_position: boardPosition })
-        .eq("id", id);
-      if (error) {
-        setData((current) => ({
-          ...current,
-          tasks: current.tasks.map((item) =>
-            item.id === id ? taskToMove : item,
-          ),
-        }));
-        toast.error(error.message);
-      }
+  async function moveTask(id: string, statusId: string, targetId?: string, edge: "before" | "after" = "after") {
+    try {
+      await mutations.move(id, statusId, targetId, edge);
+    } catch (error) {
+      toast.error(mutationErrorMessage(error, "The task could not be moved."));
     }
   }
-
   const filterCount =
     [isMyTasks ? "all" : assignee, group, project, status, priority].filter(
       (value) => value !== "all",
@@ -999,7 +698,7 @@ export function TaskApp({
         }}
         onClick={() => openEdit(task)}
         key={task.id}
-        className={`group w-full cursor-grab rounded-xl border border-black/10 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-black/25 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-black/20 active:cursor-grabbing dark:border-white/10 dark:bg-zinc-900 dark:hover:border-white/30 ${
+        className={`group w-full cursor-grab rounded-xl border border-black/10 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-black/25 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-black/20 active:cursor-grabbing dark:border-white/10 dark:bg-zinc-900 dark:hover:border-white/30 dark:focus-visible:ring-white/30 ${
           dragTarget?.taskId === task.id
             ? dragTarget.edge === "before"
               ? "relative before:absolute before:-top-2 before:right-2 before:left-2 before:h-1 before:rounded-full before:bg-blue-500 before:content-[''] dark:before:bg-blue-400"
@@ -1111,6 +810,10 @@ export function TaskApp({
         <nav className="mt-8 space-y-1" aria-label="Main navigation">
           <Link
             href={withAccessPreview("/", data.accessPreview)}
+            onClick={() => {
+              clearTaskFilters();
+              setSidebarOpen(false);
+            }}
             className={`sidebar-link ${!scopeName && assignee === "all" && status === "all" && priority === "all" && visibility === "active" ? "sidebar-link-active" : ""}`}
           >
             <FiGrid />
@@ -1488,14 +1191,7 @@ export function TaskApp({
               {filterCount > 0 && (
                 <button
                   className="shrink-0 text-xs font-semibold text-black/60 hover:text-black dark:text-white/60 dark:hover:text-white"
-                  onClick={() => {
-                    setAssignee("all");
-                    setGroup("all");
-                    setProject("all");
-                    setStatus("all");
-                    setPriority("all");
-                    setVisibility("active");
-                  }}
+                  onClick={clearTaskFilters}
                 >
                   Clear
                 </button>
@@ -1605,7 +1301,7 @@ export function TaskApp({
                           id={`status-column-${item.id}`}
                           open={!isCollapsed}
                           className={isCollapsed ? "" : "mt-3"}
-                          contentClassName="space-y-3"
+                          contentClassName="space-y-3 p-1"
                         >
                           {columnTasks.map(taskCard)}
                           {columnTasks.length === 0 && (
@@ -1744,308 +1440,42 @@ export function TaskApp({
                 </Card>
               )}
             </div>
+            {!demoMode && data.taskPage?.hasMore && (
+              <div className="mt-6 flex justify-center">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  loading={taskPageLoading}
+                  loadingText="Loading tasks..."
+                  onClick={() => void loadTaskPage((data.taskPage?.page ?? 0) + 1)}
+                >
+                  Load more tasks ({data.tasks.length} of {data.taskPage.total})
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </main>
 
-      <Modal
-        open={taskOpen}
-        setIsOpen={setTaskOpen}
-        title={editing ? "Edit task" : "A new thing to do"}
-        hideActions
-        size={editing && taskDetailsOpen ? "2xl" : "lg"}
-        panelClassName="transition-[max-width] duration-300 ease-out motion-reduce:transition-none"
-        footer={
-          <div className="grid w-full gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
-            {editing && (
-              <Button
-                type="button"
-                variant="danger"
-                className="w-fit justify-self-start whitespace-nowrap"
-                leftIcon={<FiTrash2 />}
-                onClick={() => setTaskPendingDelete(editing)}
-              >
-                Delete task
-              </Button>
-            )}
-            {!editing && (
-              <label className="flex w-fit cursor-pointer items-center gap-3 text-sm font-medium text-black/70 dark:text-white/70">
-                <input
-                  type="checkbox"
-                  checked={createAnother}
-                  onChange={(event) => setCreateAnother(event.target.checked)}
-                  disabled={taskSaving}
-                  className="h-4 w-4 rounded border-black/20 accent-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/20 dark:accent-white dark:focus-visible:ring-white/40"
-                />
-                Create another
-              </label>
-            )}
-            <div className="flex flex-col gap-3 sm:col-start-2 sm:flex-row">
-              <Button
-                type="button"
-                variant="secondary"
-                className="whitespace-nowrap"
-                onClick={() => setTaskOpen(false)}
-                disabled={taskSaving}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                form="task-editor-form"
-                className="whitespace-nowrap"
-                loading={taskSaving}
-                loadingText="Saving..."
-              >
-                {editing ? "Save changes" : "Create task"}
-              </Button>
-            </div>
-          </div>
-        }
-      >
-        <form
-          id="task-editor-form"
-          className="min-w-0 space-y-5"
-          onSubmit={saveTask}
-        >
-          <div
-            className={
-              editing
-                ? taskDetailsOpen
-                  ? "grid items-start transition-[grid-template-columns,gap] duration-300 ease-out motion-reduce:transition-none lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-8"
-                  : "grid items-start transition-[grid-template-columns,gap] duration-300 ease-out motion-reduce:transition-none lg:grid-cols-[minmax(0,1fr)_0fr] lg:gap-0"
-                : ""
-            }
-          >
-            <div className="min-w-0 space-y-5">
-              <Input
-                label="Task title"
-                name="task-title"
-                required
-                value={draft.title}
-                onChange={(event) =>
-                  setDraft({ ...draft, title: event.target.value })
-                }
-                placeholder="What needs doing?"
-              />
-              <div className="flex flex-col gap-2">
-                <label
-                  htmlFor="task-description"
-                  className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.2em] text-black/70 sm:tracking-[0.3em] dark:text-white/70"
-                >
-                  Description
-                </label>
-                <RichTextarea
-                  id="task-description"
-                  name="description"
-                  aria-label="Description"
-                  value={draft.description ?? ""}
-                  onChange={(event) =>
-                    setDraft({ ...draft, description: event.target.value })
-                  }
-                  placeholder="Add useful context, links, or a tiny pep talk…"
-                />
-              </div>
-              <div className="grid min-w-0 gap-4 sm:grid-cols-2">
-                <DropdownSelect
-                  variant="field"
-                  label="Status"
-                  required
-                  value={draft.status_id}
-                  onChange={(value) => setDraft({ ...draft, status_id: value })}
-                  options={statuses.map((item) => ({
-                    label: item.name,
-                    value: item.id,
-                  }))}
-                />
-                <DropdownSelect
-                  variant="field"
-                  label="Priority"
-                  required
-                  value={draft.priority}
-                  onChange={(value) =>
-                    setDraft({ ...draft, priority: value as Priority })
-                  }
-                  options={priorities.map((item) => ({
-                    label: item[0].toUpperCase() + item.slice(1),
-                    value: item,
-                  }))}
-                />
-                <fieldset className="sm:col-span-2" aria-required="true">
-                  <legend className="mb-2 flex gap-1 text-sm font-semibold">
-                    <span>Categories</span>
-                    <span className="text-red-500">*</span>
-                  </legend>
-                  <div className="flex flex-wrap gap-2">
-                    {data.categories.map((item) => {
-                      const selected = draft.category_ids.includes(item.id);
-                      return (
-                        <label
-                          key={item.id}
-                          className={`flex cursor-pointer items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold transition focus-within:ring-2 focus-within:ring-black/20 dark:focus-within:ring-white/30 ${
-                            selected
-                              ? "border-black/25 bg-black text-white dark:border-white/30 dark:bg-white dark:text-black"
-                              : "border-black/10 bg-white dark:border-white/10 dark:bg-white/5"
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            className="sr-only"
-                            checked={selected}
-                            onChange={() =>
-                              setDraft({
-                                ...draft,
-                                category_ids: selected
-                                  ? draft.category_ids.filter(
-                                      (id) => id !== item.id,
-                                    )
-                                  : [...draft.category_ids, item.id],
-                              })
-                            }
-                          />
-                          <i
-                            className="h-2.5 w-2.5 rounded-full"
-                            style={{ backgroundColor: item.color }}
-                          />
-                          {item.name}
-                        </label>
-                      );
-                    })}
-                  </div>
-                </fieldset>
-                <DropdownSelect
-                  variant="field"
-                  label="Project"
-                  value={draft.project_id ?? ""}
-                  onChange={(value) =>
-                    setDraft({ ...draft, project_id: value || null })
-                  }
-                  options={[
-                    { label: "No project", value: "" },
-                    ...data.projects
-                      .filter(
-                        (item) =>
-                          !item.archived_at || item.id === draft.project_id,
-                      )
-                      .map((item) => ({
-                        label: `${item.name}${item.archived_at ? " (archived)" : ""}`,
-                        value: item.id,
-                      })),
-                  ]}
-                />
-                <DropdownSelect
-                  variant="field"
-                  label="Assignee"
-                  value={draft.assignee_id ?? ""}
-                  onChange={(value) =>
-                    setDraft({ ...draft, assignee_id: value || null })
-                  }
-                  options={[
-                    { label: "Unassigned", value: "" },
-                    ...data.profiles.map((item) => ({
-                      avatar: {
-                        name: profileName(item),
-                        src: item.avatar_url,
-                      },
-                      label: profileName(item),
-                      value: item.id,
-                    })),
-                  ]}
-                />
-                <label className="date-field">
-                  <span>Due date</span>
-                  <input
-                    type="date"
-                    value={draft.due_date ?? ""}
-                    onChange={(event) =>
-                      setDraft({
-                        ...draft,
-                        due_date: event.target.value || null,
-                      })
-                    }
-                  />
-                </label>
-                <label className="date-field opacity-60">
-                  <span className="items-center">
-                    Reminder
-                    <Pill
-                      size="sm"
-                      className="!px-2 !py-0 text-[8px] leading-3 !tracking-[0.18em]"
-                    >
-                      Coming soon
-                    </Pill>
-                  </span>
-                  <input
-                    type="datetime-local"
-                    value=""
-                    disabled
-                    aria-label="Reminder (coming soon)"
-                    className="cursor-not-allowed"
-                  />
-                </label>
-              </div>
-              {editing && !taskDetailsOpen && (
-                <button
-                  type="button"
-                  aria-expanded="false"
-                  aria-controls="task-secondary-details"
-                  className="group flex w-full items-center gap-4 rounded-xl border border-black/15 bg-black/[0.025] p-4 text-left transition hover:border-black/30 hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:border-white/15 dark:bg-white/[0.035] dark:hover:border-white/30 dark:hover:bg-white/[0.07] dark:focus-visible:ring-white/30"
-                  onClick={() => setTaskDetailsOpen(true)}
-                >
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold">
-                      Task details
-                    </span>
-                    <span className="mt-1 block text-xs text-black/55 dark:text-white/55">
-                      Checklist, attachments, comments, and activity
-                    </span>
-                  </span>
-                  <span className="flex shrink-0 items-center gap-2 text-xs font-semibold text-black/55 dark:text-white/55">
-                    Show
-                    <FiChevronDown className="transition-transform group-hover:translate-y-0.5 motion-reduce:transform-none" />
-                  </span>
-                </button>
-              )}
-            </div>
-            {editing && (
-              <AnimatedCollapse
-                id="task-secondary-details"
-                open={taskDetailsOpen}
-                className="min-w-0"
-                contentClassName="min-w-0 lg:border-l lg:border-black/10 lg:pl-8 lg:dark:border-white/10"
-              >
-                <div className="mb-5 flex items-center justify-between gap-3 border-b border-black/10 pb-3 dark:border-white/10">
-                  <div>
-                    <p className="text-sm font-semibold">Task details</p>
-                    <p className="text-xs text-black/55 dark:text-white/55">
-                      Checklist, files, conversation, and history
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    rightIcon={<FiChevronDown className="rotate-180" />}
-                    aria-expanded="true"
-                    aria-controls="task-secondary-details"
-                    onClick={() => setTaskDetailsOpen(false)}
-                  >
-                    Hide details
-                  </Button>
-                </div>
-                <TaskDetails
-                  className="!border-t-0 !pt-0"
-                  task={editing}
-                  data={data}
-                  setData={setData}
-                  demoMode={demoMode}
-                />
-              </AnimatedCollapse>
-            )}
-          </div>
-          <ErrorCallout>{taskMessage}</ErrorCallout>
-        </form>
-      </Modal>
+      <TaskEditor
+        taskOpen={taskOpen}
+        setTaskOpen={setTaskOpen}
+        editing={editing}
+        taskDetailsOpen={taskDetailsOpen}
+        setTaskDetailsOpen={setTaskDetailsOpen}
+        createAnother={createAnother}
+        setCreateAnother={setCreateAnother}
+        taskSaving={taskSaving}
+        draft={draft}
+        setDraft={setDraft}
+        statuses={statuses}
+        data={data}
+        setData={setData}
+        demoMode={demoMode}
+        saveTask={saveTask}
+        setTaskPendingDelete={setTaskPendingDelete}
+        taskMessage={taskMessage}
+      />
       <ConfirmationDialog
         open={Boolean(taskPendingDelete)}
         setOpen={(nextOpen) => {
@@ -2082,646 +1512,5 @@ export function TaskApp({
         />
       )}
     </div>
-  );
-}
-
-export function WorkGroupsModalLegacy({
-  open,
-  setOpen,
-  data,
-  setData,
-  demoMode,
-}: {
-  open: boolean;
-  setOpen: (value: boolean) => void;
-  data: WorkspaceData;
-  setData: Dispatch<SetStateAction<WorkspaceData>>;
-  demoMode: boolean;
-}) {
-  const [name, setName] = useState("");
-  const [color, setColor] = useState("#ee1a25");
-  const [message, setMessage] = useState("");
-  const [groupToRename, setGroupToRename] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
-  const [groupToDelete, setGroupToDelete] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
-  const [groupActionPending, setGroupActionPending] = useState(false);
-
-  function randomizeColor() {
-    const choices = workGroupColors.filter((option) => option !== color);
-    setColor(choices[Math.floor(Math.random() * choices.length)]);
-  }
-
-  async function addWorkGroup(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const groupName = name.trim();
-    if (!groupName) return;
-    setMessage("");
-    const item = {
-      id: crypto.randomUUID(),
-      name: groupName,
-      description: null,
-      color,
-      created_by: data.currentProfile.id,
-    };
-    if (!demoMode) {
-      const { data: saved, error } = await createClient()
-        .from("work_groups")
-        .insert(item)
-        .select()
-        .single();
-      if (error) {
-        setMessage(error.message);
-        return;
-      }
-      if (saved) item.id = saved.id;
-    }
-    setData((current) => ({
-      ...current,
-      workGroups: [...current.workGroups, item],
-    }));
-    setName("");
-    setMessage("Work group created.");
-  }
-
-  async function renameWorkGroup(
-    id: string,
-    currentName: string,
-    nextName: string,
-  ) {
-    if (!nextName || nextName === currentName) return;
-    setGroupActionPending(true);
-    if (!demoMode) {
-      const { error } = await createClient()
-        .from("work_groups")
-        .update({ name: nextName })
-        .eq("id", id);
-      if (error) {
-        setMessage(error.message);
-        setGroupActionPending(false);
-        return;
-      }
-    }
-    setData((current) => ({
-      ...current,
-      workGroups: current.workGroups.map((item) =>
-        item.id === id ? { ...item, name: nextName } : item,
-      ),
-    }));
-    setGroupToRename(null);
-    setGroupActionPending(false);
-  }
-
-  async function deleteWorkGroup(id: string) {
-    setGroupActionPending(true);
-    if (!demoMode) {
-      const { error } = await createClient()
-        .from("work_groups")
-        .delete()
-        .eq("id", id);
-      if (error) {
-        setMessage(error.message);
-        setGroupActionPending(false);
-        return;
-      }
-    }
-    setData((current) => ({
-      ...current,
-      workGroups: current.workGroups.filter((item) => item.id !== id),
-      tasks: current.tasks.map((task) =>
-        task.work_group_id === id ? { ...task, work_group_id: null } : task,
-      ),
-    }));
-    setGroupToDelete(null);
-    setGroupActionPending(false);
-  }
-
-  return (
-    <>
-      <Modal
-        open={open}
-        setIsOpen={setOpen}
-        title="Work groups"
-        hideActions
-        size="xl"
-      >
-        <div className="space-y-3">
-          {data.workGroups.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center gap-3 rounded-xl border border-black/10 p-3 dark:border-white/10"
-            >
-              <i
-                className="h-3 w-3 rounded-full"
-                style={{ backgroundColor: item.color }}
-              />
-              <span className="min-w-0 flex-1 truncate font-semibold">
-                {item.name}
-              </span>
-              <IconButton
-                label={`Rename ${item.name}`}
-                onClick={() => setGroupToRename(item)}
-              >
-                <FiMoreHorizontal />
-              </IconButton>
-              <IconButton
-                label={`Delete ${item.name}`}
-                variant="danger"
-                onClick={() => setGroupToDelete(item)}
-              >
-                <FiTrash2 />
-              </IconButton>
-            </div>
-          ))}
-        </div>
-        <form
-          className="mt-5 grid gap-3 border-t border-black/10 pt-5 dark:border-white/10 lg:grid-cols-[minmax(16rem,1fr)_auto_auto_auto]"
-          onSubmit={addWorkGroup}
-        >
-          <Input
-            label="New work group"
-            name="work-group-name"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="Name"
-          />
-          <label className="date-field">
-            <span>Color</span>
-            <input
-              type="color"
-              className="color-input"
-              value={color}
-              onChange={(event) => setColor(event.target.value)}
-            />
-          </label>
-          <Button
-            type="button"
-            variant="secondary"
-            className="self-end"
-            leftIcon={<FiRefreshCw />}
-            onClick={randomizeColor}
-          >
-            Randomize
-          </Button>
-          <div className="flex items-end justify-end gap-2 lg:col-span-4">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" variant="action">
-              Create group
-            </Button>
-          </div>
-          {message && (
-            <p
-              role="status"
-              className="text-sm text-black/60 dark:text-white/60 sm:col-span-3"
-            >
-              {message}
-            </p>
-          )}
-        </form>
-      </Modal>
-      <PromptDialog
-        open={Boolean(groupToRename)}
-        setOpen={(nextOpen) => {
-          if (!nextOpen) setGroupToRename(null);
-        }}
-        title="Rename work group"
-        label="Work group name"
-        initialValue={groupToRename?.name}
-        pending={groupActionPending}
-        onConfirm={(nextName) => {
-          if (groupToRename)
-            void renameWorkGroup(
-              groupToRename.id,
-              groupToRename.name,
-              nextName,
-            );
-        }}
-      />
-      <ConfirmationDialog
-        open={Boolean(groupToDelete)}
-        setOpen={(nextOpen) => {
-          if (!nextOpen) setGroupToDelete(null);
-        }}
-        title="Delete work group?"
-        description="Tasks in this work group will become ungrouped."
-        confirmLabel="Delete work group"
-        pendingLabel="Deleting..."
-        pending={groupActionPending}
-        destructive
-        onConfirm={() => {
-          if (groupToDelete) void deleteWorkGroup(groupToDelete.id);
-        }}
-      />
-    </>
-  );
-}
-
-export function StatusSettingsModal({
-  open,
-  setOpen,
-  data,
-  setData,
-  demoMode,
-}: {
-  open: boolean;
-  setOpen: (value: boolean) => void;
-  data: WorkspaceData;
-  setData: Dispatch<SetStateAction<WorkspaceData>>;
-  demoMode: boolean;
-}) {
-  const [name, setName] = useState("");
-  const [color, setColor] = useState("#ee1a25");
-  const [editingStatusId, setEditingStatusId] = useState<string | null>(null);
-  const [editingStatusName, setEditingStatusName] = useState("");
-  const [statusToDelete, setStatusToDelete] = useState<
-    WorkspaceData["statuses"][number] | null
-  >(null);
-  const [settingActionPending, setSettingActionPending] = useState(false);
-
-  async function statusRequest<T>(
-    method: "POST" | "PATCH" | "DELETE",
-    body: Record<string, unknown>,
-  ) {
-    const response = await fetch("/api/statuses", {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const result = (await response.json()) as T & { error?: string };
-    if (!response.ok || result.error)
-      throw new Error(result.error ?? "The status change could not be saved.");
-    return result;
-  }
-
-  async function add() {
-    const nextName = name.trim();
-    if (!nextName || settingActionPending) return;
-    setSettingActionPending(true);
-    let item: WorkspaceData["statuses"][number] = {
-      id: crypto.randomUUID(),
-      name: nextName,
-      color,
-      sort_order: data.statuses.length,
-      is_default: false,
-      is_completed: false,
-    };
-    try {
-      if (!demoMode) {
-        const result = await statusRequest<{ status: typeof item }>("POST", {
-          name: item.name,
-          color: item.color,
-        });
-        item = result.status;
-      }
-      setData((current) => ({
-        ...current,
-        statuses: [...current.statuses, item],
-      }));
-      setName("");
-      toast.success(`${item.name} added.`);
-    } catch (error) {
-      toast.error(
-        mutationErrorMessage(error, "The status could not be added."),
-      );
-    } finally {
-      setSettingActionPending(false);
-    }
-  }
-
-  async function renameSetting(
-    id: string,
-    currentName: string,
-    nextName: string,
-  ) {
-    if (!nextName) return;
-    if (nextName === currentName) {
-      setEditingStatusId(null);
-      setEditingStatusName("");
-      return;
-    }
-    setSettingActionPending(true);
-    try {
-      if (!demoMode) {
-        await statusRequest("PATCH", { id, name: nextName });
-      }
-      setData((current) => ({
-        ...current,
-        statuses: current.statuses.map((item) =>
-          item.id === id ? { ...item, name: nextName } : item,
-        ),
-      }));
-      setEditingStatusId(null);
-      setEditingStatusName("");
-      toast.success(`${nextName} updated.`);
-    } catch (error) {
-      toast.error(
-        mutationErrorMessage(error, "The status could not be renamed."),
-      );
-    } finally {
-      setSettingActionPending(false);
-    }
-  }
-
-  async function deleteSetting(id: string) {
-    setSettingActionPending(true);
-    try {
-      if (!demoMode) await statusRequest("DELETE", { id });
-      setData((current) => ({
-        ...current,
-        statuses: current.statuses.filter((item) => item.id !== id),
-      }));
-      setStatusToDelete(null);
-      toast.success("Status deleted.");
-    } catch (error) {
-      toast.error(
-        mutationErrorMessage(error, "The status could not be deleted."),
-      );
-    } finally {
-      setSettingActionPending(false);
-    }
-  }
-
-  async function toggleCompletedStatus(id: string, isCompleted: boolean) {
-    setSettingActionPending(true);
-    try {
-      if (!demoMode) {
-        await statusRequest("PATCH", { id, isCompleted });
-      }
-      const now = new Date().toISOString();
-      setData((current) => ({
-        ...current,
-        statuses: current.statuses.map((item) =>
-          item.id === id ? { ...item, is_completed: isCompleted } : item,
-        ),
-        tasks: current.tasks.map((task) => {
-          if (task.status_id !== id) return task;
-          return {
-            ...task,
-            ...(isCompleted
-              ? {
-                  completed_at: task.completed_at ?? now,
-                  archived_at:
-                    task.archived_at ??
-                    new Date(
-                      new Date(now).getTime() + archiveDelayMs,
-                    ).toISOString(),
-                }
-              : { completed_at: null, archived_at: null }),
-          };
-        }),
-      }));
-      toast.success(
-        isCompleted
-          ? "Tasks in this status will archive after 14 days."
-          : "This is now an active status.",
-      );
-    } catch (error) {
-      toast.error(
-        mutationErrorMessage(error, "The status could not be updated."),
-      );
-    } finally {
-      setSettingActionPending(false);
-    }
-  }
-
-  async function moveStatus(id: string, direction: -1 | 1) {
-    if (settingActionPending) return;
-    const ordered = [...data.statuses].sort(
-      (a, b) => a.sort_order - b.sort_order,
-    );
-    const index = ordered.findIndex((item) => item.id === id);
-    const swapIndex = index + direction;
-    if (index < 0 || swapIndex < 0 || swapIndex >= ordered.length) return;
-    [ordered[index], ordered[swapIndex]] = [ordered[swapIndex], ordered[index]];
-    const next = ordered.map((item, sort_order) => ({ ...item, sort_order }));
-    setSettingActionPending(true);
-    try {
-      if (!demoMode) {
-        const result = await statusRequest<{
-          statuses: WorkspaceData["statuses"];
-        }>("PATCH", { orderedIds: next.map((item) => item.id) });
-        const savedById = new Map(
-          result.statuses.map((status) => [status.id, status]),
-        );
-        next.splice(
-          0,
-          next.length,
-          ...next.map((status) => savedById.get(status.id) ?? status),
-        );
-      }
-      setData((current) => ({ ...current, statuses: next }));
-    } catch (error) {
-      toast.error(
-        mutationErrorMessage(error, "The status order could not be saved."),
-      );
-    } finally {
-      setSettingActionPending(false);
-    }
-  }
-  return (
-    <>
-      <Modal
-        open={open}
-        setIsOpen={setOpen}
-        title="Status settings"
-        description="Completion statuses mark tasks complete when they enter the column and automatically archive them after 14 days. Moving a task back to an active status reopens it."
-        hideActions
-        size="lg"
-        maxHeight="min(42rem, calc(100dvh - max(1rem, env(safe-area-inset-top)) - max(1rem, env(safe-area-inset-bottom))))"
-        footer={
-          <form
-            id="create-status-form"
-            className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void add();
-            }}
-          >
-            <Input
-              label="New status"
-              name="setting-name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="Name"
-            />
-            <label className="date-field">
-              <span>Color</span>
-              <input
-                type="color"
-                className="color-input"
-                value={color}
-                onChange={(event) => setColor(event.target.value)}
-              />
-            </label>
-            <div className="flex justify-end gap-2 sm:col-span-2">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setOpen(false)}
-                disabled={settingActionPending}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                loading={settingActionPending}
-                loadingText="Adding..."
-              >
-                Add status
-              </Button>
-            </div>
-          </form>
-        }
-      >
-        <>
-          <div className="space-y-3">
-            {[...data.statuses]
-              .sort((a, b) => a.sort_order - b.sort_order)
-              .map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center gap-3 rounded-xl border border-black/10 p-3 dark:border-white/10"
-                >
-                  <i
-                    className="h-3 w-3 rounded-full"
-                    style={{ backgroundColor: item.color }}
-                  />
-                  {editingStatusId === item.id ? (
-                    <form
-                      className="flex min-w-0 flex-1 items-center gap-2"
-                      onSubmit={(event) => {
-                        event.preventDefault();
-                        void renameSetting(
-                          item.id,
-                          item.name,
-                          editingStatusName.trim(),
-                        );
-                      }}
-                    >
-                      <Input
-                        label={`Status name for ${item.name}`}
-                        hideLabel
-                        name={`status-name-${item.id}`}
-                        value={editingStatusName}
-                        onChange={(event) =>
-                          setEditingStatusName(event.target.value)
-                        }
-                        inputClassName="h-9"
-                        autoFocus
-                      />
-                      <IconButton
-                        type="submit"
-                        label={`Save ${item.name}`}
-                        disabled={
-                          settingActionPending || !editingStatusName.trim()
-                        }
-                      >
-                        <FiCheck />
-                      </IconButton>
-                      <IconButton
-                        type="button"
-                        label={`Cancel editing ${item.name}`}
-                        disabled={settingActionPending}
-                        onClick={() => {
-                          setEditingStatusId(null);
-                          setEditingStatusName("");
-                        }}
-                      >
-                        <FiX />
-                      </IconButton>
-                    </form>
-                  ) : (
-                    <span className="flex-1 font-semibold">{item.name}</span>
-                  )}
-                  {editingStatusId !== item.id && (
-                    <>
-                      {"is_default" in item && item.is_default && (
-                        <Pill size="sm">Default</Pill>
-                      )}
-                      <button
-                        type="button"
-                        aria-label={`${item.name} ${item.is_completed ? "currently completes tasks and archives them after 14 days" : "is an active workflow status"}`}
-                        aria-pressed={item.is_completed}
-                        disabled={settingActionPending}
-                        onClick={() =>
-                          void toggleCompletedStatus(
-                            item.id,
-                            !item.is_completed,
-                          )
-                        }
-                        className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-black/20 disabled:opacity-50 dark:focus:ring-white/30 ${item.is_completed ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-200" : "border-black/10 text-black/60 hover:text-black dark:border-white/10 dark:text-white/60 dark:hover:text-white"}`}
-                      >
-                        {item.is_completed
-                          ? "Completes tasks"
-                          : "Set as completion"}
-                      </button>
-                      <IconButton
-                        label={`Move ${item.name} up`}
-                        onClick={() => void moveStatus(item.id, -1)}
-                      >
-                        <FiChevronDown className="rotate-180" />
-                      </IconButton>
-                      <IconButton
-                        label={`Move ${item.name} down`}
-                        onClick={() => void moveStatus(item.id, 1)}
-                      >
-                        <FiChevronDown />
-                      </IconButton>
-                      <IconButton
-                        label={`Edit ${item.name}`}
-                        disabled={settingActionPending}
-                        onClick={() => {
-                          setEditingStatusId(item.id);
-                          setEditingStatusName(item.name);
-                        }}
-                      >
-                        <FiEdit2 />
-                      </IconButton>
-                      <IconButton
-                        label={`Delete ${item.name}`}
-                        variant="danger"
-                        onClick={() => setStatusToDelete(item)}
-                      >
-                        <FiTrash2 />
-                      </IconButton>
-                    </>
-                  )}
-                </div>
-              ))}
-          </div>
-        </>
-      </Modal>
-      <ConfirmationDialog
-        open={Boolean(statusToDelete)}
-        setOpen={(nextOpen) => {
-          if (!nextOpen) setStatusToDelete(null);
-        }}
-        title="Delete status?"
-        description={
-          statusToDelete &&
-          "is_default" in statusToDelete &&
-          statusToDelete.is_default
-            ? "This is a default status. Tasks using it must be moved before it can be deleted."
-            : "This shared status will be permanently deleted."
-        }
-        confirmLabel="Delete status"
-        pendingLabel="Deleting..."
-        pending={settingActionPending}
-        destructive
-        onConfirm={() => {
-          if (statusToDelete) void deleteSetting(statusToDelete.id);
-        }}
-      />
-    </>
   );
 }

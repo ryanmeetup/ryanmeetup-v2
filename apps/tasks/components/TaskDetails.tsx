@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -25,7 +26,6 @@ import {
   FiPlus,
   FiTrash2,
 } from "react-icons/fi";
-import { createClient } from "@/lib/supabase/client";
 import { MAX_ATTACHMENT_SIZE } from "@/lib/task-attachments";
 import type {
   Subtask,
@@ -58,6 +58,9 @@ export function TaskDetails({
   const [draggingFiles, setDraggingFiles] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [detailSaving, setDetailSaving] = useState(false);
+  const [detailsLoading, setDetailsLoading] = useState(!demoMode);
+  const [activityPage, setActivityPage] = useState(0);
+  const [hasMoreActivity, setHasMoreActivity] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const subtasks = data.subtasks.filter((item) => item.task_id === task.id);
   const attachments = data.attachments.filter(
@@ -78,6 +81,43 @@ export function TaskDetails({
     [data.activity, data.comments, task.id],
   );
 
+  async function loadDetails(page = 0) {
+    if (demoMode) return;
+    setDetailsLoading(true);
+    try {
+      const response = await fetch(`/api/task-details?taskId=${encodeURIComponent(task.id)}&activityPage=${page}`);
+      const result = (await response.json()) as {
+        error?: string;
+        subtasks?: Subtask[];
+        comments?: TaskComment[];
+        activity?: TaskActivity[];
+        attachments?: TaskAttachment[];
+        activityPage?: { hasMore: boolean };
+      };
+      if (!response.ok) throw new Error(result.error ?? "Task details could not be loaded.");
+      setData((current) => ({
+        ...current,
+        subtasks: page === 0 ? [...current.subtasks.filter((item) => item.task_id !== task.id), ...(result.subtasks ?? [])] : current.subtasks,
+        comments: page === 0 ? [...current.comments.filter((item) => item.task_id !== task.id), ...(result.comments ?? [])] : current.comments,
+        attachments: page === 0 ? [...current.attachments.filter((item) => item.task_id !== task.id), ...(result.attachments ?? [])] : current.attachments,
+        activity: [...current.activity.filter((item) => item.task_id !== task.id || !(result.activity ?? []).some((next) => next.id === item.id)), ...(result.activity ?? [])],
+      }));
+      setActivityPage(page);
+      setHasMoreActivity(result.activityPage?.hasMore ?? false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Task details could not be loaded.");
+    } finally {
+      setDetailsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => void loadDetails(0), 0);
+    return () => window.clearTimeout(timer);
+    // Detail data is scoped to the selected task and loaded only when opened.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [task.id, demoMode]);
+
   async function recordActivity(action: string) {
     const activity: TaskActivity = {
       id: crypto.randomUUID(),
@@ -91,18 +131,6 @@ export function TaskDetails({
       ...current,
       activity: [activity, ...current.activity],
     }));
-    if (!demoMode) {
-      const { error } = await createClient()
-        .from("task_activity")
-        .insert(activity);
-      if (error) {
-        setData((current) => ({
-          ...current,
-          activity: current.activity.filter((item) => item.id !== activity.id),
-        }));
-        toast.error(`Activity could not be recorded: ${error.message}`);
-      }
-    }
   }
 
   async function addSubtask() {
@@ -133,7 +161,6 @@ export function TaskDetails({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           kind: "subtask",
-          id: item.id,
           taskId: task.id,
           value: title,
           sortOrder: item.sort_order,
@@ -272,7 +299,6 @@ export function TaskDetails({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             kind: "comment",
-            id: item.id,
             taskId: task.id,
             value: body,
           }),
@@ -304,12 +330,6 @@ export function TaskDetails({
   }
 
   async function addAttachment(attachment: TaskAttachment) {
-    if (!demoMode) {
-      const { error } = await createClient()
-        .from("task_attachments")
-        .insert(attachment);
-      if (error) throw error;
-    }
     setData((current) => ({
       ...current,
       attachments: [...current.attachments, attachment],
@@ -328,6 +348,7 @@ export function TaskDetails({
       });
       const result = (await response.json()) as {
         attachment?: TaskAttachment;
+        activity?: TaskActivity;
         error?: string;
       };
       if (!response.ok || !result.attachment)
@@ -335,8 +356,10 @@ export function TaskDetails({
       setData((current) => ({
         ...current,
         attachments: [...current.attachments, result.attachment!],
+        activity: result.activity
+          ? [result.activity, ...current.activity]
+          : current.activity,
       }));
-      await recordActivity(`attached “${result.attachment.name}”`);
       return;
     }
     await addAttachment({
@@ -641,6 +664,9 @@ export function TaskDetails({
           </span>
         }
       >
+        {detailsLoading && (
+          <p role="status" className="text-sm text-black/60 dark:text-white/60">Loading task history…</p>
+        )}
         <div className="max-h-32 space-y-3 overflow-y-auto overscroll-contain pr-2">
           {timeline.map((item) => {
             const profile = data.profiles.find(
@@ -674,6 +700,11 @@ export function TaskDetails({
             );
           })}
         </div>
+        {hasMoreActivity && (
+          <Button type="button" variant="secondary" loading={detailsLoading} onClick={() => void loadDetails(activityPage + 1)}>
+            Load older activity
+          </Button>
+        )}
       </DisclosureCard>
     </div>
   );
