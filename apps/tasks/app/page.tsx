@@ -8,7 +8,6 @@ import { resolveAccessPreview } from "@/lib/access-preview-server";
 import { demoData } from "@/lib/demo-data";
 import {
   requireQueryData,
-  TASK_PAGE_SIZE,
   WORKSPACE_COLUMNS,
 } from "@/lib/workspace-loader";
 import {
@@ -58,10 +57,9 @@ export default async function Home({
   const archiveBoundary = new Date().toISOString();
   const taskResult = await supabase
     .from("tasks")
-    .select(WORKSPACE_COLUMNS.tasks, { count: "exact" })
+    .select(WORKSPACE_COLUMNS.tasks)
     .or(`archived_at.is.null,archived_at.gt.${archiveBoundary}`)
-    .order("updated_at", { ascending: false })
-    .range(0, TASK_PAGE_SIZE - 1);
+    .order("updated_at", { ascending: false });
   const tasks = requireQueryData("active tasks", taskResult);
   const taskIds = tasks.map((task) => task.id);
   const [assigneeResult, categoryResult, labelResult] = taskIds.length
@@ -92,9 +90,9 @@ export default async function Home({
     taskLabels: requireQueryData("task labels", labelResult),
     taskPage: {
       page: 0,
-      pageSize: TASK_PAGE_SIZE,
-      total: taskResult.count ?? tasks.length,
-      hasMore: tasks.length < (taskResult.count ?? 0),
+      pageSize: tasks.length,
+      total: tasks.length,
+      hasMore: false,
     },
   };
   if (requestedGroupPreview || requestedUserPreview) {
@@ -118,7 +116,7 @@ export default async function Home({
           ...initialData,
           taskPage: {
             page: 0,
-            pageSize: TASK_PAGE_SIZE,
+            pageSize: initialData.tasks.length,
             total: initialData.tasks.length,
             hasMore: false,
           },

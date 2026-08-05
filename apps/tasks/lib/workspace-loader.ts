@@ -121,48 +121,34 @@ export async function loadWorkspace(
       supabase
         .from("tasks")
         .select(columns.tasks)
-        .order("updated_at", { ascending: false })
-        .range(0, TASK_PAGE_SIZE - 1),
+        .order("updated_at", { ascending: false }),
     subtasks: () =>
       supabase
         .from("subtasks")
         .select(columns.subtasks)
-        .order("sort_order")
-        .limit(TASK_PAGE_SIZE),
+        .order("sort_order"),
     comments: () =>
       supabase
         .from("task_comments")
         .select(columns.comments)
-        .order("created_at")
-        .limit(TASK_PAGE_SIZE),
+        .order("created_at"),
     activity: () =>
       supabase
         .from("task_activity")
         .select(columns.activity)
-        .order("created_at", { ascending: false })
-        .limit(TASK_PAGE_SIZE),
+        .order("created_at", { ascending: false }),
     attachments: () =>
       supabase
         .from("task_attachments")
         .select(columns.attachments)
-        .order("created_at")
-        .limit(TASK_PAGE_SIZE),
+        .order("created_at"),
     labels: () => supabase.from("labels").select(columns.labels).order("name"),
     taskAssignees: () =>
-      supabase
-        .from("task_assignees")
-        .select(columns.taskAssignees)
-        .limit(TASK_PAGE_SIZE),
+      supabase.from("task_assignees").select(columns.taskAssignees),
     taskLabels: () =>
-      supabase
-        .from("task_labels")
-        .select(columns.taskLabels)
-        .limit(TASK_PAGE_SIZE),
+      supabase.from("task_labels").select(columns.taskLabels),
     taskCategories: () =>
-      supabase
-        .from("task_categories")
-        .select(columns.taskCategories)
-        .limit(TASK_PAGE_SIZE),
+      supabase.from("task_categories").select(columns.taskCategories),
   };
 
   const [profileResult, ...results] = await Promise.all([

@@ -329,11 +329,11 @@ export function TaskApp({
       : priorities.find(
           (item) => item.toLowerCase() === priority.toLowerCase(),
         );
-  async function loadTaskPage(page: number, replace = false) {
+  async function loadTaskPage(replace = false) {
     if (demoMode || taskPageLoading) return;
     setTaskPageLoading(true);
     try {
-      const params = new URLSearchParams({ page: String(page), visibility });
+      const params = new URLSearchParams({ visibility });
       if (selectedStatus) params.set("status", selectedStatus.id);
       if (selectedProject) params.set("project", selectedProject.id);
       else if (project === "none") params.set("project", "none");
@@ -396,7 +396,7 @@ export function TaskApp({
 
   useEffect(() => {
     if (!demoMode && visibility !== loadedVisibility.current)
-      void loadTaskPage(0, true);
+      void loadTaskPage(true);
     // Fetching is intentionally tied to the archive partition transition.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [demoMode, visibility]);
@@ -1480,21 +1480,6 @@ export function TaskApp({
                 </Card>
               )}
             </div>
-            {!demoMode && data.taskPage?.hasMore && (
-              <div className="mt-6 flex justify-center">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  loading={taskPageLoading}
-                  loadingText="Loading tasks..."
-                  onClick={() =>
-                    void loadTaskPage((data.taskPage?.page ?? 0) + 1)
-                  }
-                >
-                  Load more tasks ({data.tasks.length} of {data.taskPage.total})
-                </Button>
-              </div>
-            )}
           </div>
         </div>
       </main>

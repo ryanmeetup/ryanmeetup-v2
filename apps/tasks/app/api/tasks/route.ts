@@ -3,7 +3,7 @@ import { idSchema, taskMoveSchema, taskSaveSchema } from "@/lib/api-schemas";
 import { databaseFailure } from "@/lib/server/api-response";
 import { authorize } from "@/lib/server/auth";
 import { readJson } from "@/lib/server/request";
-import { TASK_PAGE_SIZE, WORKSPACE_COLUMNS } from "@/lib/workspace-loader";
+import { WORKSPACE_COLUMNS } from "@/lib/workspace-loader";
 import type { Task, TaskAssignee, TaskCategory } from "@/lib/types";
 
 type SavedTask = {
@@ -18,7 +18,6 @@ export async function GET(request: Request): Promise<NextResponse> {
   const { supabase } = authorization;
 
   const params = new URL(request.url).searchParams;
-  const page = Math.max(0, Number.parseInt(params.get("page") ?? "0", 10) || 0);
   const visibility =
     params.get("visibility") === "archived" ? "archived" : "active";
   const boundary = new Date().toISOString();
@@ -29,7 +28,6 @@ export async function GET(request: Request): Promise<NextResponse> {
       category && category !== "all"
         ? `${WORKSPACE_COLUMNS.tasks},task_categories!inner(category_id)`
         : WORKSPACE_COLUMNS.tasks,
-      { count: "exact" },
     );
   query =
     visibility === "archived"
@@ -57,17 +55,12 @@ export async function GET(request: Request): Promise<NextResponse> {
   if (search)
     query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
 
-  const from = page * TASK_PAGE_SIZE;
-  const result = await query
-    .order("updated_at", { ascending: false })
-    .range(from, from + TASK_PAGE_SIZE - 1);
+  const result = await query.order("updated_at", { ascending: false });
   if (result.error)
     return databaseFailure(request, "tasks.list", result.error, {
       error: "Tasks could not be loaded. Try again.",
     });
 
-  // The selected relation is conditional, which Supabase's string parser cannot
-  // represent as one inferred row type. Both branches retain the task columns.
   const tasks = (result.data ?? []) as unknown as Task[];
   const taskIds = tasks.map((task) => task.id);
   const [categories, assignees, labels] = taskIds.length
@@ -92,10 +85,10 @@ export async function GET(request: Request): Promise<NextResponse> {
     taskAssignees: assignees.data ?? [],
     taskLabels: labels.data ?? [],
     page: {
-      page,
-      pageSize: TASK_PAGE_SIZE,
-      total: result.count ?? tasks.length,
-      hasMore: from + tasks.length < (result.count ?? 0),
+      page: 0,
+      pageSize: tasks.length,
+      total: tasks.length,
+      hasMore: false,
     },
   });
 }
