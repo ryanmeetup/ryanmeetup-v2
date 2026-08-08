@@ -411,7 +411,7 @@ const Mapbox = (props: MapboxProps) => {
                 />
               )}
 
-              <Heading className="text-base text-black" size="h3">
+              <Heading className="text-base text-black" size="h3" ignoreColorMode>
                 {isChapter
                   ? (selectedLocation.locationName ?? selectedLocation.city)
                   : isBusiness
