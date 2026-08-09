@@ -132,8 +132,29 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   const authorization = await authorize();
   if ("response" in authorization) return authorization.response;
-  const { supabase } = authorization;
-  const body = (await request.json()) as { id?: string; completed?: boolean };
+  const { supabase, user } = authorization;
+  const body = (await request.json()) as {
+    kind?: string;
+    id?: string;
+    completed?: boolean;
+    value?: string;
+  };
+  if (body.kind === "comment") {
+    if (!body.id || typeof body.value !== "string" || !body.value.trim())
+      return failure("Invalid comment update.");
+    const { data, error } = await supabase
+      .from("task_comments")
+      .update({ body: body.value.trim(), edited_at: new Date().toISOString() })
+      .eq("id", body.id)
+      .eq("created_by", user.id)
+      .select(WORKSPACE_COLUMNS.comments)
+      .single();
+    if (error)
+      return databaseFailure(request, "comment.update", error, {
+        error: "The comment could not be updated. Try again.",
+      });
+    return NextResponse.json({ comment: data as TaskComment });
+  }
   if (!body.id || typeof body.completed !== "boolean")
     return failure("Invalid checklist update.");
   const { data, error } = await supabase
@@ -152,9 +173,25 @@ export async function PATCH(request: Request) {
 export async function DELETE(request: Request) {
   const authorization = await authorize();
   if ("response" in authorization) return authorization.response;
-  const { supabase } = authorization;
+  const { supabase, user } = authorization;
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
+  const kind = searchParams.get("kind");
+  if (kind === "comment") {
+    if (!id) return failure("A comment is required.");
+    const { data, error } = await supabase
+      .from("task_comments")
+      .delete()
+      .eq("id", id)
+      .eq("created_by", user.id)
+      .select("id")
+      .single();
+    if (error)
+      return databaseFailure(request, "comment.delete", error, {
+        error: "The comment could not be deleted. Try again.",
+      });
+    return NextResponse.json({ id: data.id });
+  }
   if (!id) return failure("A checklist item is required.");
   const { data, error } = await supabase
     .from("subtasks")

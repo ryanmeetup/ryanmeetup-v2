@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Button } from "./Button";
+import type { ButtonSize } from "./Button";
 import { Input } from "./Input";
 import { Modal } from "./Modal";
 
@@ -14,6 +15,7 @@ export type ConfirmationDialogProps = {
   pendingLabel?: string;
   pending?: boolean;
   destructive?: boolean;
+  buttonSize?: ButtonSize;
   onConfirm: () => void;
 };
 
@@ -26,6 +28,7 @@ const ConfirmationDialog = ({
   pendingLabel,
   pending = false,
   destructive = false,
+  buttonSize = "md",
   onConfirm,
 }: ConfirmationDialogProps) => (
   <Modal open={open} setIsOpen={setOpen} title={title} hideActions size="sm">
@@ -38,6 +41,7 @@ const ConfirmationDialog = ({
       <Button
         type="button"
         variant="secondary"
+        size={buttonSize}
         disabled={pending}
         onClick={() => setOpen(false)}
       >
@@ -46,6 +50,7 @@ const ConfirmationDialog = ({
       <Button
         type="button"
         variant={destructive ? "danger" : "primary"}
+        size={buttonSize}
         loading={pending}
         loadingText={pendingLabel ?? `${confirmLabel}...`}
         onClick={onConfirm}
