@@ -12,14 +12,9 @@ import {
 import {
   Avatar,
   AnimatedCollapse,
-  Card,
   ConfirmationDialog,
-  DropdownSelect,
-  EmptyState,
   FormattedText,
-  Heading,
   IconButton,
-  Pagination,
   Pill,
   Tooltip,
   toast,
@@ -28,10 +23,8 @@ import {
   FiCalendar,
   FiChevronDown,
   FiClock,
-  FiFilter,
   FiFolder,
   FiGrid,
-  FiList,
   FiLoader,
   FiMenu,
   FiMoreHorizontal,
@@ -46,8 +39,11 @@ import type { Category, Priority, Task, WorkspaceData } from "@/lib/types";
 import { TaskBanners } from "@/components/global";
 import { TaskHeaderActions } from "@/components/navigation";
 import { TaskEditor } from "./TaskEditor";
+import { TaskFilters } from "./TaskFilters";
+import { TaskListView } from "./TaskListView";
+import { TaskWorkspaceHeader } from "./TaskWorkspaceHeader";
 import { CategoriesModal } from "@/components/categories";
-import { ProjectLinks, ProjectsModal } from "@/components/projects";
+import { ProjectsModal } from "@/components/projects";
 import { useSidebarSections } from "@/hooks/useSidebarSections";
 import { withAccessPreview } from "@/lib/access-preview";
 import { useWorkspaceData } from "@/hooks/useWorkspaceData";
@@ -213,6 +209,7 @@ export function TaskApp({
   const [taskDetailsOpen, setTaskDetailsOpen] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
+  const [projectEditId, setProjectEditId] = useState<string | null>(null);
   const [taskMessage, setTaskMessage] = useState("");
   const [taskSaving, setTaskSaving] = useState(false);
   const [createAnother, setCreateAnother] = useState(false);
@@ -329,6 +326,16 @@ export function TaskApp({
       ? null
       : (projects.get(project) ??
         data.projects.find((item) => item.name === project));
+  const selectedProjectOwners = selectedProject
+    ? data.projectOwners
+        .filter((item) => item.project_id === selectedProject.id)
+        .flatMap((item) => {
+          const profile = data.profiles.find(
+            (candidate) => candidate.id === item.profile_id,
+          );
+          return profile ? [profile] : [];
+        })
+    : [];
   const selectedStatus =
     status === "all"
       ? null
@@ -1062,7 +1069,10 @@ export function TaskApp({
                   <IconButton
                     label="Create project"
                     size="sm"
-                    onClick={() => setProjectsOpen(true)}
+                    onClick={() => {
+                      setProjectEditId(null);
+                      setProjectsOpen(true);
+                    }}
                   >
                     <FiPlus />
                   </IconButton>
@@ -1141,202 +1151,52 @@ export function TaskApp({
           </div>
         )}
         <div className="p-4 sm:p-6 lg:p-8">
-          <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-            <div>
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-black/50 dark:text-white/50">
-                {selectedProject
-                  ? "Project workspace"
-                  : selectedCategory
-                    ? "Category workspace"
-                    : isMyTasks
-                      ? "Personal workspace"
-                      : "Team workspace"}
-              </p>
-              <div className="flex flex-wrap items-center gap-3">
-                <Heading size="h1" className="text-3xl sm:text-4xl">
-                  {viewTitle}
-                </Heading>
-                <Pill size="sm">
-                  {visibleTaskCount}{" "}
-                  {visibleTaskCount === 1 ? "task" : "tasks"}
-                </Pill>
-              </div>
-              {scopeDescription && (
-                <p className="mt-2 text-sm text-black/70 dark:text-white/70 sm:text-base">
-                  {scopeDescription}
-                </p>
-              )}
-              {selectedProject && (selectedProject.links ?? []).length > 0 && (
-                <ProjectLinks links={selectedProject.links} className="mt-3" />
-              )}
-            </div>
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <div
-                role="group"
-                className="flex rounded-lg border border-black/10 bg-white p-1 dark:border-white/10 dark:bg-white/5"
-                aria-label="Task scope"
-              >
-                <button
-                  aria-pressed={assignee === "all"}
-                  onClick={() => setAssignee("all")}
-                  className={`view-button ${assignee === "all" ? "view-button-active" : ""}`}
-                >
-                  All
-                </button>
-                {viewingAsGroup ? (
-                  <Tooltip content="Mine is unavailable when viewing as an access group because a group is not a task assignee.">
-                    <button
-                      type="button"
-                      disabled
-                      className="view-button opacity-40"
-                    >
-                      Mine
-                    </button>
-                  </Tooltip>
-                ) : (
-                  <button
-                    aria-pressed={isMyTasks}
-                    onClick={() => setAssignee(myTasksName)}
-                    className={`view-button ${isMyTasks ? "view-button-active" : ""}`}
-                  >
-                    Mine
-                  </button>
-                )}
-              </div>
-              <div
-                role="group"
-                className="flex rounded-lg border border-black/10 bg-white p-1 dark:border-white/10 dark:bg-white/5"
-                aria-label="Task layout"
-              >
-                <button
-                  aria-pressed={view === "board"}
-                  onClick={() => setView("board")}
-                  className={`view-button ${view === "board" ? "view-button-active" : ""}`}
-                >
-                  <FiGrid />
-                  Board
-                </button>
-                <button
-                  aria-pressed={view === "list"}
-                  onClick={() => setView("list")}
-                  className={`view-button ${view === "list" ? "view-button-active" : ""}`}
-                >
-                  <FiList />
-                  List
-                </button>
-              </div>
-            </div>
-          </div>
-          <Card size="sm" className="mb-6">
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
-              <span className="flex shrink-0 items-center gap-2 pr-2 text-xs font-semibold uppercase tracking-widest text-black/50 dark:text-white/50">
-                <FiFilter />
-                Filters
-                {filterCount > 0 && (
-                  <b className="grid h-5 w-5 place-items-center rounded-full bg-black text-[10px] text-white dark:bg-white dark:text-black">
-                    {filterCount}
-                  </b>
-                )}
-              </span>
-              <DropdownSelect
-                label="Visibility"
-                value={
-                  visibility === "archived" ? "Archived tasks" : "Active tasks"
-                }
-                onChange={setVisibility}
-                options={[
-                  { label: "Active tasks", value: "active" },
-                  { label: "Archived tasks", value: "archived" },
-                ]}
-              />
-              <DropdownSelect
-                label="Assignee"
-                value={
-                  selectedAssignee
-                    ? profileName(selectedAssignee)
-                    : assignee.toLowerCase() === "unassigned"
-                      ? "Unassigned"
-                      : assignee
-                }
-                onChange={setAssignee}
-                options={[
-                  { label: "Anyone", value: "all" },
-                  { label: "Unassigned", value: "Unassigned" },
-                  ...data.profiles.map((item) => ({
-                    avatar: {
-                      name: profileName(item),
-                      src: item.avatar_url,
-                    },
-                    label: profileName(item),
-                    value: profileName(item),
-                  })),
-                ]}
-              />
-              <DropdownSelect
-                label="Category"
-                value={selectedCategory?.name ?? group}
-                onChange={setGroup}
-                options={[
-                  { label: "All categories", value: "all" },
-                  ...data.categories.map((item) => ({
-                    label: item.name,
-                    value: item.name,
-                    color: item.color,
-                  })),
-                ]}
-              />
-              <DropdownSelect
-                label="Project"
-                value={selectedProject?.name ?? project}
-                onChange={setProject}
-                options={[
-                  { label: "All projects", value: "all" },
-                  { label: "No project", value: "none" },
-                  ...data.projects.map((item) => ({
-                    label: `${item.name}${item.archived_at ? " (archived)" : ""}`,
-                    value: item.name,
-                  })),
-                ]}
-              />
-              <DropdownSelect
-                label="Status"
-                value={selectedStatus?.name ?? status}
-                onChange={setStatus}
-                options={[
-                  { label: "All statuses", value: "all" },
-                  ...statuses.map((item) => ({
-                    label: item.name,
-                    value: item.name,
-                  })),
-                ]}
-              />
-              <DropdownSelect
-                label="Priority"
-                value={
-                  selectedPriority
-                    ? selectedPriority[0].toUpperCase() +
-                      selectedPriority.slice(1)
-                    : priority
-                }
-                onChange={setPriority}
-                options={[
-                  { label: "All priorities", value: "all" },
-                  ...priorities.map((item) => ({
-                    label: item[0].toUpperCase() + item.slice(1),
-                    value: item[0].toUpperCase() + item.slice(1),
-                  })),
-                ]}
-              />
-              {filterCount > 0 && (
-                <button
-                  className="shrink-0 text-xs font-semibold text-black/60 hover:text-black dark:text-white/60 dark:hover:text-white"
-                  onClick={clearTaskFilters}
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-          </Card>
+          <TaskWorkspaceHeader
+            assignee={assignee}
+            isMyTasks={isMyTasks}
+            myTasksName={myTasksName}
+            onEditProject={() => {
+              if (!selectedProject) return;
+              setProjectEditId(selectedProject.id);
+              setProjectsOpen(true);
+            }}
+            onSetAssignee={setAssignee}
+            onSetView={setView}
+            previewing={Boolean(data.accessPreview)}
+            scopeDescription={scopeDescription}
+            selectedCategory={selectedCategory}
+            selectedProject={selectedProject}
+            projectOwners={selectedProjectOwners}
+            taskCount={visibleTaskCount}
+            view={view}
+            viewTitle={viewTitle}
+            viewingAsGroup={viewingAsGroup}
+          />
+          <TaskFilters
+            assignee={assignee}
+            categories={data.categories}
+            clearFilters={clearTaskFilters}
+            filterCount={filterCount}
+            group={group}
+            onAssigneeChange={setAssignee}
+            onCategoryChange={setGroup}
+            onPriorityChange={setPriority}
+            onProjectChange={setProject}
+            onStatusChange={setStatus}
+            onVisibilityChange={setVisibility}
+            priority={priority}
+            profiles={data.profiles}
+            project={project}
+            projects={data.projects}
+            selectedAssignee={selectedAssignee}
+            selectedCategory={selectedCategory}
+            selectedPriority={selectedPriority}
+            selectedProject={selectedProject}
+            selectedStatus={selectedStatus}
+            status={status}
+            statuses={statuses}
+            visibility={visibility}
+          />
 
           <div className="relative" aria-busy={searchPending}>
             {searchPending && (
@@ -1457,140 +1317,25 @@ export function TaskApp({
                   })}
                 </div>
               ) : (
-                <Card
-                  size="none"
-                  className={`overflow-hidden transition-opacity ${taskPageLoading ? "opacity-60" : ""}`}
-                >
-                  <div className="overflow-x-auto" aria-busy={taskPageLoading}>
-                    <table className="w-full min-w-[900px] text-left">
-                      <thead className="border-b border-black/10 bg-black/[0.025] text-[10px] uppercase tracking-[0.16em] text-black/50 dark:border-white/10 dark:bg-white/[0.025] dark:text-white/50">
-                        <tr>
-                          <th className="px-4 py-3">Task</th>
-                          <th>Status</th>
-                          <th>Categories</th>
-                          <th>Project</th>
-                          <th>Assignee</th>
-                          <th>Priority</th>
-                          <th>
-                            <button
-                              className="flex items-center gap-1"
-                              onClick={() =>
-                                setSort(sort === "due" ? "updated" : "due")
-                              }
-                            >
-                              Due <FiChevronDown />
-                            </button>
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-black/5 dark:divide-white/5">
-                        {listTasks.map((task) => {
-                          const itemStatus = statuses.find(
-                            (item) => item.id === task.status_id,
-                          );
-                          const taskCategories = [
-                            ...(categoriesByTask.get(task.id) ?? []),
-                          ]
-                            .map((id) => categories.get(id))
-                            .filter((item) => item !== undefined);
-                          const taskProject = task.project_id
-                            ? projects.get(task.project_id)
-                            : null;
-                          const taskPeople = [
-                            ...(assigneesByTask.get(task.id) ?? []),
-                          ]
-                            .map((id) => profiles.get(id))
-                            .filter((person) => person !== undefined);
-                          return (
-                            <tr
-                              key={task.id}
-                              onClick={() => openEdit(task)}
-                              className="cursor-pointer text-sm hover:bg-black/[0.025] dark:hover:bg-white/[0.025]"
-                            >
-                              <td className="px-4 py-4 font-semibold">
-                                {task.title}
-                              </td>
-                              <td>
-                                <span className="flex items-center gap-2">
-                                  <i
-                                    className="h-2 w-2 rounded-full"
-                                    style={{
-                                      backgroundColor: itemStatus?.color,
-                                    }}
-                                  />
-                                  {itemStatus?.name}
-                                </span>
-                              </td>
-                              <td>
-                                {taskCategories.length > 0 ? (
-                                  <span className="flex flex-wrap gap-1.5 py-2 pr-3">
-                                    {taskCategories.map((category) => (
-                                      <CategoryBadge
-                                        key={category.id}
-                                        category={category}
-                                      />
-                                    ))}
-                                  </span>
-                                ) : (
-                                  "—"
-                                )}
-                              </td>
-                              <td>{taskProject?.name ?? "—"}</td>
-                              <td>
-                                {taskPeople.length > 0 ? (
-                                  <span className="flex items-center gap-2">
-                                    <span className="flex -space-x-1.5">
-                                      {taskPeople.slice(0, 3).map((person) => (
-                                        <Avatar
-                                          key={person.id}
-                                          name={profileName(person)}
-                                          size="sm"
-                                          src={person.avatar_url}
-                                        />
-                                      ))}
-                                    </span>
-                                    {taskPeople.map(profileName).join(", ")}
-                                  </span>
-                                ) : (
-                                  "Unassigned"
-                                )}
-                              </td>
-                              <td>
-                                <span
-                                  className={`rounded-full border px-2 py-1 text-[9px] font-bold uppercase tracking-widest ${priorityStyles[task.priority]}`}
-                                >
-                                  {task.priority}
-                                </span>
-                              </td>
-                              <td>{displayDate(task.due_date)}</td>
-                            </tr>
-                          );
-                        })}
-                        {listTasks.length === 0 && (
-                          <tr>
-                            <td colSpan={7}>
-                              <EmptyState
-                                variant="plain"
-                                message="No tasks found. Try clearing a filter or add the first task in this view."
-                              />
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                  <Pagination
-                    page={data.taskPage?.page ?? page}
-                    pageSize={data.taskPage?.pageSize ?? pageSize}
-                    totalCount={data.taskPage?.totalCount ?? visibleTasks.length}
-                    itemLabel="tasks"
-                    disabled={taskPageLoading}
-                    onPageChange={(nextPage) =>
-                      setPage(nextPage)
-                    }
-                    onPageSizeChange={setPageSize}
-                  />
-                </Card>
+                <TaskListView
+                  assigneesByTask={assigneesByTask}
+                  categories={categories}
+                  categoriesByTask={categoriesByTask}
+                  loading={taskPageLoading}
+                  onOpenTask={openEdit}
+                  onPageChange={setPage}
+                  onPageSizeChange={setPageSize}
+                  onToggleSort={() =>
+                    setSort(sort === "due" ? "updated" : "due")
+                  }
+                  page={data.taskPage?.page ?? page}
+                  pageSize={data.taskPage?.pageSize ?? pageSize}
+                  profiles={profiles}
+                  projects={projects}
+                  statuses={statuses}
+                  tasks={listTasks}
+                  totalCount={data.taskPage?.totalCount ?? visibleTasks.length}
+                />
               )}
             </div>
           </div>
@@ -1644,11 +1389,20 @@ export function TaskApp({
       {projectsOpen && (
         <ProjectsModal
           open={projectsOpen}
-          setOpen={setProjectsOpen}
+          setOpen={(nextOpen) => {
+            setProjectsOpen(nextOpen);
+            if (!nextOpen) setProjectEditId(null);
+          }}
           data={data}
           setData={setData}
           demoMode={demoMode}
+          editProjectId={projectEditId}
           createOnly
+          onProjectUpdated={(updatedProject) => {
+            if (selectedProject?.id === updatedProject.id) {
+              setProject(updatedProject.name);
+            }
+          }}
         />
       )}
     </div>

@@ -1,4 +1,5 @@
 import type { Priority, ProjectLink, Task } from "./types";
+import { normalizeProjectLinkUrl } from "./project-links";
 
 type JsonObject = Record<string, unknown>;
 
@@ -90,7 +91,13 @@ export function categorySchema(value: unknown, requireId = false) {
   const name = text(body.name, 80);
   const description = optionalText(body.description, 500);
   const validColor = color(body.color);
-  if ((requireId && !id) || !name || description === null || !validColor)
+  if (
+    (requireId && !id) ||
+    !name ||
+    description === null ||
+    (!requireId && !description) ||
+    !validColor
+  )
     return null;
   return { id, name, description: description || null, color: validColor };
 }
@@ -150,7 +157,7 @@ function projectLinks(value: unknown): ProjectLink[] | null {
     )
       return null;
     try {
-      const url = new URL(body.url.trim());
+      const url = new URL(normalizeProjectLinkUrl(body.url));
       if (!(["http:", "https:"] as string[]).includes(url.protocol))
         return null;
       links.push({ label, url: url.toString() });
@@ -179,8 +186,8 @@ export function projectCreateSchema(value: unknown) {
   const description = optionalText(body.description, 1000);
   const links = projectLinks(body.links ?? []);
   const ownerIds = uuidList(body.ownerIds ?? []);
-  return name && description !== null && links && ownerIds
-    ? { name, description: description || null, links, ownerIds }
+  return name && description && links && ownerIds?.length
+    ? { name, description, links, ownerIds }
     : null;
 }
 

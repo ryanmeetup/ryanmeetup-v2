@@ -322,6 +322,8 @@ export function TaskEditor({
                   </Button>
                 </div>
                 <TaskDetails
+                  key={editing.id}
+                  active={taskOpen}
                   className="!border-t-0 !pt-0"
                   task={editing}
                   data={data}

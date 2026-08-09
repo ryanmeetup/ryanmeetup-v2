@@ -56,10 +56,12 @@ export function CategoriesPageClient({
             setData={setData}
             demoMode={demoMode}
             embedded
+            readOnly={Boolean(data.accessPreview)}
+            onCreate={() => setCreateOpen(true)}
           />
         </div>
       </main>
-      {createOpen && (
+      {createOpen && !data.accessPreview && (
         <CategoriesModal
           open={createOpen}
           setOpen={setCreateOpen}

@@ -16,6 +16,7 @@ import {
   Modal,
   MultiSelect,
   Textarea,
+  Tooltip,
   toast,
 } from "@ryanmeetup/ui";
 import {
@@ -31,6 +32,7 @@ import {
 } from "react-icons/fi";
 import { useSearchFilter } from "@ryanmeetup/hooks";
 import { withAccessPreview } from "@/lib/access-preview";
+import { normalizeProjectLinkUrl } from "@/lib/project-links";
 import type { Project, ProjectLink, WorkspaceData } from "@/lib/types";
 import { ProjectLinks } from "./ProjectLinks";
 
@@ -42,7 +44,10 @@ export function ProjectsModal({
   demoMode,
   embedded = false,
   createOnly = false,
+  editProjectId = null,
   readOnly = false,
+  onCreate,
+  onProjectUpdated,
 }: {
   open: boolean;
   setOpen: (open: boolean) => void;
@@ -51,8 +56,14 @@ export function ProjectsModal({
   demoMode: boolean;
   embedded?: boolean;
   createOnly?: boolean;
+  editProjectId?: string | null;
   readOnly?: boolean;
+  onCreate?: () => void;
+  onProjectUpdated?: (project: Project) => void;
 }) {
+  const directEditProject = editProjectId
+    ? data.projects.find((project) => project.id === editProjectId) ?? null
+    : null;
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [links, setLinks] = useState<ProjectLink[]>([]);
@@ -60,11 +71,25 @@ export function ProjectsModal({
   const [projectStatus, setProjectStatus] = useState<
     "active" | "archived" | "all"
   >("active");
-  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState("");
-  const [editingDescription, setEditingDescription] = useState("");
-  const [editingLinks, setEditingLinks] = useState<ProjectLink[]>([]);
-  const [editingOwnerIds, setEditingOwnerIds] = useState<string[]>([]);
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(
+    directEditProject?.id ?? null,
+  );
+  const [editingName, setEditingName] = useState(
+    directEditProject?.name ?? "",
+  );
+  const [editingDescription, setEditingDescription] = useState(
+    directEditProject?.description ?? "",
+  );
+  const [editingLinks, setEditingLinks] = useState<ProjectLink[]>(
+    directEditProject?.links ?? [],
+  );
+  const [editingOwnerIds, setEditingOwnerIds] = useState<string[]>(
+    directEditProject
+      ? data.projectOwners
+          .filter((item) => item.project_id === directEditProject.id)
+          .map((item) => item.profile_id)
+      : [],
+  );
   const [renaming, setRenaming] = useState(false);
   const [newOwnerIds, setNewOwnerIds] = useState<string[]>([
     data.currentProfile.id,
@@ -102,13 +127,17 @@ export function ProjectsModal({
   async function addProject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const projectName = name.trim();
-    if (!projectName) return;
+    const projectDescription = description.trim();
+    if (!projectName || !projectDescription || newOwnerIds.length === 0) {
+      toast.error("Add a project name, description, and at least one owner.");
+      return;
+    }
     setCreating(true);
     try {
       let project: Project = {
         id: crypto.randomUUID(),
         name: projectName,
-        description: description.trim() || null,
+        description: projectDescription,
         links,
         created_by: data.currentProfile.id,
         archived_at: null,
@@ -117,7 +146,12 @@ export function ProjectsModal({
       if (!demoMode)
         project = (
           await request(
-            { name: projectName, description, links, ownerIds: newOwnerIds },
+            {
+              name: projectName,
+              description: projectDescription,
+              links,
+              ownerIds: newOwnerIds,
+            },
             "POST",
           )
         ).project!;
@@ -164,17 +198,17 @@ export function ProjectsModal({
           },
           "PATCH",
         );
+      const updatedProject = {
+        ...project,
+        name: nextName,
+        description: nextDescription,
+        links: editingLinks,
+      };
+      onProjectUpdated?.(updatedProject);
       setData((current) => ({
         ...current,
         projects: current.projects.map((item) =>
-          item.id === project.id
-            ? {
-                ...item,
-                name: nextName,
-                description: nextDescription,
-                links: editingLinks,
-              }
-            : item,
+          item.id === project.id ? updatedProject : item,
         ),
         projectOwners: [
           ...current.projectOwners.filter(
@@ -188,6 +222,7 @@ export function ProjectsModal({
       }));
       toast.success(`${nextName} updated.`);
       setEditingProjectId(null);
+      if (editProjectId) setOpen(false);
     } catch (error) {
       toast.error(
         error instanceof Error
@@ -209,6 +244,12 @@ export function ProjectsModal({
         .filter((item) => item.project_id === project.id)
         .map((item) => item.profile_id),
     );
+  }
+
+  function closeEditor() {
+    if (renaming) return;
+    setEditingProjectId(null);
+    if (editProjectId) setOpen(false);
   }
 
   async function toggleArchived(project: Project) {
@@ -262,9 +303,27 @@ export function ProjectsModal({
   return (
     <>
       <Modal
-        open={open}
+        open={open && !editProjectId}
         setIsOpen={setOpen}
-        title={embedded ? null : createOnly ? "New project" : "Projects"}
+        title={createOnly ? "New project" : "Projects"}
+        description={
+          embedded
+            ? "Projects collect related work across categories. Owners show who is driving each work stream; project access is still managed separately through groups."
+            : undefined
+        }
+        actions={
+          embedded && onCreate && !readOnly ? (
+            <Button
+              type="button"
+              variant="action"
+              size="sm"
+              leftIcon={<FiPlus aria-hidden />}
+              onClick={onCreate}
+            >
+              New project
+            </Button>
+          ) : undefined
+        }
         hideActions
         size={createOnly ? "md" : "xl"}
         embedded={embedded}
@@ -284,6 +343,7 @@ export function ProjectsModal({
                   onChange={(event) => setName(event.target.value)}
                   placeholder="RyanCon 2027"
                   disabled={creating}
+                  required
                 />
               </div>
               <Textarea
@@ -295,6 +355,7 @@ export function ProjectsModal({
                 placeholder="What is this project working toward?"
                 rows={2}
                 disabled={creating}
+                required
               />
               <MultiSelect
                 label="Project owners"
@@ -303,6 +364,7 @@ export function ProjectsModal({
                 onChange={setNewOwnerIds}
                 placeholder="Select owners"
                 disabled={creating}
+                required
               />
               <ProjectLinksFields
                 links={links}
@@ -344,11 +406,13 @@ export function ProjectsModal({
           </p>
         ) : (
           <>
-            <p className="mb-5 text-sm text-black/60 dark:text-white/60">
-              Projects collect related work across categories. Owners show who
-              is driving each work stream; project access is still managed
-              separately through groups.
-            </p>
+            {!embedded && (
+              <p className="mb-5 text-sm text-black/60 dark:text-white/60">
+                Projects collect related work across categories. Owners show
+                who is driving each work stream; project access is still
+                managed separately through groups.
+              </p>
+            )}
             <div className="sticky top-0 z-20 -mx-1 mb-4 grid gap-3 bg-white px-1 pb-3 dark:bg-[#181818] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
               <div className="relative">
                 <Input
@@ -413,15 +477,6 @@ export function ProjectsModal({
                       );
                       return profile ? [profile] : [];
                     });
-                  const ownerSummary =
-                    owners.length === 0
-                      ? "Unassigned"
-                      : owners.length <= 2
-                        ? owners.map((owner) => owner.full_name).join(", ")
-                        : `${owners
-                            .slice(0, 2)
-                            .map((owner) => owner.full_name)
-                            .join(", ")} +${owners.length - 2}`;
                   return (
                     <div
                       key={project.id}
@@ -479,13 +534,18 @@ export function ProjectsModal({
                             aria-label={`${owners.length} ${owners.length === 1 ? "owner" : "owners"}`}
                           >
                             {owners.slice(0, 3).map((owner) => (
-                              <Avatar
+                              <Tooltip
                                 key={owner.id}
-                                name={owner.full_name}
-                                src={owner.avatar_url}
-                                size="md"
-                                className="ring-2 ring-white dark:ring-[#181818]"
-                              />
+                                content={owner.full_name}
+                                placement="top"
+                              >
+                                <Avatar
+                                  name={owner.full_name}
+                                  src={owner.avatar_url}
+                                  size="md"
+                                  className="ring-2 ring-white dark:ring-[#181818]"
+                                />
+                              </Tooltip>
                             ))}
                           </div>
                         ) : (
@@ -497,9 +557,11 @@ export function ProjectsModal({
                           <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-black/40 dark:text-white/40">
                             Owners
                           </p>
-                          <p className="truncate text-xs font-medium text-black/65 dark:text-white/65">
-                            {ownerSummary}
-                          </p>
+                          {owners.length === 0 && (
+                            <p className="truncate text-xs font-medium text-black/65 dark:text-white/65">
+                              Unassigned
+                            </p>
+                          )}
                         </div>
                         {embedded && (
                           <Button.Link
@@ -540,7 +602,7 @@ export function ProjectsModal({
             <Modal
               open
               setIsOpen={(nextOpen) => {
-                if (!nextOpen && !renaming) setEditingProjectId(null);
+                if (!nextOpen) closeEditor();
               }}
               title={`Edit ${project.name}`}
               size="lg"
@@ -593,7 +655,7 @@ export function ProjectsModal({
                     type="button"
                     variant="secondary"
                     disabled={renaming}
-                    onClick={() => setEditingProjectId(null)}
+                    onClick={closeEditor}
                   >
                     Cancel
                   </Button>
@@ -679,12 +741,18 @@ function ProjectLinksFields({
             <Input
               label="URL"
               name={`project-link-url-${index}`}
-              type="url"
+              type="text"
+              inputMode="url"
+              autoCapitalize="none"
+              autoCorrect="off"
               value={link.url}
-              placeholder="https://…"
+              placeholder="ryanmeetup.com"
               required
               disabled={disabled}
               onChange={(event) => update(index, "url", event.target.value)}
+              onBlur={(event) =>
+                update(index, "url", normalizeProjectLinkUrl(event.target.value))
+              }
             />
             <IconButton
               type="button"

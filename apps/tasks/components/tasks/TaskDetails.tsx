@@ -8,6 +8,7 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
+import Image from "next/image";
 import {
   Avatar,
   Button,
@@ -20,11 +21,13 @@ import {
 } from "@ryanmeetup/ui";
 import {
   FiCheck,
+  FiExternalLink,
   FiFile,
   FiMessageSquare,
   FiPaperclip,
   FiPlus,
   FiTrash2,
+  FiX,
 } from "react-icons/fi";
 import { MAX_ATTACHMENT_SIZE } from "@/lib/task-attachments";
 import type {
@@ -37,6 +40,7 @@ import type {
 } from "@/lib/types";
 
 type TaskDetailsProps = {
+  active: boolean;
   className?: string;
   data: WorkspaceData;
   demoMode: boolean;
@@ -46,7 +50,19 @@ type TaskDetailsProps = {
 
 const now = () => new Date().toISOString();
 
+function formatFileSize(size: number | null) {
+  if (size === null) return null;
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatFileType(mimeType: string | null) {
+  return mimeType?.split("/").at(-1)?.toUpperCase() ?? null;
+}
+
 export function TaskDetails({
+  active,
   className,
   data,
   demoMode,
@@ -57,6 +73,8 @@ export function TaskDetails({
   const [comment, setComment] = useState("");
   const [draggingFiles, setDraggingFiles] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState(false);
+  const [previewAttachment, setPreviewAttachment] =
+    useState<TaskAttachment | null>(null);
   const [detailSaving, setDetailSaving] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(!demoMode);
   const [activityPage, setActivityPage] = useState(0);
@@ -405,7 +423,32 @@ export function TaskDetails({
       );
   }
 
+  useEffect(() => {
+    if (!active) return;
+
+    const handlePaste = (event: ClipboardEvent) => {
+      if (uploadingFiles) return;
+
+      const imageFiles = Array.from(event.clipboardData?.items ?? []).flatMap(
+        (item) => {
+          if (item.kind !== "file" || !item.type.startsWith("image/"))
+            return [];
+          const file = item.getAsFile();
+          return file ? [file] : [];
+        },
+      );
+
+      if (imageFiles.length === 0) return;
+      event.preventDefault();
+      void uploadFiles(imageFiles);
+    };
+
+    document.addEventListener("paste", handlePaste);
+    return () => document.removeEventListener("paste", handlePaste);
+  });
+
   async function removeAttachment(item: TaskAttachment) {
+    if (previewAttachment?.id === item.id) setPreviewAttachment(null);
     setData((current) => ({
       ...current,
       attachments: current.attachments.filter((entry) => entry.id !== item.id),
@@ -531,20 +574,90 @@ export function TaskDetails({
         <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em]">
           <FiPaperclip /> Attachments
         </h3>
+        {previewAttachment && (
+          <div className="overflow-hidden rounded-xl border border-black/10 bg-black/[0.025] dark:border-white/10 dark:bg-white/[0.035]">
+            <div className="relative aspect-[4/3] w-full bg-black/5 dark:bg-black/30">
+              <Image
+                src={previewAttachment.url}
+                alt={`Preview of ${previewAttachment.name}`}
+                fill
+                unoptimized
+                sizes="(min-width: 1024px) 40vw, 90vw"
+                className="object-contain"
+              />
+            </div>
+            <div className="flex items-center justify-between gap-3 border-t border-black/10 px-3 py-2 dark:border-white/10">
+              <p className="min-w-0 truncate text-sm font-semibold">
+                {previewAttachment.name}
+              </p>
+              <div className="flex shrink-0 gap-1">
+                <Tooltip content="Open original">
+                  <a
+                    href={previewAttachment.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Open ${previewAttachment.name} in a new tab`}
+                    className="grid h-9 w-9 place-items-center rounded-lg transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:hover:bg-white/10 dark:focus-visible:ring-white/30"
+                  >
+                    <FiExternalLink aria-hidden />
+                  </a>
+                </Tooltip>
+                <IconButton
+                  label="Close attachment preview"
+                  onClick={() => setPreviewAttachment(null)}
+                >
+                  <FiX />
+                </IconButton>
+              </div>
+            </div>
+          </div>
+        )}
         {attachments.map((item) => (
           <div
             key={item.id}
-            className="flex items-center gap-2 rounded-lg border border-black/10 px-3 py-2 dark:border-white/10"
+            className="flex items-center gap-3 rounded-xl border border-black/10 p-2 dark:border-white/10"
           >
-            <FiFile />
-            <a
-              href={item.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="min-w-0 flex-1 truncate text-sm font-semibold underline-offset-2 hover:underline"
-            >
-              {item.name}
-            </a>
+            {item.mime_type?.startsWith("image/") && item.url !== "#" ? (
+              <button
+                type="button"
+                aria-label={`Preview ${item.name}`}
+                aria-pressed={previewAttachment?.id === item.id}
+                onClick={() => setPreviewAttachment(item)}
+                className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:bg-white/5 dark:focus-visible:ring-white/30"
+              >
+                <Image
+                  src={item.url}
+                  alt=""
+                  fill
+                  unoptimized
+                  sizes="48px"
+                  className="object-cover"
+                />
+              </button>
+            ) : (
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-black/5 text-black/55 dark:bg-white/5 dark:text-white/55">
+                <FiFile aria-hidden />
+              </span>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold">{item.name}</p>
+              <p className="mt-0.5 truncate text-xs text-black/50 dark:text-white/50">
+                {[formatFileType(item.mime_type), formatFileSize(item.size_bytes)]
+                  .filter(Boolean)
+                  .join(" · ") || "Attachment"}
+              </p>
+            </div>
+            <Tooltip content="Open in new tab">
+              <a
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Open ${item.name} in a new tab`}
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-lg transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:hover:bg-white/10 dark:focus-visible:ring-white/30"
+              >
+                <FiExternalLink aria-hidden />
+              </a>
+            </Tooltip>
             <IconButton
               label={`Remove ${item.name}`}
               variant="danger"

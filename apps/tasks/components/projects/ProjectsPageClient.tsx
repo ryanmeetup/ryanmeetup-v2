@@ -59,6 +59,7 @@ export function ProjectsPageClient({
             demoMode={demoMode}
             embedded
             readOnly={Boolean(data.accessPreview)}
+            onCreate={() => setCreateOpen(true)}
           />
         </div>
       </main>

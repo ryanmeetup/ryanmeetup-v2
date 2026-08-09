@@ -21,6 +21,7 @@ import {
   FiArrowRight,
   FiEdit2,
   FiLoader,
+  FiPlus,
   FiRefreshCw,
   FiSearch,
   FiTrash2,
@@ -46,6 +47,8 @@ export type CategoriesModalProps = {
   demoMode: boolean;
   embedded?: boolean;
   createOnly?: boolean;
+  onCreate?: () => void;
+  readOnly?: boolean;
 };
 
 export function CategoriesModal({
@@ -56,6 +59,8 @@ export function CategoriesModal({
   demoMode,
   embedded = false,
   createOnly = false,
+  onCreate,
+  readOnly = false,
 }: CategoriesModalProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -102,19 +107,27 @@ export function CategoriesModal({
   async function addCategory(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const nextName = name.trim();
-    if (!nextName) return;
+    const nextDescription = description.trim();
+    if (!nextName || !nextDescription) {
+      toast.error("Add a category name and description.");
+      return;
+    }
     setCreating(true);
     try {
       let category: Category = {
         id: crypto.randomUUID(),
         name: nextName,
-        description: description.trim() || null,
+        description: nextDescription,
         color,
         created_by: data.currentProfile.id,
       };
       if (!demoMode)
         category = (
-          await request("POST", { name: nextName, description, color })
+          await request("POST", {
+            name: nextName,
+            description: nextDescription,
+            color,
+          })
         ).category!;
       setData((current) => ({
         ...current,
@@ -240,7 +253,25 @@ export function CategoriesModal({
       <Modal
         open={open}
         setIsOpen={setOpen}
-        title={embedded ? null : createOnly ? "New category" : "Categories"}
+        title={createOnly ? "New category" : "Categories"}
+        description={
+          embedded
+            ? "Categories make work easier to scan and filter across projects."
+            : undefined
+        }
+        actions={
+          embedded && onCreate && !readOnly ? (
+            <Button
+              type="button"
+              variant="action"
+              size="sm"
+              leftIcon={<FiPlus aria-hidden />}
+              onClick={onCreate}
+            >
+              New category
+            </Button>
+          ) : undefined
+        }
         hideActions
         size={createOnly ? "md" : "xl"}
         embedded={embedded}
@@ -256,6 +287,7 @@ export function CategoriesModal({
                   onChange={(event) => setName(event.target.value)}
                   placeholder="Marketing"
                   disabled={creating}
+                  required
                 />
                 {colorControl(color, setColor, creating)}
               </div>
@@ -268,6 +300,7 @@ export function CategoriesModal({
                 placeholder="What kind of work belongs in this category?"
                 rows={2}
                 disabled={creating}
+                required
               />
               <div className="flex justify-end gap-2 border-t border-black/10 pt-4 dark:border-white/10">
                 <Button
@@ -298,9 +331,11 @@ export function CategoriesModal({
           </p>
         ) : (
           <>
-            <p className="mb-5 text-sm text-black/60 dark:text-white/60">
-              Categories make work easier to scan and filter across projects.
-            </p>
+            {!embedded && (
+              <p className="mb-5 text-sm text-black/60 dark:text-white/60">
+                Categories make work easier to scan and filter across projects.
+              </p>
+            )}
             <div className="relative mb-4">
               <Input
                 label="Search categories"

@@ -50,6 +50,7 @@ export default async function Home({
     "statuses",
     "categories",
     "projects",
+    "projectOwners",
     "labels",
   ]);
   const { supabase } = loaded;

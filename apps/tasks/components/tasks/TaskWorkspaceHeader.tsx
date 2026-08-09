@@ -1,0 +1,181 @@
+import { Avatar, Button, Heading, Pill, Tooltip } from "@ryanmeetup/ui";
+import { FiEdit2, FiGrid, FiList, FiUsers } from "react-icons/fi";
+import type { Category, Profile, Project } from "@/lib/types";
+import { ProjectLinks } from "@/components/projects";
+
+export function TaskWorkspaceHeader({
+  assignee,
+  isMyTasks,
+  myTasksName,
+  onEditProject,
+  onSetAssignee,
+  onSetView,
+  previewing,
+  projectOwners,
+  scopeDescription,
+  selectedCategory,
+  selectedProject,
+  taskCount,
+  view,
+  viewTitle,
+  viewingAsGroup,
+}: {
+  assignee: string;
+  isMyTasks: boolean;
+  myTasksName: string;
+  onEditProject: () => void;
+  onSetAssignee: (value: string) => void;
+  onSetView: (value: "board" | "list") => void;
+  previewing: boolean;
+  projectOwners: Profile[];
+  scopeDescription: string | null | undefined;
+  selectedCategory: Category | null | undefined;
+  selectedProject: Project | null | undefined;
+  taskCount: number;
+  view: "board" | "list";
+  viewTitle: string;
+  viewingAsGroup: boolean;
+}) {
+  return (
+    <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+      <div>
+        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-black/50 dark:text-white/50">
+          {selectedProject
+            ? "Project workspace"
+            : selectedCategory
+              ? "Category workspace"
+              : isMyTasks
+                ? "Personal workspace"
+                : "Team workspace"}
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <Heading size="h1" className="text-3xl sm:text-4xl">
+            {viewTitle}
+          </Heading>
+          <Pill size="sm">
+            {taskCount} {taskCount === 1 ? "task" : "tasks"}
+          </Pill>
+        </div>
+        {scopeDescription && (
+          <p className="mt-2 text-sm text-black/70 dark:text-white/70 sm:text-base">
+            {scopeDescription}
+          </p>
+        )}
+        {selectedProject && (
+          <div className="mt-3 flex flex-wrap items-start gap-x-6 gap-y-3">
+            <div className="min-w-0">
+              <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-black/45 dark:text-white/45">
+                Owners
+              </p>
+              <div className="flex min-h-8 min-w-0 items-center gap-3">
+                {projectOwners.length > 0 ? (
+                  <Tooltip
+                    content={projectOwners
+                      .map((owner) => owner.full_name)
+                      .join(", ")}
+                    placement="bottom"
+                  >
+                    <div
+                      className="flex shrink-0 -space-x-2"
+                      aria-label={`${projectOwners.length} ${projectOwners.length === 1 ? "project owner" : "project owners"}`}
+                    >
+                      {projectOwners.slice(0, 3).map((owner) => (
+                        <Avatar
+                          key={owner.id}
+                          name={owner.full_name}
+                          src={owner.avatar_url}
+                          size="md"
+                          className="ring-2 ring-[#f7f7f5] dark:ring-[#101010]"
+                        />
+                      ))}
+                    </div>
+                  </Tooltip>
+                ) : (
+                  <>
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-dashed border-black/25 text-black/45 dark:border-white/25 dark:text-white/45">
+                      <FiUsers aria-hidden size={14} />
+                    </span>
+                    <p className="text-xs font-medium text-black/70 dark:text-white/70">
+                      Unassigned
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
+            {selectedProject.links.length > 0 && (
+              <div className="min-w-0">
+                <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-black/45 dark:text-white/45">
+                  Useful links
+                </p>
+                <ProjectLinks links={selectedProject.links} />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+      <div className="flex flex-col items-end gap-2">
+        {selectedProject && !previewing && (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            leftIcon={<FiEdit2 aria-hidden />}
+            onClick={onEditProject}
+          >
+            Edit project
+          </Button>
+        )}
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <div
+            role="group"
+            className="flex rounded-lg border border-black/10 bg-white p-1 dark:border-white/10 dark:bg-white/5"
+            aria-label="Task scope"
+          >
+            <button
+              aria-pressed={assignee === "all"}
+              onClick={() => onSetAssignee("all")}
+              className={`view-button ${assignee === "all" ? "view-button-active" : ""}`}
+            >
+              All
+            </button>
+            {viewingAsGroup ? (
+              <Tooltip content="Mine is unavailable when viewing as an access group because a group is not a task assignee.">
+                <button type="button" disabled className="view-button opacity-40">
+                  Mine
+                </button>
+              </Tooltip>
+            ) : (
+              <button
+                aria-pressed={isMyTasks}
+                onClick={() => onSetAssignee(myTasksName)}
+                className={`view-button ${isMyTasks ? "view-button-active" : ""}`}
+              >
+                Mine
+              </button>
+            )}
+          </div>
+          <div
+            role="group"
+            className="flex rounded-lg border border-black/10 bg-white p-1 dark:border-white/10 dark:bg-white/5"
+            aria-label="Task layout"
+          >
+            <button
+              aria-pressed={view === "board"}
+              onClick={() => onSetView("board")}
+              className={`view-button ${view === "board" ? "view-button-active" : ""}`}
+            >
+              <FiGrid /> Board
+            </button>
+            <button
+              aria-pressed={view === "list"}
+              onClick={() => onSetView("list")}
+              className={`view-button ${view === "list" ? "view-button-active" : ""}`}
+            >
+              <FiList /> List
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
