@@ -135,11 +135,7 @@ export type WorkspaceData = {
   taskLabels: TaskLabel[];
   taskCategories: TaskCategory[];
   projectOwners: ProjectOwner[];
-  taskPage?: {
-    page: number;
-    pageSize: number;
-    total: number;
-    hasMore: boolean;
-  };
+  taskPage?: import("./pagination").PaginationState;
+  activityPage?: import("./pagination").PaginationState;
   accessPreview?: AccessPreview;
 };

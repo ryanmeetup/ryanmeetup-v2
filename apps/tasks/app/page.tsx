@@ -88,12 +88,6 @@ export default async function Home({
     taskAssignees: requireQueryData("task assignees", assigneeResult),
     taskCategories: requireQueryData("task categories", categoryResult),
     taskLabels: requireQueryData("task labels", labelResult),
-    taskPage: {
-      page: 0,
-      pageSize: tasks.length,
-      total: tasks.length,
-      hasMore: false,
-    },
   };
   if (requestedGroupPreview || requestedUserPreview) {
     const isOwner = requireQueryData(
@@ -112,15 +106,6 @@ export default async function Home({
           resolvedPreview.preview,
           resolvedPreview.projectIds,
         );
-        initialData = {
-          ...initialData,
-          taskPage: {
-            page: 0,
-            pageSize: initialData.tasks.length,
-            total: initialData.tasks.length,
-            hasMore: false,
-          },
-        };
       }
     }
   }

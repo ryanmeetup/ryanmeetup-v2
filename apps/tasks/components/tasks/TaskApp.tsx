@@ -12,7 +12,6 @@ import {
 import {
   Avatar,
   AnimatedCollapse,
-  Button,
   Card,
   ConfirmationDialog,
   DropdownSelect,
@@ -20,6 +19,7 @@ import {
   FormattedText,
   Heading,
   IconButton,
+  Pagination,
   Pill,
   Tooltip,
   toast,
@@ -27,6 +27,7 @@ import {
 import {
   FiCalendar,
   FiChevronDown,
+  FiClock,
   FiFilter,
   FiFolder,
   FiGrid,
@@ -51,6 +52,7 @@ import { useSidebarSections } from "@/hooks/useSidebarSections";
 import { withAccessPreview } from "@/lib/access-preview";
 import { useWorkspaceData } from "@/hooks/useWorkspaceData";
 import { useTaskFilters } from "@/hooks/useTaskFilters";
+import { usePagination } from "@/hooks/usePagination";
 import {
   createTaskMutationService,
   type TaskDraft,
@@ -191,6 +193,15 @@ export function TaskApp({
   );
   const [viewParam, setView] = useQueryParamState("view", "board");
   const view: View = viewParam === "list" ? "list" : "board";
+  const [committedSearch] = useQueryParamState("q", "");
+  const {
+    page,
+    pageSize,
+    setPage,
+    setPageSize,
+    syncPage,
+    syncPageSize,
+  } = usePagination();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const {
     categoriesExpanded,
@@ -208,7 +219,7 @@ export function TaskApp({
   const [taskPendingDelete, setTaskPendingDelete] = useState<Task | null>(null);
   const [taskDeleting, setTaskDeleting] = useState(false);
   const [taskPageLoading, setTaskPageLoading] = useState(false);
-  const loadedVisibility = useRef<"active" | "archived">("active");
+  const loadedTaskQuery = useRef("");
   const [dragOverStatusId, setDragOverStatusId] = useState<string | null>(null);
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragTarget, setDragTarget] = useState<{
@@ -334,15 +345,28 @@ export function TaskApp({
     setTaskPageLoading(true);
     try {
       const params = new URLSearchParams({ visibility });
-      if (selectedStatus) params.set("status", selectedStatus.id);
-      if (selectedProject) params.set("project", selectedProject.id);
-      else if (project === "none") params.set("project", "none");
-      if (selectedAssignee) params.set("assignee", selectedAssignee.id);
-      else if (assignee.toLowerCase() === "unassigned")
-        params.set("assignee", "unassigned");
-      if (selectedCategory) params.set("category", selectedCategory.id);
-      if (selectedPriority) params.set("priority", selectedPriority);
-      if (search.trim()) params.set("search", search.trim());
+      if (data.accessPreview) {
+        params.set(
+          data.accessPreview.kind === "group" ? "viewAsGroup" : "viewAsUser",
+          data.accessPreview.subjectId,
+        );
+      }
+      if (view === "list") {
+        params.set("paginated", "1");
+        params.set("page", String(page));
+        params.set("pageSize", String(pageSize));
+        params.set("sort", sort);
+        if (selectedStatus) params.set("status", selectedStatus.id);
+        if (selectedProject) params.set("project", selectedProject.id);
+        else if (project === "none") params.set("project", "none");
+        if (selectedAssignee) params.set("assignee", selectedAssignee.id);
+        else if (assignee.toLowerCase() === "unassigned")
+          params.set("assignee", "unassigned");
+        if (selectedCategory) params.set("category", selectedCategory.id);
+        if (selectedPriority) params.set("priority", selectedPriority);
+        if (committedSearch.trim())
+          params.set("search", committedSearch.trim());
+      }
       const response = await fetch(`/api/tasks?${params}`);
       const result = (await response.json()) as {
         error?: string;
@@ -365,7 +389,7 @@ export function TaskApp({
             : [...oldRows.filter((row) => !ids.has(row.task_id)), ...rows];
         return {
           ...current,
-          tasks: replace
+          tasks: replace || view === "list"
             ? result.tasks!
             : [
                 ...current.tasks,
@@ -382,11 +406,13 @@ export function TaskApp({
             result.taskCategories ?? [],
           ),
           taskLabels: mergeRows(current.taskLabels, result.taskLabels ?? []),
-          taskPage: result.page,
+          taskPage: view === "list" ? result.page : undefined,
         };
       });
-      loadedVisibility.current =
-        visibility === "archived" ? "archived" : "active";
+      if (view === "list") {
+        syncPage(result.page.page);
+        syncPageSize(result.page.pageSize);
+      }
     } catch (error) {
       toast.error(mutationErrorMessage(error, "Tasks could not be loaded."));
     } finally {
@@ -394,12 +420,38 @@ export function TaskApp({
     }
   }
 
+  const taskQuerySignature =
+    view === "list"
+      ? [
+          visibility,
+          selectedStatus?.id ?? "all",
+          selectedProject?.id ?? project,
+          selectedAssignee?.id ?? assignee,
+          selectedCategory?.id ?? group,
+          selectedPriority ?? priority,
+          committedSearch,
+          sort,
+          pageSize,
+        ].join("|")
+      : `board|${visibility}`;
   useEffect(() => {
-    if (!demoMode && visibility !== loadedVisibility.current)
-      void loadTaskPage(true);
-    // Fetching is intentionally tied to the archive partition transition.
+    if (demoMode) return;
+    if (
+      view === "list" &&
+      loadedTaskQuery.current &&
+      loadedTaskQuery.current !== taskQuerySignature &&
+      page !== 1
+    ) {
+      loadedTaskQuery.current = taskQuerySignature;
+      setPage(1);
+      return;
+    }
+    loadedTaskQuery.current = taskQuerySignature;
+    void loadTaskPage(true);
+    // Query values are normalized above; fetching from this signature keeps
+    // URL pagination and the authoritative server result in sync.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demoMode, visibility]);
+  }, [demoMode, page, taskQuerySignature, view]);
   useEffect(() => {
     if (assignee !== "all" && profiles.has(assignee) && selectedAssignee) {
       setAssignee(profileName(selectedAssignee));
@@ -536,6 +588,12 @@ export function TaskApp({
       selectedStatus,
     ],
   );
+  const listTasks =
+    view === "list" ? visibleTasks.slice(0, pageSize) : visibleTasks;
+  const visibleTaskCount =
+    view === "list"
+      ? (data.taskPage?.totalCount ?? visibleTasks.length)
+      : visibleTasks.length;
 
   function openCreate(statusId?: string) {
     setTaskMessage("");
@@ -599,6 +657,7 @@ export function TaskApp({
     try {
       const saved = await mutations.save(draft, editing);
       mutations.applySaved(saved, Boolean(editing));
+      if (!demoMode && view === "list") await loadTaskPage(true);
       if (!editing && createAnother) {
         setDraft({
           ...blankDraft(draft.status_id),
@@ -640,6 +699,7 @@ export function TaskApp({
     setTaskDeleting(true);
     try {
       await mutations.remove(id);
+      if (!demoMode && view === "list") await loadTaskPage(true);
       setTaskPendingDelete(null);
       setTaskOpen(false);
       toast.success("Task deleted.");
@@ -663,6 +723,7 @@ export function TaskApp({
     const movedToNewColumn = Boolean(task && task.status_id !== statusId);
     try {
       await mutations.move(id, statusId, targetId, edge);
+      if (!demoMode && view === "list") await loadTaskPage(true);
       if (movedToNewColumn && destination) {
         toast.success(`Task moved to ${destination.name}.`);
       }
@@ -866,6 +927,25 @@ export function TaskApp({
           </IconButton>
         </div>
         <nav className="mt-8 space-y-1" aria-label="Main navigation">
+          <Link
+            href={withAccessPreview(
+              `/?assignee=${encodeURIComponent(myTasksProfile?.id ?? data.currentProfile.id)}`,
+              data.accessPreview,
+            )}
+            onClick={() => setSidebarOpen(false)}
+            className={`sidebar-link ${isMyTasks && !scopeName && status === "all" && priority === "all" && visibility === "active" ? "sidebar-link-active" : ""}`}
+          >
+            <FiGrid />
+            My Tasks
+          </Link>
+          <Link
+            href={withAccessPreview("/activity", data.accessPreview)}
+            onClick={() => setSidebarOpen(false)}
+            className="sidebar-link"
+          >
+            <FiClock />
+            Activity
+          </Link>
           <Link
             href={withAccessPreview("/", data.accessPreview)}
             onClick={() => {
@@ -1077,8 +1157,8 @@ export function TaskApp({
                   {viewTitle}
                 </Heading>
                 <Pill size="sm">
-                  {visibleTasks.length}{" "}
-                  {visibleTasks.length === 1 ? "task" : "tasks"}
+                  {visibleTaskCount}{" "}
+                  {visibleTaskCount === 1 ? "task" : "tasks"}
                 </Pill>
               </div>
               {scopeDescription && (
@@ -1377,8 +1457,11 @@ export function TaskApp({
                   })}
                 </div>
               ) : (
-                <Card size="sm" className="overflow-hidden p-0">
-                  <div className="overflow-x-auto">
+                <Card
+                  size="none"
+                  className={`overflow-hidden transition-opacity ${taskPageLoading ? "opacity-60" : ""}`}
+                >
+                  <div className="overflow-x-auto" aria-busy={taskPageLoading}>
                     <table className="w-full min-w-[900px] text-left">
                       <thead className="border-b border-black/10 bg-black/[0.025] text-[10px] uppercase tracking-[0.16em] text-black/50 dark:border-white/10 dark:bg-white/[0.025] dark:text-white/50">
                         <tr>
@@ -1401,7 +1484,7 @@ export function TaskApp({
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-black/5 dark:divide-white/5">
-                        {visibleTasks.map((task) => {
+                        {listTasks.map((task) => {
                           const itemStatus = statuses.find(
                             (item) => item.id === task.status_id,
                           );
@@ -1483,7 +1566,7 @@ export function TaskApp({
                             </tr>
                           );
                         })}
-                        {visibleTasks.length === 0 && (
+                        {listTasks.length === 0 && (
                           <tr>
                             <td colSpan={7}>
                               <EmptyState
@@ -1496,6 +1579,17 @@ export function TaskApp({
                       </tbody>
                     </table>
                   </div>
+                  <Pagination
+                    page={data.taskPage?.page ?? page}
+                    pageSize={data.taskPage?.pageSize ?? pageSize}
+                    totalCount={data.taskPage?.totalCount ?? visibleTasks.length}
+                    itemLabel="tasks"
+                    disabled={taskPageLoading}
+                    onPageChange={(nextPage) =>
+                      setPage(nextPage)
+                    }
+                    onPageSizeChange={setPageSize}
+                  />
                 </Card>
               )}
             </div>

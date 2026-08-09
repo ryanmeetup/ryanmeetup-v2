@@ -55,7 +55,7 @@ export function requireQueryResult<TResult extends QueryResult<unknown>>(
 
 export type WorkspaceCollection = Exclude<
   keyof WorkspaceData,
-  "currentProfile" | "accessPreview" | "taskPage"
+  "currentProfile" | "accessPreview" | "taskPage" | "activityPage"
 >;
 
 export const TASK_PAGE_SIZE = 50;

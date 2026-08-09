@@ -4,7 +4,13 @@ import { databaseFailure } from "@/lib/server/api-response";
 import { authorize } from "@/lib/server/auth";
 import { readJson } from "@/lib/server/request";
 import { WORKSPACE_COLUMNS } from "@/lib/workspace-loader";
+import { derivePagination, parsePagination } from "@/lib/pagination";
 import type { Task, TaskAssignee, TaskCategory } from "@/lib/types";
+import {
+  ACCESS_PREVIEW_PARAM,
+  USER_ACCESS_PREVIEW_PARAM,
+} from "@/lib/access-preview";
+import { resolveAccessPreview } from "@/lib/access-preview-server";
 
 type SavedTask = {
   task: Task;
@@ -22,17 +28,43 @@ export async function GET(request: Request): Promise<NextResponse> {
     params.get("visibility") === "archived" ? "archived" : "active";
   const boundary = new Date().toISOString();
   const category = params.get("category");
+  const paginated = params.get("paginated") === "1";
+  const { requestedPage, pageSize } = parsePagination(params);
+  const sort = params.get("sort") === "due" ? "due" : "updated";
+  let previewProjectIds: string[] | undefined;
+  const requestedGroupPreview = params.get(ACCESS_PREVIEW_PARAM) ?? undefined;
+  const requestedUserPreview = params.get(USER_ACCESS_PREVIEW_PARAM) ?? undefined;
+  if (requestedGroupPreview || requestedUserPreview) {
+    const { data: isOwner } = await supabase.rpc("is_app_owner");
+    if (isOwner) {
+      const { data: previewProjects } = await supabase.from("projects").select("id");
+      const resolved = await resolveAccessPreview(supabase, {
+        groupId: requestedGroupPreview,
+        userId: requestedUserPreview,
+        allProjectIds: (previewProjects ?? []).map((project) => project.id),
+      });
+      if (resolved) previewProjectIds = resolved.projectIds;
+    }
+  }
   let query = supabase
     .from("tasks")
     .select(
       category && category !== "all"
         ? `${WORKSPACE_COLUMNS.tasks},task_categories!inner(category_id)`
         : WORKSPACE_COLUMNS.tasks,
+      paginated ? { count: "exact" } : undefined,
     );
   query =
     visibility === "archived"
       ? query.lte("archived_at", boundary)
       : query.or(`archived_at.is.null,archived_at.gt.${boundary}`);
+  if (previewProjectIds) {
+    query = query.or(
+      previewProjectIds.length
+        ? `project_id.is.null,project_id.in.(${previewProjectIds.join(",")})`
+        : "project_id.is.null",
+    );
+  }
 
   const exactFilters = [
     ["status", "status_id"],
@@ -55,12 +87,72 @@ export async function GET(request: Request): Promise<NextResponse> {
   if (search)
     query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
 
-  const result = await query.order("updated_at", { ascending: false });
+  query =
+    sort === "due"
+      ? query
+          .order("due_date", { ascending: true, nullsFirst: false })
+          .order("id", { ascending: true })
+      : query
+          .order("updated_at", { ascending: false })
+          .order("id", { ascending: false });
+  if (paginated) {
+    const requestedFrom = (requestedPage - 1) * pageSize;
+    query = query.range(requestedFrom, requestedFrom + pageSize - 1);
+  }
+  let result = await query;
   if (result.error)
     return databaseFailure(request, "tasks.list", result.error, {
       error: "Tasks could not be loaded. Try again.",
     });
 
+  let totalCount = paginated ? (result.count ?? 0) : (result.data?.length ?? 0);
+  const pageState = derivePagination(requestedPage, pageSize, totalCount);
+  if (paginated && pageState.page !== requestedPage && totalCount > 0) {
+    let corrected = supabase
+      .from("tasks")
+      .select(
+        category && category !== "all"
+          ? `${WORKSPACE_COLUMNS.tasks},task_categories!inner(category_id)`
+          : WORKSPACE_COLUMNS.tasks,
+      );
+    corrected =
+      visibility === "archived"
+        ? corrected.lte("archived_at", boundary)
+        : corrected.or(`archived_at.is.null,archived_at.gt.${boundary}`);
+    if (previewProjectIds) {
+      corrected = corrected.or(
+        previewProjectIds.length
+          ? `project_id.is.null,project_id.in.(${previewProjectIds.join(",")})`
+          : "project_id.is.null",
+      );
+    }
+    for (const [param, column] of exactFilters) {
+      const value = params.get(param);
+      if (value === "none" || value === "unassigned")
+        corrected = corrected.is(column, null);
+      else if (value && value !== "all") corrected = corrected.eq(column, value);
+    }
+    if (category && category !== "all")
+      corrected = corrected.eq("task_categories.category_id", category);
+    if (search)
+      corrected = corrected.or(
+        `title.ilike.%${search}%,description.ilike.%${search}%`,
+      );
+    corrected =
+      sort === "due"
+        ? corrected
+            .order("due_date", { ascending: true, nullsFirst: false })
+            .order("id", { ascending: true })
+        : corrected
+            .order("updated_at", { ascending: false })
+            .order("id", { ascending: false });
+    result = await corrected.range(pageState.from, pageState.to);
+    if (result.error)
+      return databaseFailure(request, "tasks.list", result.error, {
+        error: "Tasks could not be loaded. Try again.",
+      });
+    totalCount = pageState.totalCount;
+  }
   const tasks = (result.data ?? []) as unknown as Task[];
   const taskIds = tasks.map((task) => task.id);
   const [categories, assignees, labels] = taskIds.length
@@ -84,12 +176,13 @@ export async function GET(request: Request): Promise<NextResponse> {
     taskCategories: categories.data ?? [],
     taskAssignees: assignees.data ?? [],
     taskLabels: labels.data ?? [],
-    page: {
-      page: 0,
-      pageSize: tasks.length,
-      total: tasks.length,
-      hasMore: false,
-    },
+    page: paginated
+      ? {
+          page: pageState.page,
+          pageSize: pageState.pageSize,
+          totalCount,
+        }
+      : { page: 1, pageSize: tasks.length || pageSize, totalCount: tasks.length },
   });
 }
 

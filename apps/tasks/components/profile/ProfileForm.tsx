@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import {
   Button,
+  DropdownSelect,
   ErrorCallout,
   Input,
   SuccessCallout,
@@ -15,6 +17,7 @@ import { createClient } from "@/lib/supabase/client";
 
 const avatarTypes = ["image/jpeg", "image/png", "image/webp"];
 const maxAvatarSize = 5 * 1024 * 1024;
+const paginationPreferenceKey = "ryanmeetup.pagination.page-size";
 
 function initials(name: string) {
   return name
@@ -35,6 +38,7 @@ export function ProfileForm({
   email: string;
   onboardingRequired: boolean;
 }) {
+  const router = useRouter();
   const [displayName, setDisplayName] = useState(profile.full_name || "");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -44,6 +48,20 @@ export function ProfileForm({
   const [taskDetailsOpenByDefault, setTaskDetailsOpenByDefault] = useState(
     profile.task_details_open_by_default,
   );
+  const [paginationPageSize, setPaginationPageSize] = useState(
+    10 as 10 | 25 | 50 | 100,
+  );
+
+  useEffect(() => {
+    const saved = Number.parseInt(
+      localStorage.getItem(paginationPreferenceKey) ?? "",
+      10,
+    );
+    if ([10, 25, 50, 100].includes(saved))
+      queueMicrotask(() =>
+        setPaginationPageSize(saved as 10 | 25 | 50 | 100),
+      );
+  }, []);
 
   useEffect(
     () => () => {
@@ -114,8 +132,13 @@ export function ProfileForm({
       setDisplayName(result.profile.full_name || "");
       setAvatarFile(null);
       setAvatarPreview(result.profile.avatar_url);
+      localStorage.setItem(
+        paginationPreferenceKey,
+        String(paginationPageSize),
+      );
       if (onboardingRequired) {
-        window.location.href = "/";
+        router.push("/");
+        router.refresh();
         return;
       }
       setMessage("Profile saved.");
@@ -198,6 +221,7 @@ export function ProfileForm({
         Your sign-in email cannot be changed here.
       </p>
       {!onboardingRequired && (
+        <div className="space-y-3">
         <label className="flex cursor-pointer items-center justify-between gap-5 rounded-xl border border-black/10 bg-black/[0.02] p-4 transition hover:border-black/20 dark:border-white/10 dark:bg-white/[0.025] dark:hover:border-white/20">
           <span className="min-w-0">
             <span className="block text-sm font-semibold">
@@ -223,6 +247,31 @@ export function ProfileForm({
             <span className="pointer-events-none absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5 dark:bg-black" />
           </span>
         </label>
+          <div className="flex items-center justify-between gap-5 rounded-xl border border-black/10 bg-black/[0.02] p-4 dark:border-white/10 dark:bg-white/[0.025]">
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold">
+                Default rows per page
+              </span>
+              <span className="mt-1 block text-xs leading-relaxed text-black/55 dark:text-white/55">
+                Used when opening task lists and activity without a page-size override.
+              </span>
+            </span>
+            <DropdownSelect
+              label="Rows"
+              value={String(paginationPageSize)}
+              disabled={saving}
+              onChange={(value) =>
+                setPaginationPageSize(
+                  Number.parseInt(value, 10) as 10 | 25 | 50 | 100,
+                )
+              }
+              options={[10, 25, 50, 100].map((size) => ({
+                label: String(size),
+                value: String(size),
+              }))}
+            />
+          </div>
+        </div>
       )}
       {hasError ? (
         <ErrorCallout>{message}</ErrorCallout>

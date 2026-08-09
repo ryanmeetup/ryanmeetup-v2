@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AnimatedCollapse, IconButton, Pill, Tooltip } from "@ryanmeetup/ui";
 import {
   FiCalendar,
+  FiClock,
   FiChevronDown,
   FiFolder,
   FiGrid,
@@ -35,6 +36,10 @@ export function TasksSidebar({
   const activeProjects = data.projects.filter(
     (project) => !project.archived_at,
   );
+  const myTasksProfileId =
+    data.accessPreview?.kind === "user"
+      ? data.accessPreview.subjectId
+      : data.currentProfile.id;
   const {
     categoriesExpanded,
     setCategoriesExpanded,
@@ -74,6 +79,23 @@ export function TasksSidebar({
           </IconButton>
         </div>
         <nav className="mt-8 space-y-1" aria-label="Main navigation">
+          <Link
+            href={withAccessPreview(
+              `/?assignee=${encodeURIComponent(myTasksProfileId)}`,
+              data.accessPreview,
+            )}
+            className="sidebar-link"
+          >
+            <FiGrid />
+            My Tasks
+          </Link>
+          <Link
+            href={withAccessPreview("/activity", data.accessPreview)}
+            className="sidebar-link"
+          >
+            <FiClock />
+            Activity
+          </Link>
           <Link
             href={withAccessPreview("/", data.accessPreview)}
             className="sidebar-link"

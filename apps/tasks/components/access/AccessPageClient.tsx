@@ -435,7 +435,7 @@ export function AccessPageClient({
                   Invite teammate
                 </Button>
               </div>
-              <Card className="overflow-hidden p-0">
+              <Card size="none" className="overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm">
                     <thead className="border-b border-black/10 bg-black/[0.025] text-[10px] uppercase tracking-[0.16em] text-black/50 dark:border-white/10 dark:bg-white/[0.025] dark:text-white/50">
