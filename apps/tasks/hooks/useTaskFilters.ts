@@ -5,6 +5,7 @@ import { useQueryParamState } from "@ryanmeetup/hooks";
 
 export function useTaskFilters(setSearch: (value: string) => void) {
   const [assignee, setAssignee] = useQueryParamState("assignee", "all");
+  const [reporter, setReporter] = useQueryParamState("reporter", "all");
   const [group, setGroup] = useQueryParamState("category", "all");
   const [project, setProject] = useQueryParamState("project", "all");
   const [status, setStatus] = useQueryParamState("status", "all");
@@ -23,6 +24,7 @@ export function useTaskFilters(setSearch: (value: string) => void) {
   function clear() {
     setSearch("");
     setAssignee("all");
+    setReporter("all");
     setGroup("all");
     setProject("all");
     setStatus("all");
@@ -31,7 +33,7 @@ export function useTaskFilters(setSearch: (value: string) => void) {
   }
 
   return {
-    assignee, setAssignee, group, setGroup, project, setProject, status, setStatus,
+    assignee, setAssignee, reporter, setReporter, group, setGroup, project, setProject, status, setStatus,
     priority, setPriority, visibility, setVisibility, sort, setSort, clock, clear,
   };
 }

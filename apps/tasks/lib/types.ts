@@ -50,6 +50,7 @@ export type Task = {
   project_id: string | null;
   assignee_id: string | null;
   created_by: string;
+  reported_by: string;
   start_date: string | null;
   due_date: string | null;
   due_time: string | null;

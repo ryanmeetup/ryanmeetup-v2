@@ -70,6 +70,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     ["status", "status_id"],
     ["project", "project_id"],
     ["assignee", "assignee_id"],
+    ["reporter", "reported_by"],
     ["priority", "priority"],
   ] as const;
   for (const [param, column] of exactFilters) {

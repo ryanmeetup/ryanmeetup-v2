@@ -233,6 +233,7 @@ type TaskInput = Pick<
   | "status_id"
   | "project_id"
   | "assignee_id"
+  | "reported_by"
   | "start_date"
   | "due_date"
   | "due_time"
@@ -253,11 +254,13 @@ export function taskSaveSchema(value: unknown) {
   const task = body.task as Partial<TaskInput>;
   const title = text(task.title, 500);
   const statusId = uuid(task.status_id);
+  const reportedBy = uuid(task.reported_by);
   const categoryIds = uuidList(body.categoryIds);
   const id = body.id === undefined ? null : uuid(body.id);
   if (
     !title ||
     !statusId ||
+    !reportedBy ||
     (body.id !== undefined && !id) ||
     !priorities.includes(task.priority as Priority) ||
     !categoryIds?.length
@@ -265,7 +268,7 @@ export function taskSaveSchema(value: unknown) {
     return null;
   return {
     id,
-    task: { ...task, title, status_id: statusId },
+    task: { ...task, title, status_id: statusId, reported_by: reportedBy },
     categoryIds,
   };
 }

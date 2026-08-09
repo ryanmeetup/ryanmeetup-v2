@@ -233,7 +233,7 @@ export function ActivityPageClient({
         <TaskBanners preview={data.accessPreview} />
 
         <div className="p-4 sm:p-6 lg:p-8">
-          <div className="mx-auto max-w-7xl space-y-6">
+          <div className="space-y-6">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-black/50 dark:text-white/50">
                 Workspace history
@@ -383,7 +383,7 @@ export function ActivityPageClient({
                             {task ? (
                               <Link
                                 href={withAccessPreview(
-                                  `/?q=${encodeURIComponent(task.title)}`,
+                                  `/board?task=${encodeURIComponent(task.id)}`,
                                   data.accessPreview,
                                 )}
                                 className="rounded hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/40"

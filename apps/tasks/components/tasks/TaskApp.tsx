@@ -25,6 +25,7 @@ import {
   FiClock,
   FiFolder,
   FiGrid,
+  FiHome,
   FiLoader,
   FiMenu,
   FiMoreHorizontal,
@@ -41,6 +42,7 @@ import { TaskHeaderActions } from "@/components/navigation";
 import { TaskEditor } from "./TaskEditor";
 import { TaskFilters } from "./TaskFilters";
 import { TaskListView } from "./TaskListView";
+import { TaskDueDate } from "./TaskDueDate";
 import { TaskWorkspaceHeader } from "./TaskWorkspaceHeader";
 import { CategoriesModal } from "@/components/categories";
 import { ProjectsModal } from "@/components/projects";
@@ -68,13 +70,14 @@ const priorityStyles: Record<Priority, string> = {
     "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-200",
 };
 
-function blankDraft(statusId: string): Draft {
+function blankDraft(statusId: string, reportedBy: string): Draft {
   return {
     title: "",
     description: "",
     status_id: statusId,
     project_id: null,
     assignee_id: null,
+    reported_by: reportedBy,
     start_date: null,
     due_date: null,
     due_time: null,
@@ -84,12 +87,21 @@ function blankDraft(statusId: string): Draft {
   };
 }
 
-function displayDate(value: string | null) {
-  if (!value) return "—";
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-  }).format(new Date(`${value}T12:00:00`));
+function editDraft(task: Task, categoryIds: string[]): Draft {
+  return {
+    title: task.title,
+    description: task.description,
+    status_id: task.status_id,
+    project_id: task.project_id,
+    category_ids: categoryIds,
+    assignee_id: task.assignee_id,
+    reported_by: task.reported_by,
+    start_date: null,
+    due_date: task.due_date,
+    due_time: null,
+    reminder_at: task.reminder_at,
+    priority: task.priority,
+  };
 }
 
 function profileName(profile: { full_name: string }) {
@@ -176,12 +188,15 @@ function SidebarFilterButton({
 export function TaskApp({
   initialData,
   demoMode,
-  initialTaskOpen = false,
+  initialTaskId,
 }: {
   initialData: WorkspaceData;
   demoMode: boolean;
-  initialTaskOpen?: boolean;
+  initialTaskId?: string;
 }) {
+  const initialEditing = initialTaskId
+    ? (initialData.tasks.find((task) => task.id === initialTaskId) ?? null)
+    : null;
   const { data, setData, getData } = useWorkspaceData(initialData, demoMode);
   const mutations = useMemo(
     () => createTaskMutationService({ demoMode, getData, setData }),
@@ -204,9 +219,12 @@ export function TaskApp({
     setCategoriesExpanded,
     projectsExpanded,
     setProjectsExpanded,
+    sectionsLoaded,
   } = useSidebarSections();
-  const [taskOpen, setTaskOpen] = useState(initialTaskOpen);
-  const [taskDetailsOpen, setTaskDetailsOpen] = useState(false);
+  const [taskOpen, setTaskOpen] = useState(Boolean(initialEditing));
+  const [taskDetailsOpen, setTaskDetailsOpen] = useState(
+    Boolean(initialEditing) && initialData.currentProfile.task_details_open_by_default,
+  );
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [projectEditId, setProjectEditId] = useState<string | null>(null);
@@ -223,11 +241,19 @@ export function TaskApp({
     taskId: string;
     edge: "before" | "after";
   } | null>(null);
-  const [editing, setEditing] = useState<Task | null>(null);
+  const [editing, setEditing] = useState<Task | null>(initialEditing);
   const [draft, setDraft] = useState<Draft>(
-    blankDraft(
-      initialData.statuses[1]?.id ?? initialData.statuses[0]?.id ?? "",
-    ),
+    initialEditing
+      ? editDraft(
+          initialEditing,
+          initialData.taskCategories
+            .filter((item) => item.task_id === initialEditing.id)
+            .map((item) => item.category_id),
+        )
+      : blankDraft(
+          initialData.statuses[1]?.id ?? initialData.statuses[0]?.id ?? "",
+          initialData.currentProfile.id,
+        ),
   );
   const {
     query: search,
@@ -242,6 +268,8 @@ export function TaskApp({
   const {
     assignee,
     setAssignee,
+    reporter,
+    setReporter,
     group,
     setGroup,
     project,
@@ -316,6 +344,11 @@ export function TaskApp({
       ? null
       : (profiles.get(assignee) ??
         data.profiles.find((item) => profileName(item) === assignee));
+  const selectedReporter =
+    reporter === "all"
+      ? null
+      : (profiles.get(reporter) ??
+        data.profiles.find((item) => profileName(item) === reporter));
   const selectedCategory =
     group === "all"
       ? null
@@ -369,6 +402,7 @@ export function TaskApp({
         if (selectedAssignee) params.set("assignee", selectedAssignee.id);
         else if (assignee.toLowerCase() === "unassigned")
           params.set("assignee", "unassigned");
+        if (selectedReporter) params.set("reporter", selectedReporter.id);
         if (selectedCategory) params.set("category", selectedCategory.id);
         if (selectedPriority) params.set("priority", selectedPriority);
         if (committedSearch.trim())
@@ -434,6 +468,7 @@ export function TaskApp({
           selectedStatus?.id ?? "all",
           selectedProject?.id ?? project,
           selectedAssignee?.id ?? assignee,
+          selectedReporter?.id ?? reporter,
           selectedCategory?.id ?? group,
           selectedPriority ?? priority,
           committedSearch,
@@ -466,6 +501,11 @@ export function TaskApp({
       setAssignee("Unassigned");
     }
   }, [assignee, profiles, selectedAssignee, setAssignee]);
+  useEffect(() => {
+    if (reporter !== "all" && profiles.has(reporter) && selectedReporter) {
+      setReporter(profileName(selectedReporter));
+    }
+  }, [profiles, reporter, selectedReporter, setReporter]);
   useEffect(() => {
     if (group !== "all" && categories.has(group) && selectedCategory) {
       setGroup(selectedCategory.name);
@@ -546,6 +586,7 @@ export function TaskApp({
                 : selectedAssignee
                   ? assigneesByTask.get(task.id)?.has(selectedAssignee.id)
                   : false)) &&
+            (reporter === "all" || task.reported_by === selectedReporter?.id) &&
             (group === "all" ||
               (selectedCategory
                 ? categoriesByTask.get(task.id)?.has(selectedCategory.id)
@@ -582,8 +623,10 @@ export function TaskApp({
       group,
       priority,
       project,
+      reporter,
       selectedCategory,
       selectedProject,
+      selectedReporter,
       searchedTasks,
       selectedAssignee,
       sort,
@@ -613,6 +656,7 @@ export function TaskApp({
         statuses[1]?.id ??
         statuses[0]?.id ??
         "",
+      data.currentProfile.id,
     );
     scopedDraft.category_ids = selectedCategory ? [selectedCategory.id] : [];
     scopedDraft.project_id = selectedProject?.id ?? null;
@@ -627,19 +671,7 @@ export function TaskApp({
     setEditing(task);
     setTaskDetailsOpen(data.currentProfile.task_details_open_by_default);
     setCreateAnother(false);
-    setDraft({
-      title: task.title,
-      description: task.description,
-      status_id: task.status_id,
-      project_id: task.project_id,
-      category_ids: [...(categoriesByTask.get(task.id) ?? [])],
-      assignee_id: task.assignee_id,
-      start_date: null,
-      due_date: task.due_date,
-      due_time: null,
-      reminder_at: task.reminder_at,
-      priority: task.priority,
-    });
+    setDraft(editDraft(task, [...(categoriesByTask.get(task.id) ?? [])]));
     setTaskOpen(true);
   }
 
@@ -667,7 +699,7 @@ export function TaskApp({
       if (!demoMode && view === "list") await loadTaskPage(true);
       if (!editing && createAnother) {
         setDraft({
-          ...blankDraft(draft.status_id),
+          ...blankDraft(draft.status_id, data.currentProfile.id),
           priority: draft.priority,
           category_ids: [...draft.category_ids],
           project_id: draft.project_id,
@@ -739,10 +771,13 @@ export function TaskApp({
     }
   }
   const filterCount =
-    [isMyTasks ? "all" : assignee, group, project, status, priority].filter(
+    [isMyTasks ? "all" : assignee, reporter, group, project, status, priority].filter(
       (value) => value !== "all",
     ).length + (visibility === "archived" ? 1 : 0);
   const taskCard = (task: Task) => {
+    const taskStatus = data.statuses.find(
+      (item) => item.id === task.status_id,
+    );
     const taskCategories = [...(categoriesByTask.get(task.id) ?? [])]
       .map((id) => categories.get(id))
       .filter((item) => item !== undefined);
@@ -872,10 +907,11 @@ export function TaskApp({
               </span>
             )}
             {task.due_date && (
-              <span className="flex items-center gap-1.5 text-[11px] text-black/55 dark:text-white/55">
-                <FiCalendar className="shrink-0" />
-                {displayDate(task.due_date)}
-              </span>
+              <TaskDueDate
+                dueDate={task.due_date}
+                isCompleted={taskStatus?.is_completed ?? false}
+                showIcon
+              />
             )}
           </div>
           {taskPeople.length > 0 ? (
@@ -935,8 +971,16 @@ export function TaskApp({
         </div>
         <nav className="mt-8 space-y-1" aria-label="Main navigation">
           <Link
+            href={withAccessPreview("/", data.accessPreview)}
+            onClick={() => setSidebarOpen(false)}
+            className="sidebar-link"
+          >
+            <FiHome />
+            Dashboard
+          </Link>
+          <Link
             href={withAccessPreview(
-              `/?assignee=${encodeURIComponent(myTasksProfile?.id ?? data.currentProfile.id)}`,
+              `/board?assignee=${encodeURIComponent(myTasksProfile?.id ?? data.currentProfile.id)}`,
               data.accessPreview,
             )}
             onClick={() => setSidebarOpen(false)}
@@ -954,7 +998,7 @@ export function TaskApp({
             Activity
           </Link>
           <Link
-            href={withAccessPreview("/", data.accessPreview)}
+            href={withAccessPreview("/board", data.accessPreview)}
             onClick={() => {
               clearTaskFilters();
               setSidebarOpen(false);
@@ -1013,6 +1057,7 @@ export function TaskApp({
               </span>
             </div>
             <AnimatedCollapse
+              animate={sectionsLoaded}
               open={categoriesExpanded}
               className={categoriesExpanded ? "mt-2 min-h-0 flex-1" : ""}
               contentClassName="h-full scroll-pb-2 space-y-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]"
@@ -1080,6 +1125,7 @@ export function TaskApp({
               </span>
             </div>
             <AnimatedCollapse
+              animate={sectionsLoaded}
               open={projectsExpanded}
               className={projectsExpanded ? "mt-2 min-h-0 flex-1" : ""}
               contentClassName="h-full scroll-pb-2 space-y-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]"
@@ -1182,16 +1228,19 @@ export function TaskApp({
             onCategoryChange={setGroup}
             onPriorityChange={setPriority}
             onProjectChange={setProject}
+            onReporterChange={setReporter}
             onStatusChange={setStatus}
             onVisibilityChange={setVisibility}
             priority={priority}
             profiles={data.profiles}
+            reporter={reporter}
             project={project}
             projects={data.projects}
             selectedAssignee={selectedAssignee}
             selectedCategory={selectedCategory}
             selectedPriority={selectedPriority}
             selectedProject={selectedProject}
+            selectedReporter={selectedReporter}
             selectedStatus={selectedStatus}
             status={status}
             statuses={statuses}

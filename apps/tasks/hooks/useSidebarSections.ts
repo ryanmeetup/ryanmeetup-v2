@@ -5,8 +5,9 @@ import { useEffect, useRef, useState } from "react";
 const storageKey = "ryanmeetup.tasks.sidebar-sections";
 
 export function useSidebarSections() {
-  const [categoriesExpanded, setCategoriesExpanded] = useState(true);
+  const [categoriesExpanded, setCategoriesExpanded] = useState(false);
   const [projectsExpanded, setProjectsExpanded] = useState(true);
+  const [sectionsLoaded, setSectionsLoaded] = useState(false);
   const loaded = useRef(false);
 
   useEffect(() => {
@@ -16,12 +17,13 @@ export function useSidebarSections() {
           categoriesExpanded?: boolean;
           projectsExpanded?: boolean;
         };
-        setCategoriesExpanded(saved.categoriesExpanded ?? true);
+        setCategoriesExpanded(saved.categoriesExpanded ?? false);
         setProjectsExpanded(saved.projectsExpanded ?? true);
       } catch {
         localStorage.removeItem(storageKey);
       } finally {
         loaded.current = true;
+        requestAnimationFrame(() => setSectionsLoaded(true));
       }
     });
   }, []);
@@ -39,5 +41,6 @@ export function useSidebarSections() {
     setCategoriesExpanded,
     projectsExpanded,
     setProjectsExpanded,
+    sectionsLoaded,
   };
 }

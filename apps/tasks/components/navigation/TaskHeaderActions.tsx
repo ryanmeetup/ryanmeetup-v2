@@ -4,10 +4,10 @@ import { useState, type Dispatch, type SetStateAction } from "react";
 import { Button, Tooltip } from "@ryanmeetup/ui";
 import { FiCheck, FiPlus, FiShield } from "react-icons/fi";
 import type { WorkspaceData } from "@/lib/types";
-import { withAccessPreview } from "@/lib/access-preview";
 import { ThemeToggle } from "@/components/global";
 import { StatusSettingsModal } from "@/components/tasks/TaskAdministration";
 import { HeaderProfileControls } from "./HeaderProfileControls";
+import { NewTaskModal } from "@/components/tasks/NewTaskModal";
 
 export function TaskHeaderActions({
   data,
@@ -21,6 +21,7 @@ export function TaskHeaderActions({
   onNewTask?: () => void;
 }) {
   const [statusesOpen, setStatusesOpen] = useState(false);
+  const [newTaskOpen, setNewTaskOpen] = useState(false);
   const isPreviewing = Boolean(data.accessPreview);
   const isOwner =
     !isPreviewing && (demoMode || data.currentProfile.app_role === "owner");
@@ -59,13 +60,13 @@ export function TaskHeaderActions({
             New task
           </Button>
         ) : (
-          <Button.Link
-            href={withAccessPreview("/?new-task=1", data.accessPreview)}
+          <Button
             size="sm"
             leftIcon={<FiPlus />}
+            onClick={() => setNewTaskOpen(true)}
           >
             New task
-          </Button.Link>
+          </Button>
         )}
         <ThemeToggle />
         <HeaderProfileControls
@@ -80,6 +81,15 @@ export function TaskHeaderActions({
           data={data}
           setData={setData}
           demoMode={demoMode}
+        />
+      )}
+      {!onNewTask && !isPreviewing && (
+        <NewTaskModal
+          data={data}
+          demoMode={demoMode}
+          open={newTaskOpen}
+          setData={setData}
+          setOpen={setNewTaskOpen}
         />
       )}
     </>

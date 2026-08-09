@@ -1,5 +1,4 @@
-import type { Metadata } from "next";
-import { DashboardPageClient } from "@/components/dashboard";
+import { TaskApp } from "@/components/tasks";
 import {
   ACCESS_PREVIEW_PARAM,
   applyAccessPreview,
@@ -15,17 +14,20 @@ import {
   isWorkspaceDemo,
   loadWorkspacePage,
 } from "@/lib/server/workspace-page-loader";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Dashboard",
+  title: "Task Board",
 };
 
-export default async function DashboardPage({
+export default async function BoardPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const query = await searchParams;
+  const initialTaskId =
+    typeof query.task === "string" ? query.task : undefined;
   const requestedGroupPreview =
     typeof query[ACCESS_PREVIEW_PARAM] === "string"
       ? query[ACCESS_PREVIEW_PARAM]
@@ -35,7 +37,14 @@ export default async function DashboardPage({
       ? query[USER_ACCESS_PREVIEW_PARAM]
       : undefined;
   const demoMode = isWorkspaceDemo();
-  if (demoMode) return <DashboardPageClient initialData={demoData} demoMode />;
+  if (demoMode)
+    return (
+      <TaskApp
+        initialData={demoData}
+        demoMode
+        initialTaskId={initialTaskId}
+      />
+    );
 
   const loaded = await loadWorkspacePage([
     "profiles",
@@ -43,41 +52,45 @@ export default async function DashboardPage({
     "categories",
     "projects",
     "projectOwners",
+    "labels",
   ]);
   const { supabase } = loaded;
   let initialData = loaded.data;
+  const archiveBoundary = new Date().toISOString();
   const taskResult = await supabase
     .from("tasks")
     .select(WORKSPACE_COLUMNS.tasks)
-    .or(`archived_at.is.null,archived_at.gt.${new Date().toISOString()}`)
+    .or(`archived_at.is.null,archived_at.gt.${archiveBoundary}`)
     .order("updated_at", { ascending: false });
-  const tasks = requireQueryData("dashboard tasks", taskResult);
+  const tasks = requireQueryData("active tasks", taskResult);
   const taskIds = tasks.map((task) => task.id);
-  const [assigneeResult, activityResult] = taskIds.length
+  const [assigneeResult, categoryResult, labelResult] = taskIds.length
     ? await Promise.all([
         supabase
           .from("task_assignees")
           .select(WORKSPACE_COLUMNS.taskAssignees)
           .in("task_id", taskIds),
         supabase
-          .from("task_activity")
-          .select(WORKSPACE_COLUMNS.activity)
-          .in("task_id", taskIds)
-          .eq("action", "moved task")
-          .order("created_at", { ascending: false })
-          .limit(20),
+          .from("task_categories")
+          .select(WORKSPACE_COLUMNS.taskCategories)
+          .in("task_id", taskIds),
+        supabase
+          .from("task_labels")
+          .select(WORKSPACE_COLUMNS.taskLabels)
+          .in("task_id", taskIds),
       ])
     : [
+        { data: [], error: null },
         { data: [], error: null },
         { data: [], error: null },
       ];
   initialData = {
     ...initialData,
     tasks,
-    taskAssignees: requireQueryData("dashboard assignees", assigneeResult),
-    activity: requireQueryData("dashboard activity", activityResult),
+    taskAssignees: requireQueryData("task assignees", assigneeResult),
+    taskCategories: requireQueryData("task categories", categoryResult),
+    taskLabels: requireQueryData("task labels", labelResult),
   };
-
   if (requestedGroupPreview || requestedUserPreview) {
     const isOwner = requireQueryData(
       "owner access",
@@ -98,6 +111,11 @@ export default async function DashboardPage({
       }
     }
   }
-
-  return <DashboardPageClient initialData={initialData} demoMode={false} />;
+  return (
+    <TaskApp
+      initialData={initialData}
+      demoMode={false}
+      initialTaskId={initialTaskId}
+    />
+  );
 }

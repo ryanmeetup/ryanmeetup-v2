@@ -5,8 +5,14 @@ vi.mock("@/lib/supabase/server", () => ({ createClient }));
 
 const statusId = "11111111-1111-4111-8111-111111111111";
 const categoryId = "22222222-2222-4222-8222-222222222222";
+const reporterId = "33333333-3333-4333-8333-333333333333";
 const validBody = {
-  task: { title: "  Ship it  ", status_id: statusId, priority: "high" },
+  task: {
+    title: "  Ship it  ",
+    status_id: statusId,
+    reported_by: reporterId,
+    priority: "high",
+  },
   categoryIds: [categoryId, categoryId],
 };
 
@@ -56,7 +62,10 @@ describe("POST /api/tasks", () => {
     expect(rpc).toHaveBeenCalledWith(
       "save_task",
       expect.objectContaining({
-        task_values: expect.objectContaining({ title: "Ship it" }),
+        task_values: expect.objectContaining({
+          title: "Ship it",
+          reported_by: reporterId,
+        }),
         category_ids: [categoryId],
       }),
     );

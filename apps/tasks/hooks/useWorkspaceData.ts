@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { WORKSPACE_COLUMNS } from "@/lib/workspace-loader";
 import type {
   Project,
   ProjectOwner,
@@ -168,9 +169,7 @@ export function useWorkspaceData(
       const pageSize = dataRef.current.taskPage?.pageSize ?? 100;
       const { data: tasks } = await supabase
         .from("tasks")
-        .select(
-          "id,title,description,status_id,project_id,assignee_id,created_by,start_date,due_date,due_time,reminder_at,priority,board_position,completed_at,archived_at,created_at,updated_at",
-        )
+        .select(WORKSPACE_COLUMNS.tasks)
         .or(`archived_at.is.null,archived_at.gt.${new Date().toISOString()}`)
         .order("updated_at", { ascending: false })
         .limit(pageSize);

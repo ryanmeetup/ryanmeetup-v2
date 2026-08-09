@@ -68,7 +68,7 @@ export const WORKSPACE_COLUMNS = {
   projects: "id,name,description,links,created_by,archived_at,created_at",
   projectOwners: "project_id,profile_id",
   tasks:
-    "id,title,description,status_id,project_id,assignee_id,created_by,start_date,due_date,due_time,reminder_at,priority,board_position,completed_at,archived_at,created_at,updated_at",
+    "id,title,description,status_id,project_id,assignee_id,created_by,reported_by,start_date,due_date,due_time,reminder_at,priority,board_position,completed_at,archived_at,created_at,updated_at",
   subtasks: "id,task_id,title,is_completed,sort_order,created_by,created_at",
   comments: "id,task_id,body,created_by,created_at",
   activity: "id,task_id,actor_id,action,details,created_at",

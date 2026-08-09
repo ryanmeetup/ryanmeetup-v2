@@ -413,7 +413,7 @@ export function CategoriesModal({
                       <div className="mt-auto flex justify-end pt-3">
                         <Button.Link
                           href={withAccessPreview(
-                            `/?category=${encodeURIComponent(category.name)}`,
+                            `/board?category=${encodeURIComponent(category.name)}`,
                             data.accessPreview,
                           )}
                           variant="secondary"

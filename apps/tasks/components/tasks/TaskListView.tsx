@@ -1,6 +1,7 @@
 import { Avatar, Card, EmptyState, Pagination } from "@ryanmeetup/ui";
 import { FiChevronDown } from "react-icons/fi";
 import type { Category, Priority, Profile, Project, Status, Task } from "@/lib/types";
+import { TaskDueDate } from "./TaskDueDate";
 
 const priorityStyles: Record<Priority, string> = {
   low: "border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200",
@@ -12,14 +13,6 @@ const priorityStyles: Record<Priority, string> = {
 };
 
 const profileName = (profile: Profile) => profile.full_name || "Teammate";
-
-function displayDate(value: string | null) {
-  if (!value) return "—";
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-  }).format(new Date(`${value}T12:00:00`));
-}
 
 function CategoryBadge({ category }: { category: Category }) {
   return (
@@ -158,7 +151,12 @@ export function TaskListView({
                       {task.priority}
                     </span>
                   </td>
-                  <td>{displayDate(task.due_date)}</td>
+                  <td>
+                    <TaskDueDate
+                      dueDate={task.due_date}
+                      isCompleted={itemStatus?.is_completed ?? false}
+                    />
+                  </td>
                 </tr>
               );
             })}

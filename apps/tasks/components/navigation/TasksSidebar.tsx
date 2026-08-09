@@ -8,6 +8,7 @@ import {
   FiChevronDown,
   FiFolder,
   FiGrid,
+  FiHome,
   FiPlus,
   FiX,
 } from "react-icons/fi";
@@ -45,6 +46,7 @@ export function TasksSidebar({
     setCategoriesExpanded,
     projectsExpanded,
     setProjectsExpanded,
+    sectionsLoaded,
   } = useSidebarSections();
 
   return (
@@ -80,8 +82,15 @@ export function TasksSidebar({
         </div>
         <nav className="mt-8 space-y-1" aria-label="Main navigation">
           <Link
+            href={withAccessPreview("/", data.accessPreview)}
+            className="sidebar-link"
+          >
+            <FiHome />
+            Dashboard
+          </Link>
+          <Link
             href={withAccessPreview(
-              `/?assignee=${encodeURIComponent(myTasksProfileId)}`,
+              `/board?assignee=${encodeURIComponent(myTasksProfileId)}`,
               data.accessPreview,
             )}
             className="sidebar-link"
@@ -97,7 +106,7 @@ export function TasksSidebar({
             Activity
           </Link>
           <Link
-            href={withAccessPreview("/", data.accessPreview)}
+            href={withAccessPreview("/board", data.accessPreview)}
             className="sidebar-link"
           >
             <FiGrid />
@@ -152,6 +161,7 @@ export function TasksSidebar({
               )}
             </div>
             <AnimatedCollapse
+              animate={sectionsLoaded}
               open={categoriesExpanded}
               className={categoriesExpanded ? "mt-2 min-h-0 flex-1" : ""}
               contentClassName="h-full scroll-pb-2 space-y-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]"
@@ -165,7 +175,7 @@ export function TasksSidebar({
                 <Link
                   key={category.id}
                   href={withAccessPreview(
-                    `/?category=${encodeURIComponent(category.name)}`,
+                    `/board?category=${encodeURIComponent(category.name)}`,
                     data.accessPreview,
                   )}
                   className="sidebar-link"
@@ -214,6 +224,7 @@ export function TasksSidebar({
               </span>
             </div>
             <AnimatedCollapse
+              animate={sectionsLoaded}
               open={projectsExpanded}
               className={projectsExpanded ? "mt-2 min-h-0 flex-1" : ""}
               contentClassName="h-full scroll-pb-2 space-y-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]"
@@ -227,7 +238,7 @@ export function TasksSidebar({
                 <Link
                   key={project.id}
                   href={withAccessPreview(
-                    `/?project=${encodeURIComponent(project.name)}`,
+                    `/board?project=${encodeURIComponent(project.name)}`,
                     data.accessPreview,
                   )}
                   className="sidebar-link"

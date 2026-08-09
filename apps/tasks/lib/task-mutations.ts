@@ -15,6 +15,7 @@ export type TaskDraft = Pick<
   | "status_id"
   | "project_id"
   | "assignee_id"
+  | "reported_by"
   | "start_date"
   | "due_date"
   | "due_time"

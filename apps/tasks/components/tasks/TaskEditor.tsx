@@ -240,6 +240,23 @@ export function TaskEditor({
                     })),
                   ]}
                 />
+                <DropdownSelect
+                  variant="field"
+                  label="Reported by"
+                  required
+                  value={draft.reported_by}
+                  onChange={(value) =>
+                    setDraft({ ...draft, reported_by: value })
+                  }
+                  options={data.profiles.map((item) => ({
+                    avatar: {
+                      name: profileName(item),
+                      src: item.avatar_url,
+                    },
+                    label: profileName(item),
+                    value: item.id,
+                  }))}
+                />
                 <label className="date-field">
                   <span>Due date</span>
                   <input

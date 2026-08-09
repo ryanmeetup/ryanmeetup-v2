@@ -566,7 +566,7 @@ export function ProjectsModal({
                         {embedded && (
                           <Button.Link
                             href={withAccessPreview(
-                              `/?project=${encodeURIComponent(project.name)}`,
+                              `/board?project=${encodeURIComponent(project.name)}`,
                               data.accessPreview,
                             )}
                             variant="secondary"

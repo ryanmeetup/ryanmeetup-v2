@@ -15,16 +15,19 @@ export function TaskFilters({
   onCategoryChange,
   onPriorityChange,
   onProjectChange,
+  onReporterChange,
   onStatusChange,
   onVisibilityChange,
   priority,
   profiles,
+  reporter,
   project,
   projects,
   selectedAssignee,
   selectedCategory,
   selectedPriority,
   selectedProject,
+  selectedReporter,
   selectedStatus,
   status,
   statuses,
@@ -39,16 +42,19 @@ export function TaskFilters({
   onCategoryChange: (value: string) => void;
   onPriorityChange: (value: string) => void;
   onProjectChange: (value: string) => void;
+  onReporterChange: (value: string) => void;
   onStatusChange: (value: string) => void;
   onVisibilityChange: (value: string) => void;
   priority: string;
   profiles: Profile[];
+  reporter: string;
   project: string;
   projects: Project[];
   selectedAssignee?: Profile | null;
   selectedCategory?: Category | null;
   selectedPriority?: Priority | null;
   selectedProject?: Project | null;
+  selectedReporter?: Profile | null;
   selectedStatus?: Status | null;
   status: string;
   statuses: Status[];
@@ -107,6 +113,22 @@ export function TaskFilters({
               label: category.name,
               value: category.name,
               color: category.color,
+            })),
+          ]}
+        />
+        <DropdownSelect
+          label="Reported by"
+          value={selectedReporter ? profileName(selectedReporter) : reporter}
+          onChange={onReporterChange}
+          options={[
+            { label: "Anyone", value: "all" },
+            ...profiles.map((profile) => ({
+              avatar: {
+                name: profileName(profile),
+                src: profile.avatar_url,
+              },
+              label: profileName(profile),
+              value: profileName(profile),
             })),
           ]}
         />
