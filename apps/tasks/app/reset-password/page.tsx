@@ -6,7 +6,7 @@ import { ThemeToggle } from "@/components/global";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "Reset Password",
+  title: { absolute: "Reset Password | Ryan Meetup Tasks" },
 };
 
 export default async function ResetPasswordPage() {

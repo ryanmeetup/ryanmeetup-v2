@@ -17,7 +17,7 @@ import {
 } from "@/lib/server/workspace-page-loader";
 
 export const metadata: Metadata = {
-  title: "Dashboard",
+  title: { absolute: "Dashboard | Ryan Meetup Tasks" },
 };
 
 export default async function DashboardPage({

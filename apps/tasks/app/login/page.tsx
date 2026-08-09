@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Sign In",
+  title: { absolute: "Sign In | Ryan Meetup Tasks" },
 };
 
 export default async function LoginPage() {

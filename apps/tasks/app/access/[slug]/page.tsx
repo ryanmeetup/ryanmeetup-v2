@@ -6,7 +6,7 @@ import { loadWorkspacePage } from "@/lib/server/workspace-page-loader";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Access Group",
+  title: { absolute: "Access Group | Ryan Meetup Tasks" },
 };
 
 export default async function AccessGroupPage({

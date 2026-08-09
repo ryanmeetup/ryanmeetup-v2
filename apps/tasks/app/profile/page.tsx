@@ -10,7 +10,7 @@ import type { WorkspaceData } from "@/lib/types";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Profile",
+  title: { absolute: "Profile | Ryan Meetup Tasks" },
 };
 
 export default async function ProfilePage() {

@@ -14,7 +14,7 @@ import { resolveAccessPreview } from "@/lib/access-preview-server";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Projects",
+  title: { absolute: "Projects | Ryan Meetup Tasks" },
 };
 
 export default async function ProjectsPage({

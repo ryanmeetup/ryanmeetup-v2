@@ -7,7 +7,7 @@ import {
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Work Groups",
+  title: { absolute: "Work Groups | Ryan Meetup Tasks" },
 };
 
 export default async function CategoriesPage() {
