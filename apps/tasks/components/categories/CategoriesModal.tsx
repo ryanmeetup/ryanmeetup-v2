@@ -306,6 +306,7 @@ export function CategoriesModal({
                 <Button
                   type="button"
                   variant="secondary"
+                  size="sm"
                   onClick={() => setOpen(false)}
                   disabled={creating}
                 >
@@ -314,6 +315,7 @@ export function CategoriesModal({
                 <Button
                   type="submit"
                   variant="action"
+                  size="sm"
                   loading={creating}
                   loadingText="Creating..."
                 >

@@ -550,6 +550,7 @@ export function StatusSettingsModal({
               <Button
                 type="button"
                 variant="secondary"
+                size="sm"
                 onClick={() => setOpen(false)}
                 disabled={settingActionPending}
               >
@@ -557,6 +558,7 @@ export function StatusSettingsModal({
               </Button>
               <Button
                 type="submit"
+                size="sm"
                 loading={settingActionPending}
                 loadingText="Adding..."
               >

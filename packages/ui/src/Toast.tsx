@@ -11,7 +11,7 @@ function ToastHost({ duration = 4000 }: ToastHostProps) {
     <Toaster
       position="bottom-center"
       gutter={8}
-      containerStyle={{ bottom: 24 }}
+      containerStyle={{ bottom: 24, zIndex: 100 }}
       toastOptions={{
         duration,
         className:

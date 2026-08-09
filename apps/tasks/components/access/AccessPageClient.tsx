@@ -577,6 +577,7 @@ export function AccessPageClient({
             <Button
               type="button"
               variant="secondary"
+              size="sm"
               disabled={teamPending}
               onClick={() => setInviteOpen(false)}
             >
@@ -585,6 +586,7 @@ export function AccessPageClient({
             <Button
               type="submit"
               form="invite-teammate-form"
+              size="sm"
               loading={teamPending}
               loadingText="Inviting..."
             >
@@ -631,6 +633,7 @@ export function AccessPageClient({
             <Button
               type="button"
               variant="secondary"
+              size="sm"
               disabled={saving}
               onClick={() => setGroupCreateOpen(false)}
             >
@@ -639,6 +642,7 @@ export function AccessPageClient({
             <Button
               type="submit"
               form="create-access-group-form"
+              size="sm"
               loading={saving}
               loadingText="Creating..."
             >

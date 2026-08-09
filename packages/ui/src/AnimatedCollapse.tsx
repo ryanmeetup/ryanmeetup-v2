@@ -5,11 +5,13 @@ export type AnimatedCollapseProps = Omit<
   "children"
 > & {
   children: ReactNode;
+  animate?: boolean;
   contentClassName?: string;
   open: boolean;
 };
 
 export function AnimatedCollapse({
+  animate = true,
   children,
   className,
   contentClassName,
@@ -20,7 +22,7 @@ export function AnimatedCollapse({
     <div
       {...props}
       aria-hidden={!open}
-      className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out motion-reduce:transition-none ${
+      className={`grid ${animate ? "transition-[grid-template-rows,opacity] duration-200 ease-out motion-reduce:transition-none" : "transition-none"} ${
         open
           ? "grid-rows-[1fr] opacity-100"
           : "pointer-events-none grid-rows-[0fr] opacity-0"

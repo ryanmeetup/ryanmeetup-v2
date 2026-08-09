@@ -24,6 +24,7 @@ export * from "./Modal";
 export * from "./MultiSelect";
 export * from "./NavControls";
 export * from "./Pill";
+export * from "./Pagination";
 export * from "./RichTextarea";
 export * from "./Select";
 export * from "./SectionHeader";

@@ -373,13 +373,14 @@ export function ProjectsModal({
               />
               <div className="flex justify-end gap-2 border-t border-black/10 pt-4 dark:border-white/10">
                 {embedded ? (
-                  <Button.Link href="/" variant="secondary">
+                  <Button.Link href="/" variant="secondary" size="sm">
                     Back to tasks
                   </Button.Link>
                 ) : (
                   <Button
                     type="button"
                     variant="secondary"
+                    size="sm"
                     onClick={() => setOpen(false)}
                     disabled={creating}
                   >
@@ -389,6 +390,7 @@ export function ProjectsModal({
                 <Button
                   type="submit"
                   variant="action"
+                  size="sm"
                   loading={creating}
                   loadingText="Creating..."
                 >

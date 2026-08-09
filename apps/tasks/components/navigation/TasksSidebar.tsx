@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import { AnimatedCollapse, IconButton, Pill, Tooltip } from "@ryanmeetup/ui";
 import {
   FiCalendar,
@@ -48,6 +49,22 @@ export function TasksSidebar({
     setProjectsExpanded,
     sectionsLoaded,
   } = useSidebarSections();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const selectedCategory = searchParams.get("category");
+  const selectedProject = searchParams.get("project");
+  const selectedAssignee = searchParams.get("assignee");
+  const hasOtherTaskFilters = ["reporter", "status", "priority"].some(
+    (key) => {
+      const value = searchParams.get(key);
+      return value !== null && value !== "all";
+    },
+  );
+  const visibility = searchParams.get("visibility") ?? "active";
+  const isBoard = pathname === "/board";
+  const closeSidebar = () => setOpen(false);
+  const linkClass = (active: boolean) =>
+    `sidebar-link ${active ? "sidebar-link-active" : ""}`;
 
   return (
     <>
@@ -83,7 +100,8 @@ export function TasksSidebar({
         <nav className="mt-8 space-y-1" aria-label="Main navigation">
           <Link
             href={withAccessPreview("/", data.accessPreview)}
-            className="sidebar-link"
+            onClick={closeSidebar}
+            className={linkClass(pathname === "/")}
           >
             <FiHome />
             Dashboard
@@ -93,21 +111,38 @@ export function TasksSidebar({
               `/board?assignee=${encodeURIComponent(myTasksProfileId)}`,
               data.accessPreview,
             )}
-            className="sidebar-link"
+            onClick={closeSidebar}
+            className={linkClass(
+              isBoard &&
+                selectedAssignee === myTasksProfileId &&
+                !selectedCategory &&
+                !selectedProject &&
+                !hasOtherTaskFilters &&
+                visibility === "active",
+            )}
           >
             <FiGrid />
             My Tasks
           </Link>
           <Link
             href={withAccessPreview("/activity", data.accessPreview)}
-            className="sidebar-link"
+            onClick={closeSidebar}
+            className={linkClass(pathname === "/activity")}
           >
             <FiClock />
             Activity
           </Link>
           <Link
             href={withAccessPreview("/board", data.accessPreview)}
-            className="sidebar-link"
+            onClick={closeSidebar}
+            className={linkClass(
+              isBoard &&
+                !selectedAssignee &&
+                !selectedCategory &&
+                !selectedProject &&
+                !hasOtherTaskFilters &&
+                visibility === "active",
+            )}
           >
             <FiGrid />
             All Tasks
@@ -178,7 +213,10 @@ export function TasksSidebar({
                     `/board?category=${encodeURIComponent(category.name)}`,
                     data.accessPreview,
                   )}
-                  className="sidebar-link"
+                  onClick={closeSidebar}
+                  className={linkClass(
+                    isBoard && selectedCategory === category.name,
+                  )}
                 >
                   <span
                     aria-hidden
@@ -241,7 +279,10 @@ export function TasksSidebar({
                     `/board?project=${encodeURIComponent(project.name)}`,
                     data.accessPreview,
                   )}
-                  className="sidebar-link"
+                  onClick={closeSidebar}
+                  className={linkClass(
+                    isBoard && selectedProject === project.name,
+                  )}
                 >
                   <FiFolder className="shrink-0" />
                   <span className="truncate">{project.name}</span>

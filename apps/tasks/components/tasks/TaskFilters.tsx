@@ -1,6 +1,7 @@
-import { Card, DropdownSelect } from "@ryanmeetup/ui";
-import { FiFilter } from "react-icons/fi";
+import { DropdownSelect } from "@ryanmeetup/ui";
 import type { Category, Priority, Profile, Project, Status } from "@/lib/types";
+import { FilterPanel } from "@/components/global";
+import { CategoryFilterMenu } from "./CategoryFilterMenu";
 
 const priorities: Priority[] = ["low", "medium", "high", "urgent"];
 const profileName = (profile: Profile) => profile.full_name || "Teammate";
@@ -10,9 +11,11 @@ export function TaskFilters({
   categories,
   clearFilters,
   filterCount,
-  group,
+  excludedCategoryIds,
+  includedCategoryIds,
   onAssigneeChange,
-  onCategoryChange,
+  onExcludedCategoriesChange,
+  onIncludedCategoriesChange,
   onPriorityChange,
   onProjectChange,
   onReporterChange,
@@ -24,7 +27,6 @@ export function TaskFilters({
   project,
   projects,
   selectedAssignee,
-  selectedCategory,
   selectedPriority,
   selectedProject,
   selectedReporter,
@@ -37,9 +39,11 @@ export function TaskFilters({
   categories: Category[];
   clearFilters: () => void;
   filterCount: number;
-  group: string;
+  excludedCategoryIds: string[];
+  includedCategoryIds: string[];
   onAssigneeChange: (value: string) => void;
-  onCategoryChange: (value: string) => void;
+  onExcludedCategoriesChange: (value: string[]) => void;
+  onIncludedCategoriesChange: (value: string[]) => void;
   onPriorityChange: (value: string) => void;
   onProjectChange: (value: string) => void;
   onReporterChange: (value: string) => void;
@@ -51,7 +55,6 @@ export function TaskFilters({
   project: string;
   projects: Project[];
   selectedAssignee?: Profile | null;
-  selectedCategory?: Category | null;
   selectedPriority?: Priority | null;
   selectedProject?: Project | null;
   selectedReporter?: Profile | null;
@@ -61,16 +64,8 @@ export function TaskFilters({
   visibility: string;
 }) {
   return (
-    <Card size="sm" className="mb-6">
+    <FilterPanel count={filterCount} className="mb-6">
       <div className="flex items-center gap-2 overflow-x-auto pb-1">
-        <span className="flex shrink-0 items-center gap-2 pr-2 text-xs font-semibold uppercase tracking-widest text-black/50 dark:text-white/50">
-          <FiFilter /> Filters
-          {filterCount > 0 && (
-            <b className="grid h-5 w-5 place-items-center rounded-full bg-black text-[10px] text-white dark:bg-white dark:text-black">
-              {filterCount}
-            </b>
-          )}
-        </span>
         <DropdownSelect
           label="Visibility"
           value={visibility === "archived" ? "Archived tasks" : "Active tasks"}
@@ -103,18 +98,12 @@ export function TaskFilters({
             })),
           ]}
         />
-        <DropdownSelect
-          label="Category"
-          value={selectedCategory?.name ?? group}
-          onChange={onCategoryChange}
-          options={[
-            { label: "All categories", value: "all" },
-            ...categories.map((category) => ({
-              label: category.name,
-              value: category.name,
-              color: category.color,
-            })),
-          ]}
+        <CategoryFilterMenu
+          categories={categories}
+          includedIds={includedCategoryIds}
+          excludedIds={excludedCategoryIds}
+          onIncludedChange={onIncludedCategoriesChange}
+          onExcludedChange={onExcludedCategoriesChange}
         />
         <DropdownSelect
           label="Reported by"
@@ -179,6 +168,6 @@ export function TaskFilters({
           </button>
         )}
       </div>
-    </Card>
+    </FilterPanel>
   );
 }

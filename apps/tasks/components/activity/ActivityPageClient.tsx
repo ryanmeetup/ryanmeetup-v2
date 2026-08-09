@@ -14,9 +14,9 @@ import {
   Spinner,
   toast,
 } from "@ryanmeetup/ui";
-import { FiArrowRight, FiFilter, FiMenu, FiX } from "react-icons/fi";
+import { FiArrowRight, FiMenu, FiX } from "react-icons/fi";
 import { CategoriesModal } from "@/components/categories";
-import { TaskBanners } from "@/components/global";
+import { FilterPanel, TaskBanners } from "@/components/global";
 import { TaskHeaderActions, TasksSidebar } from "@/components/navigation";
 import { ProjectsModal } from "@/components/projects";
 import { withAccessPreview } from "@/lib/access-preview";
@@ -247,17 +247,8 @@ export function ActivityPageClient({
               </p>
             </div>
 
-            <Card size="sm">
+            <FilterPanel count={filterCount}>
               <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                <span className="flex shrink-0 items-center gap-2 pr-2 text-xs font-semibold uppercase tracking-widest text-black/50 dark:text-white/50">
-                  <FiFilter aria-hidden />
-                  Filters
-                  {filterCount > 0 && (
-                    <b className="grid h-5 w-5 place-items-center rounded-full bg-black text-[10px] text-white dark:bg-white dark:text-black">
-                      {filterCount}
-                    </b>
-                  )}
-                </span>
                 <DropdownSelect
                   label="Project"
                   value={projectFilter}
@@ -333,7 +324,7 @@ export function ActivityPageClient({
                     : "events"}
                 </span>
               </div>
-            </Card>
+            </FilterPanel>
 
             <Card
               size="none"

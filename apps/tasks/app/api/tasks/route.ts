@@ -27,7 +27,14 @@ export async function GET(request: Request): Promise<NextResponse> {
   const visibility =
     params.get("visibility") === "archived" ? "archived" : "active";
   const boundary = new Date().toISOString();
-  const category = params.get("category");
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const parseCategoryIds = (name: string) =>
+    (params.get(name) ?? "").split(",").filter((id) => uuidPattern.test(id));
+  const includedCategoryIds = parseCategoryIds("categories");
+  const legacyCategory = params.get("category");
+  if (legacyCategory && uuidPattern.test(legacyCategory))
+    includedCategoryIds.push(legacyCategory);
+  const excludedCategoryIds = parseCategoryIds("excludeCategories");
   const paginated = params.get("paginated") === "1";
   const { requestedPage, pageSize } = parsePagination(params);
   const sort = params.get("sort") === "due" ? "due" : "updated";
@@ -46,14 +53,27 @@ export async function GET(request: Request): Promise<NextResponse> {
       if (resolved) previewProjectIds = resolved.projectIds;
     }
   }
+  const [includedRows, excludedRows] = await Promise.all([
+    includedCategoryIds.length
+      ? supabase.from("task_categories").select("task_id").in("category_id", includedCategoryIds)
+      : Promise.resolve({ data: [], error: null }),
+    excludedCategoryIds.length
+      ? supabase.from("task_categories").select("task_id").in("category_id", excludedCategoryIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+  if (includedRows.error || excludedRows.error)
+    return databaseFailure(
+      request,
+      "tasks.category-filters",
+      includedRows.error ?? excludedRows.error!,
+      { error: "Category filters could not be applied. Try again." },
+    );
+  const includedTaskIds = [...new Set((includedRows.data ?? []).map((row) => row.task_id))];
+  const excludedTaskIds = [...new Set((excludedRows.data ?? []).map((row) => row.task_id))];
+
   let query = supabase
     .from("tasks")
-    .select(
-      category && category !== "all"
-        ? `${WORKSPACE_COLUMNS.tasks},task_categories!inner(category_id)`
-        : WORKSPACE_COLUMNS.tasks,
-      paginated ? { count: "exact" } : undefined,
-    );
+    .select(WORKSPACE_COLUMNS.tasks, paginated ? { count: "exact" } : undefined);
   query =
     visibility === "archived"
       ? query.lte("archived_at", boundary)
@@ -79,8 +99,10 @@ export async function GET(request: Request): Promise<NextResponse> {
       query = query.is(column, null);
     else if (value && value !== "all") query = query.eq(column, value);
   }
-  if (category && category !== "all")
-    query = query.eq("task_categories.category_id", category);
+  if (includedCategoryIds.length)
+    query = query.in("id", includedTaskIds.length ? includedTaskIds : ["00000000-0000-0000-0000-000000000000"]);
+  if (excludedTaskIds.length)
+    query = query.not("id", "in", `(${excludedTaskIds.join(",")})`);
   const search = params
     .get("search")
     ?.trim()
@@ -111,11 +133,7 @@ export async function GET(request: Request): Promise<NextResponse> {
   if (paginated && pageState.page !== requestedPage && totalCount > 0) {
     let corrected = supabase
       .from("tasks")
-      .select(
-        category && category !== "all"
-          ? `${WORKSPACE_COLUMNS.tasks},task_categories!inner(category_id)`
-          : WORKSPACE_COLUMNS.tasks,
-      );
+      .select(WORKSPACE_COLUMNS.tasks);
     corrected =
       visibility === "archived"
         ? corrected.lte("archived_at", boundary)
@@ -133,8 +151,10 @@ export async function GET(request: Request): Promise<NextResponse> {
         corrected = corrected.is(column, null);
       else if (value && value !== "all") corrected = corrected.eq(column, value);
     }
-    if (category && category !== "all")
-      corrected = corrected.eq("task_categories.category_id", category);
+    if (includedCategoryIds.length)
+      corrected = corrected.in("id", includedTaskIds.length ? includedTaskIds : ["00000000-0000-0000-0000-000000000000"]);
+    if (excludedTaskIds.length)
+      corrected = corrected.not("id", "in", `(${excludedTaskIds.join(",")})`);
     if (search)
       corrected = corrected.or(
         `title.ilike.%${search}%,description.ilike.%${search}%`,

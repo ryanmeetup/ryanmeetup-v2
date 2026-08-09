@@ -7,6 +7,14 @@ export function useTaskFilters(setSearch: (value: string) => void) {
   const [assignee, setAssignee] = useQueryParamState("assignee", "all");
   const [reporter, setReporter] = useQueryParamState("reporter", "all");
   const [group, setGroup] = useQueryParamState("category", "all");
+  const [includedCategories, setIncludedCategories] = useQueryParamState(
+    "categories",
+    "",
+  );
+  const [excludedCategories, setExcludedCategories] = useQueryParamState(
+    "excludeCategories",
+    "",
+  );
   const [project, setProject] = useQueryParamState("project", "all");
   const [status, setStatus] = useQueryParamState("status", "all");
   const [priority, setPriority] = useQueryParamState("priority", "all");
@@ -26,6 +34,8 @@ export function useTaskFilters(setSearch: (value: string) => void) {
     setAssignee("all");
     setReporter("all");
     setGroup("all");
+    setIncludedCategories("");
+    setExcludedCategories("");
     setProject("all");
     setStatus("all");
     setPriority("all");
@@ -33,7 +43,9 @@ export function useTaskFilters(setSearch: (value: string) => void) {
   }
 
   return {
-    assignee, setAssignee, reporter, setReporter, group, setGroup, project, setProject, status, setStatus,
+    assignee, setAssignee, reporter, setReporter, group, setGroup,
+    includedCategories, setIncludedCategories, excludedCategories, setExcludedCategories,
+    project, setProject, status, setStatus,
     priority, setPriority, visibility, setVisibility, sort, setSort, clock, clear,
   };
 }

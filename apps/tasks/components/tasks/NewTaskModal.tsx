@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, type Dispatch, type FormEvent, type SetStateAction } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type FormEvent,
+  type SetStateAction,
+} from "react";
 import { toast } from "@ryanmeetup/ui";
 import type { WorkspaceData } from "@/lib/types";
 import {
@@ -8,6 +15,14 @@ import {
   type TaskDraft,
 } from "@/lib/task-mutations";
 import { TaskEditor } from "./TaskEditor";
+import {
+  deleteTaskDraft,
+  draftSavedStatus,
+  hasDraftContent,
+  saveTaskDraft,
+  taskDraftAutosaveDelayMs,
+  type StoredTaskDraft,
+} from "@/lib/task-drafts";
 
 function newDraft(data: WorkspaceData): TaskDraft {
   return {
@@ -35,22 +50,70 @@ export function NewTaskModal({
   open,
   setData,
   setOpen,
+  initialDraft,
 }: {
   data: WorkspaceData;
   demoMode: boolean;
   open: boolean;
   setData: Dispatch<SetStateAction<WorkspaceData>>;
   setOpen: (open: boolean) => void;
+  initialDraft?: StoredTaskDraft | null;
 }) {
-  const [draft, setDraft] = useState(() => newDraft(data));
+  const [draft, setDraft] = useState(
+    () => initialDraft?.draft ?? newDraft(data),
+  );
+  const [draftId, setDraftId] = useState<string | null>(
+    initialDraft?.id ?? null,
+  );
+  const opened = useRef(false);
   const [createAnother, setCreateAnother] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
+  useEffect(() => {
+    if (open && !opened.current && initialDraft) {
+      setDraft(initialDraft.draft);
+      setDraftId(initialDraft.id);
+    }
+    opened.current = open;
+  }, [initialDraft, open]);
+
+  useEffect(() => {
+    if (!open || !hasDraftContent(draft)) return;
+    const timer = window.setTimeout(() => {
+      const saved = saveTaskDraft(
+        data.currentProfile.id,
+        draft,
+        draftId ?? undefined,
+      );
+      setDraftId(saved.id);
+      toast.success(draftSavedStatus("auto"), {
+        id: `task-draft-autosave-${data.currentProfile.id}`,
+        duration: 2500,
+      });
+    }, taskDraftAutosaveDelayMs);
+    return () => window.clearTimeout(timer);
+  }, [data.currentProfile.id, draft, draftId, open]);
+
+  function saveAsDraft() {
+    if (!hasDraftContent(draft)) {
+      toast.error("Add a title or a few details before saving a draft.");
+      return;
+    }
+    const saved = saveTaskDraft(
+      data.currentProfile.id,
+      draft,
+      draftId ?? undefined,
+    );
+    setDraftId(saved.id);
+    toast.success(draftSavedStatus("manual"));
+    setOpen(false);
+  }
+
   function setModalOpen(nextOpen: boolean) {
     setOpen(nextOpen);
     if (!nextOpen && !saving) {
-      setDraft(newDraft(data));
+      if (!hasDraftContent(draft)) setDraft(newDraft(data));
       setCreateAnother(false);
       setMessage("");
     }
@@ -81,6 +144,7 @@ export function NewTaskModal({
       });
       const saved = await mutations.save(draft, null);
       mutations.applySaved(saved, false);
+      if (draftId) deleteTaskDraft(data.currentProfile.id, draftId);
       toast.success("Task created.");
       if (createAnother) {
         setDraft({
@@ -94,14 +158,13 @@ export function NewTaskModal({
       } else {
         setOpen(false);
         setDraft(newDraft(data));
+        setDraftId(null);
         setCreateAnother(false);
         setMessage("");
       }
     } catch (error) {
       const nextMessage =
-        error instanceof Error
-          ? error.message
-          : "The task could not be saved.";
+        error instanceof Error ? error.message : "The task could not be saved.";
       setMessage(nextMessage);
       toast.error(nextMessage);
     } finally {
@@ -126,6 +189,7 @@ export function NewTaskModal({
       setData={setData}
       demoMode={demoMode}
       saveTask={saveTask}
+      saveDraft={saveAsDraft}
       setTaskPendingDelete={() => undefined}
       taskMessage={message}
     />

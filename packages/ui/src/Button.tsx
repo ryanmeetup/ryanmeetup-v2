@@ -35,9 +35,10 @@ export type ButtonVariant =
   | "danger"
   | "outline"
   | "ghost";
-export type ButtonSize = "sm" | "md" | "lg";
+export type ButtonSize = "xs" | "sm" | "md" | "lg";
 
 const sizeStyles: Record<ButtonSize, string> = {
+  xs: "px-3 py-1.5 text-[11px] tracking-[0.16em]",
   sm: "px-4 py-2 text-xs",
   md: "px-5 py-2.5 text-sm",
   lg: "px-6 py-3 text-sm",

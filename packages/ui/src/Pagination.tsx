@@ -1,0 +1,72 @@
+"use client";
+
+import { FiChevronsLeft, FiChevronsRight, FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { DropdownSelect } from "./DropdownSelect";
+import { IconButton } from "./IconButton";
+
+export type PaginationProps = {
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
+  pageSizeOptions?: readonly number[];
+  itemLabel?: string;
+  disabled?: boolean;
+};
+
+export function Pagination({
+  page,
+  pageSize,
+  totalCount,
+  onPageChange,
+  onPageSizeChange,
+  pageSizeOptions = [10, 25, 50, 100],
+  itemLabel = "items",
+  disabled = false,
+}: PaginationProps) {
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const currentPage = Math.min(Math.max(1, page), totalPages);
+  const start = totalCount === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const end = Math.min(currentPage * pageSize, totalCount);
+  const atStart = currentPage === 1;
+  const atEnd = totalCount === 0 || currentPage === totalPages;
+
+  return (
+    <nav
+      aria-label={`${itemLabel} pagination`}
+      className="flex flex-wrap items-center justify-between gap-3 border-t border-black/10 px-4 py-3 text-sm dark:border-white/10"
+    >
+      <p className="text-black/60 dark:text-white/60">
+        Showing {start}–{end} of {totalCount} {itemLabel}
+      </p>
+      <div className="flex items-center gap-2">
+        <DropdownSelect
+          label="Rows"
+          disabled={disabled}
+          value={String(pageSize)}
+          onChange={(value) => onPageSizeChange(Number.parseInt(value, 10))}
+          options={pageSizeOptions.map((size) => ({
+            label: String(size),
+            value: String(size),
+          }))}
+        />
+        <span className="whitespace-nowrap px-1 text-xs text-black/60 dark:text-white/60">
+          Page {currentPage} of {totalPages}
+        </span>
+        <IconButton className="disabled:cursor-not-allowed disabled:opacity-40" label="First page" disabled={disabled || atStart} onClick={() => onPageChange(1)}>
+          <FiChevronsLeft />
+        </IconButton>
+        <IconButton className="disabled:cursor-not-allowed disabled:opacity-40" label="Previous page" disabled={disabled || atStart} onClick={() => onPageChange(currentPage - 1)}>
+          <FiChevronLeft />
+        </IconButton>
+        <IconButton className="disabled:cursor-not-allowed disabled:opacity-40" label="Next page" disabled={disabled || atEnd} onClick={() => onPageChange(currentPage + 1)}>
+          <FiChevronRight />
+        </IconButton>
+        <IconButton className="disabled:cursor-not-allowed disabled:opacity-40" label="Last page" disabled={disabled || atEnd} onClick={() => onPageChange(totalPages)}>
+          <FiChevronsRight />
+        </IconButton>
+      </div>
+    </nav>
+  );
+}

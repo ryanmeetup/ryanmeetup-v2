@@ -2,12 +2,10 @@
 
 import {
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
   type FormEvent,
-  type ReactNode,
 } from "react";
 import {
   Avatar,
@@ -15,30 +13,22 @@ import {
   ConfirmationDialog,
   FormattedText,
   IconButton,
-  Pill,
-  Tooltip,
   toast,
 } from "@ryanmeetup/ui";
 import {
-  FiCalendar,
   FiChevronDown,
-  FiClock,
   FiFolder,
-  FiGrid,
-  FiHome,
   FiLoader,
   FiMenu,
   FiMoreHorizontal,
   FiPlus,
   FiSearch,
   FiUsers,
-  FiX,
 } from "react-icons/fi";
-import Link from "next/link";
 import { useQueryParamState, useSearchFilter } from "@ryanmeetup/hooks";
 import type { Category, Priority, Task, WorkspaceData } from "@/lib/types";
 import { TaskBanners } from "@/components/global";
-import { TaskHeaderActions } from "@/components/navigation";
+import { TaskHeaderActions, TasksSidebar } from "@/components/navigation";
 import { TaskEditor } from "./TaskEditor";
 import { TaskFilters } from "./TaskFilters";
 import { TaskListView } from "./TaskListView";
@@ -46,8 +36,6 @@ import { TaskDueDate } from "./TaskDueDate";
 import { TaskWorkspaceHeader } from "./TaskWorkspaceHeader";
 import { CategoriesModal } from "@/components/categories";
 import { ProjectsModal } from "@/components/projects";
-import { useSidebarSections } from "@/hooks/useSidebarSections";
-import { withAccessPreview } from "@/lib/access-preview";
 import { useWorkspaceData } from "@/hooks/useWorkspaceData";
 import { useTaskFilters } from "@/hooks/useTaskFilters";
 import { usePagination } from "@/hooks/usePagination";
@@ -55,6 +43,13 @@ import {
   createTaskMutationService,
   type TaskDraft,
 } from "@/lib/task-mutations";
+import {
+  deleteTaskDraft,
+  draftSavedStatus,
+  hasDraftContent,
+  saveTaskDraft,
+  taskDraftAutosaveDelayMs,
+} from "@/lib/task-drafts";
 
 export { StatusSettingsModal } from "./TaskAdministration";
 
@@ -134,57 +129,6 @@ function CategoryBadge({ category }: { category: Category }) {
   );
 }
 
-function SidebarFilterButton({
-  active,
-  label,
-  leading,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  leading: ReactNode;
-  onClick: () => void;
-}) {
-  const labelRef = useRef<HTMLSpanElement>(null);
-  const [isTruncated, setIsTruncated] = useState(false);
-
-  useLayoutEffect(() => {
-    const labelElement = labelRef.current;
-    if (!labelElement) return;
-
-    const updateTruncation = () =>
-      setIsTruncated(labelElement.scrollWidth > labelElement.clientWidth);
-    updateTruncation();
-
-    const resizeObserver = new ResizeObserver(updateTruncation);
-    resizeObserver.observe(labelElement);
-    return () => resizeObserver.disconnect();
-  }, [label]);
-
-  const button = (
-    <button
-      onClick={onClick}
-      className={`sidebar-link ${active ? "sidebar-link-active" : ""}`}
-    >
-      {leading}
-      <span ref={labelRef} className="min-w-0 flex-1 truncate">
-        {label}
-      </span>
-    </button>
-  );
-
-  return (
-    <Tooltip
-      content={label}
-      disabled={!isTruncated}
-      placement="right"
-      triggerClassName="w-full"
-    >
-      {button}
-    </Tooltip>
-  );
-}
-
 export function TaskApp({
   initialData,
   demoMode,
@@ -214,13 +158,6 @@ export function TaskApp({
     syncPageSize,
   } = usePagination();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const {
-    categoriesExpanded,
-    setCategoriesExpanded,
-    projectsExpanded,
-    setProjectsExpanded,
-    sectionsLoaded,
-  } = useSidebarSections();
   const [taskOpen, setTaskOpen] = useState(Boolean(initialEditing));
   const [taskDetailsOpen, setTaskDetailsOpen] = useState(
     Boolean(initialEditing) && initialData.currentProfile.task_details_open_by_default,
@@ -231,6 +168,7 @@ export function TaskApp({
   const [taskMessage, setTaskMessage] = useState("");
   const [taskSaving, setTaskSaving] = useState(false);
   const [createAnother, setCreateAnother] = useState(false);
+  const [draftId, setDraftId] = useState<string | null>(null);
   const [taskPendingDelete, setTaskPendingDelete] = useState<Task | null>(null);
   const [taskDeleting, setTaskDeleting] = useState(false);
   const [taskPageLoading, setTaskPageLoading] = useState(false);
@@ -255,6 +193,23 @@ export function TaskApp({
           initialData.currentProfile.id,
         ),
   );
+
+  useEffect(() => {
+    if (!taskOpen || editing || !hasDraftContent(draft)) return;
+    const timer = window.setTimeout(() => {
+      const saved = saveTaskDraft(
+        data.currentProfile.id,
+        draft,
+        draftId ?? undefined,
+      );
+      setDraftId(saved.id);
+      toast.success(draftSavedStatus("auto"), {
+        id: `task-draft-autosave-${data.currentProfile.id}`,
+        duration: 2500,
+      });
+    }, taskDraftAutosaveDelayMs);
+    return () => window.clearTimeout(timer);
+  }, [data.currentProfile.id, draft, draftId, editing, taskOpen]);
   const {
     query: search,
     setQuery: setSearch,
@@ -272,6 +227,10 @@ export function TaskApp({
     setReporter,
     group,
     setGroup,
+    includedCategories,
+    setIncludedCategories,
+    excludedCategories,
+    setExcludedCategories,
     project,
     setProject,
     status,
@@ -335,10 +294,6 @@ export function TaskApp({
     () => new Map(data.projects.map((item) => [item.id, item])),
     [data.projects],
   );
-  const activeProjects = useMemo(
-    () => data.projects.filter((item) => !item.archived_at),
-    [data.projects],
-  );
   const selectedAssignee =
     assignee === "all" || assignee.toLowerCase() === "unassigned"
       ? null
@@ -354,6 +309,15 @@ export function TaskApp({
       ? null
       : (categories.get(group) ??
         data.categories.find((item) => item.name === group));
+  const includedCategoryIds = useMemo(() => {
+    const ids = includedCategories.split(",").filter(Boolean);
+    if (selectedCategory && !ids.includes(selectedCategory.id)) ids.push(selectedCategory.id);
+    return ids;
+  }, [includedCategories, selectedCategory]);
+  const excludedCategoryIds = useMemo(
+    () => excludedCategories.split(",").filter(Boolean),
+    [excludedCategories],
+  );
   const selectedProject =
     project === "all" || project === "none"
       ? null
@@ -403,7 +367,10 @@ export function TaskApp({
         else if (assignee.toLowerCase() === "unassigned")
           params.set("assignee", "unassigned");
         if (selectedReporter) params.set("reporter", selectedReporter.id);
-        if (selectedCategory) params.set("category", selectedCategory.id);
+        if (includedCategoryIds.length)
+          params.set("categories", includedCategoryIds.join(","));
+        if (excludedCategoryIds.length)
+          params.set("excludeCategories", excludedCategoryIds.join(","));
         if (selectedPriority) params.set("priority", selectedPriority);
         if (committedSearch.trim())
           params.set("search", committedSearch.trim());
@@ -469,7 +436,8 @@ export function TaskApp({
           selectedProject?.id ?? project,
           selectedAssignee?.id ?? assignee,
           selectedReporter?.id ?? reporter,
-          selectedCategory?.id ?? group,
+          includedCategoryIds.join(","),
+          excludedCategoryIds.join(","),
           selectedPriority ?? priority,
           committedSearch,
           sort,
@@ -587,10 +555,13 @@ export function TaskApp({
                   ? assigneesByTask.get(task.id)?.has(selectedAssignee.id)
                   : false)) &&
             (reporter === "all" || task.reported_by === selectedReporter?.id) &&
-            (group === "all" ||
-              (selectedCategory
-                ? categoriesByTask.get(task.id)?.has(selectedCategory.id)
-                : false)) &&
+            (includedCategoryIds.length === 0 ||
+              includedCategoryIds.some((id) =>
+                categoriesByTask.get(task.id)?.has(id),
+              )) &&
+            !excludedCategoryIds.some((id) =>
+              categoriesByTask.get(task.id)?.has(id),
+            ) &&
             (project === "all" ||
               (project === "none"
                 ? task.project_id === null
@@ -620,11 +591,11 @@ export function TaskApp({
       assignee,
       assigneesByTask,
       categoriesByTask,
-      group,
+      includedCategoryIds,
+      excludedCategoryIds,
       priority,
       project,
       reporter,
-      selectedCategory,
       selectedProject,
       selectedReporter,
       searchedTasks,
@@ -650,6 +621,7 @@ export function TaskApp({
     setEditing(null);
     setTaskDetailsOpen(false);
     setCreateAnother(false);
+    setDraftId(null);
     const scopedDraft = blankDraft(
       statusId ??
         selectedStatus?.id ??
@@ -658,7 +630,8 @@ export function TaskApp({
         "",
       data.currentProfile.id,
     );
-    scopedDraft.category_ids = selectedCategory ? [selectedCategory.id] : [];
+    scopedDraft.category_ids =
+      includedCategoryIds.length === 1 ? [...includedCategoryIds] : [];
     scopedDraft.project_id = selectedProject?.id ?? null;
     scopedDraft.assignee_id = selectedAssignee?.id ?? null;
     scopedDraft.priority = selectedPriority ?? "medium";
@@ -671,8 +644,24 @@ export function TaskApp({
     setEditing(task);
     setTaskDetailsOpen(data.currentProfile.task_details_open_by_default);
     setCreateAnother(false);
+    setDraftId(null);
     setDraft(editDraft(task, [...(categoriesByTask.get(task.id) ?? [])]));
     setTaskOpen(true);
+  }
+
+  function saveAsDraft() {
+    if (!hasDraftContent(draft)) {
+      toast.error("Add a title or a few details before saving a draft.");
+      return;
+    }
+    const saved = saveTaskDraft(
+      data.currentProfile.id,
+      draft,
+      draftId ?? undefined,
+    );
+    setDraftId(saved.id);
+    toast.success(draftSavedStatus("manual"));
+    setTaskOpen(false);
   }
 
   async function saveTask(event: FormEvent<HTMLFormElement>) {
@@ -696,6 +685,10 @@ export function TaskApp({
     try {
       const saved = await mutations.save(draft, editing);
       mutations.applySaved(saved, Boolean(editing));
+      if (!editing && draftId) {
+        deleteTaskDraft(data.currentProfile.id, draftId);
+        setDraftId(null);
+      }
       if (!demoMode && view === "list") await loadTaskPage(true);
       if (!editing && createAnother) {
         setDraft({
@@ -771,9 +764,10 @@ export function TaskApp({
     }
   }
   const filterCount =
-    [isMyTasks ? "all" : assignee, reporter, group, project, status, priority].filter(
+    [isMyTasks ? "all" : assignee, reporter, project, status, priority].filter(
       (value) => value !== "all",
-    ).length + (visibility === "archived" ? 1 : 0);
+    ).length + includedCategoryIds.length + excludedCategoryIds.length +
+    (visibility === "archived" ? 1 : 0);
   const taskCard = (task: Task) => {
     const taskStatus = data.statuses.find(
       (item) => item.id === task.status_id,
@@ -940,218 +934,17 @@ export function TaskApp({
 
   return (
     <div className="min-h-screen bg-[#f7f7f5] text-black dark:bg-[#101010] dark:text-white">
-      {sidebarOpen && (
-        <button
-          aria-label="Close navigation"
-          className="fixed inset-0 z-30 bg-black/40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-      <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-black/10 bg-white px-4 pt-4 transition-transform dark:border-white/10 dark:bg-black lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
-      >
-        <div className="flex h-12 items-center justify-between px-2">
-          <Link
-            href={withAccessPreview("/", data.accessPreview)}
-            aria-label="Task tracker home"
-            className="-ml-2 rounded-lg px-2 py-1 transition duration-300 ease-in-out hover:-translate-y-0.5 hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 motion-reduce:transform-none dark:hover:bg-white/10 dark:focus-visible:ring-white/40"
-          >
-            <p className="font-cooper text-2xl uppercase">Ryan Meetup</p>
-            <p className="text-[9px] font-semibold uppercase tracking-[0.28em] text-black/45 dark:text-white/45">
-              Task tracker
-            </p>
-          </Link>
-          <IconButton
-            label="Close navigation"
-            tooltipTriggerClassName="lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          >
-            <FiX />
-          </IconButton>
-        </div>
-        <nav className="mt-8 space-y-1" aria-label="Main navigation">
-          <Link
-            href={withAccessPreview("/", data.accessPreview)}
-            onClick={() => setSidebarOpen(false)}
-            className="sidebar-link"
-          >
-            <FiHome />
-            Dashboard
-          </Link>
-          <Link
-            href={withAccessPreview(
-              `/board?assignee=${encodeURIComponent(myTasksProfile?.id ?? data.currentProfile.id)}`,
-              data.accessPreview,
-            )}
-            onClick={() => setSidebarOpen(false)}
-            className={`sidebar-link ${isMyTasks && !scopeName && status === "all" && priority === "all" && visibility === "active" ? "sidebar-link-active" : ""}`}
-          >
-            <FiGrid />
-            My Tasks
-          </Link>
-          <Link
-            href={withAccessPreview("/activity", data.accessPreview)}
-            onClick={() => setSidebarOpen(false)}
-            className="sidebar-link"
-          >
-            <FiClock />
-            Activity
-          </Link>
-          <Link
-            href={withAccessPreview("/board", data.accessPreview)}
-            onClick={() => {
-              clearTaskFilters();
-              setSidebarOpen(false);
-            }}
-            className={`sidebar-link ${!scopeName && assignee === "all" && status === "all" && priority === "all" && visibility === "active" ? "sidebar-link-active" : ""}`}
-          >
-            <FiGrid />
-            All Tasks
-          </Link>
-          <Tooltip
-            content="Calendar view is coming soon"
-            placement="right"
-            triggerClassName="w-full"
-          >
-            <button disabled className="sidebar-link opacity-40">
-              <FiCalendar />
-              Calendar
-              <Pill size="sm" className="ml-auto">
-                Soon
-              </Pill>
-            </button>
-          </Tooltip>
-        </nav>
-        <div className="mt-8 flex min-h-0 flex-1 flex-col">
-          <section
-            className={`flex max-h-[70%] min-h-0 shrink-0 flex-col overflow-hidden ${categoriesExpanded ? "border-b border-black/10 dark:border-white/10" : ""}`}
-          >
-            <div className="flex items-center justify-between px-3">
-              <button
-                type="button"
-                aria-expanded={categoriesExpanded}
-                onClick={() => setCategoriesExpanded((current) => !current)}
-                className="-ml-1 inline-flex items-center gap-1 rounded px-1 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-black/45 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:text-white/45 dark:hover:text-white dark:focus-visible:ring-white/40"
-              >
-                <FiChevronDown
-                  className={`transition-transform duration-200 motion-reduce:transition-none ${categoriesExpanded ? "" : "-rotate-90"}`}
-                />
-                Categories
-              </button>
-              <span className="flex items-center gap-1">
-                <Link
-                  href={withAccessPreview("/categories", data.accessPreview)}
-                  className="text-[10px] font-semibold text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white"
-                >
-                  Manage
-                </Link>
-                {!data.accessPreview && (
-                  <IconButton
-                    label="Create category"
-                    size="sm"
-                    onClick={() => setCategoriesOpen(true)}
-                  >
-                    <FiPlus />
-                  </IconButton>
-                )}
-              </span>
-            </div>
-            <AnimatedCollapse
-              animate={sectionsLoaded}
-              open={categoriesExpanded}
-              className={categoriesExpanded ? "mt-2 min-h-0 flex-1" : ""}
-              contentClassName="h-full scroll-pb-2 space-y-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]"
-            >
-              {data.categories.length === 0 && (
-                <p className="px-3 py-2 text-xs text-black/50 dark:text-white/50">
-                  No categories yet.
-                </p>
-              )}
-              {data.categories.map((item) => (
-                <SidebarFilterButton
-                  key={item.id}
-                  active={selectedCategory?.id === item.id}
-                  label={item.name}
-                  onClick={() =>
-                    setGroup(
-                      selectedCategory?.id === item.id ? "all" : item.name,
-                    )
-                  }
-                  leading={
-                    <i
-                      aria-hidden
-                      className="h-2.5 w-2.5 rounded-full"
-                      style={{ backgroundColor: item.color }}
-                    />
-                  }
-                />
-              ))}
-            </AnimatedCollapse>
-          </section>
-          <section
-            className={`flex min-h-0 flex-col overflow-hidden pt-4 ${projectsExpanded ? "flex-1" : "shrink-0"}`}
-          >
-            <div className="flex items-center justify-between px-3">
-              <button
-                type="button"
-                aria-expanded={projectsExpanded}
-                onClick={() => setProjectsExpanded((current) => !current)}
-                className="-ml-1 inline-flex items-center gap-1 rounded px-1 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-black/45 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:text-white/45 dark:hover:text-white dark:focus-visible:ring-white/40"
-              >
-                <FiChevronDown
-                  className={`transition-transform duration-200 motion-reduce:transition-none ${projectsExpanded ? "" : "-rotate-90"}`}
-                />
-                Projects
-              </button>
-              <span className="flex items-center gap-1">
-                <Link
-                  href={withAccessPreview("/projects", data.accessPreview)}
-                  className="text-[10px] font-semibold text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white"
-                >
-                  Manage
-                </Link>
-                {!data.accessPreview && (
-                  <IconButton
-                    label="Create project"
-                    size="sm"
-                    onClick={() => {
-                      setProjectEditId(null);
-                      setProjectsOpen(true);
-                    }}
-                  >
-                    <FiPlus />
-                  </IconButton>
-                )}
-              </span>
-            </div>
-            <AnimatedCollapse
-              animate={sectionsLoaded}
-              open={projectsExpanded}
-              className={projectsExpanded ? "mt-2 min-h-0 flex-1" : ""}
-              contentClassName="h-full scroll-pb-2 space-y-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]"
-            >
-              {activeProjects.length === 0 && (
-                <p className="px-3 py-2 text-xs text-black/50 dark:text-white/50">
-                  No projects yet.
-                </p>
-              )}
-              {activeProjects.map((item) => (
-                <SidebarFilterButton
-                  key={item.id}
-                  active={selectedProject?.id === item.id}
-                  label={item.name}
-                  onClick={() =>
-                    setProject(
-                      selectedProject?.id === item.id ? "all" : item.name,
-                    )
-                  }
-                  leading={<FiFolder />}
-                />
-              ))}
-            </AnimatedCollapse>
-          </section>
-        </div>
-      </aside>
+      <TasksSidebar
+        data={data}
+        demoMode={demoMode}
+        open={sidebarOpen}
+        setOpen={setSidebarOpen}
+        onCreateCategory={() => setCategoriesOpen(true)}
+        onCreateProject={() => {
+          setProjectEditId(null);
+          setProjectsOpen(true);
+        }}
+      />
 
       <main className="min-w-0 lg:pl-64">
         <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-black/10 bg-[#f7f7f5]/90 px-4 backdrop-blur-xl dark:border-white/10 dark:bg-[#101010]/90 sm:px-6 lg:px-8">
@@ -1223,9 +1016,24 @@ export function TaskApp({
             categories={data.categories}
             clearFilters={clearTaskFilters}
             filterCount={filterCount}
-            group={group}
+            includedCategoryIds={includedCategoryIds}
+            excludedCategoryIds={excludedCategoryIds}
             onAssigneeChange={setAssignee}
-            onCategoryChange={setGroup}
+            onIncludedCategoriesChange={(ids) => {
+              setGroup("all");
+              setIncludedCategories(ids.join(","));
+              setExcludedCategories(
+                excludedCategoryIds.filter((id) => !ids.includes(id)).join(","),
+              );
+            }}
+            onExcludedCategoriesChange={(ids) => {
+              setExcludedCategories(ids.join(","));
+              setIncludedCategories(
+                includedCategoryIds.filter((id) => !ids.includes(id)).join(","),
+              );
+              if (selectedCategory && ids.includes(selectedCategory.id))
+                setGroup("all");
+            }}
             onPriorityChange={setPriority}
             onProjectChange={setProject}
             onReporterChange={setReporter}
@@ -1237,7 +1045,6 @@ export function TaskApp({
             project={project}
             projects={data.projects}
             selectedAssignee={selectedAssignee}
-            selectedCategory={selectedCategory}
             selectedPriority={selectedPriority}
             selectedProject={selectedProject}
             selectedReporter={selectedReporter}
@@ -1407,6 +1214,7 @@ export function TaskApp({
         setData={setData}
         demoMode={demoMode}
         saveTask={saveTask}
+        saveDraft={saveAsDraft}
         setTaskPendingDelete={setTaskPendingDelete}
         taskMessage={taskMessage}
       />

@@ -3,7 +3,7 @@ import { forwardRef } from "react";
 import type { ReactNode } from "react";
 
 export type CardVariant = "soft" | "solid" | "outline";
-export type CardSize = "sm" | "md" | "lg";
+export type CardSize = "none" | "sm" | "md" | "lg";
 
 export type CardProps = {
   children: ReactNode;
@@ -20,6 +20,7 @@ const variantStyles: Record<CardVariant, string> = {
 };
 
 const sizeStyles: Record<CardSize, string> = {
+  none: "",
   sm: "p-4",
   md: "p-5",
   lg: "p-6",

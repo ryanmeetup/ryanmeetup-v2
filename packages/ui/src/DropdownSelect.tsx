@@ -26,6 +26,7 @@ export type DropdownSelectProps = {
   onChange: (value: string) => void;
   className?: string;
   required?: boolean;
+  disabled?: boolean;
   variant?: "compact" | "field";
 };
 
@@ -36,6 +37,7 @@ const DropdownSelect = ({
   onChange,
   className,
   required = false,
+  disabled = false,
   variant = "compact",
 }: DropdownSelectProps) => {
   const buttonId = useId();
@@ -47,6 +49,7 @@ const DropdownSelect = ({
       as="div"
       value={value}
       onChange={onChange}
+      disabled={disabled}
       className={field ? "flex min-w-0 flex-col gap-2" : "contents"}
     >
       {field && (
@@ -58,13 +61,19 @@ const DropdownSelect = ({
       <ListboxButton
         id={buttonId}
         aria-required={required || undefined}
-        className={`inline-flex items-center gap-2 rounded-lg border bg-white font-semibold text-black transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 dark:focus-visible:ring-white/30 ${field ? "w-full justify-between border-black/20 px-4 py-2.5 text-sm shadow-sm dark:border-white/20 dark:bg-white/10" : "shrink-0 justify-center border-black/10 px-3 py-1.5 text-xs dark:border-white/10"} ${className ?? ""}`}
+        className={`inline-flex items-center gap-2 rounded-lg border bg-white font-semibold text-black transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 dark:focus-visible:ring-white/30 ${field ? "w-full justify-between border-black/20 px-4 py-2.5 text-sm shadow-sm dark:border-white/20 dark:bg-white/10" : "shrink-0 justify-center border-black/10 px-3 py-1.5 text-xs dark:border-white/10"} ${className ?? ""}`}
       >
         {!field && (
           <span className="text-black/50 dark:text-white/50">{label}</span>
         )}
         <span className="inline-flex min-w-0 items-center gap-2">
-          {selected?.avatar && <Avatar {...selected.avatar} size="xs" />}
+          {selected?.avatar && (
+            <Avatar
+              {...selected.avatar}
+              size="sm"
+              className={`-my-1 ${selected.avatar.className ?? ""}`}
+            />
+          )}
           {selected?.color && (
             <i
               aria-hidden
@@ -97,7 +106,13 @@ const DropdownSelect = ({
               value={option.value}
               className="group flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm transition focus:outline-none data-focus:bg-black/5 data-selected:bg-black/5 data-selected:font-semibold dark:data-focus:bg-white/10 dark:data-selected:bg-white/10"
             >
-              {option.avatar && <Avatar size="sm" {...option.avatar} />}
+              {option.avatar && (
+                <Avatar
+                  {...option.avatar}
+                  size="md"
+                  className={`-my-1 ${option.avatar.className ?? ""}`}
+                />
+              )}
               {option.color && (
                 <i
                   aria-hidden

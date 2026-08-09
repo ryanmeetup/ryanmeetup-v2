@@ -40,7 +40,7 @@ const IconButton = ({
       {...buttonProps}
       type={type}
       aria-label={label}
-      className={`inline-flex items-center justify-center transition duration-300 ease-in-out focus-visible:outline-none focus-visible:ring-2 ${sizeStyles[size]} ${variantStyles[variant]} ${className ?? ""}`}
+      className={`inline-flex shrink-0 items-center justify-center transition duration-300 ease-in-out focus-visible:outline-none focus-visible:ring-2 ${sizeStyles[size]} ${variantStyles[variant]} ${className ?? ""}`}
     >
       {children}
     </button>
@@ -51,7 +51,7 @@ const IconButton = ({
     <Tooltip
       content={tooltip ?? label}
       placement={tooltipPlacement}
-      triggerClassName={tooltipTriggerClassName}
+      triggerClassName={`shrink-0 ${tooltipTriggerClassName ?? ""}`}
     >
       {button}
     </Tooltip>

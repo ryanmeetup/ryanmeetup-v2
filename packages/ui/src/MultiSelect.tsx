@@ -26,6 +26,7 @@ export type MultiSelectProps = {
   className?: string;
   disabled?: boolean;
   placeholder?: string;
+  required?: boolean;
 };
 
 const MultiSelect = ({
@@ -36,11 +37,13 @@ const MultiSelect = ({
   className,
   disabled = false,
   placeholder = "Select options",
+  required = false,
 }: MultiSelectProps) => {
   const buttonId = useId();
-  const selectedLabels = options
-    .filter((option) => value.includes(option.value))
-    .map((option) => option.label);
+  const selectedOptions = options.filter((option) =>
+    value.includes(option.value),
+  );
+  const selectedLabels = selectedOptions.map((option) => option.label);
   const summary =
     selectedLabels.length === 0
       ? placeholder
@@ -59,15 +62,34 @@ const MultiSelect = ({
     >
       <label className={getFieldLabelClasses()} htmlFor={buttonId}>
         <span>{label}</span>
+        {required && <span className="shrink-0 text-red-500">*</span>}
       </label>
       <ListboxButton
         id={buttonId}
+        aria-required={required}
         className="inline-flex w-full items-center justify-between gap-2 rounded-lg border border-black/20 bg-white px-4 py-2.5 text-sm font-semibold text-black shadow-sm transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/20 dark:bg-white/10 dark:text-white dark:hover:bg-white/15 dark:focus-visible:ring-white/30"
       >
-        <span
-          className={`truncate ${selectedLabels.length === 0 ? "font-normal text-black/50 dark:text-white/50" : ""}`}
-        >
-          {summary}
+        <span className="inline-flex min-w-0 items-center gap-2">
+          {selectedOptions.some((option) => option.avatar) && (
+            <span className="flex shrink-0 -space-x-1" aria-hidden>
+              {selectedOptions
+                .filter((option) => option.avatar)
+                .slice(0, 3)
+                .map((option) => (
+                  <Avatar
+                    key={option.value}
+                    {...option.avatar}
+                    size="sm"
+                    className={`-my-1 ring-1 ring-white dark:ring-[#303030] ${option.avatar?.className ?? ""}`}
+                  />
+                ))}
+            </span>
+          )}
+          <span
+            className={`truncate ${selectedLabels.length === 0 ? "font-normal text-black/50 dark:text-white/50" : ""}`}
+          >
+            {summary}
+          </span>
         </span>
         <FiChevronDown
           aria-hidden
@@ -92,7 +114,13 @@ const MultiSelect = ({
               value={option.value}
               className="group flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm transition focus:outline-none data-focus:bg-black/5 data-selected:bg-black/5 data-selected:font-semibold dark:data-focus:bg-white/10 dark:data-selected:bg-white/10"
             >
-              {option.avatar && <Avatar size="sm" {...option.avatar} />}
+              {option.avatar && (
+                <Avatar
+                  {...option.avatar}
+                  size="md"
+                  className={`-my-1 ${option.avatar.className ?? ""}`}
+                />
+              )}
               <span className="min-w-0 flex-1 truncate">{option.label}</span>
               <FiCheck
                 aria-hidden

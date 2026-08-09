@@ -1,11 +1,18 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import Link from "next/link";
 import {
   Avatar,
   Button,
   Card,
+  ConfirmationDialog,
   EmptyState,
   Heading,
   IconButton,
@@ -15,9 +22,12 @@ import {
   FiCalendar,
   FiCheckCircle,
   FiClock,
+  FiEdit2,
+  FiFileText,
   FiMenu,
   FiPlus,
   FiSend,
+  FiTrash2,
 } from "react-icons/fi";
 import { CategoriesModal } from "@/components/categories";
 import { TaskBanners } from "@/components/global";
@@ -25,6 +35,12 @@ import { TaskHeaderActions, TasksSidebar } from "@/components/navigation";
 import { ProjectsModal } from "@/components/projects";
 import { NewTaskModal } from "@/components/tasks/NewTaskModal";
 import { withAccessPreview } from "@/lib/access-preview";
+import {
+  deleteTaskDraft,
+  readTaskDrafts,
+  taskDraftsChangedEvent,
+  type StoredTaskDraft,
+} from "@/lib/task-drafts";
 import type { Status, Task, TaskActivity, WorkspaceData } from "@/lib/types";
 
 const dayMs = 24 * 60 * 60 * 1000;
@@ -160,6 +176,28 @@ export function DashboardPageClient({
   const [projectCreateOpen, setProjectCreateOpen] = useState(false);
   const [categoryCreateOpen, setCategoryCreateOpen] = useState(false);
   const [newTaskOpen, setNewTaskOpen] = useState(false);
+  const [drafts, setDrafts] = useState<StoredTaskDraft[]>([]);
+  const [selectedDraft, setSelectedDraft] = useState<StoredTaskDraft | null>(
+    null,
+  );
+  const [draftPendingDelete, setDraftPendingDelete] =
+    useState<StoredTaskDraft | null>(null);
+  const refreshDrafts = useCallback(() => {
+    if (!data.accessPreview) {
+      setDrafts(readTaskDrafts(data.currentProfile.id));
+    }
+  }, [data.accessPreview, data.currentProfile.id]);
+
+  useEffect(() => {
+    const initialRefresh = window.setTimeout(refreshDrafts, 0);
+    window.addEventListener(taskDraftsChangedEvent, refreshDrafts);
+    window.addEventListener("storage", refreshDrafts);
+    return () => {
+      window.clearTimeout(initialRefresh);
+      window.removeEventListener(taskDraftsChangedEvent, refreshDrafts);
+      window.removeEventListener("storage", refreshDrafts);
+    };
+  }, [refreshDrafts]);
   const subjectId =
     data.accessPreview?.kind === "user"
       ? data.accessPreview.subjectId
@@ -259,11 +297,22 @@ export function DashboardPageClient({
               </Button>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div
+              className={`grid gap-4 sm:grid-cols-2 ${data.accessPreview ? "xl:grid-cols-3" : "xl:grid-cols-4"}`}
+            >
               {[
                 { label: "Assigned to me", value: assignedToMe.length, icon: <FiCheckCircle /> },
                 { label: "Reported by me", value: reportedByMe.length, icon: <FiSend /> },
                 { label: "Due within 14 days", value: upcoming.length, icon: <FiCalendar /> },
+                ...(!data.accessPreview
+                  ? [
+                      {
+                        label: "Saved drafts",
+                        value: drafts.length,
+                        icon: <FiFileText />,
+                      },
+                    ]
+                  : []),
               ].map((item) => (
                 <Card key={item.label} size="sm">
                   <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-black/50 dark:text-white/50">
@@ -274,6 +323,45 @@ export function DashboardPageClient({
                 </Card>
               ))}
             </div>
+
+            {!data.accessPreview && drafts.length > 0 && (
+              <SectionCard title="Drafts" icon={<FiFileText />}>
+                <ul className="divide-y divide-black/10 dark:divide-white/10">
+                  {drafts.map((item) => (
+                    <li
+                      key={item.id}
+                      className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center"
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold">
+                          {item.draft.title.trim() || "Untitled task"}
+                        </span>
+                        <span className="mt-1 block text-xs text-black/50 dark:text-white/50">
+                          Saved {new Date(item.updatedAt).toLocaleString()}
+                        </span>
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          leftIcon={<FiEdit2 />}
+                          onClick={() => setSelectedDraft(item)}
+                        >
+                          Continue
+                        </Button>
+                        <IconButton
+                          label={`Delete ${item.draft.title || "untitled draft"}`}
+                          size="sm"
+                          onClick={() => setDraftPendingDelete(item)}
+                        >
+                          <FiTrash2 />
+                        </IconButton>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </SectionCard>
+            )}
 
             <div className="grid items-start gap-6 xl:grid-cols-2">
               <SectionCard
@@ -348,15 +436,41 @@ export function DashboardPageClient({
         setData={setData}
         demoMode={demoMode}
       />
-      {!data.accessPreview && (
+      {!data.accessPreview && (newTaskOpen || selectedDraft) && (
         <NewTaskModal
           data={data}
           demoMode={demoMode}
-          open={newTaskOpen}
+          open
           setData={setData}
-          setOpen={setNewTaskOpen}
+          setOpen={(open) => {
+            if (!open) {
+              setNewTaskOpen(false);
+              setSelectedDraft(null);
+              refreshDrafts();
+            }
+          }}
+          initialDraft={selectedDraft}
         />
       )}
+      <ConfirmationDialog
+        open={Boolean(draftPendingDelete)}
+        setOpen={(open) => {
+          if (!open) setDraftPendingDelete(null);
+        }}
+        title="Delete draft?"
+        description={
+          draftPendingDelete
+            ? `Delete “${draftPendingDelete.draft.title.trim() || "Untitled task"}”? This saved draft cannot be recovered.`
+            : ""
+        }
+        confirmLabel="Delete draft"
+        destructive
+        onConfirm={() => {
+          if (!draftPendingDelete) return;
+          deleteTaskDraft(data.currentProfile.id, draftPendingDelete.id);
+          setDraftPendingDelete(null);
+        }}
+      />
     </div>
   );
 }
