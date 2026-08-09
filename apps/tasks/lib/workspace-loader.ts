@@ -68,9 +68,9 @@ export const WORKSPACE_COLUMNS = {
   projects: "id,name,description,links,created_by,archived_at,created_at",
   projectOwners: "project_id,profile_id",
   tasks:
-    "id,title,description,status_id,project_id,assignee_id,created_by,reported_by,start_date,due_date,due_time,reminder_at,priority,board_position,completed_at,archived_at,created_at,updated_at",
+    "id,task_number,title,description,status_id,project_id,assignee_id,created_by,reported_by,start_date,due_date,due_time,reminder_at,priority,board_position,completed_at,archived_at,created_at,updated_at",
   subtasks: "id,task_id,title,is_completed,sort_order,created_by,created_at",
-  comments: "id,task_id,body,created_by,created_at",
+  comments: "id,task_id,body,created_by,created_at,edited_at",
   activity: "id,task_id,actor_id,action,details,created_at",
   attachments:
     "id,task_id,name,url,file_path,mime_type,size_bytes,created_by,created_at",
@@ -123,10 +123,7 @@ export async function loadWorkspace(
         .select(columns.tasks)
         .order("updated_at", { ascending: false }),
     subtasks: () =>
-      supabase
-        .from("subtasks")
-        .select(columns.subtasks)
-        .order("sort_order"),
+      supabase.from("subtasks").select(columns.subtasks).order("sort_order"),
     comments: () =>
       supabase
         .from("task_comments")
@@ -145,8 +142,7 @@ export async function loadWorkspace(
     labels: () => supabase.from("labels").select(columns.labels).order("name"),
     taskAssignees: () =>
       supabase.from("task_assignees").select(columns.taskAssignees),
-    taskLabels: () =>
-      supabase.from("task_labels").select(columns.taskLabels),
+    taskLabels: () => supabase.from("task_labels").select(columns.taskLabels),
     taskCategories: () =>
       supabase.from("task_categories").select(columns.taskCategories),
   };

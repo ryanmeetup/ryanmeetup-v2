@@ -23,13 +23,18 @@ import { withAccessPreview } from "@/lib/access-preview";
 import { useQueryParamState } from "@ryanmeetup/hooks";
 import { usePagination } from "@/hooks/usePagination";
 import type { TaskActivity, WorkspaceData } from "@/lib/types";
+import { taskKey, taskPath } from "@/lib/task-key";
 
 const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",
   timeStyle: "short",
 });
 
-function StatusLabel({ status }: { status: WorkspaceData["statuses"][number] }) {
+function StatusLabel({
+  status,
+}: {
+  status: WorkspaceData["statuses"][number];
+}) {
   return (
     <span className="inline-flex items-center gap-1.5 whitespace-nowrap font-semibold">
       <span
@@ -52,7 +57,9 @@ function activityDescription(
         ? item.details.from_status_id
         : null;
     const toStatusId =
-      typeof item.details.status_id === "string" ? item.details.status_id : null;
+      typeof item.details.status_id === "string"
+        ? item.details.status_id
+        : null;
     const fromStatus = statuses.find((status) => status.id === fromStatusId);
     const toStatus = statuses.find((status) => status.id === toStatusId);
 
@@ -101,18 +108,15 @@ export function ActivityPageClient({
   const [projectCreateOpen, setProjectCreateOpen] = useState(false);
   const [categoryCreateOpen, setCategoryCreateOpen] = useState(false);
   const [loading, setLoading] = useState(!demoMode);
-  const [projectFilter, setProjectFilter] = useQueryParamState("project", "all");
+  const [projectFilter, setProjectFilter] = useQueryParamState(
+    "project",
+    "all",
+  );
   const [personFilter, setPersonFilter] = useQueryParamState("person", "all");
   const [kindFilter, setKindFilter] = useQueryParamState("event", "all");
   const [timeFilter, setTimeFilter] = useQueryParamState("when", "all");
-  const {
-    page,
-    pageSize,
-    setPage,
-    setPageSize,
-    syncPage,
-    syncPageSize,
-  } = usePagination();
+  const { page, pageSize, setPage, setPageSize, syncPage, syncPageSize } =
+    usePagination();
   const previewKind = data.accessPreview?.kind;
   const previewSubjectId = data.accessPreview?.subjectId;
   const tasks = useMemo(
@@ -123,9 +127,12 @@ export function ActivityPageClient({
     () => new Map(data.profiles.map((profile) => [profile.id, profile])),
     [data.profiles],
   );
-  const filterCount = [projectFilter, personFilter, kindFilter, timeFilter].filter(
-    (value) => value !== "all",
-  ).length;
+  const filterCount = [
+    projectFilter,
+    personFilter,
+    kindFilter,
+    timeFilter,
+  ].filter((value) => value !== "all").length;
 
   function setFilter(setter: (value: string) => void, value: string) {
     setter(value);
@@ -184,9 +191,12 @@ export function ActivityPageClient({
         syncPageSize(result.page.pageSize);
       })
       .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError") return;
+        if (error instanceof DOMException && error.name === "AbortError")
+          return;
         toast.error(
-          error instanceof Error ? error.message : "Activity could not be loaded.",
+          error instanceof Error
+            ? error.message
+            : "Activity could not be loaded.",
         );
       })
       .finally(() => {
@@ -228,7 +238,11 @@ export function ActivityPageClient({
             <FiMenu />
           </IconButton>
           <p className="font-semibold">Activity</p>
-          <TaskHeaderActions data={data} setData={setData} demoMode={demoMode} />
+          <TaskHeaderActions
+            data={data}
+            setData={setData}
+            demoMode={demoMode}
+          />
         </header>
         <TaskBanners preview={data.accessPreview} />
 
@@ -348,13 +362,20 @@ export function ActivityPageClient({
                         ? profiles.get(item.actor_id)
                         : undefined;
                       const project = task?.project_id
-                        ? data.projects.find((entry) => entry.id === task.project_id)
+                        ? data.projects.find(
+                            (entry) => entry.id === task.project_id,
+                          )
                         : undefined;
                       return (
-                        <tr key={item.id} className="align-middle hover:bg-black/[0.025] dark:hover:bg-white/[0.025]">
+                        <tr
+                          key={item.id}
+                          className="align-middle hover:bg-black/[0.025] dark:hover:bg-white/[0.025]"
+                        >
                           <td className="whitespace-nowrap px-4 py-3 text-black/55 dark:text-white/55">
                             <time dateTime={item.created_at}>
-                              {dateTimeFormatter.format(new Date(item.created_at))}
+                              {dateTimeFormatter.format(
+                                new Date(item.created_at),
+                              )}
                             </time>
                           </td>
                           <td className="px-4 py-3">
@@ -374,15 +395,17 @@ export function ActivityPageClient({
                             {task ? (
                               <Link
                                 href={withAccessPreview(
-                                  `/board?task=${encodeURIComponent(task.id)}`,
+                                  taskPath(task),
                                   data.accessPreview,
                                 )}
                                 className="rounded hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/40"
                               >
-                                {task.title}
+                                {task.title} · {taskKey(task)}
                               </Link>
                             ) : (
-                              <span className="text-black/45 dark:text-white/45">Task unavailable</span>
+                              <span className="text-black/45 dark:text-white/45">
+                                Task unavailable
+                              </span>
                             )}
                           </td>
                           <td className="px-4 py-3 text-black/65 dark:text-white/65">
@@ -421,7 +444,9 @@ export function ActivityPageClient({
               <Pagination
                 page={data.activityPage?.page ?? page}
                 pageSize={data.activityPage?.pageSize ?? pageSize}
-                totalCount={data.activityPage?.totalCount ?? data.activity.length}
+                totalCount={
+                  data.activityPage?.totalCount ?? data.activity.length
+                }
                 itemLabel="events"
                 disabled={loading}
                 onPageChange={setPage}

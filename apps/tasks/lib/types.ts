@@ -44,6 +44,7 @@ export type ProjectLink = {
 
 export type Task = {
   id: string;
+  task_number: number;
   title: string;
   description: string | null;
   status_id: string;
@@ -79,6 +80,7 @@ export type TaskComment = {
   body: string;
   created_by: string;
   created_at: string;
+  edited_at: string | null;
 };
 
 export type TaskActivity = {

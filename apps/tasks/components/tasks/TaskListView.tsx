@@ -1,7 +1,15 @@
 import { Avatar, Card, EmptyState, Pagination } from "@ryanmeetup/ui";
 import { FiChevronDown } from "react-icons/fi";
-import type { Category, Priority, Profile, Project, Status, Task } from "@/lib/types";
+import type {
+  Category,
+  Priority,
+  Profile,
+  Project,
+  Status,
+  Task,
+} from "@/lib/types";
 import { TaskDueDate } from "./TaskDueDate";
+import { taskKey } from "@/lib/task-key";
 
 const priorityStyles: Record<Priority, string> = {
   low: "border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200",
@@ -77,7 +85,10 @@ export function TaskListView({
               <th>Assignee</th>
               <th>Priority</th>
               <th>
-                <button className="flex items-center gap-1" onClick={onToggleSort}>
+                <button
+                  className="flex items-center gap-1"
+                  onClick={onToggleSort}
+                >
                   Due <FiChevronDown />
                 </button>
               </th>
@@ -103,7 +114,12 @@ export function TaskListView({
                   onClick={() => onOpenTask(task)}
                   className="cursor-pointer text-sm hover:bg-black/[0.025] dark:hover:bg-white/[0.025]"
                 >
-                  <td className="px-4 py-4 font-semibold">{task.title}</td>
+                  <td className="px-4 py-4">
+                    <span className="block font-semibold">{task.title}</span>
+                    <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.16em] text-black/45 dark:text-white/45">
+                      {taskKey(task)}
+                    </span>
+                  </td>
                   <td>
                     <span className="flex items-center gap-2">
                       <i
@@ -117,7 +133,10 @@ export function TaskListView({
                     {taskCategories.length > 0 ? (
                       <span className="flex flex-wrap gap-1.5 py-2 pr-3">
                         {taskCategories.map((category) => (
-                          <CategoryBadge key={category.id} category={category} />
+                          <CategoryBadge
+                            key={category.id}
+                            category={category}
+                          />
                         ))}
                       </span>
                     ) : (

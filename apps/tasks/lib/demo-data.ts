@@ -169,6 +169,7 @@ export const demoData: WorkspaceData = {
   tasks: [
     {
       id: "1",
+      task_number: 5,
       title: "Confirm September venue",
       description: "Get the final room capacity and load-in details.",
       status_id: "progress",
@@ -189,6 +190,7 @@ export const demoData: WorkspaceData = {
     },
     {
       id: "2",
+      task_number: 4,
       title: "Refresh sponsor prospectus",
       description: "Update benefits and current event dates.",
       status_id: "review",
@@ -209,6 +211,7 @@ export const demoData: WorkspaceData = {
     },
     {
       id: "3",
+      task_number: 3,
       title: "Publish chapter host checklist",
       description: null,
       status_id: "todo",
@@ -229,6 +232,7 @@ export const demoData: WorkspaceData = {
     },
     {
       id: "4",
+      task_number: 2,
       title: "Fix RSVP confirmation copy",
       description: "Keep it warm, short, and unmistakably Ryan.",
       status_id: "backlog",
@@ -249,6 +253,7 @@ export const demoData: WorkspaceData = {
     },
     {
       id: "5",
+      task_number: 1,
       title: "Send July volunteer thank-yous",
       description: null,
       status_id: "done",

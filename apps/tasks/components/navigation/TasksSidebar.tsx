@@ -38,10 +38,6 @@ export function TasksSidebar({
   const activeProjects = data.projects.filter(
     (project) => !project.archived_at,
   );
-  const myTasksProfileId =
-    data.accessPreview?.kind === "user"
-      ? data.accessPreview.subjectId
-      : data.currentProfile.id;
   const {
     categoriesExpanded,
     setCategoriesExpanded,
@@ -53,14 +49,6 @@ export function TasksSidebar({
   const searchParams = useSearchParams();
   const selectedCategory = searchParams.get("category");
   const selectedProject = searchParams.get("project");
-  const selectedAssignee = searchParams.get("assignee");
-  const hasOtherTaskFilters = ["reporter", "status", "priority"].some(
-    (key) => {
-      const value = searchParams.get(key);
-      return value !== null && value !== "all";
-    },
-  );
-  const visibility = searchParams.get("visibility") ?? "active";
   const isBoard = pathname === "/board";
   const closeSidebar = () => setOpen(false);
   const linkClass = (active: boolean) =>
@@ -107,22 +95,12 @@ export function TasksSidebar({
             Dashboard
           </Link>
           <Link
-            href={withAccessPreview(
-              `/board?assignee=${encodeURIComponent(myTasksProfileId)}`,
-              data.accessPreview,
-            )}
+            href={withAccessPreview("/board", data.accessPreview)}
             onClick={closeSidebar}
-            className={linkClass(
-              isBoard &&
-                selectedAssignee === myTasksProfileId &&
-                !selectedCategory &&
-                !selectedProject &&
-                !hasOtherTaskFilters &&
-                visibility === "active",
-            )}
+            className={linkClass(isBoard)}
           >
             <FiGrid />
-            My Tasks
+            Tasks
           </Link>
           <Link
             href={withAccessPreview("/activity", data.accessPreview)}
@@ -131,21 +109,6 @@ export function TasksSidebar({
           >
             <FiClock />
             Activity
-          </Link>
-          <Link
-            href={withAccessPreview("/board", data.accessPreview)}
-            onClick={closeSidebar}
-            className={linkClass(
-              isBoard &&
-                !selectedAssignee &&
-                !selectedCategory &&
-                !selectedProject &&
-                !hasOtherTaskFilters &&
-                visibility === "active",
-            )}
-          >
-            <FiGrid />
-            All Tasks
           </Link>
           <Tooltip
             content="Calendar view is coming soon"

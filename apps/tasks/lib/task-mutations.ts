@@ -78,6 +78,9 @@ export function createTaskMutationService(context: MutationContext) {
               ...completionLifecycle(draft.status_id, snapshot.statuses),
               title: draft.title.trim(),
               id: crypto.randomUUID(),
+              task_number:
+                Math.max(0, ...snapshot.tasks.map((item) => item.task_number)) +
+                1,
               created_by: snapshot.currentProfile.id,
               board_position:
                 Math.max(
