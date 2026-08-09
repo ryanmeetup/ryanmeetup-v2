@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import {
   Avatar,
@@ -11,6 +11,7 @@ import {
   IconButton,
   Input,
   Modal,
+  Pagination,
   Pill,
   Textarea,
   Tooltip,
@@ -20,6 +21,8 @@ import {
   FiEdit2,
   FiEye,
   FiFolder,
+  FiCheckCircle,
+  FiClock,
   FiMenu,
   FiPlus,
   FiShield,
@@ -29,6 +32,7 @@ import {
 import { accessMutation } from "@/lib/access-mutations";
 import { accessGroupSlug } from "@/lib/access-groups";
 import { accessPreviewHref, userAccessPreviewHref } from "@/lib/access-preview";
+import { usePagination } from "@/hooks/usePagination";
 import type { Profile, Project, WorkspaceData } from "@/lib/types";
 import { CategoriesModal } from "@/components/categories";
 import { TaskBanners } from "@/components/global";
@@ -56,6 +60,28 @@ type GroupGrant = {
   permission: Permission;
   granted_by: string;
 };
+type UserMetadata = {
+  profileId: string;
+  email: string | null;
+  invitedAt: string | null;
+  createdAt: string | null;
+  lastSignInAt: string | null;
+  assigned: number;
+  assignedOpen: number;
+  assignedCompleted: number;
+  created: number;
+  reported: number;
+};
+
+function formatAccountDate(value: string | null) {
+  if (!value) return null;
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "America/New_York",
+  }).format(new Date(value));
+}
+
 export function AccessPageClient({
   currentUserId,
   initialData,
@@ -64,6 +90,7 @@ export function AccessPageClient({
   initialGroups,
   initialMembers,
   initialGroupGrants,
+  userMetadata,
 }: {
   currentUserId: string;
   initialData: WorkspaceData;
@@ -72,6 +99,7 @@ export function AccessPageClient({
   initialGroups: AccessGroup[];
   initialMembers: GroupMember[];
   initialGroupGrants: GroupGrant[];
+  userMetadata: UserMetadata[];
 }) {
   const [data, setData] = useState(initialData);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -88,6 +116,7 @@ export function AccessPageClient({
   const [groups, setGroups] = useState(initialGroups);
   const [members, setMembers] = useState(initialMembers);
   const [groupGrants, setGroupGrants] = useState(initialGroupGrants);
+  const [teamMetadata, setTeamMetadata] = useState(userMetadata);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
@@ -97,9 +126,21 @@ export function AccessPageClient({
   const [teamPending, setTeamPending] = useState(false);
   const [profileToRemove, setProfileToRemove] = useState<Profile | null>(null);
   const [deleteGroup, setDeleteGroup] = useState<AccessGroup | null>(null);
+  const { page, pageSize, setPage, setPageSize } = usePagination();
+  const totalTeamPages = Math.max(1, Math.ceil(profiles.length / pageSize));
+  const teamPage = Math.min(page, totalTeamPages);
+  const paginatedProfiles = profiles.slice(
+    (teamPage - 1) * pageSize,
+    teamPage * pageSize,
+  );
   const projectNames = useMemo(
     () => new Map(projects.map((project) => [project.id, project.name])),
     [projects],
+  );
+  const metadataByProfile = useMemo(
+    () =>
+      new Map(teamMetadata.map((metadata) => [metadata.profileId, metadata])),
+    [teamMetadata],
   );
   const editingMembers = editingGroup
     ? members.filter((item) => item.group_id === editingGroup.id)
@@ -107,6 +148,10 @@ export function AccessPageClient({
   const editingGrants = editingGroup
     ? groupGrants.filter((item) => item.group_id === editingGroup.id)
     : [];
+
+  useEffect(() => {
+    if (page > totalTeamPages) setPage(totalTeamPages);
+  }, [page, setPage, totalTeamPages]);
 
   async function createGroup(event: FormEvent) {
     event.preventDefault();
@@ -227,6 +272,21 @@ export function AccessPageClient({
         ...current,
         profiles: [...current.profiles, result.profile!],
       }));
+      setTeamMetadata((current) => [
+        ...current,
+        {
+          profileId: result.profile!.id,
+          email: inviteEmail.trim(),
+          invitedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+          lastSignInAt: null,
+          assigned: 0,
+          assignedOpen: 0,
+          assignedCompleted: 0,
+          created: 0,
+          reported: 0,
+        },
+      ]);
       setInviteName("");
       setInviteEmail("");
       setInviteOpen(false);
@@ -267,6 +327,9 @@ export function AccessPageClient({
       setMembers((current) =>
         current.filter((member) => member.profile_id !== removedId),
       );
+      setTeamMetadata((current) =>
+        current.filter((metadata) => metadata.profileId !== removedId),
+      );
       setProfileToRemove(null);
       toast.success(`${profileToRemove.full_name} removed.`);
     } catch (error) {
@@ -304,7 +367,7 @@ export function AccessPageClient({
         </header>
         <TaskBanners />
         <div className="p-4 sm:p-6 lg:p-8">
-          <div className="mx-auto max-w-6xl space-y-8">
+          <div className="space-y-8">
             <div>
               <p className="flex items-center gap-2 text-2xl font-semibold">
                 <FiShield />
@@ -334,7 +397,7 @@ export function AccessPageClient({
                   No access groups yet.
                 </Card>
               )}
-              <div className="grid auto-rows-fr gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid auto-rows-fr gap-4 md:grid-cols-2 xl:grid-cols-4">
                 {groups.map((group) => {
                   const groupMembers = members.filter(
                     (item) => item.group_id === group.id,
@@ -406,7 +469,7 @@ export function AccessPageClient({
                         leftIcon={<FiEye />}
                         className="mt-4 w-full"
                       >
-                        View as this group
+                        View as group
                       </Button.Link>
                     </Card>
                   );
@@ -441,7 +504,8 @@ export function AccessPageClient({
                     <thead className="border-b border-black/10 bg-black/[0.025] text-[10px] uppercase tracking-[0.16em] text-black/50 dark:border-white/10 dark:bg-white/[0.025] dark:text-white/50">
                       <tr>
                         <th className="px-4 py-3 font-semibold">Person</th>
-                        <th className="px-4 py-3 font-semibold">Role</th>
+                        <th className="px-4 py-3 font-semibold">Account</th>
+                        <th className="px-4 py-3 font-semibold">Tasks</th>
                         <th className="px-4 py-3 font-semibold">
                           Access groups
                         </th>
@@ -451,7 +515,8 @@ export function AccessPageClient({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-black/10 dark:divide-white/10">
-                      {profiles.map((profile) => {
+                      {paginatedProfiles.map((profile) => {
+                        const metadata = metadataByProfile.get(profile.id);
                         const profileGroups = members
                           .filter((member) => member.profile_id === profile.id)
                           .map((member) =>
@@ -470,13 +535,91 @@ export function AccessPageClient({
                                   src={profile.avatar_url}
                                   size="sm"
                                 />
-                                <span className="font-semibold">
-                                  {profile.full_name}
+                                <span className="min-w-0">
+                                  <span className="block font-semibold">
+                                    {profile.full_name}
+                                  </span>
+                                  {metadata?.email && (
+                                    <span className="block truncate text-xs font-normal text-black/55 dark:text-white/55">
+                                      {metadata.email}
+                                    </span>
+                                  )}
                                 </span>
                               </span>
                             </td>
-                            <td className="px-4 py-3 capitalize text-black/65 dark:text-white/65">
-                              {profile.app_role ?? "member"}
+                            <td className="min-w-48 px-4 py-3 text-xs text-black/65 dark:text-white/65">
+                              <span
+                                className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 font-semibold ${
+                                  metadata?.lastSignInAt
+                                    ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                                    : "bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                                }`}
+                              >
+                                {metadata?.lastSignInAt ? (
+                                  <FiCheckCircle aria-hidden="true" />
+                                ) : (
+                                  <FiClock aria-hidden="true" />
+                                )}
+                                {metadata?.lastSignInAt ? "Active" : "Invited"}
+                              </span>
+                              <dl className="mt-2 space-y-1">
+                                <div className="flex gap-1">
+                                  <dt className="text-black/45 dark:text-white/45">
+                                    Last login
+                                  </dt>
+                                  <dd>
+                                    {formatAccountDate(
+                                      metadata?.lastSignInAt ?? null,
+                                    ) ?? "Never"}
+                                  </dd>
+                                </div>
+                                <div className="flex gap-1">
+                                  <dt className="text-black/45 dark:text-white/45">
+                                    {metadata?.lastSignInAt ? "Joined" : "Sent"}
+                                  </dt>
+                                  <dd>
+                                    {formatAccountDate(
+                                      metadata?.lastSignInAt
+                                        ? metadata.createdAt
+                                        : (metadata?.invitedAt ??
+                                            metadata?.createdAt ??
+                                            null),
+                                    ) ?? "—"}
+                                  </dd>
+                                </div>
+                              </dl>
+                            </td>
+                            <td className="min-w-64 px-4 py-3">
+                              <dl className="grid grid-cols-3 gap-1.5 text-center">
+                                <div className="flex flex-col rounded-lg bg-blue-500/[0.08] px-2 py-1.5 text-blue-700 dark:text-blue-300">
+                                  <dt className="order-2 text-[9px] font-semibold uppercase tracking-wider opacity-75">
+                                    Open
+                                  </dt>
+                                  <dd className="order-1 font-semibold">
+                                    {metadata?.assignedOpen ?? 0}
+                                  </dd>
+                                </div>
+                                <div className="flex flex-col rounded-lg bg-emerald-500/[0.08] px-2 py-1.5 text-emerald-700 dark:text-emerald-300">
+                                  <dt className="order-2 text-[9px] font-semibold uppercase tracking-wider opacity-75">
+                                    Done
+                                  </dt>
+                                  <dd className="order-1 font-semibold">
+                                    {metadata?.assignedCompleted ?? 0}
+                                  </dd>
+                                </div>
+                                <div className="flex flex-col rounded-lg bg-black/[0.035] px-2 py-1.5 text-black/65 dark:bg-white/[0.06] dark:text-white/65">
+                                  <dt className="order-2 text-[9px] font-semibold uppercase tracking-wider opacity-75">
+                                    Assigned
+                                  </dt>
+                                  <dd className="order-1 font-semibold">
+                                    {metadata?.assigned ?? 0}
+                                  </dd>
+                                </div>
+                              </dl>
+                              <p className="mt-1.5 text-[10px] text-black/45 dark:text-white/45">
+                                {metadata?.created ?? 0} created ·{" "}
+                                {metadata?.reported ?? 0} reported
+                              </p>
                             </td>
                             <td className="px-4 py-3">
                               {profileGroups.length > 0 ? (
@@ -538,6 +681,14 @@ export function AccessPageClient({
                     </tbody>
                   </table>
                 </div>
+                <Pagination
+                  page={teamPage}
+                  pageSize={pageSize}
+                  totalCount={profiles.length}
+                  itemLabel="people"
+                  onPageChange={setPage}
+                  onPageSizeChange={setPageSize}
+                />
               </Card>
             </section>
           </div>
