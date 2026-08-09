@@ -188,7 +188,7 @@ export function AccessGroupPageClient({
             <FiMenu />
           </IconButton>
           <p className="truncate font-semibold">{group.name}</p>
-          <TaskHeaderActions data={data} demoMode={false} />
+          <TaskHeaderActions data={data} setData={setData} demoMode={false} />
         </header>
         <TaskBanners />
         <div className="p-4 sm:p-6 lg:p-8">

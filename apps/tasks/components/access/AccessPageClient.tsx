@@ -34,7 +34,6 @@ import { CategoriesModal } from "@/components/categories";
 import { TaskBanners } from "@/components/global";
 import { TaskHeaderActions, TasksSidebar } from "@/components/navigation";
 import { ProjectsModal } from "@/components/projects";
-import { StatusSettingsModal } from "@/components/tasks";
 
 type Permission = "viewer" | "editor" | "manager";
 type AccessGroup = {
@@ -65,7 +64,6 @@ export function AccessPageClient({
   initialGroups,
   initialMembers,
   initialGroupGrants,
-  initialStatusSettingsOpen = false,
 }: {
   currentUserId: string;
   initialData: WorkspaceData;
@@ -74,13 +72,11 @@ export function AccessPageClient({
   initialGroups: AccessGroup[];
   initialMembers: GroupMember[];
   initialGroupGrants: GroupGrant[];
-  initialStatusSettingsOpen?: boolean;
 }) {
   const [data, setData] = useState(initialData);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [projectCreateOpen, setProjectCreateOpen] = useState(false);
   const [categoryCreateOpen, setCategoryCreateOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(initialStatusSettingsOpen);
   const [groupCreateOpen, setGroupCreateOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<AccessGroup | null>(null);
   const [editingName, setEditingName] = useState("");
@@ -304,11 +300,7 @@ export function AccessPageClient({
             <FiMenu />
           </IconButton>
           <p className="font-semibold">Access & permissions</p>
-          <TaskHeaderActions
-            data={data}
-            demoMode={false}
-            onStatuses={() => setSettingsOpen(true)}
-          />
+          <TaskHeaderActions data={data} setData={setData} demoMode={false} />
         </header>
         <TaskBanners />
         <div className="p-4 sm:p-6 lg:p-8">
@@ -572,13 +564,6 @@ export function AccessPageClient({
           createOnly
         />
       )}
-      <StatusSettingsModal
-        open={settingsOpen}
-        setOpen={setSettingsOpen}
-        data={data}
-        setData={setData}
-        demoMode={false}
-      />
       <Modal
         open={inviteOpen}
         setIsOpen={(open) => {

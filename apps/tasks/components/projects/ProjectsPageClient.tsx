@@ -42,7 +42,11 @@ export function ProjectsPageClient({
             <FiMenu />
           </IconButton>
           <p className="font-semibold">Projects</p>
-          <TaskHeaderActions data={data} demoMode={demoMode} />
+          <TaskHeaderActions
+            data={data}
+            setData={setData}
+            demoMode={demoMode}
+          />
         </header>
         <TaskBanners preview={data.accessPreview} />
 

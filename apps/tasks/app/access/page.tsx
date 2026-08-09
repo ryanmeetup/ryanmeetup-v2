@@ -7,12 +7,7 @@ export const metadata: Metadata = {
   title: "Team Access",
 };
 
-export default async function AccessPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const query = await searchParams;
+export default async function AccessPage() {
   const {
     supabase,
     user,
@@ -40,7 +35,6 @@ export default async function AccessPage({
       initialGroups={groups}
       initialMembers={members}
       initialGroupGrants={groupGrants}
-      initialStatusSettingsOpen={query.statuses === "1"}
     />
   );
 }

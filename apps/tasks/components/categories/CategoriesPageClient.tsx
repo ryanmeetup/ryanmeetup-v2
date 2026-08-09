@@ -41,7 +41,11 @@ export function CategoriesPageClient({
             <FiMenu />
           </IconButton>
           <p className="font-semibold">Categories</p>
-          <TaskHeaderActions data={data} demoMode={demoMode} />
+          <TaskHeaderActions
+            data={data}
+            setData={setData}
+            demoMode={demoMode}
+          />
         </header>
         <TaskBanners />
         <div className="p-4 sm:p-6 lg:p-8">

@@ -611,7 +611,19 @@ export function TaskApp({
         return;
       }
       setTaskOpen(false);
-      toast.success(editing ? "Task updated." : "Task created.");
+      const movedToStatus = editing
+        ? data.statuses.find(
+            (item) =>
+              item.id === draft.status_id && item.id !== editing.status_id,
+          )
+        : null;
+      toast.success(
+        movedToStatus
+          ? `Task moved to ${movedToStatus.name}.`
+          : editing
+            ? "Task updated."
+            : "Task created.",
+      );
     } catch (error) {
       const message = mutationErrorMessage(
         error,
@@ -646,8 +658,14 @@ export function TaskApp({
     targetId?: string,
     edge: "before" | "after" = "after",
   ) {
+    const task = getData().tasks.find((item) => item.id === id);
+    const destination = data.statuses.find((item) => item.id === statusId);
+    const movedToNewColumn = Boolean(task && task.status_id !== statusId);
     try {
       await mutations.move(id, statusId, targetId, edge);
+      if (movedToNewColumn && destination) {
+        toast.success(`Task moved to ${destination.name}.`);
+      }
     } catch (error) {
       toast.error(mutationErrorMessage(error, "The task could not be moved."));
     }
@@ -748,11 +766,11 @@ export function TaskApp({
       >
         <div className="mb-3 flex items-start justify-between gap-3">
           <span
-            className={`rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.16em] ${priorityStyles[task.priority]}`}
+            className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.16em] ${priorityStyles[task.priority]}`}
           >
             {task.priority}
           </span>
-          <FiMoreHorizontal className="text-black/30 transition group-hover:text-black/70 dark:text-white/30 dark:group-hover:text-white/70" />
+          <FiMoreHorizontal className="shrink-0 text-black/30 transition group-hover:text-black/70 dark:text-white/30 dark:group-hover:text-white/70" />
         </div>
         <h3 className="font-semibold leading-snug text-black dark:text-white">
           {task.title}
@@ -771,7 +789,7 @@ export function TaskApp({
           </div>
         )}
         <div className="mt-4 flex items-end justify-between gap-3">
-          <div className="min-w-0 space-y-2">
+          <div className="min-w-0 flex-1 space-y-2">
             {taskCategories.length > 0 && (
               <span className="flex flex-wrap gap-1.5">
                 {taskCategories.map((category) => (
@@ -787,13 +805,13 @@ export function TaskApp({
             )}
             {task.due_date && (
               <span className="flex items-center gap-1.5 text-[11px] text-black/55 dark:text-white/55">
-                <FiCalendar />
+                <FiCalendar className="shrink-0" />
                 {displayDate(task.due_date)}
               </span>
             )}
           </div>
           {taskPeople.length > 0 ? (
-            <span className="flex -space-x-1.5">
+            <span className="flex shrink-0 -space-x-1.5">
               {taskPeople.slice(0, 3).map((person) => (
                 <Avatar
                   key={person.id}
@@ -806,7 +824,7 @@ export function TaskApp({
           ) : (
             <span
               title="Unassigned"
-              className="grid h-6 w-6 place-items-center rounded-full border border-dashed border-black/30 text-black/40 dark:border-white/30 dark:text-white/40"
+              className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-dashed border-black/30 text-black/40 dark:border-white/30 dark:text-white/40"
             >
               <FiUsers size={12} />
             </span>
@@ -826,7 +844,7 @@ export function TaskApp({
         />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-black/10 bg-white p-4 transition-transform dark:border-white/10 dark:bg-black lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-black/10 bg-white px-4 pt-4 transition-transform dark:border-white/10 dark:bg-black lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="flex h-12 items-center justify-between px-2">
           <Link
@@ -1030,6 +1048,7 @@ export function TaskApp({
           </div>
           <TaskHeaderActions
             data={data}
+            setData={setData}
             demoMode={demoMode}
             onNewTask={() => openCreate()}
           />
@@ -1310,7 +1329,7 @@ export function TaskApp({
                       >
                         <div className="flex items-center gap-2 px-1">
                           <i
-                            className="h-2.5 w-2.5 rounded-full"
+                            className="h-2.5 w-2.5 shrink-0 rounded-full"
                             style={{ backgroundColor: item.color }}
                           />
                           <h2 className="shrink-0 whitespace-nowrap text-xs font-bold uppercase tracking-[0.16em]">
