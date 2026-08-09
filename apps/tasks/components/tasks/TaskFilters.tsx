@@ -13,9 +13,13 @@ export function TaskFilters({
   filterCount,
   excludedCategoryIds,
   includedCategoryIds,
+  dueWithin,
+  involved,
   onAssigneeChange,
+  onDueWithinChange,
   onExcludedCategoriesChange,
   onIncludedCategoriesChange,
+  onInvolvedChange,
   onPriorityChange,
   onProjectChange,
   onReporterChange,
@@ -27,6 +31,7 @@ export function TaskFilters({
   project,
   projects,
   selectedAssignee,
+  selectedInvolved,
   selectedPriority,
   selectedProject,
   selectedReporter,
@@ -41,9 +46,13 @@ export function TaskFilters({
   filterCount: number;
   excludedCategoryIds: string[];
   includedCategoryIds: string[];
+  dueWithin: string;
+  involved: string;
   onAssigneeChange: (value: string) => void;
+  onDueWithinChange: (value: string) => void;
   onExcludedCategoriesChange: (value: string[]) => void;
   onIncludedCategoriesChange: (value: string[]) => void;
+  onInvolvedChange: (value: string) => void;
   onPriorityChange: (value: string) => void;
   onProjectChange: (value: string) => void;
   onReporterChange: (value: string) => void;
@@ -55,6 +64,7 @@ export function TaskFilters({
   project: string;
   projects: Project[];
   selectedAssignee?: Profile | null;
+  selectedInvolved?: Profile | null;
   selectedPriority?: Priority | null;
   selectedProject?: Project | null;
   selectedReporter?: Profile | null;
@@ -156,6 +166,33 @@ export function TaskFilters({
             ...priorities.map((item) => ({
               label: item[0].toUpperCase() + item.slice(1),
               value: item[0].toUpperCase() + item.slice(1),
+            })),
+          ]}
+        />
+        <DropdownSelect
+          label="Due within"
+          value={dueWithin}
+          onChange={onDueWithinChange}
+          options={[
+            { label: "Any time", value: "all" },
+            { label: "Next 7 days", value: "7" },
+            { label: "Next 14 days", value: "14" },
+            { label: "Next 30 days", value: "30" },
+          ]}
+        />
+        <DropdownSelect
+          label="Involvement"
+          value={selectedInvolved?.id ?? involved}
+          onChange={onInvolvedChange}
+          options={[
+            { label: "Anyone", value: "all" },
+            ...profiles.map((profile) => ({
+              avatar: {
+                name: profileName(profile),
+                src: profile.avatar_url,
+              },
+              label: `${profileName(profile)} (assigned or reporter)`,
+              value: profile.id,
             })),
           ]}
         />

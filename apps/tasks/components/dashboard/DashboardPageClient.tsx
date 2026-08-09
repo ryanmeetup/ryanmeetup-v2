@@ -42,6 +42,7 @@ import {
   type StoredTaskDraft,
 } from "@/lib/task-drafts";
 import type { Status, Task, TaskActivity, WorkspaceData } from "@/lib/types";
+import { taskKey, taskPath } from "@/lib/task-key";
 
 const dayMs = 24 * 60 * 60 * 1000;
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
@@ -82,7 +83,9 @@ function DashboardTaskList({
   tasks: Task[];
 }) {
   const statuses = new Map(data.statuses.map((status) => [status.id, status]));
-  const profiles = new Map(data.profiles.map((profile) => [profile.id, profile]));
+  const profiles = new Map(
+    data.profiles.map((profile) => [profile.id, profile]),
+  );
   return tasks.length ? (
     <ul className="divide-y divide-black/10 dark:divide-white/10">
       {tasks.map((task) => {
@@ -92,15 +95,15 @@ function DashboardTaskList({
         return (
           <li key={task.id}>
             <Link
-              href={withAccessPreview(
-                `/board?task=${encodeURIComponent(task.id)}`,
-                data.accessPreview,
-              )}
+              href={withAccessPreview(taskPath(task), data.accessPreview)}
               className="group grid gap-3 px-4 py-4 transition hover:bg-black/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-black/30 dark:hover:bg-white/[0.035] dark:focus-visible:ring-white/40 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
             >
               <span className="min-w-0">
                 <span className="block truncate text-sm font-semibold group-hover:underline">
                   {task.title}
+                </span>
+                <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.16em] text-black/45 dark:text-white/45">
+                  {taskKey(task)}
                 </span>
                 <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
                   <StatusBadge status={statuses.get(task.status_id)} />
@@ -115,7 +118,9 @@ function DashboardTaskList({
                 </span>
               </span>
               <span className="flex items-center gap-2 text-xs font-medium text-black/50 dark:text-white/50">
-                {task.due_date ? dateFormatter.format(new Date(`${task.due_date}T12:00:00`)) : "No due date"}
+                {task.due_date
+                  ? dateFormatter.format(new Date(`${task.due_date}T12:00:00`))
+                  : "No due date"}
                 <FiArrowRight className="transition-transform group-hover:translate-x-0.5 motion-reduce:transform-none" />
               </span>
             </Link>
@@ -203,7 +208,12 @@ export function DashboardPageClient({
       ? data.accessPreview.subjectId
       : data.currentProfile.id;
   const completedStatusIds = useMemo(
-    () => new Set(data.statuses.filter((status) => status.is_completed).map((status) => status.id)),
+    () =>
+      new Set(
+        data.statuses
+          .filter((status) => status.is_completed)
+          .map((status) => status.id),
+      ),
     [data.statuses],
   );
   const activeTasks = useMemo(
@@ -225,9 +235,11 @@ export function DashboardPageClient({
       .filter((task) => {
         if (!task.due_date) return false;
         const due = new Date(`${task.due_date}T23:59:59`);
-        return due <= soon &&
-          (task.assignee_id === subjectId ||
-            task.reported_by === subjectId);
+        return (
+          due >= now &&
+          due <= soon &&
+          (task.assignee_id === subjectId || task.reported_by === subjectId)
+        );
       })
       .sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? ""));
   }, [activeTasks, subjectId]);
@@ -239,7 +251,9 @@ export function DashboardPageClient({
     .filter((item) => relevantTaskIds.has(item.task_id))
     .slice(0, 8);
   const tasks = new Map(data.tasks.map((task) => [task.id, task]));
-  const profiles = new Map(data.profiles.map((profile) => [profile.id, profile]));
+  const profiles = new Map(
+    data.profiles.map((profile) => [profile.id, profile]),
+  );
   const viewAllAssigned = withAccessPreview(
     `/board?assignee=${encodeURIComponent(subjectId)}`,
     data.accessPreview,
@@ -285,7 +299,8 @@ export function DashboardPageClient({
                   Dashboard
                 </Heading>
                 <p className="mt-2 text-sm text-black/65 dark:text-white/65">
-                  Deadlines, delegated work, and the latest moves—without the board spelunking.
+                  Deadlines, delegated work, and the latest moves—without the
+                  board spelunking.
                 </p>
               </div>
               <Button
@@ -301,113 +316,213 @@ export function DashboardPageClient({
               className={`grid gap-4 sm:grid-cols-2 ${data.accessPreview ? "xl:grid-cols-3" : "xl:grid-cols-4"}`}
             >
               {[
-                { label: "Assigned to me", value: assignedToMe.length, icon: <FiCheckCircle /> },
-                { label: "Reported by me", value: reportedByMe.length, icon: <FiSend /> },
-                { label: "Due within 14 days", value: upcoming.length, icon: <FiCalendar /> },
+                {
+                  label: "Assigned to me",
+                  value: assignedToMe.length,
+                  icon: <FiCheckCircle />,
+                  href: viewAllAssigned,
+                },
+                {
+                  label: "Reported by me",
+                  value: reportedByMe.length,
+                  icon: <FiSend />,
+                  href: withAccessPreview(
+                    `/board?reporter=${encodeURIComponent(subjectId)}`,
+                    data.accessPreview,
+                  ),
+                },
+                {
+                  label: "Due within 14 days",
+                  value: upcoming.length,
+                  icon: <FiCalendar />,
+                  href: withAccessPreview(
+                    `/board?dueWithin=14&involved=${encodeURIComponent(subjectId)}`,
+                    data.accessPreview,
+                  ),
+                },
                 ...(!data.accessPreview
                   ? [
                       {
                         label: "Saved drafts",
                         value: drafts.length,
                         icon: <FiFileText />,
+                        href: "#saved-drafts",
                       },
                     ]
                   : []),
               ].map((item) => (
-                <Card key={item.label} size="sm">
-                  <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-black/50 dark:text-white/50">
-                    {item.icon}
-                    {item.label}
-                  </span>
-                  <p className="mt-3 font-cooper text-4xl">{item.value}</p>
-                </Card>
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  aria-label={`View ${item.label.toLowerCase()}`}
+                  className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f7f7f5] dark:focus-visible:ring-white/50 dark:focus-visible:ring-offset-[#101010]"
+                >
+                  <Card
+                    size="sm"
+                    className="relative h-full cursor-pointer transition duration-200 group-hover:-translate-y-1 group-hover:border-black/30 group-hover:shadow-md motion-reduce:transform-none dark:group-hover:border-white/35"
+                  >
+                    <span className="flex items-center gap-2 pr-8 text-xs font-semibold uppercase tracking-[0.16em] text-black/50 dark:text-white/50">
+                      {item.icon}
+                      {item.label}
+                    </span>
+                    <p className="mt-3 font-cooper text-4xl">{item.value}</p>
+                    <FiArrowRight
+                      aria-hidden="true"
+                      className="absolute right-4 top-4 text-black/35 transition group-hover:translate-x-1 group-hover:text-black/70 motion-reduce:transform-none dark:text-white/35 dark:group-hover:text-white/75"
+                    />
+                  </Card>
+                </Link>
               ))}
             </div>
 
-            {!data.accessPreview && drafts.length > 0 && (
-              <SectionCard title="Drafts" icon={<FiFileText />}>
-                <ul className="divide-y divide-black/10 dark:divide-white/10">
-                  {drafts.map((item) => (
-                    <li
-                      key={item.id}
-                      className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center"
-                    >
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold">
-                          {item.draft.title.trim() || "Untitled task"}
-                        </span>
-                        <span className="mt-1 block text-xs text-black/50 dark:text-white/50">
-                          Saved {new Date(item.updatedAt).toLocaleString()}
-                        </span>
-                      </span>
-                      <span className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          leftIcon={<FiEdit2 />}
-                          onClick={() => setSelectedDraft(item)}
+            {!data.accessPreview && (
+              <div id="saved-drafts" className="scroll-mt-20">
+                <SectionCard title="Drafts" icon={<FiFileText />}>
+                  {drafts.length > 0 ? (
+                    <ul className="divide-y divide-black/10 dark:divide-white/10">
+                      {drafts.map((item) => (
+                        <li
+                          key={item.id}
+                          className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center"
                         >
-                          Continue
-                        </Button>
-                        <IconButton
-                          label={`Delete ${item.draft.title || "untitled draft"}`}
-                          size="sm"
-                          onClick={() => setDraftPendingDelete(item)}
-                        >
-                          <FiTrash2 />
-                        </IconButton>
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </SectionCard>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-semibold">
+                              {item.draft.title.trim() || "Untitled task"}
+                            </span>
+                            <span className="mt-1 block text-xs text-black/50 dark:text-white/50">
+                              Saved {new Date(item.updatedAt).toLocaleString()}
+                            </span>
+                          </span>
+                          <span className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              leftIcon={<FiEdit2 />}
+                              onClick={() => setSelectedDraft(item)}
+                            >
+                              Continue
+                            </Button>
+                            <IconButton
+                              label={`Delete ${item.draft.title || "untitled draft"}`}
+                              size="sm"
+                              onClick={() => setDraftPendingDelete(item)}
+                            >
+                              <FiTrash2 />
+                            </IconButton>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <EmptyState
+                      variant="plain"
+                      message="No saved drafts right now."
+                    />
+                  )}
+                </SectionCard>
+              </div>
             )}
 
             <div className="grid items-start gap-6 xl:grid-cols-2">
               <SectionCard
                 title="Assigned to me"
                 icon={<FiCheckCircle />}
-                action={<Link href={viewAllAssigned} className="text-xs font-semibold hover:underline">View all</Link>}
+                action={
+                  <Link
+                    href={viewAllAssigned}
+                    className="text-xs font-semibold hover:underline"
+                  >
+                    View all
+                  </Link>
+                }
               >
-                <DashboardTaskList data={data} tasks={assignedToMe.slice(0, 6)} empty="Nothing assigned to you right now." />
+                <DashboardTaskList
+                  data={data}
+                  tasks={assignedToMe.slice(0, 6)}
+                  empty="Nothing assigned to you right now."
+                />
               </SectionCard>
               <SectionCard
                 title="Reported by me"
                 icon={<FiSend />}
-                action={<Link href={withAccessPreview(`/board?view=list&reporter=${encodeURIComponent(subjectId)}`, data.accessPreview)} className="text-xs font-semibold hover:underline">View all</Link>}
+                action={
+                  <Link
+                    href={withAccessPreview(
+                      `/board?view=list&reporter=${encodeURIComponent(subjectId)}`,
+                      data.accessPreview,
+                    )}
+                    className="text-xs font-semibold hover:underline"
+                  >
+                    View all
+                  </Link>
+                }
               >
-                <DashboardTaskList data={data} tasks={reportedByMe.slice(0, 6)} empty="You haven't reported any active tasks." />
+                <DashboardTaskList
+                  data={data}
+                  tasks={reportedByMe.slice(0, 6)}
+                  empty="You haven't reported any active tasks."
+                />
               </SectionCard>
               <SectionCard title="Upcoming deadlines" icon={<FiCalendar />}>
-                <DashboardTaskList data={data} tasks={upcoming.slice(0, 6)} empty="No deadlines coming up in the next 14 days." />
+                <DashboardTaskList
+                  data={data}
+                  tasks={upcoming.slice(0, 6)}
+                  empty="No deadlines coming up in the next 14 days."
+                />
               </SectionCard>
               <SectionCard
                 title="Recent status changes"
                 icon={<FiClock />}
-                action={<Link href={withAccessPreview("/activity?event=moved", data.accessPreview)} className="text-xs font-semibold hover:underline">All activity</Link>}
+                action={
+                  <Link
+                    href={withAccessPreview(
+                      "/activity?event=moved",
+                      data.accessPreview,
+                    )}
+                    className="text-xs font-semibold hover:underline"
+                  >
+                    All activity
+                  </Link>
+                }
               >
                 {recentActivity.length ? (
                   <ul className="divide-y divide-black/10 dark:divide-white/10">
                     {recentActivity.map((item) => {
                       const task = tasks.get(item.task_id);
-                      const actor = item.actor_id ? profiles.get(item.actor_id) : undefined;
-                      const change = statusChangeDescription(item, data.statuses);
+                      const actor = item.actor_id
+                        ? profiles.get(item.actor_id)
+                        : undefined;
+                      const change = statusChangeDescription(
+                        item,
+                        data.statuses,
+                      );
                       return (
                         <li key={item.id} className="px-4 py-4">
                           <Link
-                            href={withAccessPreview(`/board?task=${encodeURIComponent(item.task_id)}`, data.accessPreview)}
+                            href={withAccessPreview(
+                              task ? taskPath(task) : "/activity",
+                              data.accessPreview,
+                            )}
                             className="group block rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/40"
                           >
                             <span className="block truncate text-sm font-semibold group-hover:underline">
                               {task?.title ?? "Task"}
                             </span>
                             <span className="mt-2 flex flex-wrap items-center gap-2">
-                              {change.from && <StatusBadge status={change.from} />}
-                              <FiArrowRight className="text-black/35 dark:text-white/35" aria-label="moved to" />
+                              {change.from && (
+                                <StatusBadge status={change.from} />
+                              )}
+                              <FiArrowRight
+                                className="text-black/35 dark:text-white/35"
+                                aria-label="moved to"
+                              />
                               <StatusBadge status={change.to} />
                             </span>
                             <span className="mt-2 block text-xs text-black/50 dark:text-white/50">
-                              {profileName(actor)} · {dateTimeFormatter.format(new Date(item.created_at))}
+                              {profileName(actor)} ·{" "}
+                              {dateTimeFormatter.format(
+                                new Date(item.created_at),
+                              )}
                             </span>
                           </Link>
                         </li>
@@ -415,7 +530,10 @@ export function DashboardPageClient({
                     })}
                   </ul>
                 ) : (
-                  <EmptyState variant="plain" message="No recent status changes on your tasks." />
+                  <EmptyState
+                    variant="plain"
+                    message="No recent status changes on your tasks."
+                  />
                 )}
               </SectionCard>
             </div>

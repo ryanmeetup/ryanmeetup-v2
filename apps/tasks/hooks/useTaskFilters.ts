@@ -18,6 +18,8 @@ export function useTaskFilters(setSearch: (value: string) => void) {
   const [project, setProject] = useQueryParamState("project", "all");
   const [status, setStatus] = useQueryParamState("status", "all");
   const [priority, setPriority] = useQueryParamState("priority", "all");
+  const [dueWithin, setDueWithin] = useQueryParamState("dueWithin", "all");
+  const [involved, setInvolved] = useQueryParamState("involved", "all");
   const [visibilityParam, setVisibility] = useQueryParamState("visibility", "active");
   const visibility: "active" | "archived" =
     visibilityParam === "archived" ? "archived" : "active";
@@ -39,6 +41,8 @@ export function useTaskFilters(setSearch: (value: string) => void) {
     setProject("all");
     setStatus("all");
     setPriority("all");
+    setDueWithin("all");
+    setInvolved("all");
     setVisibility("active");
   }
 
@@ -47,5 +51,9 @@ export function useTaskFilters(setSearch: (value: string) => void) {
     includedCategories, setIncludedCategories, excludedCategories, setExcludedCategories,
     project, setProject, status, setStatus,
     priority, setPriority, visibility, setVisibility, sort, setSort, clock, clear,
+    dueWithin,
+    setDueWithin,
+    involved,
+    setInvolved,
   };
 }

@@ -6,18 +6,16 @@ import {
 } from "@/lib/access-preview";
 import { resolveAccessPreview } from "@/lib/access-preview-server";
 import { demoData } from "@/lib/demo-data";
-import {
-  requireQueryData,
-  WORKSPACE_COLUMNS,
-} from "@/lib/workspace-loader";
+import { requireQueryData, WORKSPACE_COLUMNS } from "@/lib/workspace-loader";
 import {
   isWorkspaceDemo,
   loadWorkspacePage,
 } from "@/lib/server/workspace-page-loader";
 import type { Metadata } from "next";
+import { parseTaskKey } from "@/lib/task-key";
 
 export const metadata: Metadata = {
-  title: "Task Board",
+  title: { absolute: "Task Board | Ryan Meetup Tasks" },
 };
 
 export default async function BoardPage({
@@ -26,8 +24,7 @@ export default async function BoardPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const query = await searchParams;
-  const initialTaskId =
-    typeof query.task === "string" ? query.task : undefined;
+  const initialTaskId = typeof query.task === "string" ? query.task : undefined;
   const requestedGroupPreview =
     typeof query[ACCESS_PREVIEW_PARAM] === "string"
       ? query[ACCESS_PREVIEW_PARAM]
@@ -39,11 +36,7 @@ export default async function BoardPage({
   const demoMode = isWorkspaceDemo();
   if (demoMode)
     return (
-      <TaskApp
-        initialData={demoData}
-        demoMode
-        initialTaskId={initialTaskId}
-      />
+      <TaskApp initialData={demoData} demoMode initialTaskId={initialTaskId} />
     );
 
   const loaded = await loadWorkspacePage([
@@ -62,7 +55,21 @@ export default async function BoardPage({
     .select(WORKSPACE_COLUMNS.tasks)
     .or(`archived_at.is.null,archived_at.gt.${archiveBoundary}`)
     .order("updated_at", { ascending: false });
-  const tasks = requireQueryData("active tasks", taskResult);
+  let tasks = requireQueryData("active tasks", taskResult);
+  const initialTaskNumber = initialTaskId ? parseTaskKey(initialTaskId) : null;
+  if (
+    initialTaskNumber !== null &&
+    !tasks.some((task) => task.task_number === initialTaskNumber)
+  ) {
+    const linkedTask = requireQueryData(
+      "linked task",
+      await supabase
+        .from("tasks")
+        .select(WORKSPACE_COLUMNS.tasks)
+        .eq("task_number", initialTaskNumber),
+    );
+    tasks = [...tasks, ...linkedTask];
+  }
   const taskIds = tasks.map((task) => task.id);
   const [assigneeResult, categoryResult, labelResult] = taskIds.length
     ? await Promise.all([

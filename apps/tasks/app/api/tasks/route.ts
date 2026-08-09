@@ -27,7 +27,8 @@ export async function GET(request: Request): Promise<NextResponse> {
   const visibility =
     params.get("visibility") === "archived" ? "archived" : "active";
   const boundary = new Date().toISOString();
-  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const uuidPattern =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   const parseCategoryIds = (name: string) =>
     (params.get(name) ?? "").split(",").filter((id) => uuidPattern.test(id));
   const includedCategoryIds = parseCategoryIds("categories");
@@ -38,13 +39,29 @@ export async function GET(request: Request): Promise<NextResponse> {
   const paginated = params.get("paginated") === "1";
   const { requestedPage, pageSize } = parsePagination(params);
   const sort = params.get("sort") === "due" ? "due" : "updated";
+  const involved = params.get("involved");
+  const hasInvolvedFilter = Boolean(involved && uuidPattern.test(involved));
+  const dueWithin = params.get("dueWithin");
+  const dueWithinDays =
+    dueWithin && ["7", "14", "30"].includes(dueWithin)
+      ? Number.parseInt(dueWithin, 10)
+      : null;
+  const hasDueWithinFilter = dueWithinDays !== null;
+  const today = new Date();
+  const dueBoundary = new Date(
+    today.getTime() + (dueWithinDays ?? 0) * 86_400_000,
+  );
+  const dateValue = (date: Date) => date.toISOString().slice(0, 10);
   let previewProjectIds: string[] | undefined;
   const requestedGroupPreview = params.get(ACCESS_PREVIEW_PARAM) ?? undefined;
-  const requestedUserPreview = params.get(USER_ACCESS_PREVIEW_PARAM) ?? undefined;
+  const requestedUserPreview =
+    params.get(USER_ACCESS_PREVIEW_PARAM) ?? undefined;
   if (requestedGroupPreview || requestedUserPreview) {
     const { data: isOwner } = await supabase.rpc("is_app_owner");
     if (isOwner) {
-      const { data: previewProjects } = await supabase.from("projects").select("id");
+      const { data: previewProjects } = await supabase
+        .from("projects")
+        .select("id");
       const resolved = await resolveAccessPreview(supabase, {
         groupId: requestedGroupPreview,
         userId: requestedUserPreview,
@@ -55,10 +72,16 @@ export async function GET(request: Request): Promise<NextResponse> {
   }
   const [includedRows, excludedRows] = await Promise.all([
     includedCategoryIds.length
-      ? supabase.from("task_categories").select("task_id").in("category_id", includedCategoryIds)
+      ? supabase
+          .from("task_categories")
+          .select("task_id")
+          .in("category_id", includedCategoryIds)
       : Promise.resolve({ data: [], error: null }),
     excludedCategoryIds.length
-      ? supabase.from("task_categories").select("task_id").in("category_id", excludedCategoryIds)
+      ? supabase
+          .from("task_categories")
+          .select("task_id")
+          .in("category_id", excludedCategoryIds)
       : Promise.resolve({ data: [], error: null }),
   ]);
   if (includedRows.error || excludedRows.error)
@@ -68,12 +91,19 @@ export async function GET(request: Request): Promise<NextResponse> {
       includedRows.error ?? excludedRows.error!,
       { error: "Category filters could not be applied. Try again." },
     );
-  const includedTaskIds = [...new Set((includedRows.data ?? []).map((row) => row.task_id))];
-  const excludedTaskIds = [...new Set((excludedRows.data ?? []).map((row) => row.task_id))];
+  const includedTaskIds = [
+    ...new Set((includedRows.data ?? []).map((row) => row.task_id)),
+  ];
+  const excludedTaskIds = [
+    ...new Set((excludedRows.data ?? []).map((row) => row.task_id)),
+  ];
 
   let query = supabase
     .from("tasks")
-    .select(WORKSPACE_COLUMNS.tasks, paginated ? { count: "exact" } : undefined);
+    .select(
+      WORKSPACE_COLUMNS.tasks,
+      paginated ? { count: "exact" } : undefined,
+    );
   query =
     visibility === "archived"
       ? query.lte("archived_at", boundary)
@@ -99,8 +129,19 @@ export async function GET(request: Request): Promise<NextResponse> {
       query = query.is(column, null);
     else if (value && value !== "all") query = query.eq(column, value);
   }
+  if (hasInvolvedFilter)
+    query = query.or(`assignee_id.eq.${involved},reported_by.eq.${involved}`);
+  if (hasDueWithinFilter)
+    query = query
+      .gte("due_date", dateValue(today))
+      .lte("due_date", dateValue(dueBoundary));
   if (includedCategoryIds.length)
-    query = query.in("id", includedTaskIds.length ? includedTaskIds : ["00000000-0000-0000-0000-000000000000"]);
+    query = query.in(
+      "id",
+      includedTaskIds.length
+        ? includedTaskIds
+        : ["00000000-0000-0000-0000-000000000000"],
+    );
   if (excludedTaskIds.length)
     query = query.not("id", "in", `(${excludedTaskIds.join(",")})`);
   const search = params
@@ -131,9 +172,7 @@ export async function GET(request: Request): Promise<NextResponse> {
   let totalCount = paginated ? (result.count ?? 0) : (result.data?.length ?? 0);
   const pageState = derivePagination(requestedPage, pageSize, totalCount);
   if (paginated && pageState.page !== requestedPage && totalCount > 0) {
-    let corrected = supabase
-      .from("tasks")
-      .select(WORKSPACE_COLUMNS.tasks);
+    let corrected = supabase.from("tasks").select(WORKSPACE_COLUMNS.tasks);
     corrected =
       visibility === "archived"
         ? corrected.lte("archived_at", boundary)
@@ -149,10 +188,24 @@ export async function GET(request: Request): Promise<NextResponse> {
       const value = params.get(param);
       if (value === "none" || value === "unassigned")
         corrected = corrected.is(column, null);
-      else if (value && value !== "all") corrected = corrected.eq(column, value);
+      else if (value && value !== "all")
+        corrected = corrected.eq(column, value);
     }
+    if (hasInvolvedFilter)
+      corrected = corrected.or(
+        `assignee_id.eq.${involved},reported_by.eq.${involved}`,
+      );
+    if (hasDueWithinFilter)
+      corrected = corrected
+        .gte("due_date", dateValue(today))
+        .lte("due_date", dateValue(dueBoundary));
     if (includedCategoryIds.length)
-      corrected = corrected.in("id", includedTaskIds.length ? includedTaskIds : ["00000000-0000-0000-0000-000000000000"]);
+      corrected = corrected.in(
+        "id",
+        includedTaskIds.length
+          ? includedTaskIds
+          : ["00000000-0000-0000-0000-000000000000"],
+      );
     if (excludedTaskIds.length)
       corrected = corrected.not("id", "in", `(${excludedTaskIds.join(",")})`);
     if (search)
@@ -203,7 +256,11 @@ export async function GET(request: Request): Promise<NextResponse> {
           pageSize: pageState.pageSize,
           totalCount,
         }
-      : { page: 1, pageSize: tasks.length || pageSize, totalCount: tasks.length },
+      : {
+          page: 1,
+          pageSize: tasks.length || pageSize,
+          totalCount: tasks.length,
+        },
   });
 }
 

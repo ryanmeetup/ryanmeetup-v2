@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type FormEvent,
-} from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   Avatar,
   AnimatedCollapse,
@@ -32,7 +26,7 @@ import { TaskHeaderActions, TasksSidebar } from "@/components/navigation";
 import { TaskEditor } from "./TaskEditor";
 import { TaskFilters } from "./TaskFilters";
 import { TaskListView } from "./TaskListView";
-import { TaskDueDate } from "./TaskDueDate";
+import { localDateValue, TaskDueDate } from "./TaskDueDate";
 import { TaskWorkspaceHeader } from "./TaskWorkspaceHeader";
 import { CategoriesModal } from "@/components/categories";
 import { ProjectsModal } from "@/components/projects";
@@ -43,6 +37,8 @@ import {
   createTaskMutationService,
   type TaskDraft,
 } from "@/lib/task-mutations";
+import { taskKey } from "@/lib/task-key";
+import { parseTaskKey } from "@/lib/task-key";
 import {
   deleteTaskDraft,
   draftSavedStatus,
@@ -56,6 +52,8 @@ export { StatusSettingsModal } from "./TaskAdministration";
 type View = "board" | "list";
 type Draft = TaskDraft;
 const priorities: Priority[] = ["low", "medium", "high", "urgent"];
+const dragScrollEdgeSize = 96;
+const dragScrollMaxSpeed = 18;
 const priorityStyles: Record<Priority, string> = {
   low: "border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200",
   medium:
@@ -115,6 +113,21 @@ function mutationErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
+function dragScrollSpeed(position: number, start: number, end: number) {
+  const distanceFromStart = position - start;
+  const distanceFromEnd = end - position;
+  const edgeIntensity = (distance: number) =>
+    Math.min(1, Math.max(0, 1 - distance / dragScrollEdgeSize));
+
+  if (distanceFromStart < dragScrollEdgeSize) {
+    return -dragScrollMaxSpeed * edgeIntensity(distanceFromStart);
+  }
+  if (distanceFromEnd < dragScrollEdgeSize) {
+    return dragScrollMaxSpeed * edgeIntensity(distanceFromEnd);
+  }
+  return 0;
+}
+
 function CategoryBadge({ category }: { category: Category }) {
   return (
     <span
@@ -138,8 +151,12 @@ export function TaskApp({
   demoMode: boolean;
   initialTaskId?: string;
 }) {
+  const initialTaskNumber = initialTaskId ? parseTaskKey(initialTaskId) : null;
   const initialEditing = initialTaskId
-    ? (initialData.tasks.find((task) => task.id === initialTaskId) ?? null)
+    ? (initialData.tasks.find(
+        (task) =>
+          task.id === initialTaskId || task.task_number === initialTaskNumber,
+      ) ?? null)
     : null;
   const { data, setData, getData } = useWorkspaceData(initialData, demoMode);
   const mutations = useMemo(
@@ -149,18 +166,13 @@ export function TaskApp({
   const [viewParam, setView] = useQueryParamState("view", "board");
   const view: View = viewParam === "list" ? "list" : "board";
   const [committedSearch] = useQueryParamState("q", "");
-  const {
-    page,
-    pageSize,
-    setPage,
-    setPageSize,
-    syncPage,
-    syncPageSize,
-  } = usePagination();
+  const { page, pageSize, setPage, setPageSize, syncPage, syncPageSize } =
+    usePagination();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [taskOpen, setTaskOpen] = useState(Boolean(initialEditing));
   const [taskDetailsOpen, setTaskDetailsOpen] = useState(
-    Boolean(initialEditing) && initialData.currentProfile.task_details_open_by_default,
+    Boolean(initialEditing) &&
+      initialData.currentProfile.task_details_open_by_default,
   );
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
@@ -179,6 +191,7 @@ export function TaskApp({
     taskId: string;
     edge: "before" | "after";
   } | null>(null);
+  const boardScrollRef = useRef<HTMLDivElement>(null);
   const [editing, setEditing] = useState<Task | null>(initialEditing);
   const [draft, setDraft] = useState<Draft>(
     initialEditing
@@ -210,6 +223,50 @@ export function TaskApp({
     }, taskDraftAutosaveDelayMs);
     return () => window.clearTimeout(timer);
   }, [data.currentProfile.id, draft, draftId, editing, taskOpen]);
+
+  useEffect(() => {
+    if (!draggedTaskId) return;
+
+    let pointer = { x: 0, y: 0 };
+    let animationFrame = 0;
+
+    const rememberPointer = (event: DragEvent) => {
+      if (event.clientX === 0 && event.clientY === 0) return;
+      pointer = { x: event.clientX, y: event.clientY };
+    };
+    const scrollAtEdges = () => {
+      const verticalSpeed = dragScrollSpeed(pointer.y, 0, window.innerHeight);
+      if (verticalSpeed !== 0) window.scrollBy(0, verticalSpeed);
+
+      const board = boardScrollRef.current;
+      if (board) {
+        const bounds = board.getBoundingClientRect();
+        const visibleLeft = Math.max(0, bounds.left);
+        const visibleRight = Math.min(window.innerWidth, bounds.right);
+        if (
+          pointer.y >= bounds.top &&
+          pointer.y <= bounds.bottom &&
+          pointer.x >= visibleLeft &&
+          pointer.x <= visibleRight
+        ) {
+          board.scrollLeft += dragScrollSpeed(
+            pointer.x,
+            visibleLeft,
+            visibleRight,
+          );
+        }
+      }
+
+      animationFrame = window.requestAnimationFrame(scrollAtEdges);
+    };
+
+    window.addEventListener("dragover", rememberPointer);
+    animationFrame = window.requestAnimationFrame(scrollAtEdges);
+    return () => {
+      window.removeEventListener("dragover", rememberPointer);
+      window.cancelAnimationFrame(animationFrame);
+    };
+  }, [draggedTaskId]);
   const {
     query: search,
     setQuery: setSearch,
@@ -218,7 +275,7 @@ export function TaskApp({
   } = useSearchFilter({
     data: data.tasks,
     buildHaystack: (task) =>
-      `${task.title} ${task.description ?? ""}`.toLowerCase(),
+      `${taskKey(task)} ${task.title} ${task.description ?? ""}`.toLowerCase(),
   });
   const {
     assignee,
@@ -237,6 +294,10 @@ export function TaskApp({
     setStatus,
     priority,
     setPriority,
+    dueWithin,
+    setDueWithin,
+    involved,
+    setInvolved,
     visibility,
     setVisibility,
     sort,
@@ -304,6 +365,11 @@ export function TaskApp({
       ? null
       : (profiles.get(reporter) ??
         data.profiles.find((item) => profileName(item) === reporter));
+  const selectedInvolved =
+    involved === "all"
+      ? null
+      : (profiles.get(involved) ??
+        data.profiles.find((item) => profileName(item) === involved));
   const selectedCategory =
     group === "all"
       ? null
@@ -311,7 +377,8 @@ export function TaskApp({
         data.categories.find((item) => item.name === group));
   const includedCategoryIds = useMemo(() => {
     const ids = includedCategories.split(",").filter(Boolean);
-    if (selectedCategory && !ids.includes(selectedCategory.id)) ids.push(selectedCategory.id);
+    if (selectedCategory && !ids.includes(selectedCategory.id))
+      ids.push(selectedCategory.id);
     return ids;
   }, [includedCategories, selectedCategory]);
   const excludedCategoryIds = useMemo(
@@ -372,6 +439,9 @@ export function TaskApp({
         if (excludedCategoryIds.length)
           params.set("excludeCategories", excludedCategoryIds.join(","));
         if (selectedPriority) params.set("priority", selectedPriority);
+        if (["7", "14", "30"].includes(dueWithin))
+          params.set("dueWithin", dueWithin);
+        if (selectedInvolved) params.set("involved", selectedInvolved.id);
         if (committedSearch.trim())
           params.set("search", committedSearch.trim());
       }
@@ -397,14 +467,16 @@ export function TaskApp({
             : [...oldRows.filter((row) => !ids.has(row.task_id)), ...rows];
         return {
           ...current,
-          tasks: replace || view === "list"
-            ? result.tasks!
-            : [
-                ...current.tasks,
-                ...result.tasks!.filter(
-                  (task) => !current.tasks.some((item) => item.id === task.id),
-                ),
-              ],
+          tasks:
+            replace || view === "list"
+              ? result.tasks!
+              : [
+                  ...current.tasks,
+                  ...result.tasks!.filter(
+                    (task) =>
+                      !current.tasks.some((item) => item.id === task.id),
+                  ),
+                ],
           taskAssignees: mergeRows(
             current.taskAssignees,
             result.taskAssignees ?? [],
@@ -436,9 +508,11 @@ export function TaskApp({
           selectedProject?.id ?? project,
           selectedAssignee?.id ?? assignee,
           selectedReporter?.id ?? reporter,
+          selectedInvolved?.id ?? involved,
           includedCategoryIds.join(","),
           excludedCategoryIds.join(","),
           selectedPriority ?? priority,
+          dueWithin,
           committedSearch,
           sort,
           pageSize,
@@ -568,6 +642,18 @@ export function TaskApp({
                 : task.project_id === selectedProject?.id)) &&
             (status === "all" || task.status_id === selectedStatus?.id) &&
             (priority === "all" || task.priority === selectedPriority) &&
+            (involved === "all" ||
+              task.assignee_id === selectedInvolved?.id ||
+              task.reported_by === selectedInvolved?.id) &&
+            (!["7", "14", "30"].includes(dueWithin) ||
+              (Boolean(task.due_date) &&
+                task.due_date! >= localDateValue(new Date(clock)) &&
+                task.due_date! <=
+                  localDateValue(
+                    new Date(
+                      clock + Number.parseInt(dueWithin, 10) * 86_400_000,
+                    ),
+                  ))) &&
             (visibility === "archived"
               ? Boolean(
                   task.archived_at &&
@@ -594,10 +680,13 @@ export function TaskApp({
       includedCategoryIds,
       excludedCategoryIds,
       priority,
+      dueWithin,
+      involved,
       project,
       reporter,
       selectedProject,
       selectedReporter,
+      selectedInvolved,
       searchedTasks,
       selectedAssignee,
       sort,
@@ -766,12 +855,14 @@ export function TaskApp({
   const filterCount =
     [isMyTasks ? "all" : assignee, reporter, project, status, priority].filter(
       (value) => value !== "all",
-    ).length + includedCategoryIds.length + excludedCategoryIds.length +
+    ).length +
+    includedCategoryIds.length +
+    excludedCategoryIds.length +
+    (["7", "14", "30"].includes(dueWithin) ? 1 : 0) +
+    (involved !== "all" ? 1 : 0) +
     (visibility === "archived" ? 1 : 0);
   const taskCard = (task: Task) => {
-    const taskStatus = data.statuses.find(
-      (item) => item.id === task.status_id,
-    );
+    const taskStatus = data.statuses.find((item) => item.id === task.status_id);
     const taskCategories = [...(categoriesByTask.get(task.id) ?? [])]
       .map((id) => categories.get(id))
       .filter((item) => item !== undefined);
@@ -862,10 +953,15 @@ export function TaskApp({
         }`}
       >
         <div className="mb-3 flex items-start justify-between gap-3">
-          <span
-            className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.16em] ${priorityStyles[task.priority]}`}
-          >
-            {task.priority}
+          <span className="flex flex-wrap items-center gap-1.5">
+            <span className="shrink-0 rounded border border-black/10 bg-black/[0.04] px-1.5 py-0.5 font-mono text-[9px] font-semibold tracking-[0.08em] text-black/55 dark:border-white/10 dark:bg-white/[0.06] dark:text-white/55">
+              {taskKey(task)}
+            </span>
+            <span
+              className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.16em] ${priorityStyles[task.priority]}`}
+            >
+              {task.priority}
+            </span>
           </span>
           <FiMoreHorizontal className="shrink-0 text-black/30 transition group-hover:text-black/70 dark:text-white/30 dark:group-hover:text-white/70" />
         </div>
@@ -1015,10 +1111,13 @@ export function TaskApp({
             assignee={assignee}
             categories={data.categories}
             clearFilters={clearTaskFilters}
+            dueWithin={dueWithin}
             filterCount={filterCount}
             includedCategoryIds={includedCategoryIds}
+            involved={involved}
             excludedCategoryIds={excludedCategoryIds}
             onAssigneeChange={setAssignee}
+            onDueWithinChange={setDueWithin}
             onIncludedCategoriesChange={(ids) => {
               setGroup("all");
               setIncludedCategories(ids.join(","));
@@ -1026,6 +1125,7 @@ export function TaskApp({
                 excludedCategoryIds.filter((id) => !ids.includes(id)).join(","),
               );
             }}
+            onInvolvedChange={setInvolved}
             onExcludedCategoriesChange={(ids) => {
               setExcludedCategories(ids.join(","));
               setIncludedCategories(
@@ -1045,6 +1145,7 @@ export function TaskApp({
             project={project}
             projects={data.projects}
             selectedAssignee={selectedAssignee}
+            selectedInvolved={selectedInvolved}
             selectedPriority={selectedPriority}
             selectedProject={selectedProject}
             selectedReporter={selectedReporter}
@@ -1075,7 +1176,10 @@ export function TaskApp({
               }
             >
               {view === "board" ? (
-                <div className="flex flex-nowrap items-start gap-4 overflow-x-auto overscroll-x-contain pb-5">
+                <div
+                  ref={boardScrollRef}
+                  className="flex flex-nowrap items-start gap-4 overflow-x-auto overscroll-x-contain pb-5"
+                >
                   {statuses.map((item) => {
                     const columnTasks = visibleTasks.filter(
                       (task) => task.status_id === item.id,

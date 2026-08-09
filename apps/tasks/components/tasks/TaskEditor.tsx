@@ -10,10 +10,17 @@ import {
   Modal,
   Pill,
   RichTextarea,
+  toast,
 } from "@ryanmeetup/ui";
-import { FiChevronDown, FiTrash2 } from "react-icons/fi";
+import {
+  FiChevronDown,
+  FiExternalLink,
+  FiLink,
+  FiTrash2,
+} from "react-icons/fi";
 import type { Priority, Status, Task, WorkspaceData } from "@/lib/types";
 import type { TaskDraft } from "@/lib/task-mutations";
+import { taskKey, taskPath } from "@/lib/task-key";
 import { TaskDetails } from "./TaskDetails";
 
 const priorities: Priority[] = ["low", "medium", "high", "urgent"];
@@ -60,27 +67,71 @@ export function TaskEditor({
   setTaskPendingDelete: (task: Task | null) => void;
   taskMessage: string;
 }) {
+  async function copyTaskLink() {
+    if (!editing) return;
+    try {
+      await navigator.clipboard.writeText(
+        new URL(taskPath(editing), window.location.origin).toString(),
+      );
+      toast.success(`${taskKey(editing)} link copied.`);
+    } catch {
+      toast.error("The task link could not be copied.");
+    }
+  }
+
   return (
     <Modal
       open={taskOpen}
       setIsOpen={setTaskOpen}
-      title={editing ? "Edit task" : "A new thing to do"}
+      title={
+        editing ? (
+          <span className="inline-flex flex-wrap items-center gap-2">
+            <span>Edit task</span>
+            <span className="rounded border border-black/10 bg-black/[0.04] px-1.5 py-0.5 font-mono text-[9px] font-semibold tracking-[0.08em] text-black/55 dark:border-white/10 dark:bg-white/[0.06] dark:text-white/55">
+              {taskKey(editing)}
+            </span>
+          </span>
+        ) : (
+          "A new thing to do"
+        )
+      }
       hideActions
       size={editing && taskDetailsOpen ? "2xl" : "lg"}
       panelClassName="transition-[max-width] duration-300 ease-out motion-reduce:transition-none"
       footer={
         <div className="grid w-full gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
           {editing && (
-            <Button
-              type="button"
-              variant="danger"
-              size="sm"
-              className="w-fit justify-self-start whitespace-nowrap"
-              leftIcon={<FiTrash2 />}
-              onClick={() => setTaskPendingDelete(editing)}
-            >
-              Delete task
-            </Button>
+            <div className="flex flex-wrap items-center gap-2 justify-self-start">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="whitespace-nowrap"
+                leftIcon={<FiLink />}
+                onClick={copyTaskLink}
+              >
+                Copy link
+              </Button>
+              <Button.Link
+                href={taskPath(editing)}
+                variant="secondary"
+                size="sm"
+                className="whitespace-nowrap"
+                leftIcon={<FiExternalLink />}
+              >
+                View task page
+              </Button.Link>
+              <Button
+                type="button"
+                variant="danger"
+                size="sm"
+                className="whitespace-nowrap"
+                leftIcon={<FiTrash2 />}
+                onClick={() => setTaskPendingDelete(editing)}
+              >
+                Delete task
+              </Button>
+            </div>
           )}
           {!editing && (
             <div className="flex flex-wrap items-center gap-3">
