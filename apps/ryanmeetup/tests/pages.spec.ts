@@ -16,7 +16,7 @@ const contentRoutes = [
   { path: "/goodbye", expectText: "Goodbye, Bryan." },
   { path: "/map" },
   { path: "/press" },
-  { path: "/rsvp", expectText: "Join the next Ryan Meetup" },
+  { path: "/rsvp", expectText: "Ryan Meetup returns to California" },
   { path: "/sponsors" },
 ];
 

@@ -1,102 +1,94 @@
-// Utilities
-import { createRedirectPage } from "@/utils/redirect";
+// Components
+import { UpcomingEventsList } from "@/components/events";
+import { Layout } from "@/components/navigation";
+import { Blurb, Divider, EmptyState, Text } from "@ryanmeetup/ui";
+import { FaCalendarCheck as CalendarCheck } from "react-icons/fa6";
+import { HiOutlineMail as Email } from "react-icons/hi";
 
-const { metadata, RedirectPage } = createRedirectPage({
-  url: "https://partiful.com/e/D0rd5gMOOWdwcXclkYro",
-  metadata: {
-    title: "Ryan Meetup - RSVP",
-    description: "RSVP to Ryan Meetup x Sun Soaked in Huntington Beach, CA, on September 12th.",
-    canonical: "https://ryanmeetup.com/rsvp",
-    image: {
-      url: "https://ryanmeetup.com/logos/sunny.png",
-      width: 3362,
-      height: 1200,
-    },
-    keywords: [
-      "ryan meetup rsvp",
-      "ryan meetup sun soaked",
-      "ryan meetup kaskade",
-      "ryan meetup california",
-      "when is the next ryan meetup",
-      "ryan meetup tickets",
-      "ryan meetup near me",
-      "ryan rave",
-    ],
+// Types
+import type { RyanEvent } from "@/lib/types";
+
+// Utilities
+import { sortEventsByDate, splitEventsByTime } from "@/utils/date";
+import { fetchEvents } from "@/actions/fetchContent";
+import { isMainEvent } from "@/utils/events";
+import { getTestEvents } from "@/lib/test-fixtures/events";
+import { buildPageMetadata } from "@/utils/metadata";
+
+export const metadata = buildPageMetadata({
+  title: "Ryan Meetup Returns to California | RSVP",
+  description:
+    "Ryan Meetup returns to California September 11–12, 2026. RSVP for Ready Player Ryan in Orange and Ryan Meetup × Sun Soaked in Huntington Beach.",
+  canonical: "https://ryanmeetup.com/rsvp",
+  image: {
+    url: "https://ryanmeetup.com/logos/sunny.png",
+    width: 3362,
+    height: 1200,
   },
+  keywords: [
+    "ryan meetup rsvp",
+    "ryan meetup california",
+    "ryan meetup orange california",
+    "ryan meetup huntington beach",
+    "ready player ryan",
+    "ryan meetup sun soaked",
+    "ryan meetup tickets",
+    "ryan meetup kaskade",
+  ],
 });
 
-export { metadata };
-export default RedirectPage;
+const RSVPPage = async ({
+  searchParams,
+}: {
+  searchParams?: Promise<{ fixture?: string }>;
+}) => {
+  const resolvedSearchParams = await searchParams;
+  const events =
+    process.env.E2E_TESTS === "true"
+      ? getTestEvents(resolvedSearchParams?.fixture)
+      : await fetchEvents();
 
-// export const metadata = buildPageMetadata({
-//   title: "Ryan Meetup - RSVP",
-//   description:
-//     "Find open RSVPs for upcoming Ryan Meetup events and sign up for announcements about future gatherings.",
-//   canonical: "https://ryanmeetup.com/rsvp",
-//   image: {
-//     url: "https://ryanmeetup.com/group-photos/ryankickoff.png",
-//     width: 1600,
-//     height: 800,
-//   },
-//   keywords: [
-//     "ryan meetup rsvp",
-//     "ryan meetup tickets",
-//     "ryan meetup event registration",
-//     "ryan meetup signup",
-//   ],
-// });
+  const mainEvents = (events as RyanEvent[]).filter(isMainEvent);
+  const { upcoming } = splitEventsByTime(mainEvents);
+  const upcomingEvents = sortEventsByDate(upcoming, "asc");
 
-// const RSVPPage = async ({
-//   searchParams,
-// }: {
-//   searchParams?: { fixture?: string };
-// }) => {
-//   const events =
-//     process.env.E2E_TESTS === "true"
-//       ? getTestEvents(searchParams?.fixture)
-//       : await fetchEvents();
+  return (
+    <Layout>
+      <Blurb
+        fullHeadline="Ryan Meetup returns to California"
+        smallHeadline="California, here we come"
+        tag="September 11–12, 2026"
+        href="/newsletter"
+        icon={<Email />}
+        hrefText="Get event updates"
+      >
+        <Text className="secondary text-xl mb-6 xl:mx-32">
+          We&apos;re heading west for two back-to-back main events: Ready Player
+          Ryan in Orange, followed by Ryan Meetup × Sun Soaked in Huntington
+          Beach. Pick one or make it a full Ryan weekend.
+        </Text>
+      </Blurb>
 
-//   const mainEvents = (events as RyanEvent[]).filter(isMainEvent);
-//   const { upcoming } = splitEventsByTime(mainEvents);
-//   const upcomingEvents = sortEventsByDate(upcoming, "asc");
+      <Divider />
 
-//   return (
-//     <Layout>
-//       <Blurb
-//         fullHeadline="Join the next Ryan Meetup"
-//         smallHeadline="RSVP"
-//         tag="RSVP"
-//         href="/newsletter"
-//         icon={<Email />}
-//         hrefText="Get event updates"
-//       >
-//         <Text className="secondary text-xl mb-6 xl:mx-32">
-//           Open RSVPs will appear here as new events are announced. Sign up for
-//           event updates and we&apos;ll let you know when it&apos;s time to meet
-//           more Ryans.
-//         </Text>
-//       </Blurb>
+      {upcomingEvents.length === 0 ? (
+        <EmptyState
+          variant="solid"
+          message="No RSVPs are open right now. Check back soon!"
+        />
+      ) : (
+        <UpcomingEventsList
+          events={upcomingEvents}
+          title="California RSVP lineup"
+          displayMode="details"
+          headerMeta={`${upcomingEvents.length} open`}
+          headerAction={
+            <CalendarCheck className="h-5 w-5 text-black/60 dark:text-white/60" />
+          }
+        />
+      )}
+    </Layout>
+  );
+};
 
-//       <Divider />
-
-//       {upcomingEvents.length === 0 ? (
-//         <EmptyState
-//           variant="solid"
-//           message="No RSVPs are open right now. Check back soon!"
-//         />
-//       ) : (
-//         <UpcomingEventsList
-//           events={upcomingEvents}
-//           title="Upcoming Events"
-//           displayMode="details"
-//           headerMeta={`${upcomingEvents.length} open`}
-//           headerAction={
-//             <CalendarCheck className="h-5 w-5 text-black/60 dark:text-white/60" />
-//           }
-//         />
-//       )}
-//     </Layout>
-//   );
-// };
-//
-// export default RSVPPage;
+export default RSVPPage;
