@@ -7,7 +7,7 @@ import {
   Transition,
 } from "@headlessui/react";
 import { FaChevronDown as ChevronDown } from "react-icons/fa";
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 
 export type DisclosureCardProps = {
   summary: ReactNode;
@@ -18,6 +18,9 @@ export type DisclosureCardProps = {
   panelClassName?: string;
   iconClassName?: string;
   id?: string;
+  actions?: ReactNode;
+  description?: ReactNode;
+  collapsible?: boolean;
 };
 
 const DisclosureCard = ({
@@ -29,38 +32,84 @@ const DisclosureCard = ({
   panelClassName = "px-5 pb-5",
   iconClassName = "h-4 w-4",
   id,
-}: DisclosureCardProps) => (
-  <Disclosure as="div" className={className} defaultOpen={defaultOpen}>
-    {({ open }) => (
-      <>
-        <DisclosureButton
-          id={id}
-          className={`cursor-pointer ${buttonClassName}`}
+  actions,
+  description,
+  collapsible = true,
+}: DisclosureCardProps) => {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  if (!collapsible)
+    return (
+      <div className={className}>
+        <div
+          className={`relative ${actions ? "flex min-h-10 flex-col justify-center" : ""}`}
         >
-          <span className="min-w-0 flex-1">{summary}</span>
-          <ChevronDown
-            className={`${iconClassName} shrink-0 transition-transform duration-200 ${open ? "-rotate-180" : ""}`}
-          />
-        </DisclosureButton>
-        <div className="overflow-hidden">
-          <Transition
-            enter="duration-200 ease-in-out"
-            enterFrom="opacity-0 -translate-y-4"
-            enterTo="opacity-100 translate-y-0"
-            leave="duration-200 ease-in-out"
-            leaveFrom="opacity-100 translate-y-0"
-            leaveTo="opacity-0 -translate-y-4"
-          >
-            <DisclosurePanel
-              className={`origin-top transition ${panelClassName}`}
-            >
-              {children}
-            </DisclosurePanel>
-          </Transition>
+          <div className={buttonClassName}>
+            <span className="min-w-0 flex-1">{summary}</span>
+          </div>
+          {description && <div className="-mt-1">{description}</div>}
+          {actions && (
+            <div className="absolute right-0 top-1/2 -translate-y-1/2">
+              {actions}
+            </div>
+          )}
         </div>
-      </>
-    )}
-  </Disclosure>
-);
+        <div>{children}</div>
+      </div>
+    );
+
+  return (
+    <Disclosure as="div" className={className} defaultOpen={defaultOpen}>
+      {({ open }) => (
+        <>
+          <div
+            className={`relative ${actions ? "flex min-h-10 flex-col justify-center" : ""}`}
+            onClick={(event) => {
+              if (
+                actions &&
+                !open &&
+                !buttonRef.current?.contains(event.target as Node)
+              )
+                buttonRef.current?.click();
+            }}
+          >
+            <DisclosureButton
+              ref={buttonRef}
+              id={id}
+              className={`cursor-pointer ${buttonClassName}`}
+            >
+              <span className="min-w-0 flex-1">{summary}</span>
+              <ChevronDown
+                className={`${iconClassName} shrink-0 transition-transform duration-200 ${open ? "-rotate-180" : ""}`}
+              />
+            </DisclosureButton>
+            {description && <div className="-mt-1">{description}</div>}
+            {actions && (
+              <div className="absolute right-0 top-1/2 -translate-y-1/2">
+                {actions}
+              </div>
+            )}
+          </div>
+          <div className="overflow-hidden">
+            <Transition
+              enter="duration-200 ease-in-out"
+              enterFrom="opacity-0 -translate-y-4"
+              enterTo="opacity-100 translate-y-0"
+              leave="duration-200 ease-in-out"
+              leaveFrom="opacity-100 translate-y-0"
+              leaveTo="opacity-0 -translate-y-4"
+            >
+              <DisclosurePanel
+                className={`origin-top transition ${panelClassName}`}
+              >
+                {children}
+              </DisclosurePanel>
+            </Transition>
+          </div>
+        </>
+      )}
+    </Disclosure>
+  );
+};
 
 export { DisclosureCard };

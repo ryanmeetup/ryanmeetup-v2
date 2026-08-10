@@ -157,11 +157,11 @@ const Modal = ({
               maxHeight ??
               "calc(100dvh - max(1rem, env(safe-area-inset-top)) - max(1rem, env(safe-area-inset-bottom)))",
           }}
-          className={`mx-auto flex w-full min-h-0 flex-col ${sizeStyles[size]} rounded-2xl border border-black/15 bg-white p-6 shadow-[0_24px_80px_rgba(0,0,0,0.35)] ring-1 ring-black/5 dark:border-white/20 dark:bg-[#181818] dark:shadow-[0_28px_100px_rgba(0,0,0,0.85)] dark:ring-white/10 ${panelClassName ?? ""}`}
+          className={`mx-auto flex w-full min-h-0 flex-col ${sizeStyles[size]} overflow-hidden rounded-2xl border border-black/15 bg-white shadow-[0_24px_80px_rgba(0,0,0,0.35)] ring-1 ring-black/5 dark:border-white/20 dark:bg-[#181818] dark:shadow-[0_28px_100px_rgba(0,0,0,0.85)] dark:ring-white/10 ${panelClassName ?? ""}`}
         >
-          <div className="mb-4 flex w-full items-start justify-between gap-4">
+          <div className="flex w-full shrink-0 items-start justify-between gap-4 border-b border-black/10 px-6 pb-4 pt-6 dark:border-white/10">
             <div className="min-w-0">
-              <DialogTitle className="text-xl font-cooper capitalize text-black md:text-2xl dark:text-white">
+              <DialogTitle className="text-xl font-cooper text-black md:text-2xl dark:text-white">
                 {title}
               </DialogTitle>
               {description && (
@@ -177,10 +177,10 @@ const Modal = ({
             )}
           </div>
           <div className="min-h-0 min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain">
-            {children}
+            <div className="p-6">{children}</div>
           </div>
           {(footer || (!hideActions && (actions || legacyActions))) && (
-            <div className="mt-4 shrink-0 border-t border-black/10 pt-4 dark:border-white/10">
+            <div className="shrink-0 border-t border-black/10 px-6 py-4 dark:border-white/10">
               {footer ??
                 (actions ? (
                   <div className="flex justify-end">{actions}</div>
