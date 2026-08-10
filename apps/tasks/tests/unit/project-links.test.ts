@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { projectCreateSchema } from "@/lib/api-schemas";
+import { projectCreateSchema, projectPatchSchema } from "@/lib/api-schemas";
 import { normalizeProjectLinkUrl } from "@/lib/project-links";
 
 describe("normalizeProjectLinkUrl", () => {
@@ -40,6 +40,51 @@ describe("normalizeProjectLinkUrl", () => {
       }),
     ).toMatchObject({
       links: [{ label: "Website", url: "https://ryanmeetup.com/" }],
+    });
+  });
+
+  it("requires a description and owner when editing project details", () => {
+    const id = "7b27db83-577d-4de1-b4ca-9f088832f25b";
+    expect(
+      projectPatchSchema({
+        id,
+        name: "Website refresh",
+        description: "",
+        links: [],
+        ownerIds: [id],
+      }),
+    ).toBeNull();
+    expect(
+      projectPatchSchema({
+        id,
+        name: "Website refresh",
+        description: "A proper project description.",
+        links: [],
+        ownerIds: [],
+      }),
+    ).toBeNull();
+  });
+
+  it("still allows archive-only project updates", () => {
+    expect(
+      projectPatchSchema({
+        id: "7b27db83-577d-4de1-b4ca-9f088832f25b",
+        archived: true,
+      }),
+    ).toMatchObject({ archived: true });
+  });
+
+  it("allows project details to change without resubmitting owners", () => {
+    expect(
+      projectPatchSchema({
+        id: "7b27db83-577d-4de1-b4ca-9f088832f25b",
+        name: "Website refresh, again",
+        description: "A proper project description.",
+        links: [],
+      }),
+    ).toMatchObject({
+      name: "Website refresh, again",
+      ownerIds: undefined,
     });
   });
 });

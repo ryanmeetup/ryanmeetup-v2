@@ -213,6 +213,8 @@ export function projectPatchSchema(value: unknown) {
     description === null ||
     links === null ||
     ownerIds === null ||
+    (description !== undefined && !description) ||
+    (ownerIds !== undefined && ownerIds.length === 0) ||
     (body.archived !== undefined && typeof body.archived !== "boolean")
   )
     return null;

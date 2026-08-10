@@ -42,6 +42,20 @@ export type ProjectLink = {
   url: string;
 };
 
+export type ProjectAttachment = {
+  id: string;
+  project_id: string;
+  kind: "note" | "file";
+  name: string;
+  body: string | null;
+  url: string;
+  file_path: string | null;
+  mime_type: string | null;
+  size_bytes: number | null;
+  created_by: string;
+  created_at: string;
+};
+
 export type Task = {
   id: string;
   task_number: number;

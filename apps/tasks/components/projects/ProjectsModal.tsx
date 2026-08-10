@@ -10,6 +10,7 @@ import {
 import {
   Button,
   Avatar,
+  DisclosureCard,
   FilterChip,
   IconButton,
   Input,
@@ -35,6 +36,8 @@ import { withAccessPreview } from "@/lib/access-preview";
 import { normalizeProjectLinkUrl } from "@/lib/project-links";
 import type { Project, ProjectLink, WorkspaceData } from "@/lib/types";
 import { ProjectLinks } from "./ProjectLinks";
+import { ProjectAttachments } from "./ProjectAttachments";
+import type { ProjectAttachmentDraft } from "./ProjectAttachments";
 
 export function ProjectsModal({
   open,
@@ -46,6 +49,7 @@ export function ProjectsModal({
   createOnly = false,
   editProjectId = null,
   readOnly = false,
+  showOwnerNames = false,
   onCreate,
   onProjectUpdated,
 }: {
@@ -58,15 +62,17 @@ export function ProjectsModal({
   createOnly?: boolean;
   editProjectId?: string | null;
   readOnly?: boolean;
+  showOwnerNames?: boolean;
   onCreate?: () => void;
   onProjectUpdated?: (project: Project) => void;
 }) {
   const directEditProject = editProjectId
-    ? data.projects.find((project) => project.id === editProjectId) ?? null
+    ? (data.projects.find((project) => project.id === editProjectId) ?? null)
     : null;
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [links, setLinks] = useState<ProjectLink[]>([]);
+  const [attachments, setAttachments] = useState<ProjectAttachmentDraft[]>([]);
   const [creating, setCreating] = useState(false);
   const [projectStatus, setProjectStatus] = useState<
     "active" | "archived" | "all"
@@ -74,9 +80,7 @@ export function ProjectsModal({
   const [editingProjectId, setEditingProjectId] = useState<string | null>(
     directEditProject?.id ?? null,
   );
-  const [editingName, setEditingName] = useState(
-    directEditProject?.name ?? "",
-  );
+  const [editingName, setEditingName] = useState(directEditProject?.name ?? "");
   const [editingDescription, setEditingDescription] = useState(
     directEditProject?.description ?? "",
   );
@@ -155,6 +159,39 @@ export function ProjectsModal({
             "POST",
           )
         ).project!;
+      if (!demoMode && attachments.length > 0) {
+        let failedAttachments = 0;
+        for (const attachment of attachments) {
+          try {
+            const body = attachment.file
+              ? (() => {
+                  const formData = new FormData();
+                  formData.set("projectId", project.id);
+                  formData.set("file", attachment.file);
+                  return formData;
+                })()
+              : JSON.stringify({
+                  projectId: project.id,
+                  name: attachment.name,
+                  body: attachment.body,
+                });
+            const response = await fetch("/api/project-attachments", {
+              method: "POST",
+              headers: attachment.file
+                ? undefined
+                : { "Content-Type": "application/json" },
+              body,
+            });
+            if (!response.ok) failedAttachments += 1;
+          } catch {
+            failedAttachments += 1;
+          }
+        }
+        if (failedAttachments > 0)
+          toast.error(
+            `${failedAttachments} ${failedAttachments === 1 ? "attachment" : "attachments"} could not be added. You can retry from Edit project.`,
+          );
+      }
       setData((current) => ({
         ...current,
         projects: [...current.projects, project],
@@ -169,6 +206,7 @@ export function ProjectsModal({
       setName("");
       setDescription("");
       setLinks([]);
+      setAttachments([]);
       toast.success(`${project.name} created.`);
       if (createOnly) setOpen(false);
     } catch (error) {
@@ -184,7 +222,17 @@ export function ProjectsModal({
 
   async function updateProject(project: Project, nextName: string) {
     if (!nextName) return;
-    const nextDescription = editingDescription.trim() || null;
+    const nextDescription = editingDescription.trim();
+    if (!nextDescription || editingOwnerIds.length === 0) {
+      toast.error("Add a description and at least one project owner.");
+      return;
+    }
+    const currentOwnerIds = data.projectOwners
+      .filter((item) => item.project_id === project.id)
+      .map((item) => item.profile_id);
+    const ownersChanged =
+      currentOwnerIds.length !== editingOwnerIds.length ||
+      currentOwnerIds.some((ownerId) => !editingOwnerIds.includes(ownerId));
     setRenaming(true);
     try {
       if (!demoMode)
@@ -194,7 +242,7 @@ export function ProjectsModal({
             name: nextName,
             description: nextDescription,
             links: editingLinks,
-            ownerIds: editingOwnerIds,
+            ...(ownersChanged ? { ownerIds: editingOwnerIds } : {}),
           },
           "PATCH",
         );
@@ -210,15 +258,17 @@ export function ProjectsModal({
         projects: current.projects.map((item) =>
           item.id === project.id ? updatedProject : item,
         ),
-        projectOwners: [
-          ...current.projectOwners.filter(
-            (item) => item.project_id !== project.id,
-          ),
-          ...editingOwnerIds.map((profile_id) => ({
-            project_id: project.id,
-            profile_id,
-          })),
-        ],
+        projectOwners: ownersChanged
+          ? [
+              ...current.projectOwners.filter(
+                (item) => item.project_id !== project.id,
+              ),
+              ...editingOwnerIds.map((profile_id) => ({
+                project_id: project.id,
+                profile_id,
+              })),
+            ]
+          : current.projectOwners,
       }));
       toast.success(`${nextName} updated.`);
       setEditingProjectId(null);
@@ -300,12 +350,57 @@ export function ProjectsModal({
       })),
     [data.profiles],
   );
+  const createProjectFields = (
+    <>
+      <Input
+        label="New Project"
+        name="project-name"
+        value={name}
+        onChange={(event) => setName(event.target.value)}
+        placeholder="RyanCon 2027"
+        disabled={creating}
+        required
+      />
+      <Textarea
+        id="project-description"
+        label="Description"
+        name="project-description"
+        value={description}
+        onChange={(event) => setDescription(event.target.value)}
+        placeholder="What is this project working toward?"
+        rows={2}
+        disabled={creating}
+        required
+      />
+      <MultiSelect
+        label="Project owners"
+        options={ownerOptions}
+        value={newOwnerIds}
+        onChange={setNewOwnerIds}
+        placeholder="Select owners"
+        disabled={creating}
+        required
+      />
+      <ProjectLinksFields
+        links={links}
+        setLinks={setLinks}
+        disabled={creating}
+      />
+      <ProjectAttachments
+        demoMode={demoMode}
+        disabled={creating}
+        currentUserId={data.currentProfile.id}
+        drafts={attachments}
+        onDraftsChange={setAttachments}
+      />
+    </>
+  );
   return (
     <>
       <Modal
         open={open && !editProjectId}
         setIsOpen={setOpen}
-        title={createOnly ? "New project" : "Projects"}
+        title={createOnly ? "New Project" : "Projects"}
         description={
           embedded
             ? "Projects collect related work across categories. Owners show who is driving each work stream; project access is still managed separately through groups."
@@ -325,68 +420,49 @@ export function ProjectsModal({
           ) : undefined
         }
         hideActions
-        size={createOnly ? "md" : "xl"}
+        size={createOnly ? "lg" : "xl"}
         embedded={embedded}
         maxHeight="min(42rem, calc(100dvh - max(1rem, env(safe-area-inset-top)) - max(1rem, env(safe-area-inset-bottom))))"
         footer={
-          embedded ? undefined : (
+          embedded ? undefined : createOnly ? (
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setOpen(false)}
+                disabled={creating}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                form="create-project-form"
+                variant="action"
+                size="sm"
+                loading={creating}
+                loadingText="Creating..."
+              >
+                Create project
+              </Button>
+            </div>
+          ) : (
             <form
               id="create-project-form"
               className="grid gap-4"
               onSubmit={addProject}
             >
-              <div>
-                <Input
-                  label="New project"
-                  name="project-name"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  placeholder="RyanCon 2027"
-                  disabled={creating}
-                  required
-                />
-              </div>
-              <Textarea
-                id="project-description"
-                label="Description"
-                name="project-description"
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-                placeholder="What is this project working toward?"
-                rows={2}
-                disabled={creating}
-                required
-              />
-              <MultiSelect
-                label="Project owners"
-                options={ownerOptions}
-                value={newOwnerIds}
-                onChange={setNewOwnerIds}
-                placeholder="Select owners"
-                disabled={creating}
-                required
-              />
-              <ProjectLinksFields
-                links={links}
-                setLinks={setLinks}
-                disabled={creating}
-              />
+              {createProjectFields}
               <div className="flex justify-end gap-2 border-t border-black/10 pt-4 dark:border-white/10">
-                {embedded ? (
-                  <Button.Link href="/" variant="secondary" size="sm">
-                    Back to tasks
-                  </Button.Link>
-                ) : (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setOpen(false)}
-                    disabled={creating}
-                  >
-                    Cancel
-                  </Button>
-                )}
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setOpen(false)}
+                  disabled={creating}
+                >
+                  Cancel
+                </Button>
                 <Button
                   type="submit"
                   variant="action"
@@ -402,17 +478,24 @@ export function ProjectsModal({
         }
       >
         {createOnly ? (
-          <p className="text-sm text-black/60 dark:text-white/60">
-            Give the work a clear home. Assign access groups from Access &
-            permissions afterward.
-          </p>
+          <form
+            id="create-project-form"
+            className="space-y-4"
+            onSubmit={addProject}
+          >
+            <p className="text-sm text-black/60 dark:text-white/60">
+              Give the work a clear home. Assign access groups from Access &
+              permissions afterward.
+            </p>
+            {createProjectFields}
+          </form>
         ) : (
           <>
             {!embedded && (
               <p className="mb-5 text-sm text-black/60 dark:text-white/60">
-                Projects collect related work across categories. Owners show
-                who is driving each work stream; project access is still
-                managed separately through groups.
+                Projects collect related work across categories. Owners show who
+                is driving each work stream; project access is still managed
+                separately through groups.
               </p>
             )}
             <div className="sticky top-0 z-20 -mx-1 mb-4 grid gap-3 bg-white px-1 pb-3 dark:bg-[#181818] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
@@ -499,7 +582,7 @@ export function ProjectsModal({
                           {(project.links ?? []).length > 0 && (
                             <ProjectLinks
                               links={project.links}
-                              className="mt-2"
+                              className={`mt-2 ${embedded ? "mb-4" : ""}`}
                             />
                           )}
                         </div>
@@ -564,11 +647,23 @@ export function ProjectsModal({
                               Unassigned
                             </p>
                           )}
+                          {showOwnerNames && owners.length > 0 && (
+                            <p
+                              className="truncate text-xs font-medium text-black/65 dark:text-white/65"
+                              title={owners
+                                .map((owner) => owner.full_name)
+                                .join(", ")}
+                            >
+                              {owners
+                                .map((owner) => owner.full_name)
+                                .join(", ")}
+                            </p>
+                          )}
                         </div>
                         {embedded && (
                           <Button.Link
                             href={withAccessPreview(
-                              `/board?project=${encodeURIComponent(project.name)}`,
+                              `/board?project=${encodeURIComponent(project.id)}`,
                               data.accessPreview,
                             )}
                             variant="secondary"
@@ -600,6 +695,18 @@ export function ProjectsModal({
             (item) => item.id === editingProjectId,
           );
           if (!project) return null;
+          const savedOwnerIds = data.projectOwners
+            .filter((item) => item.project_id === project.id)
+            .map((item) => item.profile_id);
+          const projectChanged =
+            editingName.trim() !== project.name ||
+            editingDescription.trim() !== (project.description ?? "") ||
+            JSON.stringify(editingLinks) !==
+              JSON.stringify(project.links ?? []) ||
+            savedOwnerIds.length !== editingOwnerIds.length ||
+            savedOwnerIds.some(
+              (ownerId) => !editingOwnerIds.includes(ownerId),
+            );
           return (
             <Modal
               open
@@ -609,8 +716,38 @@ export function ProjectsModal({
               title={`Edit ${project.name}`}
               size="lg"
               hideActions
+              maxHeight="min(42rem, calc(100dvh - max(1rem, env(safe-area-inset-top)) - max(1rem, env(safe-area-inset-bottom))))"
+              footer={
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={renaming}
+                    onClick={closeEditor}
+                  >
+                    Cancel
+                  </Button>
+                  <Tooltip
+                    content="Make a change before saving."
+                    disabled={projectChanged}
+                  >
+                    <span tabIndex={projectChanged ? -1 : 0}>
+                      <Button
+                        type="submit"
+                        form={`edit-project-form-${project.id}`}
+                        disabled={!projectChanged}
+                        loading={renaming}
+                        loadingText="Saving..."
+                      >
+                        Save changes
+                      </Button>
+                    </span>
+                  </Tooltip>
+                </div>
+              }
             >
               <form
+                id={`edit-project-form-${project.id}`}
                 className="space-y-4"
                 onSubmit={(event) => {
                   event.preventDefault();
@@ -638,11 +775,18 @@ export function ProjectsModal({
                   }
                   placeholder="What is this project working toward?"
                   rows={3}
+                  required
                 />
                 <ProjectLinksFields
                   links={editingLinks}
                   setLinks={setEditingLinks}
                   disabled={renaming}
+                />
+                <ProjectAttachments
+                  projectId={project.id}
+                  demoMode={demoMode}
+                  disabled={renaming}
+                  currentUserId={data.currentProfile.id}
                 />
                 <MultiSelect
                   label="Project owners"
@@ -651,24 +795,8 @@ export function ProjectsModal({
                   onChange={setEditingOwnerIds}
                   placeholder="Select owners"
                   disabled={renaming}
+                  required
                 />
-                <div className="flex justify-end gap-2 border-t border-black/10 pt-4 dark:border-white/10">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={renaming}
-                    onClick={closeEditor}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    loading={renaming}
-                    loadingText="Saving..."
-                  >
-                    Save changes
-                  </Button>
-                </div>
               </form>
             </Modal>
           );
@@ -695,21 +823,19 @@ function ProjectLinksFields({
   }
 
   return (
-    <fieldset
+    <DisclosureCard
+      defaultOpen
+      collapsible={links.length > 0}
       className="rounded-xl border border-black/10 bg-black/[0.015] p-3 dark:border-white/10 dark:bg-white/[0.025]"
-      aria-labelledby="project-links-label"
-    >
-      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-        <div>
-          <span id="project-links-label" className="text-sm font-semibold">
-            Useful links
-          </span>
-          {links.length === 0 && (
-            <p className="mt-1 pr-2 text-xs leading-relaxed text-black/55 dark:text-white/55">
-              Attach docs, designs, folders, or any other helpful web page.
-            </p>
-          )}
-        </div>
+      buttonClassName="flex w-fit items-center gap-2 text-left"
+      panelClassName="pt-3"
+      iconClassName="h-3.5 w-3.5"
+      description={
+        <p className="pr-2 text-xs leading-relaxed text-black/55 dark:text-white/55">
+          Attach docs, designs, folders, or any other helpful web page.
+        </p>
+      }
+      actions={
         <Button
           type="button"
           variant="secondary"
@@ -723,8 +849,19 @@ function ProjectLinksFields({
         >
           Add link
         </Button>
-      </div>
-      <div className={links.length > 0 ? "mt-3 space-y-2" : undefined}>
+      }
+      summary={
+        <span className="flex items-center gap-2 text-sm font-semibold">
+          Useful links
+          {links.length > 0 && (
+            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-black/10 px-1.5 text-[10px] font-semibold leading-none tabular-nums text-black/55 dark:bg-white/10 dark:text-white/55">
+              {links.length}
+            </span>
+          )}
+        </span>
+      }
+    >
+      <div className={links.length > 0 ? "space-y-2" : undefined}>
         {links.map((link, index) => (
           <div
             key={index}
@@ -753,7 +890,11 @@ function ProjectLinksFields({
               disabled={disabled}
               onChange={(event) => update(index, "url", event.target.value)}
               onBlur={(event) =>
-                update(index, "url", normalizeProjectLinkUrl(event.target.value))
+                update(
+                  index,
+                  "url",
+                  normalizeProjectLinkUrl(event.target.value),
+                )
               }
             />
             <IconButton
@@ -771,6 +912,6 @@ function ProjectLinksFields({
           </div>
         ))}
       </div>
-    </fieldset>
+    </DisclosureCard>
   );
 }
