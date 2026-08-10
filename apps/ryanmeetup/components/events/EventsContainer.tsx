@@ -176,7 +176,7 @@ const EventsContainer = (props: EventsContainerProps) => {
       } else {
         inactiveEvents.push(item.event);
       }
-    } else {
+    } else if (showChapters) {
       const { upcoming } = splitEventsByTime([item.event]);
       if (upcoming.length) {
         chapterEvents.push(item.event);

@@ -143,6 +143,7 @@ const ChapterPage = async ({
                 events={events as unknown as RyanEvent[]}
                 eventType={convertSlug(resolvedParams.slug)}
                 showUpcomingSection
+                showChapters={false}
                 showSearch={false}
               />
             </div>
