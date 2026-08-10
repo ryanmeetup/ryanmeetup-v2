@@ -39,8 +39,8 @@ export function Banner({
       <div
         className={`flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between ${contentClassName ?? ""}`}
       >
-        <div className="flex min-w-0 items-start gap-2 text-left">
-          {icon && <span className="mt-0.5 shrink-0">{icon}</span>}
+        <div className="flex min-w-0 items-center gap-2 text-left">
+          {icon && <span className="shrink-0">{icon}</span>}
           <div className="min-w-0">
             {title && <p className="font-semibold">{title}</p>}
             {children && <div>{children}</div>}

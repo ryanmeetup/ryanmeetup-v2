@@ -5,7 +5,7 @@ export function BetaBanner() {
   return (
     <Banner
       variant="info"
-      icon={<FiInfo aria-hidden />}
+      icon={<FiInfo className="h-6 w-6" aria-hidden />}
       aria-label="Beta notice"
     >
       <p>
