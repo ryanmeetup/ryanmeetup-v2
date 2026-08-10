@@ -69,14 +69,15 @@ insert into public.project_owners (project_id, profile_id) values
   ('30000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000002'),
   ('30000000-0000-4000-8000-000000000002', '10000000-0000-4000-8000-000000000001');
 
-insert into public.tasks (id, title, status_id, created_by, project_id)
+insert into public.tasks (id, title, status_id, created_by, reported_by, project_id)
 select '40000000-0000-4000-8000-000000000001', 'Auth test other task', id,
-  '10000000-0000-4000-8000-000000000001', '30000000-0000-4000-8000-000000000002'
+  '10000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000001',
+  '30000000-0000-4000-8000-000000000002'
 from public.statuses order by sort_order limit 1;
 
-insert into public.tasks (id, title, status_id, created_by, project_id)
+insert into public.tasks (id, title, status_id, created_by, reported_by, project_id)
 select '40000000-0000-4000-8000-000000000002', 'Auth test shared task', id,
-  '10000000-0000-4000-8000-000000000001', null
+  '10000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000001', null
 from public.statuses order by sort_order limit 1;
 
 set local role authenticated;
