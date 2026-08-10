@@ -17,13 +17,18 @@ import {
 import { FiArrowRight, FiMenu, FiX } from "react-icons/fi";
 import { CategoriesModal } from "@/components/categories";
 import { FilterPanel, TaskBanners } from "@/components/global";
-import { TaskHeaderActions, TasksSidebar } from "@/components/navigation";
+import {
+  TaskHeaderActions,
+  TaskSearch,
+  TasksSidebar,
+} from "@/components/navigation";
 import { ProjectsModal } from "@/components/projects";
 import { withAccessPreview } from "@/lib/access-preview";
 import { useQueryParamState } from "@ryanmeetup/hooks";
 import { usePagination } from "@/hooks/usePagination";
 import type { TaskActivity, WorkspaceData } from "@/lib/types";
-import { taskKey, taskPath } from "@/lib/task-key";
+import { taskPath } from "@/lib/task-key";
+import { TaskKeyBadge } from "@/components/tasks/TaskKeyBadge";
 
 const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",
@@ -127,6 +132,20 @@ export function ActivityPageClient({
     () => new Map(data.profiles.map((profile) => [profile.id, profile])),
     [data.profiles],
   );
+  const selectedProject =
+    projectFilter === "all" || projectFilter === "none"
+      ? null
+      : (data.projects.find(
+          (project) =>
+            project.id === projectFilter || project.name === projectFilter,
+        ) ?? null);
+  const selectedPerson =
+    personFilter === "all" || personFilter === "system"
+      ? null
+      : (data.profiles.find(
+          (profile) =>
+            profile.id === personFilter || profile.full_name === personFilter,
+        ) ?? null);
   const filterCount = [
     projectFilter,
     personFilter,
@@ -148,11 +167,27 @@ export function ActivityPageClient({
   }
 
   useEffect(() => {
+    if (selectedProject && projectFilter !== selectedProject.name)
+      setProjectFilter(selectedProject.name);
+    if (selectedPerson && personFilter !== selectedPerson.full_name)
+      setPersonFilter(selectedPerson.full_name || "Teammate");
+  }, [
+    personFilter,
+    projectFilter,
+    selectedPerson,
+    selectedProject,
+    setPersonFilter,
+    setProjectFilter,
+  ]);
+
+  useEffect(() => {
     if (demoMode) return;
     const controller = new AbortController();
     const params = new URLSearchParams();
-    if (projectFilter !== "all") params.set("project", projectFilter);
-    if (personFilter !== "all") params.set("person", personFilter);
+    if (projectFilter !== "all")
+      params.set("project", selectedProject?.id ?? projectFilter);
+    if (personFilter !== "all")
+      params.set("person", selectedPerson?.id ?? personFilter);
     if (kindFilter !== "all") params.set("event", kindFilter);
     if (timeFilter !== "all") params.set("when", timeFilter);
     if (previewKind && previewSubjectId) {
@@ -212,6 +247,8 @@ export function ActivityPageClient({
     previewKind,
     previewSubjectId,
     projectFilter,
+    selectedPerson,
+    selectedProject,
     syncPage,
     syncPageSize,
     timeFilter,
@@ -229,7 +266,7 @@ export function ActivityPageClient({
       />
 
       <main className="min-w-0 lg:pl-64">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-black/10 bg-[#f7f7f5]/90 px-4 backdrop-blur-xl dark:border-white/10 dark:bg-[#101010]/90 sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-black/10 bg-[#f7f7f5]/90 px-4 backdrop-blur-xl focus-within:z-[2147483647] dark:border-white/10 dark:bg-[#101010]/90 sm:px-6 lg:px-8">
           <IconButton
             label="Open navigation"
             tooltipTriggerClassName="lg:hidden"
@@ -237,7 +274,13 @@ export function ActivityPageClient({
           >
             <FiMenu />
           </IconButton>
-          <p className="font-semibold">Activity</p>
+          <TaskSearch
+            tasks={data.tasks}
+            projects={data.projects}
+            categories={data.categories}
+            statuses={data.statuses}
+            profiles={data.profiles}
+          />
           <TaskHeaderActions
             data={data}
             setData={setData}
@@ -265,20 +308,20 @@ export function ActivityPageClient({
               <div className="flex items-center gap-2 overflow-x-auto pb-1">
                 <DropdownSelect
                   label="Project"
-                  value={projectFilter}
+                  value={selectedProject?.name ?? projectFilter}
                   onChange={(value) => setFilter(setProjectFilter, value)}
                   options={[
                     { label: "All projects", value: "all" },
                     { label: "No project", value: "none" },
                     ...data.projects.map((project) => ({
                       label: `${project.name}${project.archived_at ? " (archived)" : ""}`,
-                      value: project.id,
+                      value: project.name,
                     })),
                   ]}
                 />
                 <DropdownSelect
                   label="Person"
-                  value={personFilter}
+                  value={selectedPerson?.full_name ?? personFilter}
                   onChange={(value) => setFilter(setPersonFilter, value)}
                   options={[
                     { label: "Everyone", value: "all" },
@@ -289,7 +332,7 @@ export function ActivityPageClient({
                         src: profile.avatar_url,
                       },
                       label: profile.full_name || "Teammate",
-                      value: profile.id,
+                      value: profile.full_name || "Teammate",
                     })),
                   ]}
                 />
@@ -400,7 +443,10 @@ export function ActivityPageClient({
                                 )}
                                 className="rounded hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/40"
                               >
-                                {task.title} · {taskKey(task)}
+                                <span className="inline-flex flex-wrap items-center gap-2">
+                                  <span>{task.title}</span>
+                                  <TaskKeyBadge task={task} />
+                                </span>
                               </Link>
                             ) : (
                               <span className="text-black/45 dark:text-white/45">

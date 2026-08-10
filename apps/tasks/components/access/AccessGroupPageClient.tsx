@@ -8,6 +8,7 @@ import {
   Card,
   ConfirmationDialog,
   DropdownSelect,
+  Heading,
   IconButton,
   Input,
   Pill,
@@ -20,7 +21,11 @@ import { accessMutation } from "@/lib/access-mutations";
 import type { WorkspaceData } from "@/lib/types";
 import { CategoriesModal } from "@/components/categories";
 import { TaskBanners } from "@/components/global";
-import { TaskHeaderActions, TasksSidebar } from "@/components/navigation";
+import {
+  TaskHeaderActions,
+  TaskSearch,
+  TasksSidebar,
+} from "@/components/navigation";
 import { ProjectsModal } from "@/components/projects";
 
 type Permission = "viewer" | "editor" | "manager";
@@ -179,7 +184,7 @@ export function AccessGroupPageClient({
         onCreateProject={() => setProjectCreateOpen(true)}
       />
       <main className="min-w-0 lg:pl-64">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-black/10 bg-[#f7f7f5]/90 px-4 backdrop-blur-xl dark:border-white/10 dark:bg-[#101010]/90 sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-black/10 bg-[#f7f7f5]/90 px-4 backdrop-blur-xl focus-within:z-[2147483647] dark:border-white/10 dark:bg-[#101010]/90 sm:px-6 lg:px-8">
           <IconButton
             label="Open navigation"
             tooltipTriggerClassName="lg:hidden"
@@ -187,7 +192,13 @@ export function AccessGroupPageClient({
           >
             <FiMenu />
           </IconButton>
-          <p className="truncate font-semibold">{group.name}</p>
+          <TaskSearch
+            tasks={data.tasks}
+            projects={data.projects}
+            categories={data.categories}
+            statuses={data.statuses}
+            profiles={data.profiles}
+          />
           <TaskHeaderActions data={data} setData={setData} demoMode={false} />
         </header>
         <TaskBanners />
@@ -201,6 +212,14 @@ export function AccessGroupPageClient({
             >
               Access groups
             </Button.Link>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-black/50 dark:text-white/50">
+                Access group
+              </p>
+              <Heading size="h1" className="mt-2 text-4xl">
+                {group.name}
+              </Heading>
+            </div>
             <form onSubmit={saveGroup}>
               <Card className="p-5">
                 <div className="space-y-4">

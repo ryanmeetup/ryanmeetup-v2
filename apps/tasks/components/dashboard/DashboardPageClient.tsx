@@ -31,7 +31,11 @@ import {
 } from "react-icons/fi";
 import { CategoriesModal } from "@/components/categories";
 import { TaskBanners } from "@/components/global";
-import { TaskHeaderActions, TasksSidebar } from "@/components/navigation";
+import {
+  TaskHeaderActions,
+  TaskSearch,
+  TasksSidebar,
+} from "@/components/navigation";
 import { ProjectsModal } from "@/components/projects";
 import { NewTaskModal } from "@/components/tasks/NewTaskModal";
 import { withAccessPreview } from "@/lib/access-preview";
@@ -42,7 +46,8 @@ import {
   type StoredTaskDraft,
 } from "@/lib/task-drafts";
 import type { Status, Task, TaskActivity, WorkspaceData } from "@/lib/types";
-import { taskKey, taskPath } from "@/lib/task-key";
+import { taskPath } from "@/lib/task-key";
+import { TaskKeyBadge } from "@/components/tasks/TaskKeyBadge";
 
 const dayMs = 24 * 60 * 60 * 1000;
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
@@ -99,11 +104,11 @@ function DashboardTaskList({
               className="group grid gap-3 px-4 py-4 transition hover:bg-black/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-black/30 dark:hover:bg-white/[0.035] dark:focus-visible:ring-white/40 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
             >
               <span className="min-w-0">
-                <span className="block truncate text-sm font-semibold group-hover:underline">
-                  {task.title}
-                </span>
-                <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.16em] text-black/45 dark:text-white/45">
-                  {taskKey(task)}
+                <span className="flex min-w-0 flex-wrap items-center gap-2">
+                  <span className="min-w-0 text-sm font-semibold group-hover:underline">
+                    {task.title}
+                  </span>
+                  <TaskKeyBadge task={task} />
                 </span>
                 <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
                   <StatusBadge status={statuses.get(task.status_id)} />
@@ -270,7 +275,7 @@ export function DashboardPageClient({
         onCreateProject={() => setProjectCreateOpen(true)}
       />
       <main className="min-w-0 lg:pl-64">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-black/10 bg-[#f7f7f5]/90 px-4 backdrop-blur-xl dark:border-white/10 dark:bg-[#101010]/90 sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-black/10 bg-[#f7f7f5]/90 px-4 backdrop-blur-xl focus-within:z-[2147483647] dark:border-white/10 dark:bg-[#101010]/90 sm:px-6 lg:px-8">
           <IconButton
             label="Open navigation"
             tooltipTriggerClassName="lg:hidden"
@@ -278,7 +283,13 @@ export function DashboardPageClient({
           >
             <FiMenu />
           </IconButton>
-          <p className="font-semibold">Dashboard</p>
+          <TaskSearch
+            tasks={data.tasks}
+            projects={data.projects}
+            categories={data.categories}
+            statuses={data.statuses}
+            profiles={data.profiles}
+          />
           <TaskHeaderActions
             data={data}
             setData={setData}
@@ -505,8 +516,11 @@ export function DashboardPageClient({
                             )}
                             className="group block rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/40"
                           >
-                            <span className="block truncate text-sm font-semibold group-hover:underline">
-                              {task?.title ?? "Task"}
+                            <span className="flex min-w-0 flex-wrap items-center gap-2">
+                              <span className="min-w-0 text-sm font-semibold group-hover:underline">
+                                {task?.title ?? "Task"}
+                              </span>
+                              {task && <TaskKeyBadge task={task} />}
                             </span>
                             <span className="mt-2 flex flex-wrap items-center gap-2">
                               {change.from && (

@@ -11,6 +11,7 @@ import {
   USER_ACCESS_PREVIEW_PARAM,
 } from "@/lib/access-preview";
 import { resolveAccessPreview } from "@/lib/access-preview-server";
+import { parseTaskKey } from "@/lib/task-key";
 
 type SavedTask = {
   task: Task;
@@ -97,6 +98,24 @@ export async function GET(request: Request): Promise<NextResponse> {
   const excludedTaskIds = [
     ...new Set((excludedRows.data ?? []).map((row) => row.task_id)),
   ];
+  const rawSearch = params.get("search")?.trim() ?? "";
+  const search = rawSearch.replaceAll(/[%,()]/g, "");
+  const searchProjectResult = rawSearch
+    ? await supabase
+        .from("projects")
+        .select("id")
+        .ilike("name", `%${rawSearch}%`)
+    : { data: [], error: null };
+  if (searchProjectResult.error)
+    return databaseFailure(
+      request,
+      "tasks.search-projects",
+      searchProjectResult.error,
+      { error: "Tasks could not be searched. Try again." },
+    );
+  const matchingProjectIds = (searchProjectResult.data ?? []).map(
+    (project) => project.id,
+  );
 
   let query = supabase
     .from("tasks")
@@ -144,12 +163,18 @@ export async function GET(request: Request): Promise<NextResponse> {
     );
   if (excludedTaskIds.length)
     query = query.not("id", "in", `(${excludedTaskIds.join(",")})`);
-  const search = params
-    .get("search")
-    ?.trim()
-    .replaceAll(/[%,()]/g, "");
-  if (search)
-    query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
+  if (search) {
+    const taskNumber = parseTaskKey(search);
+    const searchFilters = [
+      `title.ilike.%${search}%`,
+      `description.ilike.%${search}%`,
+      ...(taskNumber ? [`task_number.eq.${taskNumber}`] : []),
+      ...(matchingProjectIds.length
+        ? [`project_id.in.(${matchingProjectIds.join(",")})`]
+        : []),
+    ];
+    query = query.or(searchFilters.join(","));
+  }
 
   query =
     sort === "due"

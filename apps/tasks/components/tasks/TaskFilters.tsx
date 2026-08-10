@@ -182,7 +182,7 @@ export function TaskFilters({
         />
         <DropdownSelect
           label="Involvement"
-          value={selectedInvolved?.id ?? involved}
+          value={selectedInvolved ? profileName(selectedInvolved) : involved}
           onChange={onInvolvedChange}
           options={[
             { label: "Anyone", value: "all" },
@@ -192,7 +192,7 @@ export function TaskFilters({
                 src: profile.avatar_url,
               },
               label: `${profileName(profile)} (assigned or reporter)`,
-              value: profile.id,
+              value: profileName(profile),
             })),
           ]}
         />

@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Avatar,
+  Breadcrumbs,
   Button,
   Card,
   ConfirmationDialog,
@@ -26,8 +26,13 @@ import {
   FiUserCheck,
 } from "react-icons/fi";
 import { TaskBanners } from "@/components/global";
-import { TaskHeaderActions, TasksSidebar } from "@/components/navigation";
+import {
+  TaskHeaderActions,
+  TaskSearch,
+  TasksSidebar,
+} from "@/components/navigation";
 import { useWorkspaceData } from "@/hooks/useWorkspaceData";
+import { withAccessPreview } from "@/lib/access-preview";
 import {
   createTaskMutationService,
   type TaskDraft,
@@ -37,6 +42,8 @@ import type { Task, WorkspaceData } from "@/lib/types";
 import { TaskDetails } from "./TaskDetails";
 import { TaskDueDate } from "./TaskDueDate";
 import { TaskEditor } from "./TaskEditor";
+import { TaskKeyBadge } from "./TaskKeyBadge";
+import { emptyNewTaskDetails } from "./NewTaskDetails";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", { dateStyle: "medium" });
 
@@ -188,7 +195,7 @@ export function TaskPageClient({
       />
 
       <main className="min-w-0 lg:pl-64">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-black/10 bg-[#f7f7f5]/90 px-4 backdrop-blur-xl dark:border-white/10 dark:bg-[#101010]/90 sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-black/10 bg-[#f7f7f5]/90 px-4 backdrop-blur-xl focus-within:z-[2147483647] dark:border-white/10 dark:bg-[#101010]/90 sm:px-6 lg:px-8">
           <IconButton
             label="Open navigation"
             tooltipTriggerClassName="lg:hidden"
@@ -196,13 +203,13 @@ export function TaskPageClient({
           >
             <FiMenu />
           </IconButton>
-          <Link
-            href="/board"
-            className="inline-flex items-center gap-2 rounded text-sm font-semibold text-black/65 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:text-white/65 dark:hover:text-white dark:focus-visible:ring-white/40"
-          >
-            <FiArrowLeft aria-hidden />
-            Board
-          </Link>
+          <TaskSearch
+            tasks={data.tasks}
+            projects={data.projects}
+            categories={data.categories}
+            statuses={data.statuses}
+            profiles={data.profiles}
+          />
           <TaskHeaderActions
             data={data}
             setData={setData}
@@ -213,12 +220,26 @@ export function TaskPageClient({
 
         <div className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6 lg:p-8">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0">
-              <span className="inline-flex rounded border border-black/10 bg-black/[0.04] px-2 py-1 font-mono text-[10px] font-semibold tracking-[0.08em] text-black/55 dark:border-white/10 dark:bg-white/[0.06] dark:text-white/55">
-                {taskKey(task)}
-              </span>
-              <h1 className="mt-2 text-3xl font-bold leading-tight sm:text-4xl">
+            <div className="min-w-0 flex-1">
+              <Breadcrumbs
+                className="mb-2"
+                variant="compact"
+                crumbs={[
+                  {
+                    current: false,
+                    href: withAccessPreview("/board", data.accessPreview),
+                    icon: <FiArrowLeft aria-hidden />,
+                    title: "Board",
+                  },
+                ]}
+              />
+              <h1 className="text-3xl font-bold leading-tight sm:text-4xl">
                 {task.title}
+                <TaskKeyBadge
+                  task={task}
+                  size="title"
+                  className="ml-3 align-middle"
+                />
               </h1>
             </div>
             <div className="flex shrink-0 flex-wrap gap-2">
@@ -425,6 +446,8 @@ export function TaskPageClient({
         saveTask={saveTask}
         setTaskPendingDelete={setTaskPendingDelete}
         taskMessage={taskMessage}
+        newTaskDetails={emptyNewTaskDetails()}
+        setNewTaskDetails={() => undefined}
       />
       <ConfirmationDialog
         open={Boolean(taskPendingDelete)}

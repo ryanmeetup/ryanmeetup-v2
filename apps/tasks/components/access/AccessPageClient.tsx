@@ -8,11 +8,11 @@ import {
   Card,
   ConfirmationDialog,
   DropdownSelect,
+  Heading,
   IconButton,
   Input,
   Modal,
   Pagination,
-  Pill,
   Textarea,
   Tooltip,
   toast,
@@ -36,7 +36,11 @@ import { usePagination } from "@/hooks/usePagination";
 import type { Profile, Project, WorkspaceData } from "@/lib/types";
 import { CategoriesModal } from "@/components/categories";
 import { TaskBanners } from "@/components/global";
-import { TaskHeaderActions, TasksSidebar } from "@/components/navigation";
+import {
+  TaskHeaderActions,
+  TaskSearch,
+  TasksSidebar,
+} from "@/components/navigation";
 import { ProjectsModal } from "@/components/projects";
 
 type Permission = "viewer" | "editor" | "manager";
@@ -354,7 +358,7 @@ export function AccessPageClient({
         onCreateProject={() => setProjectCreateOpen(true)}
       />
       <main className="min-w-0 lg:pl-64">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-black/10 bg-[#f7f7f5]/90 px-4 backdrop-blur-xl dark:border-white/10 dark:bg-[#101010]/90 sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-black/10 bg-[#f7f7f5]/90 px-4 backdrop-blur-xl focus-within:z-[2147483647] dark:border-white/10 dark:bg-[#101010]/90 sm:px-6 lg:px-8">
           <IconButton
             label="Open navigation"
             tooltipTriggerClassName="lg:hidden"
@@ -362,17 +366,23 @@ export function AccessPageClient({
           >
             <FiMenu />
           </IconButton>
-          <p className="font-semibold">Access & permissions</p>
+          <TaskSearch
+            tasks={data.tasks}
+            projects={data.projects}
+            categories={data.categories}
+            statuses={data.statuses}
+            profiles={data.profiles}
+          />
           <TaskHeaderActions data={data} setData={setData} demoMode={false} />
         </header>
         <TaskBanners />
         <div className="p-4 sm:p-6 lg:p-8">
           <div className="space-y-8">
             <div>
-              <p className="flex items-center gap-2 text-2xl font-semibold">
+              <Heading size="h1" className="flex items-center gap-2 text-4xl">
                 <FiShield />
                 Access
-              </p>
+              </Heading>
               <p className="mt-1 text-sm text-black/65 dark:text-white/65">
                 Decide who belongs to each group and which projects that group
                 can see.
@@ -621,18 +631,27 @@ export function AccessPageClient({
                                 {metadata?.reported ?? 0} reported
                               </p>
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="min-w-48 px-4 py-3">
                               {profileGroups.length > 0 ? (
-                                <div className="flex flex-wrap gap-1.5">
+                                <ul className="space-y-1.5">
                                   {profileGroups.map((group) => (
-                                    <Pill key={group.id} size="sm">
-                                      {group.name}
-                                    </Pill>
+                                    <li key={group.id}>
+                                      <Link
+                                        href={`/access/${accessGroupSlug(group.name)}`}
+                                        className="group inline-flex items-center gap-2 font-medium text-black/75 underline-offset-4 transition hover:text-black hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:text-white/75 dark:hover:text-white dark:focus-visible:ring-white/30"
+                                      >
+                                        <span
+                                          aria-hidden="true"
+                                          className="h-1.5 w-1.5 shrink-0 rounded-full bg-black/25 transition group-hover:bg-black/50 dark:bg-white/25 dark:group-hover:bg-white/50"
+                                        />
+                                        {group.name}
+                                      </Link>
+                                    </li>
                                   ))}
-                                </div>
+                                </ul>
                               ) : (
-                                <span className="text-black/45 dark:text-white/45">
-                                  No groups
+                                <span className="text-sm text-black/45 dark:text-white/45">
+                                  No access assigned
                                 </span>
                               )}
                             </td>

@@ -9,7 +9,7 @@ import type {
   Task,
 } from "@/lib/types";
 import { TaskDueDate } from "./TaskDueDate";
-import { taskKey } from "@/lib/task-key";
+import { TaskKeyBadge } from "./TaskKeyBadge";
 
 const priorityStyles: Record<Priority, string> = {
   low: "border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200",
@@ -116,9 +116,7 @@ export function TaskListView({
                 >
                   <td className="px-4 py-4">
                     <span className="block font-semibold">{task.title}</span>
-                    <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.16em] text-black/45 dark:text-white/45">
-                      {taskKey(task)}
-                    </span>
+                    <TaskKeyBadge task={task} className="mt-1" />
                   </td>
                   <td>
                     <span className="flex items-center gap-2">

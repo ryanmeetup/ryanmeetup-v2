@@ -4,7 +4,39 @@ import { useCallback, useSyncExternalStore } from "react";
 
 const queryChangeEvent = "ryanmeetup:query-change";
 
+const historyPatchKey = "__ryanmeetupQueryParamHistoryPatched";
+
+function observeHistoryChanges() {
+  const patchedWindow = window as typeof window & {
+    [historyPatchKey]?: boolean;
+  };
+  if (patchedWindow[historyPatchKey]) return;
+
+  let notificationQueued = false;
+  const notify = () => {
+    if (notificationQueued) return;
+    notificationQueued = true;
+    window.queueMicrotask(() => {
+      notificationQueued = false;
+      window.dispatchEvent(new Event(queryChangeEvent));
+    });
+  };
+  const pushState = window.history.pushState.bind(window.history);
+  const replaceState = window.history.replaceState.bind(window.history);
+
+  window.history.pushState = (...args) => {
+    pushState(...args);
+    notify();
+  };
+  window.history.replaceState = (...args) => {
+    replaceState(...args);
+    notify();
+  };
+  patchedWindow[historyPatchKey] = true;
+}
+
 const subscribe = (onStoreChange: () => void) => {
+  observeHistoryChanges();
   window.addEventListener("popstate", onStoreChange);
   window.addEventListener(queryChangeEvent, onStoreChange);
 
@@ -42,7 +74,6 @@ const useQueryParamState = (name: string, defaultValue = "") => {
       }
 
       window.history.replaceState(window.history.state, "", url);
-      window.dispatchEvent(new Event(queryChangeEvent));
     },
     [defaultValue, name],
   );

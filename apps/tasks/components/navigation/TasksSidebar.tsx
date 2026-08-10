@@ -178,7 +178,9 @@ export function TasksSidebar({
                   )}
                   onClick={closeSidebar}
                   className={linkClass(
-                    isBoard && selectedCategory === category.name,
+                    isBoard &&
+                      (selectedCategory === category.id ||
+                        selectedCategory === category.name),
                   )}
                 >
                   <span
@@ -244,7 +246,9 @@ export function TasksSidebar({
                   )}
                   onClick={closeSidebar}
                   className={linkClass(
-                    isBoard && selectedProject === project.name,
+                    isBoard &&
+                      (selectedProject === project.id ||
+                        selectedProject === project.name),
                   )}
                 >
                   <FiFolder className="shrink-0" />
