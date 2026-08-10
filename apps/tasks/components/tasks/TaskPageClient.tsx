@@ -14,9 +14,10 @@ import {
 } from "@ryanmeetup/ui";
 import {
   FiActivity,
-  FiArrowLeft,
   FiCalendar,
+  FiCheckSquare,
   FiClock,
+  FiColumns,
   FiEdit3,
   FiFlag,
   FiFolder,
@@ -223,13 +224,20 @@ export function TaskPageClient({
             <div className="min-w-0 flex-1">
               <Breadcrumbs
                 className="mb-2"
-                variant="compact"
                 crumbs={[
                   {
                     current: false,
                     href: withAccessPreview("/board", data.accessPreview),
-                    icon: <FiArrowLeft aria-hidden />,
+                    icon: <FiColumns aria-hidden className="mr-2 shrink-0" />,
                     title: "Board",
+                  },
+                  {
+                    current: true,
+                    href: withAccessPreview(taskPath(task), data.accessPreview),
+                    icon: (
+                      <FiCheckSquare aria-hidden className="mr-2 shrink-0" />
+                    ),
+                    title: taskKey(task),
                   },
                 ]}
               />
@@ -368,10 +376,15 @@ export function TaskPageClient({
                   </div>
                   <div>
                     <dt className="flex items-center gap-1.5 text-black/50 dark:text-white/50">
-                      <FiFolder aria-hidden /> Project
+                      <FiUser aria-hidden /> Reported by
                     </dt>
-                    <dd className="mt-1 font-semibold">
-                      {project?.name ?? "No project"}
+                    <dd className="mt-1 flex items-center gap-2 font-semibold">
+                      <Avatar
+                        name={reporter?.full_name ?? "Unknown"}
+                        src={reporter?.avatar_url}
+                        size="sm"
+                      />
+                      {reporter?.full_name ?? "Unknown"}
                     </dd>
                   </div>
                   <div>
@@ -387,17 +400,12 @@ export function TaskPageClient({
                       {assignee?.full_name ?? "Unassigned"}
                     </dd>
                   </div>
-                  <div>
+                  <div className="sm:col-span-2">
                     <dt className="flex items-center gap-1.5 text-black/50 dark:text-white/50">
-                      <FiUser aria-hidden /> Reported by
+                      <FiFolder aria-hidden /> Project
                     </dt>
-                    <dd className="mt-1 flex items-center gap-2 font-semibold">
-                      <Avatar
-                        name={reporter?.full_name ?? "Unknown"}
-                        src={reporter?.avatar_url}
-                        size="sm"
-                      />
-                      {reporter?.full_name ?? "Unknown"}
+                    <dd className="mt-1 font-semibold">
+                      {project?.name ?? "No project"}
                     </dd>
                   </div>
                 </dl>

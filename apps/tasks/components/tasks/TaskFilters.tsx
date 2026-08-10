@@ -1,6 +1,6 @@
-import { DropdownSelect } from "@ryanmeetup/ui";
+import { DropdownSelect, FilterPanel } from "@ryanmeetup/ui";
 import type { Category, Priority, Profile, Project, Status } from "@/lib/types";
-import { FilterPanel } from "@/components/global";
+import { filterPanelsExpandedPreferenceKey } from "@/lib/user-preferences";
 import { CategoryFilterMenu } from "./CategoryFilterMenu";
 
 const priorities: Priority[] = ["low", "medium", "high", "urgent"];
@@ -8,6 +8,7 @@ const profileName = (profile: Profile) => profile.full_name || "Teammate";
 
 export function TaskFilters({
   assignee,
+  assigneeActive,
   categories,
   clearFilters,
   filterCount,
@@ -41,6 +42,7 @@ export function TaskFilters({
   visibility,
 }: {
   assignee: string;
+  assigneeActive: boolean;
   categories: Category[];
   clearFilters: () => void;
   filterCount: number;
@@ -74,137 +76,140 @@ export function TaskFilters({
   visibility: string;
 }) {
   return (
-    <FilterPanel count={filterCount} className="mb-6">
-      <div className="flex items-center gap-2 overflow-x-auto pb-1">
-        <DropdownSelect
-          label="Visibility"
-          value={visibility === "archived" ? "Archived tasks" : "Active tasks"}
-          onChange={onVisibilityChange}
-          options={[
-            { label: "Active tasks", value: "active" },
-            { label: "Archived tasks", value: "archived" },
-          ]}
-        />
-        <DropdownSelect
-          label="Assignee"
-          value={
-            selectedAssignee
-              ? profileName(selectedAssignee)
-              : assignee.toLowerCase() === "unassigned"
-                ? "Unassigned"
-                : assignee
-          }
-          onChange={onAssigneeChange}
-          options={[
-            { label: "Anyone", value: "all" },
-            { label: "Unassigned", value: "Unassigned" },
-            ...profiles.map((profile) => ({
-              avatar: {
-                name: profileName(profile),
-                src: profile.avatar_url,
-              },
-              label: profileName(profile),
-              value: profileName(profile),
-            })),
-          ]}
-        />
-        <CategoryFilterMenu
-          categories={categories}
-          includedIds={includedCategoryIds}
-          excludedIds={excludedCategoryIds}
-          onIncludedChange={onIncludedCategoriesChange}
-          onExcludedChange={onExcludedCategoriesChange}
-        />
-        <DropdownSelect
-          label="Reported by"
-          value={selectedReporter ? profileName(selectedReporter) : reporter}
-          onChange={onReporterChange}
-          options={[
-            { label: "Anyone", value: "all" },
-            ...profiles.map((profile) => ({
-              avatar: {
-                name: profileName(profile),
-                src: profile.avatar_url,
-              },
-              label: profileName(profile),
-              value: profileName(profile),
-            })),
-          ]}
-        />
-        <DropdownSelect
-          label="Project"
-          value={selectedProject?.name ?? project}
-          onChange={onProjectChange}
-          options={[
-            { label: "All projects", value: "all" },
-            { label: "No project", value: "none" },
-            ...projects.map((item) => ({
-              label: `${item.name}${item.archived_at ? " (archived)" : ""}`,
-              value: item.name,
-            })),
-          ]}
-        />
-        <DropdownSelect
-          label="Status"
-          value={selectedStatus?.name ?? status}
-          onChange={onStatusChange}
-          options={[
-            { label: "All statuses", value: "all" },
-            ...statuses.map((item) => ({ label: item.name, value: item.name })),
-          ]}
-        />
-        <DropdownSelect
-          label="Priority"
-          value={
-            selectedPriority
-              ? selectedPriority[0].toUpperCase() + selectedPriority.slice(1)
-              : priority
-          }
-          onChange={onPriorityChange}
-          options={[
-            { label: "All priorities", value: "all" },
-            ...priorities.map((item) => ({
-              label: item[0].toUpperCase() + item.slice(1),
-              value: item[0].toUpperCase() + item.slice(1),
-            })),
-          ]}
-        />
-        <DropdownSelect
-          label="Due within"
-          value={dueWithin}
-          onChange={onDueWithinChange}
-          options={[
-            { label: "Any time", value: "all" },
-            { label: "Next 7 days", value: "7" },
-            { label: "Next 14 days", value: "14" },
-            { label: "Next 30 days", value: "30" },
-          ]}
-        />
-        <DropdownSelect
-          label="Involvement"
-          value={selectedInvolved ? profileName(selectedInvolved) : involved}
-          onChange={onInvolvedChange}
-          options={[
-            { label: "Anyone", value: "all" },
-            ...profiles.map((profile) => ({
-              avatar: {
-                name: profileName(profile),
-                src: profile.avatar_url,
-              },
-              label: `${profileName(profile)} (assigned or reporter)`,
-              value: profileName(profile),
-            })),
-          ]}
-        />
-        {filterCount > 0 && (
-          <button
-            className="shrink-0 text-xs font-semibold text-black/60 hover:text-black dark:text-white/60 dark:hover:text-white"
-            onClick={clearFilters}
-          >
-            Clear
-          </button>
-        )}
-      </div>
+    <FilterPanel
+      count={filterCount}
+      className="mb-6"
+      onClear={clearFilters}
+      preferenceStorageKey={filterPanelsExpandedPreferenceKey}
+    >
+      <DropdownSelect
+        label="Visibility"
+        active={visibility === "archived"}
+        value={visibility === "archived" ? "Archived tasks" : "Active tasks"}
+        onChange={onVisibilityChange}
+        options={[
+          { label: "Active tasks", value: "active" },
+          { label: "Archived tasks", value: "archived" },
+        ]}
+      />
+      <DropdownSelect
+        label="Assignee"
+        active={assigneeActive}
+        value={
+          selectedAssignee
+            ? profileName(selectedAssignee)
+            : assignee.toLowerCase() === "unassigned"
+              ? "Unassigned"
+              : assignee
+        }
+        onChange={onAssigneeChange}
+        options={[
+          { label: "Anyone", value: "all" },
+          { label: "Unassigned", value: "Unassigned" },
+          ...profiles.map((profile) => ({
+            avatar: {
+              name: profileName(profile),
+              src: profile.avatar_url,
+            },
+            label: profileName(profile),
+            value: profileName(profile),
+          })),
+        ]}
+      />
+      <CategoryFilterMenu
+        categories={categories}
+        includedIds={includedCategoryIds}
+        excludedIds={excludedCategoryIds}
+        onIncludedChange={onIncludedCategoriesChange}
+        onExcludedChange={onExcludedCategoriesChange}
+      />
+      <DropdownSelect
+        label="Reported by"
+        active={reporter !== "all"}
+        value={selectedReporter ? profileName(selectedReporter) : reporter}
+        onChange={onReporterChange}
+        options={[
+          { label: "Anyone", value: "all" },
+          ...profiles.map((profile) => ({
+            avatar: {
+              name: profileName(profile),
+              src: profile.avatar_url,
+            },
+            label: profileName(profile),
+            value: profileName(profile),
+          })),
+        ]}
+      />
+      <DropdownSelect
+        label="Project"
+        active={project !== "all"}
+        value={selectedProject?.name ?? project}
+        onChange={onProjectChange}
+        options={[
+          { label: "All projects", value: "all" },
+          { label: "No project", value: "none" },
+          ...projects.map((item) => ({
+            label: `${item.name}${item.archived_at ? " (archived)" : ""}`,
+            value: item.name,
+          })),
+        ]}
+      />
+      <DropdownSelect
+        label="Status"
+        active={status !== "all"}
+        value={selectedStatus?.name ?? status}
+        onChange={onStatusChange}
+        options={[
+          { label: "All statuses", value: "all" },
+          ...statuses.map((item) => ({ label: item.name, value: item.name })),
+        ]}
+      />
+      <DropdownSelect
+        label="Priority"
+        active={priority !== "all"}
+        value={
+          selectedPriority
+            ? selectedPriority[0].toUpperCase() + selectedPriority.slice(1)
+            : priority
+        }
+        onChange={onPriorityChange}
+        options={[
+          { label: "All priorities", value: "all" },
+          ...priorities.map((item) => ({
+            label: item[0].toUpperCase() + item.slice(1),
+            value: item[0].toUpperCase() + item.slice(1),
+          })),
+        ]}
+      />
+      <DropdownSelect
+        label="Due within"
+        active={dueWithin !== "all"}
+        value={dueWithin}
+        onChange={onDueWithinChange}
+        options={[
+          { label: "Any time", value: "all" },
+          { label: "Next 7 days", value: "7" },
+          { label: "Next 14 days", value: "14" },
+          { label: "Next 30 days", value: "30" },
+        ]}
+      />
+      <DropdownSelect
+        label="Involvement"
+        active={involved !== "all"}
+        value={selectedInvolved ? profileName(selectedInvolved) : involved}
+        onChange={onInvolvedChange}
+        options={[
+          { label: "Anyone", value: "all" },
+          ...profiles.map((profile) => ({
+            avatar: {
+              name: profileName(profile),
+              src: profile.avatar_url,
+            },
+            label: `${profileName(profile)} (assigned or reporter)`,
+            value: profileName(profile),
+          })),
+        ]}
+      />
     </FilterPanel>
   );
 }

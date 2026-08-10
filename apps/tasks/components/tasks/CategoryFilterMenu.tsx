@@ -2,6 +2,7 @@
 
 import { Popover, PopoverButton, PopoverPanel } from "@headlessui/react";
 import { FiCheck, FiChevronDown, FiMinus, FiPlus } from "react-icons/fi";
+import { getFilterControlClasses } from "@ryanmeetup/ui";
 import type { Category } from "@/lib/types";
 
 export function CategoryFilterMenu({
@@ -19,6 +20,7 @@ export function CategoryFilterMenu({
 }) {
   const included = new Set(includedIds);
   const excluded = new Set(excludedIds);
+  const active = included.size > 0 || excluded.size > 0;
   const summary =
     included.size === 0 && excluded.size === 0
       ? "Any category"
@@ -47,7 +49,7 @@ export function CategoryFilterMenu({
 
   return (
     <Popover className="relative shrink-0">
-      <PopoverButton className="inline-flex items-center justify-center gap-2 rounded-lg border border-black/10 bg-white px-3 py-1.5 text-xs font-semibold text-black transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 dark:focus-visible:ring-white/30">
+      <PopoverButton className={getFilterControlClasses(active)}>
         <span className="text-black/50 dark:text-white/50">Category</span>
         <span>{summary}</span>
         <FiChevronDown aria-hidden className="text-black/40 dark:text-white/40" />

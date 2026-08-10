@@ -93,7 +93,7 @@ export function TaskEditor({
       title={
         editing ? (
           <span className="inline-flex flex-wrap items-center gap-2">
-            <span>Edit task</span>
+            <span>Edit Task</span>
             <TaskKeyBadge task={editing} />
           </span>
         ) : (

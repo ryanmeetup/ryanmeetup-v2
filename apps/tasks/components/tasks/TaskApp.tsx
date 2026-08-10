@@ -1265,6 +1265,7 @@ export function TaskApp({
           />
           <TaskFilters
             assignee={assignee}
+            assigneeActive={!isMyTasks && assignee !== "all"}
             categories={data.categories}
             clearFilters={clearTaskFilters}
             dueWithin={dueWithin}
