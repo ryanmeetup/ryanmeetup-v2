@@ -4,19 +4,20 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Avatar,
-  Button,
   Card,
   DropdownSelect,
   EmptyState,
+  FilterPanel,
   Heading,
   IconButton,
   Pagination,
   Spinner,
   toast,
 } from "@ryanmeetup/ui";
-import { FiArrowRight, FiMenu, FiX } from "react-icons/fi";
+import { FiArrowRight, FiMenu } from "react-icons/fi";
 import { CategoriesModal } from "@/components/categories";
-import { FilterPanel, TaskBanners } from "@/components/global";
+import { TaskBanners } from "@/components/global";
+import { filterPanelsExpandedPreferenceKey } from "@/lib/user-preferences";
 import {
   TaskHeaderActions,
   TaskSearch,
@@ -29,11 +30,17 @@ import { usePagination } from "@/hooks/usePagination";
 import type { TaskActivity, WorkspaceData } from "@/lib/types";
 import { taskPath } from "@/lib/task-key";
 import { TaskKeyBadge } from "@/components/tasks/TaskKeyBadge";
+import { ActivityFilterMenu } from "./ActivityFilterMenu";
 
 const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",
   timeStyle: "short",
 });
+
+const splitFilterValues = (value: string) => value.split(",").filter(Boolean);
+
+const profileName = (profile: WorkspaceData["profiles"][number]) =>
+  profile.full_name || "Teammate";
 
 function StatusLabel({
   status,
@@ -113,12 +120,21 @@ export function ActivityPageClient({
   const [projectCreateOpen, setProjectCreateOpen] = useState(false);
   const [categoryCreateOpen, setCategoryCreateOpen] = useState(false);
   const [loading, setLoading] = useState(!demoMode);
-  const [projectFilter, setProjectFilter] = useQueryParamState(
-    "project",
-    "all",
+  const [projectFilter, setProjectFilter] = useQueryParamState("projects", "");
+  const [excludedProjects, setExcludedProjects] = useQueryParamState(
+    "excludeProjects",
+    "",
   );
-  const [personFilter, setPersonFilter] = useQueryParamState("person", "all");
-  const [kindFilter, setKindFilter] = useQueryParamState("event", "all");
+  const [personFilter, setPersonFilter] = useQueryParamState("people", "");
+  const [excludedPeople, setExcludedPeople] = useQueryParamState(
+    "excludePeople",
+    "",
+  );
+  const [kindFilter, setKindFilter] = useQueryParamState("events", "");
+  const [excludedEvents, setExcludedEvents] = useQueryParamState(
+    "excludeEvents",
+    "",
+  );
   const [timeFilter, setTimeFilter] = useQueryParamState("when", "all");
   const { page, pageSize, setPage, setPageSize, syncPage, syncPageSize } =
     usePagination();
@@ -132,26 +148,20 @@ export function ActivityPageClient({
     () => new Map(data.profiles.map((profile) => [profile.id, profile])),
     [data.profiles],
   );
-  const selectedProject =
-    projectFilter === "all" || projectFilter === "none"
-      ? null
-      : (data.projects.find(
-          (project) =>
-            project.id === projectFilter || project.name === projectFilter,
-        ) ?? null);
-  const selectedPerson =
-    personFilter === "all" || personFilter === "system"
-      ? null
-      : (data.profiles.find(
-          (profile) =>
-            profile.id === personFilter || profile.full_name === personFilter,
-        ) ?? null);
-  const filterCount = [
-    projectFilter,
-    personFilter,
-    kindFilter,
-    timeFilter,
-  ].filter((value) => value !== "all").length;
+  const includedProjectValues = splitFilterValues(projectFilter);
+  const excludedProjectValues = splitFilterValues(excludedProjects);
+  const includedPersonValues = splitFilterValues(personFilter);
+  const excludedPersonValues = splitFilterValues(excludedPeople);
+  const includedEventValues = splitFilterValues(kindFilter);
+  const excludedEventValues = splitFilterValues(excludedEvents);
+  const filterCount =
+    includedProjectValues.length +
+    excludedProjectValues.length +
+    includedPersonValues.length +
+    excludedPersonValues.length +
+    includedEventValues.length +
+    excludedEventValues.length +
+    (timeFilter === "all" ? 0 : 1);
 
   function setFilter(setter: (value: string) => void, value: string) {
     setter(value);
@@ -159,23 +169,54 @@ export function ActivityPageClient({
   }
 
   function clearFilters() {
-    setProjectFilter("all");
-    setPersonFilter("all");
-    setKindFilter("all");
+    setProjectFilter("");
+    setExcludedProjects("");
+    setPersonFilter("");
+    setExcludedPeople("");
+    setKindFilter("");
+    setExcludedEvents("");
     setTimeFilter("all");
     setPage(1);
   }
 
   useEffect(() => {
-    if (selectedProject && projectFilter !== selectedProject.name)
-      setProjectFilter(selectedProject.name);
-    if (selectedPerson && personFilter !== selectedPerson.full_name)
-      setPersonFilter(selectedPerson.full_name || "Teammate");
+    const readableProjects = (value: string) =>
+      splitFilterValues(value)
+        .map(
+          (item) =>
+            data.projects.find(
+              (project) => project.id === item || project.name === item,
+            )?.name ?? item,
+        )
+        .join(",");
+    const readablePeople = (value: string) =>
+      splitFilterValues(value)
+        .map((item) => {
+          const profile = data.profiles.find(
+            (entry) => entry.id === item || profileName(entry) === item,
+          );
+          return profile ? profileName(profile) : item;
+        })
+        .join(",");
+    const nextProjects = readableProjects(projectFilter);
+    const nextExcludedProjects = readableProjects(excludedProjects);
+    const nextPeople = readablePeople(personFilter);
+    const nextExcludedPeople = readablePeople(excludedPeople);
+    if (nextProjects !== projectFilter) setProjectFilter(nextProjects);
+    if (nextExcludedProjects !== excludedProjects)
+      setExcludedProjects(nextExcludedProjects);
+    if (nextPeople !== personFilter) setPersonFilter(nextPeople);
+    if (nextExcludedPeople !== excludedPeople)
+      setExcludedPeople(nextExcludedPeople);
   }, [
+    data.profiles,
+    data.projects,
+    excludedPeople,
+    excludedProjects,
     personFilter,
     projectFilter,
-    selectedPerson,
-    selectedProject,
+    setExcludedPeople,
+    setExcludedProjects,
     setPersonFilter,
     setProjectFilter,
   ]);
@@ -184,11 +225,34 @@ export function ActivityPageClient({
     if (demoMode) return;
     const controller = new AbortController();
     const params = new URLSearchParams();
-    if (projectFilter !== "all")
-      params.set("project", selectedProject?.id ?? projectFilter);
-    if (personFilter !== "all")
-      params.set("person", selectedPerson?.id ?? personFilter);
-    if (kindFilter !== "all") params.set("event", kindFilter);
+    const projectIds = (value: string) =>
+      splitFilterValues(value)
+        .map((item) =>
+          item === "none"
+            ? item
+            : (data.projects.find(
+                (project) => project.id === item || project.name === item,
+              )?.id ?? item),
+        )
+        .join(",");
+    const personIds = (value: string) =>
+      splitFilterValues(value)
+        .map((item) =>
+          item === "system"
+            ? item
+            : (data.profiles.find(
+                (profile) =>
+                  profile.id === item || profileName(profile) === item,
+              )?.id ?? item),
+        )
+        .join(",");
+    if (projectFilter) params.set("projects", projectIds(projectFilter));
+    if (excludedProjects)
+      params.set("excludeProjects", projectIds(excludedProjects));
+    if (personFilter) params.set("people", personIds(personFilter));
+    if (excludedPeople) params.set("excludePeople", personIds(excludedPeople));
+    if (kindFilter) params.set("events", kindFilter);
+    if (excludedEvents) params.set("excludeEvents", excludedEvents);
     if (timeFilter !== "all") params.set("when", timeFilter);
     if (previewKind && previewSubjectId) {
       params.set(
@@ -240,6 +304,11 @@ export function ActivityPageClient({
     return () => controller.abort();
   }, [
     demoMode,
+    data.profiles,
+    data.projects,
+    excludedEvents,
+    excludedPeople,
+    excludedProjects,
     kindFilter,
     page,
     pageSize,
@@ -247,8 +316,6 @@ export function ActivityPageClient({
     previewKind,
     previewSubjectId,
     projectFilter,
-    selectedPerson,
-    selectedProject,
     syncPage,
     syncPageSize,
     timeFilter,
@@ -304,73 +371,11 @@ export function ActivityPageClient({
               </p>
             </div>
 
-            <FilterPanel count={filterCount}>
-              <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                <DropdownSelect
-                  label="Project"
-                  value={selectedProject?.name ?? projectFilter}
-                  onChange={(value) => setFilter(setProjectFilter, value)}
-                  options={[
-                    { label: "All projects", value: "all" },
-                    { label: "No project", value: "none" },
-                    ...data.projects.map((project) => ({
-                      label: `${project.name}${project.archived_at ? " (archived)" : ""}`,
-                      value: project.name,
-                    })),
-                  ]}
-                />
-                <DropdownSelect
-                  label="Person"
-                  value={selectedPerson?.full_name ?? personFilter}
-                  onChange={(value) => setFilter(setPersonFilter, value)}
-                  options={[
-                    { label: "Everyone", value: "all" },
-                    { label: "System", value: "system" },
-                    ...data.profiles.map((profile) => ({
-                      avatar: {
-                        name: profile.full_name || "Teammate",
-                        src: profile.avatar_url,
-                      },
-                      label: profile.full_name || "Teammate",
-                      value: profile.full_name || "Teammate",
-                    })),
-                  ]}
-                />
-                <DropdownSelect
-                  label="Event"
-                  value={kindFilter}
-                  onChange={(value) => setFilter(setKindFilter, value)}
-                  options={[
-                    { label: "All events", value: "all" },
-                    { label: "Task created", value: "created" },
-                    { label: "Task updated", value: "updated" },
-                    { label: "Task moved", value: "moved" },
-                    { label: "Checklist", value: "checklist" },
-                    { label: "Attachment", value: "attachment" },
-                  ]}
-                />
-                <DropdownSelect
-                  label="When"
-                  value={timeFilter}
-                  onChange={(value) => setFilter(setTimeFilter, value)}
-                  options={[
-                    { label: "Any time", value: "all" },
-                    { label: "Past 24 hours", value: "day" },
-                    { label: "Past 7 days", value: "week" },
-                    { label: "Past 30 days", value: "month" },
-                  ]}
-                />
-                {filterCount > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    leftIcon={<FiX />}
-                    onClick={clearFilters}
-                    className="shrink-0"
-                  >
-                    Clear
-                  </Button>
-                )}
+            <FilterPanel
+              count={filterCount}
+              onClear={clearFilters}
+              preferenceStorageKey={filterPanelsExpandedPreferenceKey}
+              trailing={
                 <span
                   aria-live="polite"
                   className="ml-auto shrink-0 pl-2 text-xs text-black/50 dark:text-white/50"
@@ -380,7 +385,78 @@ export function ActivityPageClient({
                     ? "event"
                     : "events"}
                 </span>
-              </div>
+              }
+            >
+              <ActivityFilterMenu
+                label="Project"
+                includedValues={includedProjectValues}
+                excludedValues={excludedProjectValues}
+                onIncludedChange={(values) =>
+                  setFilter(setProjectFilter, values.join(","))
+                }
+                onExcludedChange={(values) =>
+                  setFilter(setExcludedProjects, values.join(","))
+                }
+                options={[
+                  { label: "No project", value: "none" },
+                  ...data.projects.map((project) => ({
+                    label: `${project.name}${project.archived_at ? " (archived)" : ""}`,
+                    value: project.name,
+                  })),
+                ]}
+              />
+              <ActivityFilterMenu
+                label="Person"
+                includedValues={includedPersonValues}
+                excludedValues={excludedPersonValues}
+                onIncludedChange={(values) =>
+                  setFilter(setPersonFilter, values.join(","))
+                }
+                onExcludedChange={(values) =>
+                  setFilter(setExcludedPeople, values.join(","))
+                }
+                options={[
+                  { label: "System", value: "system" },
+                  ...data.profiles.map((profile) => ({
+                    avatar: {
+                      name: profile.full_name || "Teammate",
+                      src: profile.avatar_url,
+                    },
+                    label: profile.full_name || "Teammate",
+                    value: profileName(profile),
+                  })),
+                ]}
+              />
+              <ActivityFilterMenu
+                label="Event"
+                includedValues={includedEventValues}
+                excludedValues={excludedEventValues}
+                onIncludedChange={(values) =>
+                  setFilter(setKindFilter, values.join(","))
+                }
+                onExcludedChange={(values) =>
+                  setFilter(setExcludedEvents, values.join(","))
+                }
+                options={[
+                  { label: "Task created", value: "created" },
+                  { label: "Task updated", value: "updated" },
+                  { label: "Task moved", value: "moved" },
+                  { label: "Checklist", value: "checklist" },
+                  { label: "Attachment", value: "attachment" },
+                ]}
+              />
+              <DropdownSelect
+                label="When"
+                active={timeFilter !== "all"}
+                value={timeFilter}
+                onChange={(value) => setFilter(setTimeFilter, value)}
+                options={[
+                  { label: "Any time", value: "all" },
+                  { label: "Past 24 hours", value: "day" },
+                  { label: "Past 7 days", value: "week" },
+                  { label: "Past 30 days", value: "month" },
+                ]}
+              />
             </FilterPanel>
 
             <Card

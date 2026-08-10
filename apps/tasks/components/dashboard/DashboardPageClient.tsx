@@ -487,7 +487,7 @@ export function DashboardPageClient({
                 action={
                   <Link
                     href={withAccessPreview(
-                      "/activity?event=moved",
+                      "/activity?events=moved",
                       data.accessPreview,
                     )}
                     className="text-xs font-semibold hover:underline"
