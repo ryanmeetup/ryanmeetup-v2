@@ -1,15 +1,19 @@
 # Tasks Access Control Specification
 
 Status: Implemented
-Implementation status: Group-only, fail-closed model implemented
-Last updated: August 4, 2026
+Implementation status: Hierarchical tiers plus lateral teams, fail-closed
+Last updated: August 9, 2026
 
 ## Implemented model
 
-The authorization model is group-only for regular members:
+The authorization model separates org-chart seniority from lateral work:
 
 - app owners retain unrestricted workspace access;
-- regular members receive project access only through access-group membership;
+- every regular member has exactly one organizational tier;
+- higher tiers inherit grants assigned to lower tiers;
+- regular members may additionally belong to lateral teams;
+- a designated top tier may manage all content without receiving owner-only
+  access administration powers;
 - each access group may receive viewer, editor, or manager access to projects;
 - direct user project grants are no longer supported;
 - access-group names, descriptions, memberships, grants, and audit records are
@@ -22,11 +26,10 @@ The authorization model is group-only for regular members:
 These invariants are mandatory. A schema migration, policy, helper function,
 API route, or rollout procedure must not weaken them:
 
-1. **No implicit grants.** An onboarded regular member has no project access
-   unless a current access-group membership joins to an explicit grant for that
-   project. Being a team member, project creator, task creator, assignee, or a
-   row in legacy `project_owners` or `project_user_grants` data never grants
-   access. Only the `owner` app role is globally authorized.
+1. **Centralized grants.** An onboarded regular member receives project access
+   from their tier (including inherited lower-tier grants), lateral teams, or a
+   deliberately configured global-content tier. Being a project creator, task
+   creator, assignee, or a row in legacy metadata never grants access.
 2. **No rollout bypass in authorization.** Deployment-readiness checks happen
    when applying the fail-closed migration. RLS and authorization helpers must
    never broaden access because grants, owners, attachment paths, or other
@@ -49,6 +52,7 @@ The Tasks app uses this authorization model:
 
 - app owners have unrestricted access to the entire workspace;
 - reusable access groups grant project access to stable teams;
+- app owners may additionally restrict work categories to selected access groups;
 - regular members receive access only through reusable access groups;
 - project permissions cascade to tasks and all task-related records;
 - Supabase Row Level Security (RLS) is the source of truth.
@@ -74,7 +78,7 @@ UI filtering is not considered a security control.
 - Separate permissions for individual comments or attachments.
 - Temporary grants that expire automatically.
 - Public or unauthenticated project sharing.
-- Group nesting, such as one access group containing another.
+- Arbitrary group nesting. Tier inheritance is a single ordered ladder.
 - Custom permission-role builders.
 - Deny rules that override an allow rule.
 
@@ -87,11 +91,12 @@ including access groups, memberships, project grants, users, and all project
 content. This is separate from being a project manager or the creator of a
 project.
 
-### Access group
+### Organizational tier and team
 
-A reusable collection of users, such as `Core Team`, `Documentary Team`, or
-`Chapter Leads`. A user may belong to multiple groups. The documentary group
-may contain a subset of the core team.
+An organizational tier is one position on the Ryan Meetup access ladder. Each
+person has exactly one tier, and a higher rank inherits every lower tier's
+grants. A team is a lateral assignment such as `Documentary Team` or `Chapter
+Leads`; a person may belong to several teams when their work crosses functions.
 
 Group names are themselves potentially sensitive. Unauthorized users should
 not be able to enumerate every group in the workspace.
@@ -138,20 +143,20 @@ viewer < editor < manager
 
 If a user receives multiple grants, the highest permission wins.
 
-| Capability                                      | Viewer | Editor | Manager | App owner |
-| ----------------------------------------------- | :----: | :----: | :-----: | :-------: |
-| Discover and open project                       |  Yes   |  Yes   |   Yes   |    Yes    |
-| Read tasks and task details                     |  Yes   |  Yes   |   Yes   |    Yes    |
-| Create and edit tasks                           |   No   |  Yes   |   Yes   |    Yes    |
-| Move tasks within accessible projects           |   No   |  Yes   |   Yes   |    Yes    |
-| Comment and upload attachments                  |   No   |  Yes   |   Yes   |    Yes    |
-| Delete task content                             |   No   |  Yes   |   Yes   |    Yes    |
-| Rename or archive the project                   |   No   |   No   |   Yes   |    Yes    |
-| Manage project group grants                     |   No   |   No   |   No    |    Yes    |
-| Change an access group's global membership      |   No   |   No   |   No    |    Yes    |
-| Create, rename, or delete access groups         |   No   |   No   |   No    |    Yes    |
-| Change app owners                               |   No   |   No   |   No    |    Yes    |
-| Access every project without a grant            |   No   |   No   |   No    |    Yes    |
+| Capability                                 | Viewer | Editor | Manager | App owner |
+| ------------------------------------------ | :----: | :----: | :-----: | :-------: |
+| Discover and open project                  |  Yes   |  Yes   |   Yes   |    Yes    |
+| Read tasks and task details                |  Yes   |  Yes   |   Yes   |    Yes    |
+| Create and edit tasks                      |   No   |  Yes   |   Yes   |    Yes    |
+| Move tasks within accessible projects      |   No   |  Yes   |   Yes   |    Yes    |
+| Comment and upload attachments             |   No   |  Yes   |   Yes   |    Yes    |
+| Delete task content                        |   No   |  Yes   |   Yes   |    Yes    |
+| Rename or archive the project              |   No   |   No   |   Yes   |    Yes    |
+| Manage project group grants                |   No   |   No   |   No    |    Yes    |
+| Change an access group's global membership |   No   |   No   |   No    |    Yes    |
+| Create, rename, or delete access groups    |   No   |   No   |   No    |    Yes    |
+| Change app owners                          |   No   |   No   |   No    |    Yes    |
+| Access every project without a grant       |   No   |   No   |   No    |    Yes    |
 
 Deletion can be narrowed later if editors should only delete content they
 created. The first version treats editing and deleting project content as the
@@ -195,13 +200,16 @@ Example:
 9. Archiving a project does not change its access rules.
 10. Project creation atomically grants viewer access to every eligible group of
     the creator and fails if no such group grant can be established.
-11. Category and label membership never grants project access.
+11. Category access never replaces project access. If any access groups are
+    assigned to a category, a user must belong to one of those groups to access
+    tasks in that category. Tasks in several restricted categories require
+    access to every restricted category.
 
 ## Projectless tasks
 
 The schema allows `tasks.project_id` to be null. These tasks belong to the
-shared workspace and are visible to every onboarded member, including in an
-owner's access preview. Because there is no project grant to confer editor
+shared workspace and are visible to every onboarded member unless one of their
+categories is restricted. Because there is no project grant to confer editor
 access, every onboarded member may manage these shared tasks. Project-backed
 tasks continue to require their normal project permissions.
 
@@ -233,6 +241,9 @@ access_groups
   id uuid primary key
   name text unique, trimmed, non-empty
   description text nullable
+  kind access_group_kind (`tier` or `team`)
+  hierarchy_rank integer nullable; required and unique for tiers
+  grants_global_content boolean; allowed only for tiers
   created_by uuid -> profiles.id
   created_at timestamptz
   updated_at timestamptz
@@ -308,8 +319,8 @@ can_edit_task(task_id uuid) -> boolean
 
 The permission function should:
 
-1. return `manager` for an app owner;
-2. collect grants inherited from access-group memberships;
+1. return `manager` for an app owner or global-content tier;
+2. collect direct team grants and tier grants at or below the member's rank;
 3. return the highest permission found;
 4. return null when no group grant applies.
 
@@ -618,8 +629,8 @@ These product decisions remain open:
 6. **Owner user management:** determine whether owners may deactivate accounts
    in version one or only change application roles.
 7. **Hard deletion:** decide whether the first version should support permanent
-    deletion of projects/groups or archive them only. Recommendation: archive
-    projects; allow group deletion only when it has no active grants.
+   deletion of projects/groups or archive them only. Recommendation: archive
+   projects; allow group deletion only when it has no active grants.
 
 ## Implementation phases
 
