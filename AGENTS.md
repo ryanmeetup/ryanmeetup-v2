@@ -204,6 +204,10 @@ Rules:
 
 - Prefer Server Components by default. Add `"use client"` only when hooks,
   browser APIs, or interactive libraries require it.
+- Keep user-facing query parameters human readable and shareable. Prefer stable
+  names, slugs, or descriptive enum values over database IDs; resolve those
+  values to internal IDs at the data boundary. Use an ID only when no reliable
+  readable identifier exists or when the parameter is intentionally internal.
 - In current Next.js route pages, dynamic APIs such as `searchParams` may be
   promises. Type and `await` them before reading their properties.
 - Keep data fetching and secrets server-side. Only expose intentionally public
