@@ -21,7 +21,9 @@ create unique index access_groups_unique_tier_rank
   where kind = 'tier';
 
 -- Preserve deployed naming variants. Ryan is preferred as the baseline; an
--- older Members group is used only when Ryan does not exist.
+-- older Members group is used only when Ryan does not exist. A completely
+-- fresh database has no profiles yet, so its baseline is created atomically by
+-- handle_new_user below when the first profile is inserted.
 do $$
 declare
   baseline_group_id uuid;
@@ -38,7 +40,7 @@ begin
     limit 1;
   end if;
 
-  if baseline_group_id is null then
+  if baseline_group_id is null and exists (select 1 from public.profiles) then
     raise exception 'A Ryan or Members baseline access group is required';
   end if;
 
@@ -264,13 +266,16 @@ begin
 end;
 $$;
 
--- New users always enter at the lowest configured tier.
+-- New users always enter at the lowest configured tier. On a fresh database,
+-- bootstrap that tier in the same transaction that creates the first profile.
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
 security definer
 set search_path = ''
 as $$
+declare
+  baseline_group_id uuid;
 begin
   insert into public.profiles (id, full_name)
   values (
@@ -278,12 +283,35 @@ begin
     coalesce(nullif(new.raw_user_meta_data ->> 'full_name', ''), split_part(new.email, '@', 1))
   );
 
-  insert into public.access_group_members (group_id, profile_id, added_by)
-  select access_group.id, new.id, new.id
+  select access_group.id into baseline_group_id
   from public.access_groups access_group
   where access_group.kind = 'tier'
   order by access_group.hierarchy_rank
   limit 1;
+
+  if baseline_group_id is null then
+    insert into public.access_groups (
+      name,
+      description,
+      created_by,
+      kind,
+      hierarchy_rank
+    )
+    values (
+      'Ryan',
+      'Baseline organizational access',
+      new.id,
+      'tier',
+      0
+    )
+    on conflict (name) do update
+      set name = excluded.name
+    returning id into baseline_group_id;
+  end if;
+
+  insert into public.access_group_members (group_id, profile_id, added_by)
+  values (baseline_group_id, new.id, new.id)
+  on conflict (group_id, profile_id) do nothing;
 
   return new;
 end;
