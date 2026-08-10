@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 export type PillProps = {
   children: ReactNode;
   className?: string;
-  variant?: "default" | "subtle" | "overlay" | "neutral";
+  variant?: "default" | "subtle" | "overlay" | "neutral" | "code";
   size?: "sm" | "md";
 };
 
@@ -21,6 +21,7 @@ const Pill = (props: PillProps) => {
     overlay: "border-white/30 bg-black/60 text-white",
     neutral:
       "border-black/10 bg-white/80 text-black/70 dark:border-white/10 dark:bg-white/10 dark:text-white/70",
+    code: "rounded-md border-black/10 bg-black/[0.045] font-mono font-medium !normal-case !tracking-normal text-black/75 shadow-none dark:border-white/10 dark:bg-white/[0.07] dark:text-white/75",
   };
   const sizeStyles = {
     sm: "px-3 py-1 text-[10px] tracking-[0.35em]",

@@ -13,6 +13,7 @@ import {
   Input,
   Modal,
   Pagination,
+  Pill,
   Textarea,
   Tooltip,
   toast,
@@ -557,50 +558,59 @@ export function AccessPageClient({
                                 </span>
                               </span>
                             </td>
-                            <td className="min-w-48 px-4 py-3 text-xs text-black/65 dark:text-white/65">
-                              <span
-                                className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 font-semibold ${
-                                  metadata?.lastSignInAt
-                                    ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                                    : "bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                                }`}
+                            <td className="w-28 whitespace-nowrap px-4 py-3 text-xs text-black/65 dark:text-white/65">
+                              <Tooltip
+                                placement="right"
+                                content={
+                                  <dl className="space-y-1">
+                                    <div className="flex justify-between gap-4">
+                                      <dt className="opacity-65">Last login</dt>
+                                      <dd>
+                                        {formatAccountDate(
+                                          metadata?.lastSignInAt ?? null,
+                                        ) ?? "Never"}
+                                      </dd>
+                                    </div>
+                                    <div className="flex justify-between gap-4">
+                                      <dt className="opacity-65">
+                                        {metadata?.lastSignInAt
+                                          ? "Joined"
+                                          : "Invite sent"}
+                                      </dt>
+                                      <dd>
+                                        {formatAccountDate(
+                                          metadata?.lastSignInAt
+                                            ? metadata.createdAt
+                                            : (metadata?.invitedAt ??
+                                                metadata?.createdAt ??
+                                                null),
+                                        ) ?? "—"}
+                                      </dd>
+                                    </div>
+                                  </dl>
+                                }
                               >
-                                {metadata?.lastSignInAt ? (
-                                  <FiCheckCircle aria-hidden="true" />
-                                ) : (
-                                  <FiClock aria-hidden="true" />
-                                )}
-                                {metadata?.lastSignInAt ? "Active" : "Invited"}
-                              </span>
-                              <dl className="mt-2 space-y-1">
-                                <div className="flex gap-1">
-                                  <dt className="text-black/45 dark:text-white/45">
-                                    Last login
-                                  </dt>
-                                  <dd>
-                                    {formatAccountDate(
-                                      metadata?.lastSignInAt ?? null,
-                                    ) ?? "Never"}
-                                  </dd>
-                                </div>
-                                <div className="flex gap-1">
-                                  <dt className="text-black/45 dark:text-white/45">
-                                    {metadata?.lastSignInAt ? "Joined" : "Sent"}
-                                  </dt>
-                                  <dd>
-                                    {formatAccountDate(
-                                      metadata?.lastSignInAt
-                                        ? metadata.createdAt
-                                        : (metadata?.invitedAt ??
-                                            metadata?.createdAt ??
-                                            null),
-                                    ) ?? "—"}
-                                  </dd>
-                                </div>
-                              </dl>
+                                <span
+                                  tabIndex={0}
+                                  className={`inline-flex cursor-help items-center gap-1.5 rounded-full px-2 py-1 font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/30 ${
+                                    metadata?.lastSignInAt
+                                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                                      : "bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                                  }`}
+                                >
+                                  {metadata?.lastSignInAt ? (
+                                    <FiCheckCircle aria-hidden="true" />
+                                  ) : (
+                                    <FiClock aria-hidden="true" />
+                                  )}
+                                  {metadata?.lastSignInAt
+                                    ? "Active"
+                                    : "Invited"}
+                                </span>
+                              </Tooltip>
                             </td>
-                            <td className="min-w-64 px-4 py-3">
-                              <dl className="grid grid-cols-3 gap-1.5 text-center">
+                            <td className="min-w-[34rem] px-4 py-3">
+                              <dl className="grid grid-cols-5 gap-1.5 text-center">
                                 <div className="flex flex-col rounded-lg bg-blue-500/[0.08] px-2 py-1.5 text-blue-700 dark:text-blue-300">
                                   <dt className="order-2 text-[9px] font-semibold uppercase tracking-wider opacity-75">
                                     Open
@@ -625,26 +635,36 @@ export function AccessPageClient({
                                     {metadata?.assigned ?? 0}
                                   </dd>
                                 </div>
+                                <div className="flex flex-col rounded-lg bg-violet-500/[0.08] px-2 py-1.5 text-violet-700 dark:text-violet-300">
+                                  <dt className="order-2 text-[9px] font-semibold uppercase tracking-wider opacity-75">
+                                    Created
+                                  </dt>
+                                  <dd className="order-1 font-semibold">
+                                    {metadata?.created ?? 0}
+                                  </dd>
+                                </div>
+                                <div className="flex flex-col rounded-lg bg-amber-500/[0.08] px-2 py-1.5 text-amber-700 dark:text-amber-300">
+                                  <dt className="order-2 text-[9px] font-semibold uppercase tracking-wider opacity-75">
+                                    Reported
+                                  </dt>
+                                  <dd className="order-1 font-semibold">
+                                    {metadata?.reported ?? 0}
+                                  </dd>
+                                </div>
                               </dl>
-                              <p className="mt-1.5 text-[10px] text-black/45 dark:text-white/45">
-                                {metadata?.created ?? 0} created ·{" "}
-                                {metadata?.reported ?? 0} reported
-                              </p>
                             </td>
                             <td className="min-w-48 px-4 py-3">
                               {profileGroups.length > 0 ? (
-                                <ul className="space-y-1.5">
+                                <ul className="flex flex-wrap gap-1.5">
                                   {profileGroups.map((group) => (
                                     <li key={group.id}>
                                       <Link
                                         href={`/access/${accessGroupSlug(group.name)}`}
-                                        className="group inline-flex items-center gap-2 font-medium text-black/75 underline-offset-4 transition hover:text-black hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:text-white/75 dark:hover:text-white dark:focus-visible:ring-white/30"
+                                        className="inline-flex rounded-md transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:hover:brightness-125 dark:focus-visible:ring-white/30"
                                       >
-                                        <span
-                                          aria-hidden="true"
-                                          className="h-1.5 w-1.5 shrink-0 rounded-full bg-black/25 transition group-hover:bg-black/50 dark:bg-white/25 dark:group-hover:bg-white/50"
-                                        />
-                                        {group.name}
+                                        <Pill variant="code" size="md">
+                                          {group.name}
+                                        </Pill>
                                       </Link>
                                     </li>
                                   ))}
