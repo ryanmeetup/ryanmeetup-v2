@@ -6,18 +6,22 @@ import {
   Button,
   DropdownSelect,
   ErrorCallout,
+  Heading,
   Input,
   SuccessCallout,
   toast,
 } from "@ryanmeetup/ui";
-import { FiSave } from "react-icons/fi";
+import { FiLock, FiSave } from "react-icons/fi";
 import type { Profile } from "@/lib/types";
 import { displayNameError, normalizeDisplayName } from "@/lib/display-name";
 import { createClient } from "@/lib/supabase/client";
+import {
+  filterPanelsExpandedPreferenceKey,
+  paginationPageSizePreferenceKey,
+} from "@/lib/user-preferences";
 
 const avatarTypes = ["image/jpeg", "image/png", "image/webp"];
 const maxAvatarSize = 5 * 1024 * 1024;
-const paginationPreferenceKey = "ryanmeetup.pagination.page-size";
 
 function initials(name: string) {
   return name
@@ -33,14 +37,20 @@ export function ProfileForm({
   profile,
   email,
   onboardingRequired,
+  onChangePassword,
 }: {
   profile: Profile;
   email: string;
   onboardingRequired: boolean;
+  onChangePassword: () => void;
 }) {
   const router = useRouter();
   const [displayName, setDisplayName] = useState(profile.full_name || "");
+  const [savedDisplayName, setSavedDisplayName] = useState(
+    profile.full_name || "",
+  );
   const [saving, setSaving] = useState(false);
+  const [savingPreferences, setSavingPreferences] = useState(false);
   const [message, setMessage] = useState("");
   const [hasError, setHasError] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -51,15 +61,23 @@ export function ProfileForm({
   const [paginationPageSize, setPaginationPageSize] = useState(
     10 as 10 | 25 | 50 | 100,
   );
+  const [filterPanelsExpanded, setFilterPanelsExpanded] = useState(true);
 
   useEffect(() => {
     const saved = Number.parseInt(
-      localStorage.getItem(paginationPreferenceKey) ?? "",
+      localStorage.getItem(paginationPageSizePreferenceKey) ?? "",
       10,
     );
     if ([10, 25, 50, 100].includes(saved))
       queueMicrotask(() =>
         setPaginationPageSize(saved as 10 | 25 | 50 | 100),
+      );
+    const savedFilterPreference = localStorage.getItem(
+      filterPanelsExpandedPreferenceKey,
+    );
+    if (savedFilterPreference !== null)
+      queueMicrotask(() =>
+        setFilterPanelsExpanded(savedFilterPreference === "true"),
       );
   }, []);
 
@@ -130,12 +148,9 @@ export function ProfileForm({
       if (!response.ok || !result.profile)
         throw new Error(result.error ?? "Your profile could not be saved.");
       setDisplayName(result.profile.full_name || "");
+      setSavedDisplayName(result.profile.full_name || "");
       setAvatarFile(null);
       setAvatarPreview(result.profile.avatar_url);
-      localStorage.setItem(
-        paginationPreferenceKey,
-        String(paginationPageSize),
-      );
       if (onboardingRequired) {
         router.push("/");
         router.refresh();
@@ -153,6 +168,54 @@ export function ProfileForm({
     } finally {
       setSaving(false);
     }
+  }
+
+  async function changeTaskDetailsPreference(nextValue: boolean) {
+    const previousValue = taskDetailsOpenByDefault;
+    setTaskDetailsOpenByDefault(nextValue);
+    setSavingPreferences(true);
+    setMessage("");
+    setHasError(false);
+    try {
+      const response = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          displayName: savedDisplayName,
+          taskDetailsOpenByDefault: nextValue,
+        }),
+      });
+      const result = (await response.json()) as {
+        error?: string;
+        profile?: Profile;
+      };
+      if (!response.ok || !result.profile)
+        throw new Error(result.error ?? "Your preference could not be saved.");
+    } catch (error) {
+      setTaskDetailsOpenByDefault(previousValue);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Your preference could not be saved.";
+      setMessage(errorMessage);
+      setHasError(true);
+      toast.error(errorMessage);
+    } finally {
+      setSavingPreferences(false);
+    }
+  }
+
+  function changeFilterPanelsPreference(nextValue: boolean) {
+    setFilterPanelsExpanded(nextValue);
+    localStorage.setItem(
+      filterPanelsExpandedPreferenceKey,
+      String(nextValue),
+    );
+  }
+
+  function changePaginationPageSize(nextValue: 10 | 25 | 50 | 100) {
+    setPaginationPageSize(nextValue);
+    localStorage.setItem(paginationPageSizePreferenceKey, String(nextValue));
   }
 
   return (
@@ -220,65 +283,17 @@ export function ProfileForm({
       <p className="-mt-3 text-xs text-black/55 dark:text-white/55">
         Your sign-in email cannot be changed here.
       </p>
-      {!onboardingRequired && (
-        <div className="space-y-3">
-        <label className="flex cursor-pointer items-center justify-between gap-5 rounded-xl border border-black/10 bg-black/[0.02] p-4 transition hover:border-black/20 dark:border-white/10 dark:bg-white/[0.025] dark:hover:border-white/20">
-          <span className="min-w-0">
-            <span className="block text-sm font-semibold">
-              Open task details by default
-            </span>
-            <span className="mt-1 block text-xs leading-relaxed text-black/55 dark:text-white/55">
-              Show checklists, attachments, comments, and activity whenever you
-              edit a task.
-            </span>
-          </span>
-          <span className="relative inline-flex shrink-0">
-            <input
-              type="checkbox"
-              role="switch"
-              checked={taskDetailsOpenByDefault}
-              disabled={saving}
-              onChange={(event) =>
-                setTaskDetailsOpenByDefault(event.target.checked)
-              }
-              className="peer sr-only"
-            />
-            <span className="h-7 w-12 rounded-full bg-black/15 transition peer-checked:bg-black peer-focus-visible:ring-2 peer-focus-visible:ring-black/30 peer-focus-visible:ring-offset-2 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 dark:bg-white/20 dark:peer-checked:bg-white dark:peer-focus-visible:ring-white/40 dark:peer-focus-visible:ring-offset-[#181818]" />
-            <span className="pointer-events-none absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5 dark:bg-black" />
-          </span>
-        </label>
-          <div className="flex items-center justify-between gap-5 rounded-xl border border-black/10 bg-black/[0.02] p-4 dark:border-white/10 dark:bg-white/[0.025]">
-            <span className="min-w-0">
-              <span className="block text-sm font-semibold">
-                Default rows per page
-              </span>
-              <span className="mt-1 block text-xs leading-relaxed text-black/55 dark:text-white/55">
-                Used when opening task lists and activity without a page-size override.
-              </span>
-            </span>
-            <DropdownSelect
-              label="Rows"
-              value={String(paginationPageSize)}
-              disabled={saving}
-              onChange={(value) =>
-                setPaginationPageSize(
-                  Number.parseInt(value, 10) as 10 | 25 | 50 | 100,
-                )
-              }
-              options={[10, 25, 50, 100].map((size) => ({
-                label: String(size),
-                value: String(size),
-              }))}
-            />
-          </div>
-        </div>
-      )}
-      {hasError ? (
-        <ErrorCallout>{message}</ErrorCallout>
-      ) : message ? (
-        <SuccessCallout>{message}</SuccessCallout>
-      ) : null}
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-3">
+        {!onboardingRequired && (
+          <Button
+            type="button"
+            variant="secondary"
+            leftIcon={<FiLock />}
+            onClick={onChangePassword}
+          >
+            Change password
+          </Button>
+        )}
         <Button
           type="submit"
           leftIcon={<FiSave />}
@@ -288,6 +303,103 @@ export function ProfileForm({
           {onboardingRequired ? "Continue to tasks" : "Save profile"}
         </Button>
       </div>
+      {!onboardingRequired && (
+        <section className="space-y-5 border-t border-black/10 pt-8 dark:border-white/10">
+          <div>
+            <Heading size="h2" className="text-2xl">
+              Preferences
+            </Heading>
+            <p className="mt-2 text-sm text-black/65 dark:text-white/65">
+              Choose how task views behave when you open them.
+            </p>
+          </div>
+          <div className="space-y-3">
+            <label className="flex cursor-pointer items-center justify-between gap-5 rounded-xl border border-black/10 bg-black/[0.02] p-4 transition hover:border-black/20 dark:border-white/10 dark:bg-white/[0.025] dark:hover:border-white/20">
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold">
+                  Open task details by default
+                </span>
+                <span className="mt-1 block text-xs leading-relaxed text-black/55 dark:text-white/55">
+                  Show checklists, attachments, comments, and activity whenever
+                  you edit a task.
+                </span>
+              </span>
+              <span className="relative inline-flex shrink-0">
+                <input
+                  type="checkbox"
+                  role="switch"
+                  checked={taskDetailsOpenByDefault}
+                  disabled={saving || savingPreferences}
+                  onChange={(event) =>
+                    void changeTaskDetailsPreference(event.target.checked)
+                  }
+                  className="peer sr-only"
+                />
+                <span className="h-7 w-12 rounded-full bg-black/15 transition peer-checked:bg-black peer-focus-visible:ring-2 peer-focus-visible:ring-black/30 peer-focus-visible:ring-offset-2 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 dark:bg-white/20 dark:peer-checked:bg-white dark:peer-focus-visible:ring-white/40 dark:peer-focus-visible:ring-offset-[#181818]" />
+                <span className="pointer-events-none absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5 dark:bg-black" />
+              </span>
+            </label>
+            <label className="flex cursor-pointer items-center justify-between gap-5 rounded-xl border border-black/10 bg-black/[0.02] p-4 transition hover:border-black/20 dark:border-white/10 dark:bg-white/[0.025] dark:hover:border-white/20">
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold">
+                  Expand filters by default
+                </span>
+                <span className="mt-1 block text-xs leading-relaxed text-black/55 dark:text-white/55">
+                  Show filtering controls automatically on boards, task lists,
+                  and activity views.
+                </span>
+              </span>
+              <span className="relative inline-flex shrink-0">
+                <input
+                  type="checkbox"
+                  role="switch"
+                  checked={filterPanelsExpanded}
+                  disabled={saving || savingPreferences}
+                  onChange={(event) =>
+                    changeFilterPanelsPreference(event.target.checked)
+                  }
+                  className="peer sr-only"
+                />
+                <span className="h-7 w-12 rounded-full bg-black/15 transition peer-checked:bg-black peer-focus-visible:ring-2 peer-focus-visible:ring-black/30 peer-focus-visible:ring-offset-2 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 dark:bg-white/20 dark:peer-checked:bg-white dark:peer-focus-visible:ring-white/40 dark:peer-focus-visible:ring-offset-[#181818]" />
+                <span className="pointer-events-none absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5 dark:bg-black" />
+              </span>
+            </label>
+            <div className="flex items-center justify-between gap-5 rounded-xl border border-black/10 bg-black/[0.02] p-4 dark:border-white/10 dark:bg-white/[0.025]">
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold">
+                  Default rows per page
+                </span>
+                <span className="mt-1 block text-xs leading-relaxed text-black/55 dark:text-white/55">
+                  Used when opening task lists and activity without a page-size
+                  override.
+                </span>
+              </span>
+              <DropdownSelect
+                label="Rows"
+                value={String(paginationPageSize)}
+                disabled={saving}
+                onChange={(value) =>
+                  changePaginationPageSize(
+                    Number.parseInt(value, 10) as 10 | 25 | 50 | 100,
+                  )
+                }
+                options={[10, 25, 50, 100].map((size) => ({
+                  label: String(size),
+                  value: String(size),
+                }))}
+              />
+            </div>
+            <p className="text-sm text-black/65 dark:text-white/65">
+              Preferences sync automatically when changed.
+            </p>
+          </div>
+        </section>
+      )}
+      {hasError ? (
+        <ErrorCallout>{message}</ErrorCallout>
+      ) : message ? (
+        <SuccessCallout>{message}</SuccessCallout>
+      ) : null}
     </form>
   );
 }

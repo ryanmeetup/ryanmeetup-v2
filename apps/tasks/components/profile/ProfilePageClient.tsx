@@ -1,13 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Heading, IconButton, Modal } from "@ryanmeetup/ui";
-import { FiLock, FiMenu } from "react-icons/fi";
+import { Heading, IconButton, Modal } from "@ryanmeetup/ui";
+import { FiMenu } from "react-icons/fi";
 import { ProfileForm } from "./ProfileForm";
 import { PasswordForm } from "@/components/auth";
 import { CategoriesModal } from "@/components/categories";
 import { TaskBanners } from "@/components/global";
-import { TaskHeaderActions, TasksSidebar } from "@/components/navigation";
+import {
+  TaskHeaderActions,
+  TaskSearch,
+  TasksSidebar,
+} from "@/components/navigation";
 import { ProjectsModal } from "@/components/projects";
 import type { WorkspaceData } from "@/lib/types";
 
@@ -37,7 +41,7 @@ export function ProfilePageClient({
         onCreateProject={() => setProjectOpen(true)}
       />
       <main className="min-w-0 lg:pl-64">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-black/10 bg-[#f7f7f5]/90 px-4 backdrop-blur-xl dark:border-white/10 dark:bg-[#101010]/90 sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-black/10 bg-[#f7f7f5]/90 px-4 backdrop-blur-xl focus-within:z-[2147483647] dark:border-white/10 dark:bg-[#101010]/90 sm:px-6 lg:px-8">
           <IconButton
             label="Open navigation"
             tooltipTriggerClassName="lg:hidden"
@@ -45,7 +49,13 @@ export function ProfilePageClient({
           >
             <FiMenu />
           </IconButton>
-          <p className="font-semibold">Profile</p>
+          <TaskSearch
+            tasks={data.tasks}
+            projects={data.projects}
+            categories={data.categories}
+            statuses={data.statuses}
+            profiles={data.profiles}
+          />
           <TaskHeaderActions data={data} setData={setData} demoMode={false} />
         </header>
         <TaskBanners />
@@ -67,29 +77,9 @@ export function ProfilePageClient({
                 profile={data.currentProfile}
                 email={email}
                 onboardingRequired={onboardingRequired}
+                onChangePassword={() => setPasswordOpen(true)}
               />
             </div>
-            {!onboardingRequired && (
-              <section className="mt-10 border-t border-black/10 pt-8 dark:border-white/10">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <Heading size="h2" className="text-2xl">
-                      Password
-                    </Heading>
-                    <p className="mt-2 text-sm text-black/65 dark:text-white/65">
-                      Update the password used to sign in to your account.
-                    </p>
-                  </div>
-                  <Button
-                    variant="secondary"
-                    leftIcon={<FiLock />}
-                    onClick={() => setPasswordOpen(true)}
-                  >
-                    Change password
-                  </Button>
-                </div>
-              </section>
-            )}
           </div>
         </div>
       </main>

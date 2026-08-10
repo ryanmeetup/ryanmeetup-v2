@@ -3,8 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { AnimatedCollapse, Card } from "@ryanmeetup/ui";
 import { FiChevronDown, FiFilter } from "react-icons/fi";
-
-const storageKey = "ryanmeetup.tasks.filters-expanded";
+import { filterPanelsExpandedPreferenceKey } from "@/lib/user-preferences";
 
 export function FilterPanel({
   children,
@@ -19,17 +18,13 @@ export function FilterPanel({
 
   useEffect(() => {
     queueMicrotask(() => {
-      const saved = localStorage.getItem(storageKey);
+      const saved = localStorage.getItem(filterPanelsExpandedPreferenceKey);
       if (saved !== null) setExpanded(saved === "true");
     });
   }, []);
 
   function toggle() {
-    setExpanded((current) => {
-      const next = !current;
-      localStorage.setItem(storageKey, String(next));
-      return next;
-    });
+    setExpanded((current) => !current);
   }
 
   return (
