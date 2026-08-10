@@ -1,15 +1,22 @@
 // Types
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 export type PillProps = {
   children: ReactNode;
   className?: string;
   variant?: "default" | "subtle" | "overlay" | "neutral" | "code";
   size?: "sm" | "md";
+  style?: CSSProperties;
 };
 
 const Pill = (props: PillProps) => {
-  const { children, className, variant = "default", size = "md" } = props;
+  const {
+    children,
+    className,
+    variant = "default",
+    size = "md",
+    style,
+  } = props;
 
   const baseStyles =
     "inline-flex items-center justify-center rounded-full border uppercase";
@@ -30,6 +37,7 @@ const Pill = (props: PillProps) => {
 
   return (
     <span
+      style={style}
       className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className ?? ""}`}
     >
       {children}

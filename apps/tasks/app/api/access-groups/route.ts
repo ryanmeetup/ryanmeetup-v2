@@ -8,15 +8,28 @@ import {
 } from "@/lib/privileged-api";
 
 type Operation =
-  | { action: "group.create"; name: string; description: string | null }
+  | {
+      action: "group.create";
+      name: string;
+      description: string | null;
+      color: string;
+      kind: "tier" | "team";
+      hierarchyRank: number | null;
+      grantsGlobalContent: boolean;
+    }
   | {
       action: "group.update";
       id: string;
       name: string;
       description: string | null;
+      color: string;
+      kind: "tier" | "team";
+      hierarchyRank: number | null;
+      grantsGlobalContent: boolean;
     }
   | { action: "group.delete"; id: string }
   | { action: "member.set"; groupId: string; profileId: string }
+  | { action: "tier.set"; groupId: string; profileId: string }
   | { action: "member.delete"; groupId: string; profileId: string }
   | {
       action: "grant.set";
@@ -24,10 +37,22 @@ type Operation =
       projectId: string;
       permission: "viewer" | "editor" | "manager";
     }
-  | { action: "grant.delete"; groupId: string; projectId: string };
+  | { action: "grant.delete"; groupId: string; projectId: string }
+  | { action: "category-grant.set"; groupId: string; categoryId: string }
+  | { action: "category-grant.delete"; groupId: string; categoryId: string };
 
 const uuid = (value: unknown): value is string =>
   typeof value === "string" && /^[0-9a-f-]{36}$/i.test(value);
+const hexColor = (value: unknown): value is string =>
+  typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value);
+const groupShape = (body: Record<string, unknown>) =>
+  (body.kind === "team" &&
+    body.hierarchyRank === null &&
+    body.grantsGlobalContent === false) ||
+  (body.kind === "tier" &&
+    Number.isInteger(body.hierarchyRank) &&
+    Number(body.hierarchyRank) >= 0 &&
+    typeof body.grantsGlobalContent === "boolean");
 function schema(value: unknown): Operation | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const body = value as Record<string, unknown>;
@@ -36,11 +61,17 @@ function schema(value: unknown): Operation | null {
     typeof body.name === "string" &&
     body.name.trim() &&
     body.name.length <= 100 &&
+    hexColor(body.color) &&
+    groupShape(body) &&
     (body.description === null || typeof body.description === "string")
   )
     return {
       action: body.action,
       name: body.name.trim(),
+      color: body.color.toLowerCase(),
+      kind: body.kind as "tier" | "team",
+      hierarchyRank: body.hierarchyRank as number | null,
+      grantsGlobalContent: body.grantsGlobalContent as boolean,
       description: body.description
         ? String(body.description).trim().slice(0, 500)
         : null,
@@ -50,12 +81,18 @@ function schema(value: unknown): Operation | null {
     uuid(body.id) &&
     typeof body.name === "string" &&
     body.name.trim() &&
+    hexColor(body.color) &&
+    groupShape(body) &&
     (body.description === null || typeof body.description === "string")
   )
     return {
       action: body.action,
       id: body.id,
       name: body.name.trim().slice(0, 100),
+      color: body.color.toLowerCase(),
+      kind: body.kind as "tier" | "team",
+      hierarchyRank: body.hierarchyRank as number | null,
+      grantsGlobalContent: body.grantsGlobalContent as boolean,
       description: body.description
         ? String(body.description).trim().slice(0, 500)
         : null,
@@ -63,7 +100,9 @@ function schema(value: unknown): Operation | null {
   if (body.action === "group.delete" && uuid(body.id))
     return { action: body.action, id: body.id };
   if (
-    (body.action === "member.set" || body.action === "member.delete") &&
+    (body.action === "member.set" ||
+      body.action === "member.delete" ||
+      body.action === "tier.set") &&
     uuid(body.groupId) &&
     uuid(body.profileId)
   )
@@ -94,6 +133,17 @@ function schema(value: unknown): Operation | null {
       groupId: body.groupId,
       projectId: body.projectId,
     };
+  if (
+    (body.action === "category-grant.set" ||
+      body.action === "category-grant.delete") &&
+    uuid(body.groupId) &&
+    uuid(body.categoryId)
+  )
+    return {
+      action: body.action,
+      groupId: body.groupId,
+      categoryId: body.categoryId,
+    };
   return null;
 }
 
@@ -117,6 +167,10 @@ export async function POST(request: Request) {
       .insert({
         name: operation.name,
         description: operation.description,
+        color: operation.color,
+        kind: operation.kind,
+        hierarchy_rank: operation.hierarchyRank,
+        grants_global_content: operation.grantsGlobalContent,
         created_by: context.user.id,
       })
       .select("*")
@@ -127,7 +181,14 @@ export async function POST(request: Request) {
   } else if (operation.action === "group.update") {
     const response = await context.admin
       .from("access_groups")
-      .update({ name: operation.name, description: operation.description })
+      .update({
+        name: operation.name,
+        description: operation.description,
+        color: operation.color,
+        kind: operation.kind,
+        hierarchy_rank: operation.hierarchyRank,
+        grants_global_content: operation.grantsGlobalContent,
+      })
       .eq("id", operation.id)
       .select("*")
       .single();
@@ -142,6 +203,14 @@ export async function POST(request: Request) {
     error = response.error;
     result = { id: operation.id };
     targetId = operation.id;
+  } else if (operation.action === "tier.set") {
+    const response = await context.supabase.rpc("set_profile_access_tier", {
+      requested_profile_id: operation.profileId,
+      requested_group_id: operation.groupId,
+    });
+    result = { member: response.data };
+    error = response.error;
+    targetId = operation.groupId;
   } else if (operation.action === "member.set") {
     const response = await context.admin
       .from("access_group_members")
@@ -178,7 +247,7 @@ export async function POST(request: Request) {
     result = { grant: response.data };
     error = response.error;
     targetId = operation.groupId;
-  } else {
+  } else if (operation.action === "grant.delete") {
     const response = await context.admin
       .from("project_group_grants")
       .delete()
@@ -186,6 +255,28 @@ export async function POST(request: Request) {
       .eq("project_id", operation.projectId);
     error = response.error;
     result = { projectId: operation.projectId };
+    targetId = operation.groupId;
+  } else if (operation.action === "category-grant.set") {
+    const response = await context.admin
+      .from("category_group_grants")
+      .upsert({
+        group_id: operation.groupId,
+        category_id: operation.categoryId,
+        granted_by: context.user.id,
+      })
+      .select("*")
+      .single();
+    result = { grant: response.data };
+    error = response.error;
+    targetId = operation.groupId;
+  } else {
+    const response = await context.admin
+      .from("category_group_grants")
+      .delete()
+      .eq("group_id", operation.groupId)
+      .eq("category_id", operation.categoryId);
+    error = response.error;
+    result = { categoryId: operation.categoryId };
     targetId = operation.groupId;
   }
   if (error) {

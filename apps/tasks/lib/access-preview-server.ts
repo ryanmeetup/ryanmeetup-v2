@@ -11,27 +11,45 @@ export async function resolveAccessPreview(
   },
 ): Promise<{ preview: AccessPreview; projectIds: string[] } | null> {
   if (options.groupId) {
-    const [groupResult, grantsResult] = await Promise.all([
+    const [groupResult, groupsResult] = await Promise.all([
       supabase
         .from("access_groups")
-        .select("id, name")
+        .select("id, name, kind, hierarchy_rank, grants_global_content")
         .eq("id", options.groupId)
         .maybeSingle(),
-      supabase
-        .from("project_group_grants")
-        .select("project_id")
-        .eq("group_id", options.groupId),
+      supabase.from("access_groups").select("id, kind, hierarchy_rank"),
     ]);
     const group = requireQueryResult("preview access group", groupResult);
-    const grants = requireQueryData("preview project grants", grantsResult);
+    const groups = requireQueryData("preview access groups", groupsResult);
     if (!group) return null;
+    const inheritedGroupIds =
+      group.kind === "tier"
+        ? groups
+            .filter(
+              (candidate) =>
+                candidate.kind === "tier" &&
+                (candidate.hierarchy_rank ?? 0) <= (group.hierarchy_rank ?? 0),
+            )
+            .map((candidate) => candidate.id)
+        : [group.id];
+    const grants = group.grants_global_content
+      ? []
+      : requireQueryData(
+          "preview project grants",
+          await supabase
+            .from("project_group_grants")
+            .select("project_id")
+            .in("group_id", inheritedGroupIds),
+        );
     return {
       preview: {
         kind: "group",
         subjectId: group.id,
         subjectName: group.name,
       },
-      projectIds: grants.map((grant) => grant.project_id),
+      projectIds: group.grants_global_content
+        ? options.allProjectIds
+        : [...new Set(grants.map((grant) => grant.project_id))],
     };
   }
 
@@ -56,14 +74,46 @@ export async function resolveAccessPreview(
     };
   }
 
-  const memberships = requireQueryData(
-    "preview access memberships",
-    await supabase
+  const [memberships, groups] = await Promise.all([
+    supabase
       .from("access_group_members")
       .select("group_id")
       .eq("profile_id", profile.id),
+    supabase
+      .from("access_groups")
+      .select("id, kind, hierarchy_rank, grants_global_content"),
+  ]);
+  const membershipRows = requireQueryData(
+    "preview access memberships",
+    memberships,
   );
-  const groupIds = memberships.map((membership) => membership.group_id);
+  const groupRows = requireQueryData("preview access groups", groups);
+  const directGroupIds = membershipRows.map(
+    (membership) => membership.group_id,
+  );
+  const memberTier = groupRows.find(
+    (group) => group.kind === "tier" && directGroupIds.includes(group.id),
+  );
+  if (memberTier?.grants_global_content) {
+    return {
+      preview: {
+        kind: "user",
+        subjectId: profile.id,
+        subjectName: profile.full_name,
+      },
+      projectIds: options.allProjectIds,
+    };
+  }
+  const groupIds = groupRows
+    .filter(
+      (group) =>
+        directGroupIds.includes(group.id) ||
+        (group.kind === "tier" &&
+          memberTier?.hierarchy_rank !== null &&
+          memberTier?.hierarchy_rank !== undefined &&
+          (group.hierarchy_rank ?? 0) <= memberTier.hierarchy_rank),
+    )
+    .map((group) => group.id);
   let projectIds: string[] = [];
   if (groupIds.length > 0) {
     const grants = requireQueryData(
