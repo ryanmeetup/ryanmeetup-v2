@@ -106,7 +106,7 @@ const MultiSelect = ({
       >
         <ListboxOptions
           anchor="bottom start"
-          className="z-[60] mt-2 max-h-64 w-[var(--button-width)] origin-top overflow-y-auto rounded-xl border border-black/10 bg-white/95 p-1.5 text-black shadow-xl backdrop-blur focus:outline-none dark:border-white/10 dark:bg-[#181818]/95 dark:text-white"
+          className="z-[60] mt-2 flex max-h-64 w-[var(--button-width)] origin-top flex-col gap-1 overflow-y-auto rounded-xl border border-black/10 bg-white/95 p-1.5 text-black shadow-xl backdrop-blur focus:outline-none dark:border-white/10 dark:bg-[#181818]/95 dark:text-white"
         >
           {options.map((option) => (
             <ListboxOption

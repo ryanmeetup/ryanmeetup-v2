@@ -63,7 +63,7 @@ const DropdownMenuItems = ({
   >
     <MenuItems
       anchor={`bottom ${align}`}
-      className={`z-50 mt-2 w-56 origin-top rounded-xl border border-black/10 bg-white/95 p-1.5 text-black shadow-xl backdrop-blur focus:outline-none dark:border-white/10 dark:bg-[#181818]/95 dark:text-white ${className ?? ""}`}
+      className={`z-50 mt-2 flex w-56 origin-top flex-col gap-1 rounded-xl border border-black/10 bg-white/95 p-1.5 text-black shadow-xl backdrop-blur focus:outline-none dark:border-white/10 dark:bg-[#181818]/95 dark:text-white ${className ?? ""}`}
       {...props}
     >
       {children}

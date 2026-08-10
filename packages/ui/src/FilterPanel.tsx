@@ -1,38 +1,47 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { AnimatedCollapse, Card } from "@ryanmeetup/ui";
 import { FiChevronDown, FiFilter } from "react-icons/fi";
-import { filterPanelsExpandedPreferenceKey } from "@/lib/user-preferences";
+import { AnimatedCollapse } from "./AnimatedCollapse";
+import { Card } from "./Card";
+import { ClearFiltersButton } from "./ClearFiltersButton";
 
-export function FilterPanel({
-  children,
-  count,
-  className,
-}: {
+export type FilterPanelProps = {
   children: ReactNode;
   count: number;
   className?: string;
-}) {
-  const [expanded, setExpanded] = useState(true);
+  defaultExpanded?: boolean;
+  onClear?: () => void;
+  preferenceStorageKey?: string;
+  trailing?: ReactNode;
+};
+
+const FilterPanel = ({
+  children,
+  count,
+  className,
+  defaultExpanded = true,
+  onClear,
+  preferenceStorageKey,
+  trailing,
+}: FilterPanelProps) => {
+  const [expanded, setExpanded] = useState(defaultExpanded);
 
   useEffect(() => {
+    if (!preferenceStorageKey) return;
+
     queueMicrotask(() => {
-      const saved = localStorage.getItem(filterPanelsExpandedPreferenceKey);
+      const saved = localStorage.getItem(preferenceStorageKey);
       if (saved !== null) setExpanded(saved === "true");
     });
-  }, []);
-
-  function toggle() {
-    setExpanded((current) => !current);
-  }
+  }, [preferenceStorageKey]);
 
   return (
     <Card size="none" className={className}>
       <button
         type="button"
         aria-expanded={expanded}
-        onClick={toggle}
+        onClick={() => setExpanded((current) => !current)}
         className="flex w-full items-center gap-2 rounded-2xl p-4 text-left text-xs font-semibold uppercase tracking-widest text-black/50 transition hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-black/30 dark:text-white/50 dark:hover:text-white dark:focus-visible:ring-white/30"
       >
         <FiFilter aria-hidden />
@@ -48,8 +57,16 @@ export function FilterPanel({
         />
       </button>
       <AnimatedCollapse open={expanded}>
-        <div className="px-4 pb-4">{children}</div>
+        <div className="px-4 pb-4">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            {children}
+            {count > 0 && onClear && <ClearFiltersButton onClick={onClear} />}
+            {trailing}
+          </div>
+        </div>
       </AnimatedCollapse>
     </Card>
   );
-}
+};
+
+export { FilterPanel };
