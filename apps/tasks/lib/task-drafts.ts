@@ -75,3 +75,14 @@ export function hasDraftContent(draft: TaskDraft) {
     draft.category_ids.length,
   );
 }
+
+export function hasDraftAutosaveContent(draft: TaskDraft) {
+  return Boolean(
+    draft.title.trim() ||
+    draft.description?.trim() ||
+    draft.start_date ||
+    draft.due_date ||
+    draft.due_time ||
+    draft.reminder_at,
+  );
+}

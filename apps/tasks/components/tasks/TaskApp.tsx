@@ -1,6 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+  type SetStateAction,
+} from "react";
 import {
   Avatar,
   AnimatedCollapse,
@@ -22,8 +31,18 @@ import {
 import { useQueryParamState, useSearchFilter } from "@ryanmeetup/hooks";
 import type { Category, Priority, Task, WorkspaceData } from "@/lib/types";
 import { TaskBanners } from "@/components/global";
-import { TaskHeaderActions, TasksSidebar } from "@/components/navigation";
+import {
+  TaskHeaderActions,
+  TaskSearch,
+  TasksSidebar,
+} from "@/components/navigation";
 import { TaskEditor } from "./TaskEditor";
+import {
+  emptyNewTaskDetails,
+  type NewTaskDetailsDraft,
+} from "./NewTaskDetails";
+import { persistNewTaskDetails } from "@/lib/new-task-details";
+import { TaskKeyBadge } from "./TaskKeyBadge";
 import { TaskFilters } from "./TaskFilters";
 import { TaskListView } from "./TaskListView";
 import { localDateValue, TaskDueDate } from "./TaskDueDate";
@@ -42,6 +61,7 @@ import { parseTaskKey } from "@/lib/task-key";
 import {
   deleteTaskDraft,
   draftSavedStatus,
+  hasDraftAutosaveContent,
   hasDraftContent,
   saveTaskDraft,
   taskDraftAutosaveDelayMs,
@@ -142,6 +162,76 @@ function CategoryBadge({ category }: { category: Category }) {
   );
 }
 
+function BoardColumnTasks({
+  statusId,
+  statusName,
+  tasks,
+  renderTask,
+  onCreate,
+}: {
+  statusId: string;
+  statusName: string;
+  tasks: Task[];
+  renderTask: (task: Task) => ReactNode;
+  onCreate: () => void;
+}) {
+  const {
+    query,
+    setQuery,
+    filtered: filteredTasks,
+    isPending,
+  } = useSearchFilter({
+    data: tasks,
+    buildHaystack: (task) =>
+      `${taskKey(task)} ${task.title} ${task.description ?? ""}`.toLowerCase(),
+    queryParam: `column-${statusId}`,
+  });
+
+  return (
+    <div className="space-y-3 p-1" aria-busy={isPending}>
+      <div className="relative">
+        <FiSearch
+          aria-hidden
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-black/40 dark:text-white/40"
+        />
+        <input
+          type="search"
+          aria-label={`Search ${statusName} tasks`}
+          aria-busy={isPending}
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={`Search ${statusName}...`}
+          className="h-9 w-full rounded-lg border border-black/10 bg-white pl-9 pr-9 text-sm outline-none focus:border-black/30 focus:ring-2 focus:ring-black/10 dark:border-white/10 dark:bg-white/5 dark:focus:border-white/30"
+        />
+        {isPending && (
+          <FiLoader
+            aria-label={`Filtering ${statusName} tasks`}
+            className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-black/45 motion-reduce:animate-none dark:text-white/45"
+          />
+        )}
+      </div>
+      <div
+        className={`space-y-3 transition-opacity ${isPending ? "pointer-events-none opacity-55" : ""}`}
+      >
+        {filteredTasks.map(renderTask)}
+        {filteredTasks.length === 0 && query.trim() && (
+          <div className="rounded-xl border border-dashed border-black/15 px-3 py-8 text-center text-xs text-black/50 dark:border-white/15 dark:text-white/50">
+            No {statusName} tasks match this search.
+          </div>
+        )}
+        {filteredTasks.length === 0 && !query.trim() && (
+          <button
+            onClick={onCreate}
+            className="w-full rounded-xl border border-dashed border-black/15 px-3 py-8 text-xs text-black/40 hover:border-black/30 hover:text-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:border-white/15 dark:text-white/40 dark:hover:border-white/30 dark:hover:text-white/60 dark:focus-visible:ring-white/30"
+          >
+            Drop a task here or add one
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function TaskApp({
   initialData,
   demoMode,
@@ -179,8 +269,11 @@ export function TaskApp({
   const [projectEditId, setProjectEditId] = useState<string | null>(null);
   const [taskMessage, setTaskMessage] = useState("");
   const [taskSaving, setTaskSaving] = useState(false);
+  const [newTaskDetails, setNewTaskDetails] =
+    useState<NewTaskDetailsDraft>(emptyNewTaskDetails);
   const [createAnother, setCreateAnother] = useState(false);
   const [draftId, setDraftId] = useState<string | null>(null);
+  const draftTouched = useRef(false);
   const [taskPendingDelete, setTaskPendingDelete] = useState<Task | null>(null);
   const [taskDeleting, setTaskDeleting] = useState(false);
   const [taskPageLoading, setTaskPageLoading] = useState(false);
@@ -208,7 +301,13 @@ export function TaskApp({
   );
 
   useEffect(() => {
-    if (!taskOpen || editing || !hasDraftContent(draft)) return;
+    if (
+      !taskOpen ||
+      editing ||
+      !draftTouched.current ||
+      !hasDraftAutosaveContent(draft)
+    )
+      return;
     const timer = window.setTimeout(() => {
       const saved = saveTaskDraft(
         data.currentProfile.id,
@@ -268,7 +367,6 @@ export function TaskApp({
     };
   }, [draggedTaskId]);
   const {
-    query: search,
     setQuery: setSearch,
     filtered: searchedTasks,
     isPending: searchPending,
@@ -376,14 +474,41 @@ export function TaskApp({
       : (categories.get(group) ??
         data.categories.find((item) => item.name === group));
   const includedCategoryIds = useMemo(() => {
-    const ids = includedCategories.split(",").filter(Boolean);
+    const ids = includedCategories
+      .split(",")
+      .filter(Boolean)
+      .flatMap((value) => {
+        const category =
+          categories.get(value) ??
+          data.categories.find((item) => item.name === value);
+        return category ? [category.id] : [];
+      });
     if (selectedCategory && !ids.includes(selectedCategory.id))
       ids.push(selectedCategory.id);
     return ids;
-  }, [includedCategories, selectedCategory]);
+  }, [categories, data.categories, includedCategories, selectedCategory]);
   const excludedCategoryIds = useMemo(
-    () => excludedCategories.split(",").filter(Boolean),
-    [excludedCategories],
+    () =>
+      excludedCategories
+        .split(",")
+        .filter(Boolean)
+        .flatMap((value) => {
+          const category =
+            categories.get(value) ??
+            data.categories.find((item) => item.name === value);
+          return category ? [category.id] : [];
+        }),
+    [categories, data.categories, excludedCategories],
+  );
+  const categoryNames = useCallback(
+    (ids: string[]) =>
+      ids
+        .flatMap((id) => {
+          const category = categories.get(id);
+          return category ? [category.name] : [];
+        })
+        .join(","),
+    [categories],
   );
   const selectedProject =
     project === "all" || project === "none"
@@ -549,9 +674,8 @@ export function TaskApp({
     }
   }, [profiles, reporter, selectedReporter, setReporter]);
   useEffect(() => {
-    if (group !== "all" && categories.has(group) && selectedCategory) {
+    if (group !== "all" && categories.has(group) && selectedCategory)
       setGroup(selectedCategory.name);
-    }
   }, [categories, group, selectedCategory, setGroup]);
   useEffect(() => {
     if (
@@ -559,10 +683,29 @@ export function TaskApp({
       project !== "none" &&
       projects.has(project) &&
       selectedProject
-    ) {
+    )
       setProject(selectedProject.name);
-    }
   }, [project, projects, selectedProject, setProject]);
+  useEffect(() => {
+    if (involved !== "all" && profiles.has(involved) && selectedInvolved)
+      setInvolved(profileName(selectedInvolved));
+  }, [involved, profiles, selectedInvolved, setInvolved]);
+  useEffect(() => {
+    const readableIncluded = categoryNames(includedCategoryIds);
+    const readableExcluded = categoryNames(excludedCategoryIds);
+    if (includedCategories && includedCategories !== readableIncluded)
+      setIncludedCategories(readableIncluded);
+    if (excludedCategories && excludedCategories !== readableExcluded)
+      setExcludedCategories(readableExcluded);
+  }, [
+    categoryNames,
+    excludedCategories,
+    excludedCategoryIds,
+    includedCategories,
+    includedCategoryIds,
+    setExcludedCategories,
+    setIncludedCategories,
+  ]);
   useEffect(() => {
     if (status !== "all" && selectedStatus && status !== selectedStatus.name) {
       setStatus(selectedStatus.name);
@@ -711,6 +854,8 @@ export function TaskApp({
     setTaskDetailsOpen(false);
     setCreateAnother(false);
     setDraftId(null);
+    setNewTaskDetails(emptyNewTaskDetails());
+    draftTouched.current = false;
     const scopedDraft = blankDraft(
       statusId ??
         selectedStatus?.id ??
@@ -726,6 +871,11 @@ export function TaskApp({
     scopedDraft.priority = selectedPriority ?? "medium";
     setDraft(scopedDraft);
     setTaskOpen(true);
+  }
+
+  function updateDraft(nextDraft: SetStateAction<Draft>) {
+    draftTouched.current = true;
+    setDraft(nextDraft);
   }
 
   function openEdit(task: Task) {
@@ -755,6 +905,7 @@ export function TaskApp({
 
   async function saveTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    event.stopPropagation();
     const validationMessage = !draft.title.trim()
       ? "A task title is required."
       : !draft.status_id
@@ -767,6 +918,7 @@ export function TaskApp({
     if (validationMessage) {
       setTaskMessage(validationMessage);
       toast.error(validationMessage);
+      queueMicrotask(() => setTaskOpen(true));
       return;
     }
     setTaskMessage("");
@@ -774,12 +926,23 @@ export function TaskApp({
     try {
       const saved = await mutations.save(draft, editing);
       mutations.applySaved(saved, Boolean(editing));
+      let detailFailures = 0;
+      if (!editing) {
+        detailFailures = await persistNewTaskDetails({
+          taskId: saved.task.id,
+          draft: newTaskDetails,
+          demoMode,
+          setData,
+        });
+        setNewTaskDetails(emptyNewTaskDetails());
+      }
       if (!editing && draftId) {
         deleteTaskDraft(data.currentProfile.id, draftId);
         setDraftId(null);
       }
       if (!demoMode && view === "list") await loadTaskPage(true);
       if (!editing && createAnother) {
+        draftTouched.current = false;
         setDraft({
           ...blankDraft(draft.status_id, data.currentProfile.id),
           priority: draft.priority,
@@ -788,6 +951,10 @@ export function TaskApp({
           assignee_id: draft.assignee_id,
         });
         toast.success("Task created. Add the next one.");
+        if (detailFailures > 0)
+          toast.error(
+            `${detailFailures} ${detailFailures === 1 ? "task detail" : "task details"} could not be added.`,
+          );
         return;
       }
       setTaskOpen(false);
@@ -804,6 +971,10 @@ export function TaskApp({
             ? "Task updated."
             : "Task created.",
       );
+      if (detailFailures > 0)
+        toast.error(
+          `${detailFailures} ${detailFailures === 1 ? "task detail" : "task details"} could not be added. Open the task to retry.`,
+        );
     } catch (error) {
       const message = mutationErrorMessage(
         error,
@@ -954,9 +1125,7 @@ export function TaskApp({
       >
         <div className="mb-3 flex items-start justify-between gap-3">
           <span className="flex flex-wrap items-center gap-1.5">
-            <span className="shrink-0 rounded border border-black/10 bg-black/[0.04] px-1.5 py-0.5 font-mono text-[9px] font-semibold tracking-[0.08em] text-black/55 dark:border-white/10 dark:bg-white/[0.06] dark:text-white/55">
-              {taskKey(task)}
-            </span>
+            <TaskKeyBadge task={task} />
             <span
               className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.16em] ${priorityStyles[task.priority]}`}
             >
@@ -1043,7 +1212,7 @@ export function TaskApp({
       />
 
       <main className="min-w-0 lg:pl-64">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-black/10 bg-[#f7f7f5]/90 px-4 backdrop-blur-xl dark:border-white/10 dark:bg-[#101010]/90 sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-black/10 bg-[#f7f7f5]/90 px-4 backdrop-blur-xl focus-within:z-[2147483647] dark:border-white/10 dark:bg-[#101010]/90 sm:px-6 lg:px-8">
           <IconButton
             label="Open navigation"
             tooltipTriggerClassName="lg:hidden"
@@ -1051,26 +1220,13 @@ export function TaskApp({
           >
             <FiMenu />
           </IconButton>
-          <div className="relative min-w-0 flex-1 sm:max-w-sm">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-black/40 dark:text-white/40" />
-            <input
-              aria-label="Search tasks"
-              aria-busy={searchPending}
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search tasks..."
-              className="h-10 w-full rounded-lg border border-black/10 bg-white pl-10 pr-10 text-sm outline-none focus:border-black/30 focus:ring-2 focus:ring-black/10 dark:border-white/10 dark:bg-white/5 dark:focus:border-white/30"
-            />
-            {searchPending && (
-              <span
-                role="status"
-                aria-label="Loading search results"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-black/45 dark:text-white/45"
-              >
-                <FiLoader className="animate-spin motion-reduce:animate-none" />
-              </span>
-            )}
-          </div>
+          <TaskSearch
+            tasks={data.tasks}
+            projects={data.projects}
+            categories={data.categories}
+            statuses={data.statuses}
+            profiles={data.profiles}
+          />
           <TaskHeaderActions
             data={data}
             setData={setData}
@@ -1120,16 +1276,20 @@ export function TaskApp({
             onDueWithinChange={setDueWithin}
             onIncludedCategoriesChange={(ids) => {
               setGroup("all");
-              setIncludedCategories(ids.join(","));
+              setIncludedCategories(categoryNames(ids));
               setExcludedCategories(
-                excludedCategoryIds.filter((id) => !ids.includes(id)).join(","),
+                categoryNames(
+                  excludedCategoryIds.filter((id) => !ids.includes(id)),
+                ),
               );
             }}
             onInvolvedChange={setInvolved}
             onExcludedCategoriesChange={(ids) => {
-              setExcludedCategories(ids.join(","));
+              setExcludedCategories(categoryNames(ids));
               setIncludedCategories(
-                includedCategoryIds.filter((id) => !ids.includes(id)).join(","),
+                categoryNames(
+                  includedCategoryIds.filter((id) => !ids.includes(id)),
+                ),
               );
               if (selectedCategory && ids.includes(selectedCategory.id))
                 setGroup("all");
@@ -1260,17 +1420,14 @@ export function TaskApp({
                           id={`status-column-${item.id}`}
                           open={!isCollapsed}
                           className={isCollapsed ? "" : "mt-3"}
-                          contentClassName="space-y-3 p-1"
                         >
-                          {columnTasks.map(taskCard)}
-                          {columnTasks.length === 0 && (
-                            <button
-                              onClick={() => openCreate(item.id)}
-                              className="w-full rounded-xl border border-dashed border-black/15 px-3 py-8 text-xs text-black/40 hover:border-black/30 hover:text-black/60 dark:border-white/15 dark:text-white/40 dark:hover:border-white/30 dark:hover:text-white/60"
-                            >
-                              Drop a task here or add one
-                            </button>
-                          )}
+                          <BoardColumnTasks
+                            statusId={item.id}
+                            statusName={item.name}
+                            tasks={columnTasks}
+                            renderTask={taskCard}
+                            onCreate={() => openCreate(item.id)}
+                          />
                         </AnimatedCollapse>
                       </section>
                     );
@@ -1312,7 +1469,7 @@ export function TaskApp({
         setCreateAnother={setCreateAnother}
         taskSaving={taskSaving}
         draft={draft}
-        setDraft={setDraft}
+        setDraft={updateDraft}
         statuses={statuses}
         data={data}
         setData={setData}
@@ -1321,6 +1478,8 @@ export function TaskApp({
         saveDraft={saveAsDraft}
         setTaskPendingDelete={setTaskPendingDelete}
         taskMessage={taskMessage}
+        newTaskDetails={newTaskDetails}
+        setNewTaskDetails={setNewTaskDetails}
       />
       <ConfirmationDialog
         open={Boolean(taskPendingDelete)}

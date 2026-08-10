@@ -16,8 +16,14 @@ import {
 } from "@/lib/task-mutations";
 import { TaskEditor } from "./TaskEditor";
 import {
+  emptyNewTaskDetails,
+  type NewTaskDetailsDraft,
+} from "./NewTaskDetails";
+import { persistNewTaskDetails } from "@/lib/new-task-details";
+import {
   deleteTaskDraft,
   draftSavedStatus,
+  hasDraftAutosaveContent,
   hasDraftContent,
   saveTaskDraft,
   taskDraftAutosaveDelayMs,
@@ -66,20 +72,26 @@ export function NewTaskModal({
     initialDraft?.id ?? null,
   );
   const opened = useRef(false);
+  const draftTouched = useRef(false);
   const [createAnother, setCreateAnother] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [newTaskDetails, setNewTaskDetails] =
+    useState<NewTaskDetailsDraft>(emptyNewTaskDetails);
 
   useEffect(() => {
     if (open && !opened.current && initialDraft) {
       setDraft(initialDraft.draft);
       setDraftId(initialDraft.id);
     }
+    if (open && !opened.current) draftTouched.current = false;
     opened.current = open;
   }, [initialDraft, open]);
 
   useEffect(() => {
-    if (!open || !hasDraftContent(draft)) return;
+    if (!open || !draftTouched.current || !hasDraftAutosaveContent(draft))
+      return;
     const timer = window.setTimeout(() => {
       const saved = saveTaskDraft(
         data.currentProfile.id,
@@ -94,6 +106,11 @@ export function NewTaskModal({
     }, taskDraftAutosaveDelayMs);
     return () => window.clearTimeout(timer);
   }, [data.currentProfile.id, draft, draftId, open]);
+
+  function updateDraft(nextDraft: SetStateAction<TaskDraft>) {
+    draftTouched.current = true;
+    setDraft(nextDraft);
+  }
 
   function saveAsDraft() {
     if (!hasDraftContent(draft)) {
@@ -121,6 +138,7 @@ export function NewTaskModal({
 
   async function saveTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    event.stopPropagation();
     const validationMessage = !draft.title.trim()
       ? "A task title is required."
       : !draft.status_id
@@ -131,6 +149,7 @@ export function NewTaskModal({
     if (validationMessage) {
       setMessage(validationMessage);
       toast.error(validationMessage);
+      queueMicrotask(() => setOpen(true));
       return;
     }
 
@@ -144,9 +163,21 @@ export function NewTaskModal({
       });
       const saved = await mutations.save(draft, null);
       mutations.applySaved(saved, false);
+      const detailFailures = await persistNewTaskDetails({
+        taskId: saved.task.id,
+        draft: newTaskDetails,
+        demoMode,
+        setData,
+      });
+      setNewTaskDetails(emptyNewTaskDetails());
       if (draftId) deleteTaskDraft(data.currentProfile.id, draftId);
       toast.success("Task created.");
+      if (detailFailures > 0)
+        toast.error(
+          `${detailFailures} ${detailFailures === 1 ? "task detail" : "task details"} could not be added. Open the task to retry.`,
+        );
       if (createAnother) {
+        draftTouched.current = false;
         setDraft({
           ...newDraft(data),
           status_id: draft.status_id,
@@ -177,13 +208,13 @@ export function NewTaskModal({
       taskOpen={open}
       setTaskOpen={setModalOpen}
       editing={null}
-      taskDetailsOpen={false}
-      setTaskDetailsOpen={() => undefined}
+      taskDetailsOpen={detailsOpen}
+      setTaskDetailsOpen={setDetailsOpen}
       createAnother={createAnother}
       setCreateAnother={setCreateAnother}
       taskSaving={saving}
       draft={draft}
-      setDraft={setDraft}
+      setDraft={updateDraft}
       statuses={data.statuses}
       data={data}
       setData={setData}
@@ -192,6 +223,8 @@ export function NewTaskModal({
       saveDraft={saveAsDraft}
       setTaskPendingDelete={() => undefined}
       taskMessage={message}
+      newTaskDetails={newTaskDetails}
+      setNewTaskDetails={setNewTaskDetails}
     />
   );
 }
