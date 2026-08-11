@@ -27,7 +27,7 @@ export function Banner({
     <SharedBanner
       variant="neutral"
       // icon={<FiCalendar aria-hidden />}
-      aria-label="Ryan Meetup x Sun Soaked - tickets on sale now"
+      aria-label="Ryan Meetup California - Ready Player Ryan and Sun Soaked"
       className={`${className} border-[#f6c500]/40 bg-[#ef3d23] font-cooper !text-xl text-[#f4f0df]`}
       style={{
         backgroundColor: "#ef3d23",

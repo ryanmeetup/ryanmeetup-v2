@@ -6,6 +6,10 @@ import { useState, useEffect } from "react";
 import { Banner, Header, NewFooter } from "@/components/navigation";
 import { FloatingCta } from "@/components/global";
 import { FiSun } from "react-icons/fi";
+import {
+  FaCalendarAlt as Calendar,
+  FaMapMarkerAlt as MapPin,
+} from "react-icons/fa";
 import { useTheme } from "next-themes";
 import { layoutPaddingX } from "@/lib/constants";
 
@@ -31,9 +35,9 @@ const Layout = (props: LayoutProps) => {
   return (
     <main>
       <Banner
-        message="Ryan Meetup is collaborating with Kaskade at his Sun Soaked music festival on September 12th!"
+        message="Ryan Meetup returns to California September 11–12: Ready Player Ryan + Sun Soaked!"
         href="/rsvp"
-        actionLabel="Get tickets"
+        actionLabel="RSVP"
         className={layoutPaddingX}
       />
       <Header />
@@ -47,13 +51,41 @@ const Layout = (props: LayoutProps) => {
       </section>
 
       <FloatingCta
-        id="ryan-meetup-sunsoaked-2026"
+        id="ryan-meetup-california-2026"
         href="/rsvp"
-        label="Ryan Meetup × Sun Soaked"
-        sublabel="September 12, 2026"
-        secondarySublabel="Huntington Beach, CA"
-        ariaLabel="RSVP to Ryan Meetup x SunSoaked"
-        hiddenRoutes={["/rsvp", "/awards", "/name-change"]}
+        label="RSVP"
+        details={[
+          {
+            title: "Ready Player Ryan",
+            href: "/rpr",
+            rows: [
+              {
+                icon: <Calendar className="h-3 w-3 fill-current" />,
+                text: "September 11, 2026",
+              },
+              {
+                icon: <MapPin className="h-3 w-3 fill-current" />,
+                text: "Orange, CA",
+              },
+            ],
+          },
+          {
+            title: "Ryan Meetup × Sun Soaked",
+            href: "/sunsoaked",
+            rows: [
+              {
+                icon: <Calendar className="h-3 w-3 fill-current" />,
+                text: "September 12, 2026",
+              },
+              {
+                icon: <MapPin className="h-3 w-3 fill-current" />,
+                text: "Huntington Beach, CA",
+              },
+            ],
+          },
+        ]}
+        ariaLabel="RSVP to upcoming California events"
+        hiddenRoutes={["/rsvp", "/rpr", "/sunsoaked", "/awards", "/name-change"]}
         theme={{
           panel: "bg-[#ef3d23]",
           border: "border-[#f6c500] hover:border-[#ffe168]",
