@@ -174,6 +174,10 @@ Tailwind's standard breakpoints are the shared vocabulary:
 Rules:
 
 - Do not make a component dense merely because a breakpoint was reached.
+- A standalone action button must span the available width on mobile and may
+  return to its intrinsic width at `sm` or above. Button groups may use a
+  different mobile layout when the relationship between their actions remains
+  clear.
 - Stagger nested responsive layouts. A two-column page and a two-column form
   should not both activate at the same breakpoint if that squeezes fields.
 - Contact-style major page columns remain stacked below `xl`; dense form grids
