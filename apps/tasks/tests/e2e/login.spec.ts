@@ -16,7 +16,9 @@ test("responses include restrictive browser security headers", async ({ request 
 
 test("login exposes accessible credentials and validates missing input", async ({ page }) => {
   await page.goto("/login");
-  await expect(page.getByRole("heading", { name: "Ryan Meetup" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Ryan Meetup", exact: true }),
+  ).toBeVisible();
   await expect(page.getByLabel("Username")).toBeVisible();
   await expect(page.getByLabel(/^Password/)).toHaveAttribute("type", "password");
   await page.getByRole("button", { name: "Sign in" }).click();

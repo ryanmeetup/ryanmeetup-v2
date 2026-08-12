@@ -61,6 +61,11 @@ const Tooltip = ({
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<TooltipPosition | null>(null);
 
+  const closeTooltip = () => {
+    setOpen(false);
+    setPosition(null);
+  };
+
   const updatePosition = useCallback(() => {
     const trigger = triggerRef.current;
     const tooltip = tooltipRef.current;
@@ -212,13 +217,11 @@ const Tooltip = ({
         if (!disabled) setOpen(true);
       }}
       onBlur={handleBlur}
+      onClick={closeTooltip}
       onMouseEnter={() => {
         if (!disabled) setOpen(true);
       }}
-      onMouseLeave={() => {
-        setOpen(false);
-        setPosition(null);
-      }}
+      onMouseLeave={closeTooltip}
       onKeyDown={(event) => {
         if (event.key === "Escape") setOpen(false);
       }}

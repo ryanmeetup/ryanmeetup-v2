@@ -351,7 +351,7 @@ export function TaskSearch({
           id={listboxId}
           role="listbox"
           aria-label="Task suggestions"
-          className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[2147483647] max-h-[50dvh] overflow-x-hidden overflow-y-auto overscroll-contain rounded-xl border border-black/10 bg-white shadow-xl shadow-black/10 dark:border-white/10 dark:bg-[#202020] dark:shadow-black/40"
+          className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-30 max-h-[50dvh] overflow-x-hidden overflow-y-auto overscroll-contain rounded-xl border border-black/10 bg-white shadow-xl shadow-black/10 dark:border-white/10 dark:bg-[#202020] dark:shadow-black/40"
         >
           {isTooShort ? (
             <p className="px-4 py-5 text-center text-sm text-black/60 dark:text-white/60">

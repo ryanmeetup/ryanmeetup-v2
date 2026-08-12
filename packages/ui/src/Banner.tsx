@@ -8,6 +8,7 @@ export type BannerProps = Omit<HTMLAttributes<HTMLElement>, "title"> & {
   title?: ReactNode;
   action?: ReactNode;
   compact?: boolean;
+  mobileInline?: boolean;
   contentClassName?: string;
 };
 
@@ -26,6 +27,7 @@ export function Banner({
   title,
   action,
   compact = false,
+  mobileInline = false,
   children,
   className,
   contentClassName,
@@ -37,7 +39,7 @@ export function Banner({
       className={`border-b font-medium shadow-sm ${variantClasses[variant]} ${compact ? "px-2 py-1 text-xs" : "px-4 py-3 text-sm sm:px-6 lg:px-8"} ${className ?? ""}`}
     >
       <div
-        className={`flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between ${contentClassName ?? ""}`}
+        className={`flex w-full ${mobileInline ? "flex-row items-start justify-between gap-2" : "flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"} ${contentClassName ?? ""}`}
       >
         <div className="flex min-w-0 items-center gap-2 text-left">
           {icon && <span className="shrink-0">{icon}</span>}
@@ -46,7 +48,13 @@ export function Banner({
             {children && <div>{children}</div>}
           </div>
         </div>
-        {action && <div className="shrink-0 self-end sm:self-auto">{action}</div>}
+        {action && (
+          <div
+            className={`shrink-0 ${mobileInline ? "self-start" : "self-end sm:self-auto"}`}
+          >
+            {action}
+          </div>
+        )}
       </div>
     </aside>
   );

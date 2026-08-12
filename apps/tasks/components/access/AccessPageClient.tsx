@@ -533,7 +533,7 @@ export function AccessPageClient({
                     <Card key={group.id} className="flex h-full flex-col p-5">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
-                          <h3 className="flex min-w-0 items-center gap-2 font-semibold">
+                          <h3 className="flex min-w-0 items-center gap-2 text-lg leading-tight font-semibold">
                             <span
                               aria-hidden
                               className="h-2.5 w-2.5 shrink-0 rounded-full"
