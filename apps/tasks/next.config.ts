@@ -16,6 +16,7 @@ const nextConfig: NextConfig = {
     "@ryanmeetup/brand",
     "@ryanmeetup/hooks",
     "@ryanmeetup/ui",
+    "@ryanmeetup/utils",
   ],
   async headers() {
     return [

@@ -6,6 +6,8 @@ import {
   detectAttachmentMimeType,
   MAX_ATTACHMENT_SIZE,
 } from "@/lib/task-attachments";
+import { attachmentUrlName } from "@/lib/task-attachment-urls";
+import { normalizeHttpUrl } from "@ryanmeetup/utils";
 
 export const runtime = "nodejs";
 
@@ -22,15 +24,33 @@ export async function POST(request: Request) {
   if ("response" in authorization) return authorization.response;
   const { supabase, user } = authorization;
 
-  const formData = await request.formData();
-  const taskId = formData.get("taskId");
-  const file = formData.get("file");
-  if (typeof taskId !== "string" || !(file instanceof File))
+  const isJson = request.headers
+    .get("content-type")
+    ?.includes("application/json");
+  const payload = isJson
+    ? ((await request.json()) as { taskId?: unknown; url?: unknown })
+    : null;
+  const formData = isJson ? null : await request.formData();
+  const taskId = payload?.taskId ?? formData?.get("taskId");
+  const file = formData?.get("file");
+  const externalUrl =
+    typeof payload?.url === "string" ? normalizeHttpUrl(payload.url) : null;
+  if (
+    typeof taskId !== "string" ||
+    (isJson ? !externalUrl : !(file instanceof File))
+  )
     return NextResponse.json(
-      { error: "A task and file are required." },
+      {
+        error: isJson
+          ? "A task and valid URL are required."
+          : "A task and file are required.",
+      },
       { status: 400 },
     );
-  if (file.size === 0 || file.size > MAX_ATTACHMENT_SIZE)
+  if (
+    file instanceof File &&
+    (file.size === 0 || file.size > MAX_ATTACHMENT_SIZE)
+  )
     return NextResponse.json(
       { error: "Files must be between 1 byte and 10 MB." },
       { status: 413 },
@@ -45,6 +65,45 @@ export async function POST(request: Request) {
       { error: "You cannot attach files to this task." },
       { status: 403 },
     );
+
+  if (externalUrl) {
+    const id = crypto.randomUUID();
+    const name = attachmentUrlName(externalUrl);
+    const attachment = {
+      id,
+      task_id: taskId,
+      name,
+      url: externalUrl,
+      file_path: null,
+      mime_type: null,
+      size_bytes: null,
+      created_by: user.id,
+      created_at: new Date().toISOString(),
+    };
+    const { error } = await supabase
+      .from("task_attachments")
+      .insert(attachment);
+    if (error)
+      return databaseFailure(request, "attachment.record", error, {
+        error: "The URL attachment could not be saved. Try again.",
+      });
+    const { data: activity, error: activityError } = await supabase
+      .from("task_activity")
+      .insert({
+        task_id: taskId,
+        actor_id: user.id,
+        action: `attached “${name}”`,
+        details: { attachment_id: id },
+      })
+      .select("*")
+      .single();
+    if (activityError)
+      logServerFailure(request, "attachment.activity", activityError);
+    return NextResponse.json({ attachment, activity });
+  }
+
+  if (!(file instanceof File))
+    return NextResponse.json({ error: "A file is required." }, { status: 400 });
 
   const bytes = new Uint8Array(await file.arrayBuffer());
   const mimeType = detectAttachmentMimeType(bytes);

@@ -18,9 +18,10 @@ import {
   FiTrash2,
 } from "react-icons/fi";
 import { MAX_ATTACHMENT_SIZE } from "@/lib/task-attachments";
-import type { ProjectAttachment } from "@/lib/types";
+import type { CategoryAttachment, ProjectAttachment } from "@/lib/types";
 
-export type ProjectAttachmentDraft = ProjectAttachment & { file?: File };
+type ResourceAttachment = ProjectAttachment | CategoryAttachment;
+export type ProjectAttachmentDraft = ResourceAttachment & { file?: File };
 
 function formatSize(value: number | null) {
   if (value === null) return "";
@@ -31,6 +32,8 @@ function formatSize(value: number | null) {
 
 export function ProjectAttachments({
   projectId,
+  categoryId,
+  resourceKind,
   demoMode,
   disabled,
   currentUserId,
@@ -38,14 +41,20 @@ export function ProjectAttachments({
   onDraftsChange,
 }: {
   projectId?: string;
+  categoryId?: string;
+  resourceKind?: "project" | "category";
   demoMode: boolean;
   disabled: boolean;
   currentUserId: string;
   drafts?: ProjectAttachmentDraft[];
   onDraftsChange?: (drafts: ProjectAttachmentDraft[]) => void;
 }) {
+  const resource = resourceKind ?? (categoryId ? "category" : "project");
+  const resourceId = categoryId ?? projectId;
+  const idKey = resource === "category" ? "categoryId" : "projectId";
+  const endpoint = `/api/${resource}-attachments`;
   const [items, setItems] = useState<ProjectAttachmentDraft[]>(drafts ?? []);
-  const [loading, setLoading] = useState(!demoMode && Boolean(projectId));
+  const [loading, setLoading] = useState(!demoMode && Boolean(resourceId));
   const [saving, setSaving] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteTitle, setNoteTitle] = useState("");
@@ -53,15 +62,14 @@ export function ProjectAttachments({
   const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (demoMode || !projectId) return;
+    if (demoMode || !resourceId) return;
     const controller = new AbortController();
-    void fetch(
-      `/api/project-attachments?projectId=${encodeURIComponent(projectId)}`,
-      { signal: controller.signal },
-    )
+    void fetch(`${endpoint}?${idKey}=${encodeURIComponent(resourceId)}`, {
+      signal: controller.signal,
+    })
       .then(async (response) => {
         const result = (await response.json()) as {
-          attachments?: ProjectAttachment[];
+          attachments?: ResourceAttachment[];
           error?: string;
         };
         if (!response.ok) throw new Error(result.error);
@@ -70,11 +78,13 @@ export function ProjectAttachments({
       .catch((error) => {
         if (error instanceof DOMException && error.name === "AbortError")
           return;
-        toast.error("Project attachments could not be loaded.");
+        toast.error(
+          `${resource === "project" ? "Project" : "Category"} attachments could not be loaded.`,
+        );
       })
       .finally(() => setLoading(false));
     return () => controller.abort();
-  }, [demoMode, projectId]);
+  }, [demoMode, endpoint, idKey, resource, resourceId]);
 
   function updateItems(
     update: (current: ProjectAttachmentDraft[]) => ProjectAttachmentDraft[],
@@ -97,7 +107,9 @@ export function ProjectAttachments({
     try {
       let attachment: ProjectAttachmentDraft = {
         id: crypto.randomUUID(),
-        project_id: projectId ?? "",
+        ...(resource === "category"
+          ? { category_id: categoryId ?? "" }
+          : { project_id: projectId ?? "" }),
         kind: "note",
         name,
         body,
@@ -108,14 +120,14 @@ export function ProjectAttachments({
         created_by: currentUserId,
         created_at: new Date().toISOString(),
       };
-      if (!demoMode && projectId) {
-        const response = await fetch("/api/project-attachments", {
+      if (!demoMode && resourceId) {
+        const response = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ projectId, name, body }),
+          body: JSON.stringify({ [idKey]: resourceId, name, body }),
         });
         const result = (await response.json()) as {
-          attachment?: ProjectAttachment;
+          attachment?: ResourceAttachment;
           error?: string;
         };
         if (!response.ok || !result.attachment)
@@ -150,7 +162,9 @@ export function ProjectAttachments({
       try {
         let attachment: ProjectAttachmentDraft = {
           id: crypto.randomUUID(),
-          project_id: projectId ?? "",
+          ...(resource === "category"
+            ? { category_id: categoryId ?? "" }
+            : { project_id: projectId ?? "" }),
           kind: "file",
           name: file.name,
           body: null,
@@ -161,23 +175,23 @@ export function ProjectAttachments({
           created_by: currentUserId,
           created_at: new Date().toISOString(),
         };
-        if (!demoMode && projectId) {
+        if (!demoMode && resourceId) {
           const formData = new FormData();
-          formData.set("projectId", projectId);
+          formData.set(idKey, resourceId);
           formData.set("file", file);
-          const response = await fetch("/api/project-attachments", {
+          const response = await fetch(endpoint, {
             method: "POST",
             body: formData,
           });
           const result = (await response.json()) as {
-            attachment?: ProjectAttachment;
+            attachment?: ResourceAttachment;
             error?: string;
           };
           if (!response.ok || !result.attachment)
             throw new Error(result.error ?? "The upload was rejected.");
           attachment = result.attachment;
         }
-        if (!projectId) attachment.file = file;
+        if (!resourceId) attachment.file = file;
         updateItems((current) => [...current, attachment]);
         uploaded += 1;
       } catch (error) {
@@ -195,14 +209,14 @@ export function ProjectAttachments({
       );
   }
 
-  async function remove(item: ProjectAttachment) {
+  async function remove(item: ResourceAttachment) {
     updateItems((current) =>
       current.filter((candidate) => candidate.id !== item.id),
     );
-    if (demoMode || !projectId) return;
+    if (demoMode || !resourceId) return;
     try {
       const response = await fetch(
-        `/api/project-attachments?id=${encodeURIComponent(item.id)}`,
+        `${endpoint}?id=${encodeURIComponent(item.id)}`,
         { method: "DELETE" },
       );
       const result = (await response.json()) as { error?: string };
@@ -231,7 +245,7 @@ export function ProjectAttachments({
         iconClassName="h-3.5 w-3.5"
         description={
           <p className="pr-2 text-xs leading-relaxed text-black/55 dark:text-white/55">
-            Keep useful context with the project.
+            Keep useful context with the {resource}.
           </p>
         }
         actions={
@@ -262,16 +276,16 @@ export function ProjectAttachments({
           <div className="space-y-3 rounded-lg border border-black/10 bg-white/60 p-3 dark:border-white/10 dark:bg-black/10">
             <Input
               label="Note title"
-              name={`project-note-title-${projectId}`}
+              name={`${resource}-note-title-${resourceId}`}
               value={noteTitle}
               maxLength={200}
               disabled={saving}
               onChange={(event) => setNoteTitle(event.target.value)}
             />
             <Textarea
-              id={`project-note-body-${projectId}`}
+              id={`${resource}-note-body-${resourceId}`}
               label="Note"
-              name={`project-note-body-${projectId}`}
+              name={`${resource}-note-body-${resourceId}`}
               value={noteBody}
               maxLength={10000}
               rows={4}
@@ -380,7 +394,7 @@ export function ProjectAttachments({
           type="file"
           multiple
           accept=".pdf,.txt,image/jpeg,image/png,image/webp"
-          aria-label="Upload project attachments"
+          aria-label={`Upload ${resource} attachments`}
           className="sr-only"
           onChange={(event) => {
             void uploadFiles(Array.from(event.target.files ?? []));

@@ -243,7 +243,7 @@ export function DashboardPageClient({
         return (
           due >= now &&
           due <= soon &&
-          (task.assignee_id === subjectId || task.reported_by === subjectId)
+          task.assignee_id === subjectId
         );
       })
       .sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? ""));
@@ -347,7 +347,7 @@ export function DashboardPageClient({
                   value: upcoming.length,
                   icon: <FiCalendar />,
                   href: withAccessPreview(
-                    `/board?dueWithin=14&involved=${encodeURIComponent(subjectId)}`,
+                    `/board?dueWithin=14&assignee=${encodeURIComponent(subjectId)}`,
                     data.accessPreview,
                   ),
                 },

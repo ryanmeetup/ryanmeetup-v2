@@ -5,7 +5,15 @@ import { useQueryParamState } from "@ryanmeetup/hooks";
 
 export function useTaskFilters(setSearch: (value: string) => void) {
   const [assignee, setAssignee] = useQueryParamState("assignee", "all");
+  const [excludedAssignees, setExcludedAssignees] = useQueryParamState(
+    "excludeAssignees",
+    "",
+  );
   const [reporter, setReporter] = useQueryParamState("reporter", "all");
+  const [excludedReporters, setExcludedReporters] = useQueryParamState(
+    "excludeReporters",
+    "",
+  );
   const [group, setGroup] = useQueryParamState("category", "all");
   const [includedCategories, setIncludedCategories] = useQueryParamState(
     "categories",
@@ -16,11 +24,29 @@ export function useTaskFilters(setSearch: (value: string) => void) {
     "",
   );
   const [project, setProject] = useQueryParamState("project", "all");
+  const [excludedProjects, setExcludedProjects] = useQueryParamState(
+    "excludeProjects",
+    "",
+  );
   const [status, setStatus] = useQueryParamState("status", "all");
+  const [excludedStatuses, setExcludedStatuses] = useQueryParamState(
+    "excludeStatuses",
+    "",
+  );
   const [priority, setPriority] = useQueryParamState("priority", "all");
+  const [excludedPriorities, setExcludedPriorities] = useQueryParamState(
+    "excludePriorities",
+    "",
+  );
   const [dueWithin, setDueWithin] = useQueryParamState("dueWithin", "all");
-  const [involved, setInvolved] = useQueryParamState("involved", "all");
-  const [visibilityParam, setVisibility] = useQueryParamState("visibility", "active");
+  const [excludedDueWithin, setExcludedDueWithin] = useQueryParamState(
+    "excludeDueWithin",
+    "",
+  );
+  const [visibilityParam, setVisibility] = useQueryParamState(
+    "visibility",
+    "active",
+  );
   const visibility: "active" | "archived" =
     visibilityParam === "archived" ? "archived" : "active";
   const [sort, setSort] = useState("updated");
@@ -34,26 +60,59 @@ export function useTaskFilters(setSearch: (value: string) => void) {
   function clear() {
     setSearch("");
     setAssignee("all");
+    setExcludedAssignees("");
     setReporter("all");
+    setExcludedReporters("");
     setGroup("all");
     setIncludedCategories("");
     setExcludedCategories("");
     setProject("all");
+    setExcludedProjects("");
     setStatus("all");
+    setExcludedStatuses("");
     setPriority("all");
+    setExcludedPriorities("");
     setDueWithin("all");
-    setInvolved("all");
+    setExcludedDueWithin("");
     setVisibility("active");
   }
 
   return {
-    assignee, setAssignee, reporter, setReporter, group, setGroup,
-    includedCategories, setIncludedCategories, excludedCategories, setExcludedCategories,
-    project, setProject, status, setStatus,
-    priority, setPriority, visibility, setVisibility, sort, setSort, clock, clear,
+    assignee,
+    setAssignee,
+    excludedAssignees,
+    setExcludedAssignees,
+    reporter,
+    setReporter,
+    excludedReporters,
+    setExcludedReporters,
+    group,
+    setGroup,
+    includedCategories,
+    setIncludedCategories,
+    excludedCategories,
+    setExcludedCategories,
+    project,
+    setProject,
+    excludedProjects,
+    setExcludedProjects,
+    status,
+    setStatus,
+    excludedStatuses,
+    setExcludedStatuses,
+    priority,
+    setPriority,
+    excludedPriorities,
+    setExcludedPriorities,
+    visibility,
+    setVisibility,
+    sort,
+    setSort,
+    clock,
+    clear,
     dueWithin,
     setDueWithin,
-    involved,
-    setInvolved,
+    excludedDueWithin,
+    setExcludedDueWithin,
   };
 }

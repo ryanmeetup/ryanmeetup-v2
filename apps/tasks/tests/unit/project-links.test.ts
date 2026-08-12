@@ -1,31 +1,35 @@
 import { describe, expect, it } from "vitest";
-import { projectCreateSchema, projectPatchSchema } from "@/lib/api-schemas";
-import { normalizeProjectLinkUrl } from "@/lib/project-links";
+import {
+  categorySchema,
+  projectCreateSchema,
+  projectPatchSchema,
+} from "@/lib/api-schemas";
+import { ensureHttpUrlScheme } from "@ryanmeetup/utils";
 
-describe("normalizeProjectLinkUrl", () => {
+describe("ensureHttpUrlScheme", () => {
   it("adds HTTPS to a bare domain", () => {
-    expect(normalizeProjectLinkUrl("ryanmeetup.com")).toBe(
+    expect(ensureHttpUrlScheme("ryanmeetup.com")).toBe(
       "https://ryanmeetup.com",
     );
   });
 
   it("preserves an explicit HTTP or HTTPS scheme", () => {
-    expect(normalizeProjectLinkUrl("https://ryanmeetup.com/docs")).toBe(
+    expect(ensureHttpUrlScheme("https://ryanmeetup.com/docs")).toBe(
       "https://ryanmeetup.com/docs",
     );
-    expect(normalizeProjectLinkUrl("http://localhost:3000")).toBe(
+    expect(ensureHttpUrlScheme("http://localhost:3000")).toBe(
       "http://localhost:3000",
     );
   });
 
   it("normalizes protocol-relative URLs and surrounding whitespace", () => {
-    expect(normalizeProjectLinkUrl("  //ryanmeetup.com/docs  ")).toBe(
+    expect(ensureHttpUrlScheme("  //ryanmeetup.com/docs  ")).toBe(
       "https://ryanmeetup.com/docs",
     );
   });
 
   it("leaves explicit unsupported schemes for validation to reject", () => {
-    expect(normalizeProjectLinkUrl("javascript:alert(1)")).toBe(
+    expect(ensureHttpUrlScheme("javascript:alert(1)")).toBe(
       "javascript:alert(1)",
     );
   });
@@ -41,6 +45,27 @@ describe("normalizeProjectLinkUrl", () => {
     ).toMatchObject({
       links: [{ label: "Website", url: "https://ryanmeetup.com/" }],
     });
+  });
+
+  it("normalizes and validates category links through the same API boundary", () => {
+    expect(
+      categorySchema({
+        name: "Meetups",
+        description: "Local meetup work.",
+        color: "#0f766e",
+        links: [{ label: "Runbook", url: "example.com/runbook" }],
+      }),
+    ).toMatchObject({
+      links: [{ label: "Runbook", url: "https://example.com/runbook" }],
+    });
+    expect(
+      categorySchema({
+        name: "Meetups",
+        description: "Local meetup work.",
+        color: "#0f766e",
+        links: [{ label: "Unsafe", url: "javascript:alert(1)" }],
+      }),
+    ).toBeNull();
   });
 
   it("requires a description and owner when editing project details", () => {

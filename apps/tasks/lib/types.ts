@@ -24,7 +24,9 @@ export type Category = {
   name: string;
   description: string | null;
   color: string;
+  links: ProjectLink[];
   created_by: string;
+  archived_at: string | null;
 };
 
 export type Project = {
@@ -54,6 +56,10 @@ export type ProjectAttachment = {
   size_bytes: number | null;
   created_by: string;
   created_at: string;
+};
+
+export type CategoryAttachment = Omit<ProjectAttachment, "project_id"> & {
+  category_id: string;
 };
 
 export type Task = {

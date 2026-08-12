@@ -6,12 +6,26 @@ import {
   detectAttachmentMimeType,
   MAX_ATTACHMENT_SIZE,
 } from "@/lib/task-attachments";
-import type { ProjectAttachment } from "@/lib/types";
 
 export const runtime = "nodejs";
 
-const columns =
-  "id,project_id,kind,name,body,url,file_path,mime_type,size_bytes,created_by,created_at";
+const attachmentColumns = (foreignKey: "project_id" | "category_id") =>
+  `id,${foreignKey},kind,name,body,url,file_path,mime_type,size_bytes,created_by,created_at`;
+
+type AttachmentRow = {
+  id: string;
+  project_id?: string;
+  category_id?: string;
+  kind: string;
+  name: string;
+  body: string | null;
+  url: string;
+  file_path: string | null;
+  mime_type: string | null;
+  size_bytes: number | null;
+  created_by: string;
+  created_at: string;
+};
 
 async function canEditProject(
   supabase: Awaited<ReturnType<typeof authorize>> extends infer T
@@ -27,38 +41,51 @@ async function canEditProject(
   return !error && Boolean(data);
 }
 
-async function removeObject(path: string) {
+async function canEditCategory(supabase: Parameters<typeof canEditProject>[0]) {
+  const { data, error } = await supabase.rpc("is_app_owner");
+  return !error && Boolean(data);
+}
+
+async function removeObject(path: string, bucket = "project-attachments") {
   const admin = getAdminClient();
   if (!admin) return new Error("Attachment storage cleanup is unavailable.");
-  const { error } = await admin.storage
-    .from("project-attachments")
-    .remove([path]);
+  const { error } = await admin.storage.from(bucket).remove([path]);
   return error;
 }
 
 export async function GET(request: Request) {
   const authorization = await authorize();
   if ("response" in authorization) return authorization.response;
-  const projectId = new URL(request.url).searchParams.get("projectId");
-  if (!projectId)
-    return NextResponse.json({ error: "A project is required." }, { status: 400 });
+  const params = new URL(request.url).searchParams;
+  const categoryId = params.get("categoryId");
+  const projectId = params.get("projectId");
+  const resourceId = categoryId ?? projectId;
+  const table = categoryId ? "category_attachments" : "project_attachments";
+  const foreignKey = categoryId ? "category_id" : "project_id";
+  const bucket = categoryId ? "category-attachments" : "project-attachments";
+  if (!resourceId)
+    return NextResponse.json(
+      { error: "A project or category is required." },
+      { status: 400 },
+    );
 
   const { data, error } = await authorization.supabase
-    .from("project_attachments")
-    .select(columns)
-    .eq("project_id", projectId)
+    .from(table)
+    .select(attachmentColumns(foreignKey))
+    .eq(foreignKey, resourceId)
     .order("created_at");
   if (error)
     return databaseFailure(request, "project-attachment.list", error, {
       error: "Project attachments could not be loaded.",
     });
 
-  const paths = (data ?? []).flatMap((item) =>
+  const attachments = (data ?? []) as unknown as AttachmentRow[];
+  const paths = attachments.flatMap((item) =>
     item.file_path ? [item.file_path] : [],
   );
   const signed = paths.length
     ? await authorization.supabase.storage
-        .from("project-attachments")
+        .from(bucket)
         .createSignedUrls(paths, 3600)
     : { data: [] };
   const urls = new Map(
@@ -67,9 +94,9 @@ export async function GET(request: Request) {
     ),
   );
   return NextResponse.json({
-    attachments: (data ?? []).map((item) => ({
+    attachments: attachments.map((item) => ({
       ...item,
-      url: item.file_path ? urls.get(item.file_path) ?? "" : "",
+      url: item.file_path ? (urls.get(item.file_path) ?? "") : "",
     })),
   });
 }
@@ -83,26 +110,49 @@ export async function POST(request: Request) {
   if (contentType.includes("application/json")) {
     const body = (await request.json()) as {
       projectId?: string;
+      categoryId?: string;
       name?: string;
       body?: string;
     };
+    const categoryId = body.categoryId;
     const projectId = body.projectId;
+    const resourceId = categoryId ?? projectId;
+    const table = categoryId ? "category_attachments" : "project_attachments";
+    const foreignKey = categoryId ? "category_id" : "project_id";
     const name = body.name?.trim();
     const note = body.body?.trim();
-    if (!projectId || !name || name.length > 200 || !note || note.length > 10000)
-      return NextResponse.json({ error: "Add a title and note." }, { status: 400 });
-    if (!(await canEditProject(supabase, projectId)))
-      return NextResponse.json({ error: "You cannot edit this project." }, { status: 403 });
+    if (
+      !resourceId ||
+      !name ||
+      name.length > 200 ||
+      !note ||
+      note.length > 10000
+    )
+      return NextResponse.json(
+        { error: "Add a title and note." },
+        { status: 400 },
+      );
+    if (
+      !(categoryId
+        ? await canEditCategory(supabase)
+        : await canEditProject(supabase, projectId!))
+    )
+      return NextResponse.json(
+        {
+          error: `You cannot edit this ${categoryId ? "category" : "project"}.`,
+        },
+        { status: 403 },
+      );
     const { data, error } = await supabase
-      .from("project_attachments")
+      .from(table)
       .insert({
-        project_id: projectId,
+        [foreignKey]: resourceId,
         kind: "note",
         name,
         body: note,
         created_by: user.id,
       })
-      .select(columns)
+      .select(attachmentColumns(foreignKey))
       .single();
     if (error)
       return databaseFailure(request, "project-attachment.note", error, {
@@ -112,14 +162,41 @@ export async function POST(request: Request) {
   }
 
   const formData = await request.formData();
+  const categoryId = formData.get("categoryId");
   const projectId = formData.get("projectId");
+  const resourceId = typeof categoryId === "string" ? categoryId : projectId;
+  const table =
+    typeof categoryId === "string"
+      ? "category_attachments"
+      : "project_attachments";
+  const foreignKey =
+    typeof categoryId === "string" ? "category_id" : "project_id";
+  const bucket =
+    typeof categoryId === "string"
+      ? "category-attachments"
+      : "project-attachments";
   const file = formData.get("file");
-  if (typeof projectId !== "string" || !(file instanceof File))
-    return NextResponse.json({ error: "A project and file are required." }, { status: 400 });
+  if (typeof resourceId !== "string" || !(file instanceof File))
+    return NextResponse.json(
+      { error: "A project or category and file are required." },
+      { status: 400 },
+    );
   if (file.size === 0 || file.size > MAX_ATTACHMENT_SIZE)
-    return NextResponse.json({ error: "Files must be between 1 byte and 10 MB." }, { status: 413 });
-  if (!(await canEditProject(supabase, projectId)))
-    return NextResponse.json({ error: "You cannot edit this project." }, { status: 403 });
+    return NextResponse.json(
+      { error: "Files must be between 1 byte and 10 MB." },
+      { status: 413 },
+    );
+  if (
+    !(typeof categoryId === "string"
+      ? await canEditCategory(supabase)
+      : await canEditProject(supabase, resourceId))
+  )
+    return NextResponse.json(
+      {
+        error: `You cannot edit this ${typeof categoryId === "string" ? "category" : "project"}.`,
+      },
+      { status: 403 },
+    );
 
   const bytes = new Uint8Array(await file.arrayBuffer());
   const mimeType = detectAttachmentMimeType(bytes);
@@ -130,22 +207,30 @@ export async function POST(request: Request) {
     );
   const admin = getAdminClient();
   if (!admin)
-    return NextResponse.json({ error: "Attachment uploads are unavailable." }, { status: 503 });
+    return NextResponse.json(
+      { error: "Attachment uploads are unavailable." },
+      { status: 503 },
+    );
 
   const id = crypto.randomUUID();
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
-  const path = `${projectId}/${id}-${safeName}`;
+  const path = `${resourceId}/${id}-${safeName}`;
   const uploaded = await admin.storage
-    .from("project-attachments")
+    .from(bucket)
     .upload(path, bytes, { contentType: mimeType, upsert: false });
   if (uploaded.error)
-    return databaseFailure(request, "project-attachment.upload", uploaded.error, {
-      error: "The file could not be uploaded.",
-    });
+    return databaseFailure(
+      request,
+      "project-attachment.upload",
+      uploaded.error,
+      {
+        error: "The file could not be uploaded.",
+      },
+    );
 
   const attachment = {
     id,
-    project_id: projectId,
+    [foreignKey]: resourceId,
     kind: "file" as const,
     name: file.name,
     body: null,
@@ -156,58 +241,85 @@ export async function POST(request: Request) {
     created_by: user.id,
     created_at: new Date().toISOString(),
   };
-  const { error } = await supabase.from("project_attachments").insert(attachment);
+  const { error } = await supabase.from(table).insert(attachment);
   if (error) {
-    const cleanup = await removeObject(path);
+    const cleanup = await removeObject(path, bucket);
     return databaseFailure(request, "project-attachment.record", error, {
       error: "The file could not be attached.",
       relatedFailures: { storageCleanup: cleanup },
     });
   }
-  const signed = await admin.storage
-    .from("project-attachments")
-    .createSignedUrl(path, 3600);
+  const signed = await admin.storage.from(bucket).createSignedUrl(path, 3600);
   if (signed.error) {
-    await supabase.from("project_attachments").delete().eq("id", id);
-    await removeObject(path);
+    await supabase.from(table).delete().eq("id", id);
+    await removeObject(path, bucket);
     return databaseFailure(request, "project-attachment.sign", signed.error, {
       error: "The file was uploaded but could not be opened.",
     });
   }
   return NextResponse.json({
-    attachment: { ...attachment, url: signed.data.signedUrl } satisfies ProjectAttachment,
+    attachment: { ...attachment, url: signed.data.signedUrl },
   });
 }
 
 export async function DELETE(request: Request) {
   const authorization = await authorize();
   if ("response" in authorization) return authorization.response;
-  const id = new URL(request.url).searchParams.get("id");
+  const params = new URL(request.url).searchParams;
+  const id = params.get("id");
+  const isCategory = new URL(request.url).pathname.includes(
+    "category-attachments",
+  );
+  const table = isCategory ? "category_attachments" : "project_attachments";
+  const foreignKey = isCategory ? "category_id" : "project_id";
+  const bucket = isCategory ? "category-attachments" : "project-attachments";
   if (!id)
-    return NextResponse.json({ error: "An attachment is required." }, { status: 400 });
+    return NextResponse.json(
+      { error: "An attachment is required." },
+      { status: 400 },
+    );
   const { data, error } = await authorization.supabase
-    .from("project_attachments")
-    .select("id,project_id,file_path")
+    .from(table)
+    .select(`id,${foreignKey},file_path`)
     .eq("id", id)
     .maybeSingle();
   if (error)
     return databaseFailure(request, "project-attachment.lookup", error, {
       error: "The attachment could not be found.",
     });
-  if (!data) return NextResponse.json({ error: "Attachment not found." }, { status: 404 });
-  if (!(await canEditProject(authorization.supabase, data.project_id)))
-    return NextResponse.json({ error: "You cannot edit this project." }, { status: 403 });
+  if (!data)
+    return NextResponse.json(
+      { error: "Attachment not found." },
+      { status: 404 },
+    );
+  const parentId = (data as unknown as Record<string, unknown>)[foreignKey];
+  if (
+    !(isCategory
+      ? await canEditCategory(authorization.supabase)
+      : typeof parentId === "string" &&
+        (await canEditProject(authorization.supabase, parentId)))
+  )
+    return NextResponse.json(
+      { error: `You cannot edit this ${isCategory ? "category" : "project"}.` },
+      { status: 403 },
+    );
   const deleted = await authorization.supabase
-    .from("project_attachments")
+    .from(table)
     .delete()
     .eq("id", id);
   if (deleted.error)
-    return databaseFailure(request, "project-attachment.delete", deleted.error, {
-      error: "The attachment could not be removed.",
-    });
+    return databaseFailure(
+      request,
+      "project-attachment.delete",
+      deleted.error,
+      {
+        error: "The attachment could not be removed.",
+      },
+    );
   if (data.file_path) {
-    const cleanup = await removeObject(data.file_path);
-    if (cleanup) logServerFailure(request, "project-attachment.cleanup", cleanup);
+    const cleanup = await removeObject(data.file_path, bucket);
+    if (cleanup)
+      logServerFailure(request, "project-attachment.cleanup", cleanup);
   }
   return NextResponse.json({ deleted: true });
 }

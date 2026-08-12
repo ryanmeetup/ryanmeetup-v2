@@ -1,6 +1,12 @@
 "use client";
 
-import { useRef, useState, type Dispatch, type SetStateAction } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import {
   Button,
   DisclosureCard,
@@ -12,22 +18,27 @@ import {
 import {
   FiActivity,
   FiFile,
+  FiLink,
   FiMessageSquare,
   FiPaperclip,
   FiPlus,
   FiTrash2,
 } from "react-icons/fi";
 import { MAX_ATTACHMENT_SIZE } from "@/lib/task-attachments";
+import { attachmentUrlName } from "@/lib/task-attachment-urls";
+import { normalizeHttpUrl } from "@ryanmeetup/utils";
 
 export type NewTaskDetailsDraft = {
   checklist: { id: string; title: string }[];
   files: File[];
+  urls: { id: string; url: string }[];
   comment: string;
 };
 
 export const emptyNewTaskDetails = (): NewTaskDetailsDraft => ({
   checklist: [],
   files: [],
+  urls: [],
   comment: "",
 });
 
@@ -48,6 +59,7 @@ export function NewTaskDetails({
 }) {
   const [checklistTitle, setChecklistTitle] = useState("");
   const [draggingFiles, setDraggingFiles] = useState(false);
+  const [attachmentUrl, setAttachmentUrl] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
 
   function addChecklistItem() {
@@ -70,6 +82,44 @@ export function NewTaskDetails({
       ...current,
       files: [...current.files, ...accepted],
     }));
+  }
+
+  useEffect(() => {
+    if (disabled) return;
+
+    const handlePaste = (event: ClipboardEvent) => {
+      const files = Array.from(event.clipboardData?.items ?? []).flatMap(
+        (item) => {
+          if (item.kind !== "file") return [];
+          const file = item.getAsFile();
+          return file ? [file] : [];
+        },
+      );
+
+      if (files.length === 0) return;
+      event.preventDefault();
+      addFiles(files);
+    };
+
+    document.addEventListener("paste", handlePaste);
+    return () => document.removeEventListener("paste", handlePaste);
+  });
+
+  function addUrl() {
+    const url = normalizeHttpUrl(attachmentUrl);
+    if (!url) {
+      toast.error("Enter a valid web address.");
+      return;
+    }
+    if (value.urls.some((item) => item.url === url)) {
+      toast.error("That URL is already attached.");
+      return;
+    }
+    onChange((current) => ({
+      ...current,
+      urls: [...current.urls, { id: crypto.randomUUID(), url }],
+    }));
+    setAttachmentUrl("");
   }
 
   return (
@@ -143,9 +193,9 @@ export function NewTaskDetails({
       <section className="space-y-3 border-t border-black/10 pt-5 dark:border-white/10">
         <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em]">
           <FiPaperclip aria-hidden /> Attachments
-          {value.files.length > 0 && (
+          {value.files.length + value.urls.length > 0 && (
             <span className="rounded-full bg-black/10 px-2 py-0.5 tracking-normal text-black/60 dark:bg-white/10 dark:text-white/60">
-              {value.files.length}
+              {value.files.length + value.urls.length}
             </span>
           )}
         </h3>
@@ -181,6 +231,65 @@ export function NewTaskDetails({
             </IconButton>
           </div>
         ))}
+        {value.urls.map((item) => (
+          <div
+            key={item.id}
+            className="flex items-center gap-3 rounded-xl border border-black/10 p-2 dark:border-white/10"
+          >
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-black/5 text-black/55 dark:bg-white/5 dark:text-white/55">
+              <FiLink aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold">
+                {attachmentUrlName(item.url)}
+              </p>
+              <p className="truncate text-xs text-black/50 dark:text-white/50">
+                {item.url}
+              </p>
+            </div>
+            <IconButton
+              type="button"
+              label={`Remove ${item.url}`}
+              variant="danger"
+              disabled={disabled}
+              onClick={() =>
+                onChange((current) => ({
+                  ...current,
+                  urls: current.urls.filter(
+                    (candidate) => candidate.id !== item.id,
+                  ),
+                }))
+              }
+            >
+              <FiTrash2 />
+            </IconButton>
+          </div>
+        ))}
+        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+          <Input
+            label="Attachment URL"
+            name="new-task-attachment-url"
+            type="url"
+            value={attachmentUrl}
+            placeholder="https://example.com/resource"
+            disabled={disabled}
+            onChange={(event) => setAttachmentUrl(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter") return;
+              event.preventDefault();
+              addUrl();
+            }}
+          />
+          <Button
+            type="button"
+            variant="action"
+            leftIcon={<FiLink aria-hidden />}
+            disabled={disabled || !attachmentUrl.trim()}
+            onClick={addUrl}
+          >
+            Add URL
+          </Button>
+        </div>
         <div
           className={`rounded-xl border border-dashed p-4 text-center transition duration-200 ease-in-out ${draggingFiles ? "border-black/50 bg-black/5 ring-2 ring-black/10 dark:border-white/60 dark:bg-white/10 dark:ring-white/15" : "border-black/20 bg-black/[0.02] dark:border-white/20 dark:bg-white/[0.03]"}`}
           onDragEnter={(event) => {
@@ -209,7 +318,7 @@ export function NewTaskDetails({
           <FiPaperclip className="mx-auto mb-2 h-5 w-5 text-black/45 dark:text-white/45" />
           <p className="text-sm font-semibold">Drop files here</p>
           <p className="mt-1 text-xs text-black/50 dark:text-white/50">
-            Multiple files supported · 10 MB maximum per file
+            Paste, drop, or choose files · 10 MB maximum per file
           </p>
           <Button
             type="button"

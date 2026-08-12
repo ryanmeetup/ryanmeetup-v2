@@ -1,5 +1,5 @@
 import type { Priority, ProjectLink, Task } from "./types";
-import { normalizeProjectLinkUrl } from "./project-links";
+import { normalizeHttpUrl } from "@ryanmeetup/utils";
 
 type JsonObject = Record<string, unknown>;
 
@@ -85,21 +85,39 @@ export function idSchema(value: unknown) {
 }
 
 export function categorySchema(value: unknown, requireId = false) {
-  const body = objectWithKeys(value, ["id", "name", "description", "color"]);
+  const body = objectWithKeys(value, [
+    "id",
+    "name",
+    "description",
+    "color",
+    "links",
+    "archived",
+  ]);
   if (!body) return null;
   const id = requireId ? uuid(body.id) : undefined;
   const name = text(body.name, 80);
   const description = optionalText(body.description, 500);
   const validColor = color(body.color);
+  const links = projectLinks(body.links ?? []);
+  const archived = body.archived;
   if (
     (requireId && !id) ||
     !name ||
     description === null ||
     (!requireId && !description) ||
-    !validColor
+    !validColor ||
+    !links ||
+    (archived !== undefined && typeof archived !== "boolean")
   )
     return null;
-  return { id, name, description: description || null, color: validColor };
+  return {
+    id,
+    name,
+    description: description || null,
+    color: validColor,
+    links,
+    archived: archived as boolean | undefined,
+  };
 }
 
 export function inviteSchema(value: unknown) {
@@ -156,14 +174,9 @@ function projectLinks(value: unknown): ProjectLink[] | null {
       body.url.length > 2048
     )
       return null;
-    try {
-      const url = new URL(normalizeProjectLinkUrl(body.url));
-      if (!(["http:", "https:"] as string[]).includes(url.protocol))
-        return null;
-      links.push({ label, url: url.toString() });
-    } catch {
-      return null;
-    }
+    const url = normalizeHttpUrl(body.url);
+    if (!url) return null;
+    links.push({ label, url });
   }
   return links;
 }

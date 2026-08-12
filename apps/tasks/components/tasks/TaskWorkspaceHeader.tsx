@@ -8,6 +8,7 @@ export function TaskWorkspaceHeader({
   isMyTasks,
   myTasksName,
   onEditProject,
+  onEditCategory,
   onSetAssignee,
   onSetView,
   previewing,
@@ -24,6 +25,7 @@ export function TaskWorkspaceHeader({
   isMyTasks: boolean;
   myTasksName: string;
   onEditProject: () => void;
+  onEditCategory: () => void;
   onSetAssignee: (value: string) => void;
   onSetView: (value: "board" | "list") => void;
   previewing: boolean;
@@ -112,6 +114,14 @@ export function TaskWorkspaceHeader({
             )}
           </div>
         )}
+        {selectedCategory && (selectedCategory.links ?? []).length > 0 && (
+          <div className="mt-3 min-w-0">
+            <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-black/45 dark:text-white/45">
+              Useful links
+            </p>
+            <ProjectLinks links={selectedCategory.links ?? []} />
+          </div>
+        )}
       </div>
       <div className="flex flex-col items-end gap-2">
         {selectedProject && !previewing && (
@@ -123,6 +133,17 @@ export function TaskWorkspaceHeader({
             onClick={onEditProject}
           >
             Edit project
+          </Button>
+        )}
+        {selectedCategory && !previewing && (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            leftIcon={<FiEdit2 aria-hidden />}
+            onClick={onEditCategory}
+          >
+            Edit category
           </Button>
         )}
         <div className="flex flex-wrap items-center justify-end gap-2">
@@ -140,7 +161,11 @@ export function TaskWorkspaceHeader({
             </button>
             {viewingAsGroup ? (
               <Tooltip content="Mine is unavailable when viewing as an access group because a group is not a task assignee.">
-                <button type="button" disabled className="view-button opacity-40">
+                <button
+                  type="button"
+                  disabled
+                  className="view-button opacity-40"
+                >
                   Mine
                 </button>
               </Tooltip>

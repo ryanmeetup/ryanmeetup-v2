@@ -265,6 +265,7 @@ export function TaskApp({
       initialData.currentProfile.task_details_open_by_default,
   );
   const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const [categoryEditId, setCategoryEditId] = useState<string | null>(null);
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [projectEditId, setProjectEditId] = useState<string | null>(null);
   const [taskMessage, setTaskMessage] = useState("");
@@ -378,8 +379,12 @@ export function TaskApp({
   const {
     assignee,
     setAssignee,
+    excludedAssignees,
+    setExcludedAssignees,
     reporter,
     setReporter,
+    excludedReporters,
+    setExcludedReporters,
     group,
     setGroup,
     includedCategories,
@@ -388,14 +393,20 @@ export function TaskApp({
     setExcludedCategories,
     project,
     setProject,
+    excludedProjects,
+    setExcludedProjects,
     status,
     setStatus,
+    excludedStatuses,
+    setExcludedStatuses,
     priority,
     setPriority,
+    excludedPriorities,
+    setExcludedPriorities,
     dueWithin,
     setDueWithin,
-    involved,
-    setInvolved,
+    excludedDueWithin,
+    setExcludedDueWithin,
     visibility,
     setVisibility,
     sort,
@@ -453,21 +464,23 @@ export function TaskApp({
     () => new Map(data.projects.map((item) => [item.id, item])),
     [data.projects],
   );
-  const selectedAssignee =
-    assignee === "all" || assignee.toLowerCase() === "unassigned"
-      ? null
-      : (profiles.get(assignee) ??
-        data.profiles.find((item) => profileName(item) === assignee));
-  const selectedReporter =
-    reporter === "all"
-      ? null
-      : (profiles.get(reporter) ??
-        data.profiles.find((item) => profileName(item) === reporter));
-  const selectedInvolved =
-    involved === "all"
-      ? null
-      : (profiles.get(involved) ??
-        data.profiles.find((item) => profileName(item) === involved));
+  const splitValues = (value: string) =>
+    value === "all" || !value ? [] : value.split(",").filter(Boolean);
+  const profileIds = (value: string, allowUnassigned = false) =>
+    splitValues(value).flatMap((entry) => {
+      if (allowUnassigned && entry.toLowerCase() === "unassigned")
+        return ["unassigned"];
+      const profile =
+        profiles.get(entry) ??
+        data.profiles.find((item) => profileName(item) === entry);
+      return profile ? [profile.id] : [];
+    });
+  const includedAssigneeIds = profileIds(assignee, true);
+  const excludedAssigneeIds = profileIds(excludedAssignees, true);
+  const includedReporterIds = profileIds(reporter);
+  const excludedReporterIds = profileIds(excludedReporters);
+  const selectedAssignee = profiles.get(includedAssigneeIds[0] ?? "") ?? null;
+  const selectedReporter = profiles.get(includedReporterIds[0] ?? "") ?? null;
   const selectedCategory =
     group === "all"
       ? null
@@ -510,11 +523,39 @@ export function TaskApp({
         .join(","),
     [categories],
   );
-  const selectedProject =
-    project === "all" || project === "none"
-      ? null
-      : (projects.get(project) ??
-        data.projects.find((item) => item.name === project));
+  const entityIds = <T extends { id: string; name: string }>(
+    value: string,
+    items: T[],
+    allowNone = false,
+  ) =>
+    splitValues(value).flatMap((entry) => {
+      if (allowNone && entry === "none") return ["none"];
+      const item = items.find(
+        (candidate) => candidate.id === entry || candidate.name === entry,
+      );
+      return item ? [item.id] : [];
+    });
+  const includedProjectIds = entityIds(project, data.projects, true);
+  const excludedProjectIds = entityIds(excludedProjects, data.projects, true);
+  const includedStatusIds = entityIds(status, data.statuses);
+  const excludedStatusIds = entityIds(excludedStatuses, data.statuses);
+  const includedPriorityValues = splitValues(priority)
+    .map((value) => value.toLowerCase())
+    .filter((value): value is Priority =>
+      priorities.includes(value as Priority),
+    );
+  const excludedPriorityValues = splitValues(excludedPriorities)
+    .map((value) => value.toLowerCase())
+    .filter((value): value is Priority =>
+      priorities.includes(value as Priority),
+    );
+  const includedDueValues = splitValues(dueWithin).filter((value) =>
+    ["7", "14", "30"].includes(value),
+  );
+  const excludedDueValues = splitValues(excludedDueWithin).filter((value) =>
+    ["7", "14", "30"].includes(value),
+  );
+  const selectedProject = projects.get(includedProjectIds[0] ?? "") ?? null;
   const selectedProjectOwners = selectedProject
     ? data.projectOwners
         .filter((item) => item.project_id === selectedProject.id)
@@ -526,16 +567,8 @@ export function TaskApp({
         })
     : [];
   const selectedStatus =
-    status === "all"
-      ? null
-      : (data.statuses.find((item) => item.id === status) ??
-        data.statuses.find((item) => item.name === status));
-  const selectedPriority =
-    priority === "all"
-      ? null
-      : priorities.find(
-          (item) => item.toLowerCase() === priority.toLowerCase(),
-        );
+    data.statuses.find((item) => item.id === includedStatusIds[0]) ?? null;
+  const selectedPriority = includedPriorityValues[0] ?? null;
   async function loadTaskPage(replace = false) {
     if (demoMode || taskPageLoading) return;
     setTaskPageLoading(true);
@@ -552,21 +585,34 @@ export function TaskApp({
         params.set("page", String(page));
         params.set("pageSize", String(pageSize));
         params.set("sort", sort);
-        if (selectedStatus) params.set("status", selectedStatus.id);
-        if (selectedProject) params.set("project", selectedProject.id);
-        else if (project === "none") params.set("project", "none");
-        if (selectedAssignee) params.set("assignee", selectedAssignee.id);
-        else if (assignee.toLowerCase() === "unassigned")
-          params.set("assignee", "unassigned");
-        if (selectedReporter) params.set("reporter", selectedReporter.id);
+        if (includedStatusIds.length)
+          params.set("status", includedStatusIds.join(","));
+        if (excludedStatusIds.length)
+          params.set("excludeStatuses", excludedStatusIds.join(","));
+        if (includedProjectIds.length)
+          params.set("project", includedProjectIds.join(","));
+        if (excludedProjectIds.length)
+          params.set("excludeProjects", excludedProjectIds.join(","));
+        if (includedAssigneeIds.length)
+          params.set("assignee", includedAssigneeIds.join(","));
+        if (excludedAssigneeIds.length)
+          params.set("excludeAssignees", excludedAssigneeIds.join(","));
+        if (includedReporterIds.length)
+          params.set("reporter", includedReporterIds.join(","));
+        if (excludedReporterIds.length)
+          params.set("excludeReporters", excludedReporterIds.join(","));
         if (includedCategoryIds.length)
           params.set("categories", includedCategoryIds.join(","));
         if (excludedCategoryIds.length)
           params.set("excludeCategories", excludedCategoryIds.join(","));
-        if (selectedPriority) params.set("priority", selectedPriority);
-        if (["7", "14", "30"].includes(dueWithin))
-          params.set("dueWithin", dueWithin);
-        if (selectedInvolved) params.set("involved", selectedInvolved.id);
+        if (includedPriorityValues.length)
+          params.set("priority", includedPriorityValues.join(","));
+        if (excludedPriorityValues.length)
+          params.set("excludePriorities", excludedPriorityValues.join(","));
+        if (includedDueValues.length)
+          params.set("dueWithin", includedDueValues.join(","));
+        if (excludedDueValues.length)
+          params.set("excludeDueWithin", excludedDueValues.join(","));
         if (committedSearch.trim())
           params.set("search", committedSearch.trim());
       }
@@ -629,15 +675,20 @@ export function TaskApp({
     view === "list"
       ? [
           visibility,
-          selectedStatus?.id ?? "all",
-          selectedProject?.id ?? project,
-          selectedAssignee?.id ?? assignee,
-          selectedReporter?.id ?? reporter,
-          selectedInvolved?.id ?? involved,
+          includedStatusIds.join(","),
+          excludedStatusIds.join(","),
+          includedProjectIds.join(","),
+          excludedProjectIds.join(","),
+          includedAssigneeIds.join(","),
+          excludedAssigneeIds.join(","),
+          includedReporterIds.join(","),
+          excludedReporterIds.join(","),
           includedCategoryIds.join(","),
           excludedCategoryIds.join(","),
-          selectedPriority ?? priority,
-          dueWithin,
+          includedPriorityValues.join(","),
+          excludedPriorityValues.join(","),
+          includedDueValues.join(","),
+          excludedDueValues.join(","),
           committedSearch,
           sort,
           pageSize,
@@ -686,10 +737,6 @@ export function TaskApp({
     )
       setProject(selectedProject.name);
   }, [project, projects, selectedProject, setProject]);
-  useEffect(() => {
-    if (involved !== "all" && profiles.has(involved) && selectedInvolved)
-      setInvolved(profileName(selectedInvolved));
-  }, [involved, profiles, selectedInvolved, setInvolved]);
   useEffect(() => {
     const readableIncluded = categoryNames(includedCategoryIds);
     const readableExcluded = categoryNames(excludedCategoryIds);
@@ -760,18 +807,33 @@ export function TaskApp({
     });
     return result;
   }, [data.tasks]);
+  const taskDueWithin = useCallback(
+    (task: Task, days: string) =>
+      Boolean(task.due_date) &&
+      task.due_date! >= localDateValue(new Date(clock)) &&
+      task.due_date! <=
+        localDateValue(
+          new Date(clock + Number.parseInt(days, 10) * 86_400_000),
+        ),
+    [clock],
+  );
   const visibleTasks = useMemo(
     () =>
       searchedTasks
         .filter((task) => {
           return (
-            (assignee === "all" ||
-              (assignee.toLowerCase() === "unassigned"
-                ? !assigneesByTask.get(task.id)?.size
-                : selectedAssignee
-                  ? assigneesByTask.get(task.id)?.has(selectedAssignee.id)
-                  : false)) &&
-            (reporter === "all" || task.reported_by === selectedReporter?.id) &&
+            (includedAssigneeIds.length === 0 ||
+              includedAssigneeIds.some((id) =>
+                id === "unassigned"
+                  ? !task.assignee_id
+                  : task.assignee_id === id,
+              )) &&
+            !excludedAssigneeIds.some((id) =>
+              id === "unassigned" ? !task.assignee_id : task.assignee_id === id,
+            ) &&
+            (includedReporterIds.length === 0 ||
+              includedReporterIds.includes(task.reported_by ?? "")) &&
+            !excludedReporterIds.includes(task.reported_by ?? "") &&
             (includedCategoryIds.length === 0 ||
               includedCategoryIds.some((id) =>
                 categoriesByTask.get(task.id)?.has(id),
@@ -779,24 +841,24 @@ export function TaskApp({
             !excludedCategoryIds.some((id) =>
               categoriesByTask.get(task.id)?.has(id),
             ) &&
-            (project === "all" ||
-              (project === "none"
-                ? task.project_id === null
-                : task.project_id === selectedProject?.id)) &&
-            (status === "all" || task.status_id === selectedStatus?.id) &&
-            (priority === "all" || task.priority === selectedPriority) &&
-            (involved === "all" ||
-              task.assignee_id === selectedInvolved?.id ||
-              task.reported_by === selectedInvolved?.id) &&
-            (!["7", "14", "30"].includes(dueWithin) ||
-              (Boolean(task.due_date) &&
-                task.due_date! >= localDateValue(new Date(clock)) &&
-                task.due_date! <=
-                  localDateValue(
-                    new Date(
-                      clock + Number.parseInt(dueWithin, 10) * 86_400_000,
-                    ),
-                  ))) &&
+            (includedProjectIds.length === 0 ||
+              includedProjectIds.some((id) =>
+                id === "none"
+                  ? task.project_id === null
+                  : task.project_id === id,
+              )) &&
+            !excludedProjectIds.some((id) =>
+              id === "none" ? task.project_id === null : task.project_id === id,
+            ) &&
+            (includedStatusIds.length === 0 ||
+              includedStatusIds.includes(task.status_id)) &&
+            !excludedStatusIds.includes(task.status_id) &&
+            (includedPriorityValues.length === 0 ||
+              includedPriorityValues.includes(task.priority)) &&
+            !excludedPriorityValues.includes(task.priority) &&
+            (includedDueValues.length === 0 ||
+              includedDueValues.some((days) => taskDueWithin(task, days))) &&
+            !excludedDueValues.some((days) => taskDueWithin(task, days)) &&
             (visibility === "archived"
               ? Boolean(
                   task.archived_at &&
@@ -817,28 +879,27 @@ export function TaskApp({
                 : b.updated_at.localeCompare(a.updated_at),
         ),
     [
-      assignee,
-      assigneesByTask,
       categoriesByTask,
       includedCategoryIds,
       excludedCategoryIds,
-      priority,
-      dueWithin,
-      involved,
-      project,
-      reporter,
-      selectedProject,
-      selectedReporter,
-      selectedInvolved,
+      includedAssigneeIds,
+      excludedAssigneeIds,
+      includedReporterIds,
+      excludedReporterIds,
+      includedProjectIds,
+      excludedProjectIds,
+      includedStatusIds,
+      excludedStatusIds,
+      includedPriorityValues,
+      excludedPriorityValues,
+      includedDueValues,
+      excludedDueValues,
       searchedTasks,
-      selectedAssignee,
       sort,
-      status,
-      selectedPriority,
       visibility,
       view,
       clock,
-      selectedStatus,
+      taskDueWithin,
     ],
   );
   const listTasks =
@@ -1024,13 +1085,20 @@ export function TaskApp({
     }
   }
   const filterCount =
-    [isMyTasks ? "all" : assignee, reporter, project, status, priority].filter(
-      (value) => value !== "all",
-    ).length +
+    (isMyTasks ? 0 : includedAssigneeIds.length) +
+    excludedAssigneeIds.length +
+    includedReporterIds.length +
+    excludedReporterIds.length +
+    includedProjectIds.length +
+    excludedProjectIds.length +
+    includedStatusIds.length +
+    excludedStatusIds.length +
+    includedPriorityValues.length +
+    excludedPriorityValues.length +
     includedCategoryIds.length +
     excludedCategoryIds.length +
-    (["7", "14", "30"].includes(dueWithin) ? 1 : 0) +
-    (involved !== "all" ? 1 : 0) +
+    includedDueValues.length +
+    excludedDueValues.length +
     (visibility === "archived" ? 1 : 0);
   const taskCard = (task: Task) => {
     const taskStatus = data.statuses.find((item) => item.id === task.status_id);
@@ -1204,7 +1272,10 @@ export function TaskApp({
         demoMode={demoMode}
         open={sidebarOpen}
         setOpen={setSidebarOpen}
-        onCreateCategory={() => setCategoriesOpen(true)}
+        onCreateCategory={() => {
+          setCategoryEditId(null);
+          setCategoriesOpen(true);
+        }}
         onCreateProject={() => {
           setProjectEditId(null);
           setProjectsOpen(true);
@@ -1251,6 +1322,11 @@ export function TaskApp({
               setProjectEditId(selectedProject.id);
               setProjectsOpen(true);
             }}
+            onEditCategory={() => {
+              if (!selectedCategory) return;
+              setCategoryEditId(selectedCategory.id);
+              setCategoriesOpen(true);
+            }}
             onSetAssignee={setAssignee}
             onSetView={setView}
             previewing={Boolean(data.accessPreview)}
@@ -1264,17 +1340,38 @@ export function TaskApp({
             viewingAsGroup={viewingAsGroup}
           />
           <TaskFilters
-            assignee={assignee}
-            assigneeActive={!isMyTasks && assignee !== "all"}
             categories={data.categories}
             clearFilters={clearTaskFilters}
-            dueWithin={dueWithin}
+            currentProfileId={data.currentProfile.id}
             filterCount={filterCount}
             includedCategoryIds={includedCategoryIds}
-            involved={involved}
             excludedCategoryIds={excludedCategoryIds}
-            onAssigneeChange={setAssignee}
-            onDueWithinChange={setDueWithin}
+            filterSelections={{
+              assignee: {
+                included: includedAssigneeIds,
+                excluded: excludedAssigneeIds,
+              },
+              reporter: {
+                included: includedReporterIds,
+                excluded: excludedReporterIds,
+              },
+              project: {
+                included: includedProjectIds,
+                excluded: excludedProjectIds,
+              },
+              status: {
+                included: includedStatusIds,
+                excluded: excludedStatusIds,
+              },
+              priority: {
+                included: includedPriorityValues,
+                excluded: excludedPriorityValues,
+              },
+              dueWithin: {
+                included: includedDueValues,
+                excluded: excludedDueValues,
+              },
+            }}
             onIncludedCategoriesChange={(ids) => {
               setGroup("all");
               setIncludedCategories(categoryNames(ids));
@@ -1284,7 +1381,6 @@ export function TaskApp({
                 ),
               );
             }}
-            onInvolvedChange={setInvolved}
             onExcludedCategoriesChange={(ids) => {
               setExcludedCategories(categoryNames(ids));
               setIncludedCategories(
@@ -1295,23 +1391,29 @@ export function TaskApp({
               if (selectedCategory && ids.includes(selectedCategory.id))
                 setGroup("all");
             }}
-            onPriorityChange={setPriority}
-            onProjectChange={setProject}
-            onReporterChange={setReporter}
-            onStatusChange={setStatus}
+            onFilterSelectionChange={(filter, kind, values) => {
+              const value = values.length
+                ? values.join(",")
+                : kind === "included"
+                  ? "all"
+                  : "";
+              const setters = {
+                assignee:
+                  kind === "included" ? setAssignee : setExcludedAssignees,
+                reporter:
+                  kind === "included" ? setReporter : setExcludedReporters,
+                project: kind === "included" ? setProject : setExcludedProjects,
+                status: kind === "included" ? setStatus : setExcludedStatuses,
+                priority:
+                  kind === "included" ? setPriority : setExcludedPriorities,
+                dueWithin:
+                  kind === "included" ? setDueWithin : setExcludedDueWithin,
+              };
+              setters[filter as keyof typeof setters]?.(value);
+            }}
             onVisibilityChange={setVisibility}
-            priority={priority}
             profiles={data.profiles}
-            reporter={reporter}
-            project={project}
             projects={data.projects}
-            selectedAssignee={selectedAssignee}
-            selectedInvolved={selectedInvolved}
-            selectedPriority={selectedPriority}
-            selectedProject={selectedProject}
-            selectedReporter={selectedReporter}
-            selectedStatus={selectedStatus}
-            status={status}
             statuses={statuses}
             visibility={visibility}
           />
@@ -1500,11 +1602,21 @@ export function TaskApp({
       {categoriesOpen && (
         <CategoriesModal
           open={categoriesOpen}
-          setOpen={setCategoriesOpen}
+          setOpen={(nextOpen) => {
+            setCategoriesOpen(nextOpen);
+            if (!nextOpen) setCategoryEditId(null);
+          }}
           data={data}
           setData={setData}
           demoMode={demoMode}
+          editCategoryId={categoryEditId}
           createOnly
+          onCategoryUpdated={(updatedCategory) => {
+            if (selectedCategory?.id === updatedCategory.id) {
+              setGroup(updatedCategory.name);
+              setIncludedCategories(updatedCategory.name);
+            }
+          }}
         />
       )}
       {projectsOpen && (

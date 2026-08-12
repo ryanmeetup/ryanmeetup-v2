@@ -18,6 +18,7 @@
     "@ryanmeetup/brand": "^0.1.0",
     "@ryanmeetup/hooks": "*",
     "@ryanmeetup/ui": "^0.1.0",
+    "@ryanmeetup/utils": "^0.1.0",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.111.0",
     "next": "16.3.0",

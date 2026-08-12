@@ -164,8 +164,9 @@ export function TaskSearch({
         (project) =>
           !project.archived_at && matches(project.name, project.description),
       ),
-      categories: categories.filter((category) =>
-        matches(category.name, category.description),
+      categories: categories.filter(
+        (category) =>
+          !category.archived_at && matches(category.name, category.description),
       ),
       profiles: profiles.filter((profile) => matches(profile.full_name)),
       statuses: statuses.filter((status) => matches(status.name)),
@@ -242,10 +243,7 @@ export function TaskSearch({
       : firstCategory
         ? filteredBoardPath("category", firstCategory.name)
         : firstProfile
-          ? filteredBoardPath(
-              "assignee",
-              firstProfile.full_name || "Teammate",
-            )
+          ? filteredBoardPath("assignee", firstProfile.full_name || "Teammate")
           : firstStatus
             ? filteredBoardPath("status", firstStatus.name)
             : null;

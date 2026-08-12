@@ -7,6 +7,7 @@ import type {
   TaskComment,
   WorkspaceData,
 } from "./types";
+import { attachmentUrlName } from "./task-attachment-urls";
 
 export async function persistNewTaskDetails({
   taskId,
@@ -58,6 +59,17 @@ export async function persistNewTaskDetails({
           file_path: null,
           mime_type: file.type || null,
           size_bytes: file.size,
+          created_by: current.currentProfile.id,
+          created_at: createdAt,
+        })),
+        ...draft.urls.map((item) => ({
+          id: item.id,
+          task_id: taskId,
+          name: attachmentUrlName(item.url),
+          url: item.url,
+          file_path: null,
+          mime_type: null,
+          size_bytes: null,
           created_by: current.currentProfile.id,
           created_at: createdAt,
         })),
@@ -122,6 +134,26 @@ export async function persistNewTaskDetails({
       const response = await fetch("/api/task-attachments", {
         method: "POST",
         body: formData,
+      });
+      const result = (await response.json()) as {
+        attachment?: TaskAttachment;
+        activity?: TaskActivity;
+      };
+      if (!response.ok || !result.attachment) failures += 1;
+      else {
+        attachments.push(result.attachment);
+        if (result.activity) activity.push(result.activity);
+      }
+    } catch {
+      failures += 1;
+    }
+  }
+  for (const item of draft.urls) {
+    try {
+      const response = await fetch("/api/task-attachments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId, url: item.url }),
       });
       const result = (await response.json()) as {
         attachment?: TaskAttachment;

@@ -9,25 +9,34 @@ import {
 } from "react";
 import {
   Button,
-  ConfirmationDialog,
+  FilterChip,
   IconButton,
   Input,
   Modal,
   Textarea,
+  Tooltip,
   toast,
 } from "@ryanmeetup/ui";
 import { useSearchFilter } from "@ryanmeetup/hooks";
 import {
+  FiArchive,
   FiArrowRight,
   FiEdit2,
   FiLoader,
   FiPlus,
   FiRefreshCw,
+  FiRotateCcw,
   FiSearch,
-  FiTrash2,
 } from "react-icons/fi";
 import { withAccessPreview } from "@/lib/access-preview";
-import type { Category, WorkspaceData } from "@/lib/types";
+import { ManagementCard } from "@/components/global";
+import type { Category, ProjectLink, WorkspaceData } from "@/lib/types";
+import { LinksFields } from "@/components/projects/LinksFields";
+import {
+  ProjectAttachments,
+  type ProjectAttachmentDraft,
+} from "@/components/projects/ProjectAttachments";
+import { ProjectLinks } from "@/components/projects/ProjectLinks";
 
 function randomCategoryColor(exclude?: string) {
   let color: string;
@@ -47,7 +56,9 @@ export type CategoriesModalProps = {
   demoMode: boolean;
   embedded?: boolean;
   createOnly?: boolean;
+  editCategoryId?: string | null;
   onCreate?: () => void;
+  onCategoryUpdated?: (category: Category) => void;
   readOnly?: boolean;
 };
 
@@ -59,20 +70,40 @@ export function CategoriesModal({
   demoMode,
   embedded = false,
   createOnly = false,
+  editCategoryId = null,
   onCreate,
+  onCategoryUpdated,
   readOnly = false,
 }: CategoriesModalProps) {
+  const directEditCategory = editCategoryId
+    ? (data.categories.find((category) => category.id === editCategoryId) ??
+      null)
+    : null;
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [color, setColor] = useState(() => randomCategoryColor());
+  const [links, setLinks] = useState<ProjectLink[]>([]);
+  const [attachments, setAttachments] = useState<ProjectAttachmentDraft[]>([]);
   const [creating, setCreating] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState("");
-  const [editingDescription, setEditingDescription] = useState("");
-  const [editingColor, setEditingColor] = useState("");
+  const [categoryStatus, setCategoryStatus] = useState<
+    "active" | "archived" | "all"
+  >("active");
+  const [editingId, setEditingId] = useState<string | null>(
+    directEditCategory?.id ?? null,
+  );
+  const [editingName, setEditingName] = useState(
+    directEditCategory?.name ?? "",
+  );
+  const [editingDescription, setEditingDescription] = useState(
+    directEditCategory?.description ?? "",
+  );
+  const [editingColor, setEditingColor] = useState(
+    directEditCategory?.color ?? "",
+  );
+  const [editingLinks, setEditingLinks] = useState<ProjectLink[]>(
+    directEditCategory?.links ?? [],
+  );
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [pendingDelete, setPendingDelete] = useState<Category | null>(null);
   const {
     query,
     setQuery,
@@ -81,15 +112,24 @@ export function CategoriesModal({
   } = useSearchFilter({
     data: data.categories,
     buildHaystack: (category) =>
-      `${category.name} ${category.description ?? ""}`.toLowerCase(),
+      `${category.name} ${category.description ?? ""} ${(category.links ?? []).map((link) => `${link.label} ${link.url}`).join(" ")}`.toLowerCase(),
     queryParam: "category-search",
   });
   const categories = useMemo(
-    () => [...searchedCategories].sort((a, b) => a.name.localeCompare(b.name)),
-    [searchedCategories],
+    () =>
+      [...searchedCategories]
+        .filter(
+          (category) =>
+            categoryStatus === "all" ||
+            (categoryStatus === "archived"
+              ? Boolean(category.archived_at)
+              : !category.archived_at),
+        )
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [categoryStatus, searchedCategories],
   );
 
-  async function request(method: "POST" | "PATCH" | "DELETE", body: object) {
+  async function request(method: "POST" | "PATCH", body: object) {
     const response = await fetch("/api/categories", {
       method,
       headers: { "Content-Type": "application/json" },
@@ -119,7 +159,9 @@ export function CategoriesModal({
         name: nextName,
         description: nextDescription,
         color,
+        links,
         created_by: data.currentProfile.id,
+        archived_at: null,
       };
       if (!demoMode)
         category = (
@@ -127,14 +169,50 @@ export function CategoriesModal({
             name: nextName,
             description: nextDescription,
             color,
+            links,
           })
         ).category!;
+      if (!demoMode && attachments.length > 0) {
+        let failedAttachments = 0;
+        for (const attachment of attachments) {
+          try {
+            const body = attachment.file
+              ? (() => {
+                  const formData = new FormData();
+                  formData.set("categoryId", category.id);
+                  formData.set("file", attachment.file);
+                  return formData;
+                })()
+              : JSON.stringify({
+                  categoryId: category.id,
+                  name: attachment.name,
+                  body: attachment.body,
+                });
+            const response = await fetch("/api/category-attachments", {
+              method: "POST",
+              headers: attachment.file
+                ? undefined
+                : { "Content-Type": "application/json" },
+              body,
+            });
+            if (!response.ok) failedAttachments += 1;
+          } catch {
+            failedAttachments += 1;
+          }
+        }
+        if (failedAttachments > 0)
+          toast.error(
+            `${failedAttachments} ${failedAttachments === 1 ? "attachment" : "attachments"} could not be added. You can retry from Edit category.`,
+          );
+      }
       setData((current) => ({
         ...current,
         categories: [...current.categories, category],
       }));
       setName("");
       setDescription("");
+      setLinks([]);
+      setAttachments([]);
       setColor(randomCategoryColor(color));
       toast.success(`${category.name} created.`);
       if (createOnly) setOpen(false);
@@ -154,6 +232,7 @@ export function CategoriesModal({
     setEditingName(category.name);
     setEditingDescription(category.description ?? "");
     setEditingColor(category.color);
+    setEditingLinks(category.links ?? []);
   }
 
   async function updateCategory(category: Category) {
@@ -168,21 +247,24 @@ export function CategoriesModal({
           name: nextName,
           description: nextDescription,
           color: editingColor,
+          links: editingLinks,
         });
+      const updatedCategory: Category = {
+        ...category,
+        name: nextName,
+        description: nextDescription,
+        color: editingColor,
+        links: editingLinks,
+      };
       setData((current) => ({
         ...current,
         categories: current.categories.map((item) =>
-          item.id === category.id
-            ? {
-                ...item,
-                name: nextName,
-                description: nextDescription,
-                color: editingColor,
-              }
-            : item,
+          item.id === category.id ? updatedCategory : item,
         ),
       }));
+      onCategoryUpdated?.(updatedCategory);
       setEditingId(null);
+      if (editCategoryId) setOpen(false);
       toast.success(`${nextName} updated.`);
     } catch (error) {
       toast.error(
@@ -195,29 +277,36 @@ export function CategoriesModal({
     }
   }
 
-  async function deleteCategory(category: Category) {
-    setDeleting(true);
+  async function toggleArchived(category: Category) {
+    const archived = !category.archived_at;
     try {
-      if (!demoMode) await request("DELETE", { id: category.id });
+      if (!demoMode)
+        await request("PATCH", {
+          id: category.id,
+          name: category.name,
+          description: category.description,
+          color: category.color,
+          links: category.links,
+          archived,
+        });
       setData((current) => ({
         ...current,
-        categories: current.categories.filter(
-          (item) => item.id !== category.id,
-        ),
-        taskCategories: current.taskCategories.filter(
-          (item) => item.category_id !== category.id,
+        categories: current.categories.map((item) =>
+          item.id === category.id
+            ? {
+                ...item,
+                archived_at: archived ? new Date().toISOString() : null,
+              }
+            : item,
         ),
       }));
-      setPendingDelete(null);
-      toast.success(`${category.name} deleted.`);
+      toast.success(`${category.name} ${archived ? "archived" : "restored"}.`);
     } catch (error) {
       toast.error(
         error instanceof Error
           ? error.message
-          : "The category could not be deleted.",
+          : "The category could not be updated.",
       );
-    } finally {
-      setDeleting(false);
     }
   }
 
@@ -251,9 +340,9 @@ export function CategoriesModal({
   return (
     <>
       <Modal
-        open={open}
+        open={open && !editingId}
         setIsOpen={setOpen}
-        title={createOnly ? "New category" : "Categories"}
+        title={createOnly ? "New Category" : "Categories"}
         description={
           embedded
             ? "Categories make work easier to scan and filter across projects."
@@ -268,16 +357,38 @@ export function CategoriesModal({
               leftIcon={<FiPlus aria-hidden />}
               onClick={onCreate}
             >
-              New category
+              New Category
             </Button>
           ) : undefined
         }
         hideActions
-        size={createOnly ? "md" : "xl"}
+        size={createOnly ? "lg" : "xl"}
         embedded={embedded}
         maxHeight="min(42rem, calc(100dvh - max(1rem, env(safe-area-inset-top)) - max(1rem, env(safe-area-inset-bottom))))"
         footer={
-          embedded ? undefined : (
+          embedded ? undefined : createOnly ? (
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setOpen(false)}
+                disabled={creating}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                form="create-category-form"
+                variant="action"
+                size="sm"
+                loading={creating}
+                loadingText="Creating..."
+              >
+                Create category
+              </Button>
+            </div>
+          ) : (
             <form className="grid gap-4" onSubmit={addCategory}>
               <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
                 <Input
@@ -301,6 +412,20 @@ export function CategoriesModal({
                 rows={2}
                 disabled={creating}
                 required
+              />
+              <LinksFields
+                links={links}
+                setLinks={setLinks}
+                disabled={creating}
+                namePrefix="category"
+              />
+              <ProjectAttachments
+                resourceKind="category"
+                demoMode={demoMode}
+                disabled={creating}
+                currentUserId={data.currentProfile.id}
+                drafts={attachments}
+                onDraftsChange={setAttachments}
               />
               <div className="flex justify-end gap-2 border-t border-black/10 pt-4 dark:border-white/10">
                 <Button
@@ -327,10 +452,53 @@ export function CategoriesModal({
         }
       >
         {createOnly ? (
-          <p className="text-sm text-black/60 dark:text-white/60">
-            Give related work a recognizable label and color. You can edit or
-            delete it from the Categories page later.
-          </p>
+          <form
+            id="create-category-form"
+            className="space-y-4"
+            onSubmit={addCategory}
+          >
+            <p className="text-sm text-black/60 dark:text-white/60">
+              Give related work a recognizable label and color. You can edit or
+              archive it from the Categories page later.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+              <Input
+                label="Category name"
+                name="category-name"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="Marketing"
+                disabled={creating}
+                required
+              />
+              {colorControl(color, setColor, creating)}
+            </div>
+            <Textarea
+              id="category-description"
+              label="Description"
+              name="category-description"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              placeholder="What kind of work belongs in this category?"
+              rows={2}
+              disabled={creating}
+              required
+            />
+            <LinksFields
+              links={links}
+              setLinks={setLinks}
+              disabled={creating}
+              namePrefix="category"
+            />
+            <ProjectAttachments
+              resourceKind="category"
+              demoMode={demoMode}
+              disabled={creating}
+              currentUserId={data.currentProfile.id}
+              drafts={attachments}
+              onDraftsChange={setAttachments}
+            />
+          </form>
         ) : (
           <>
             {!embedded && (
@@ -338,27 +506,44 @@ export function CategoriesModal({
                 Categories make work easier to scan and filter across projects.
               </p>
             )}
-            <div className="relative mb-4">
-              <Input
-                label="Search categories"
-                name="category-search"
-                hideLabel
-                leadingIcon={<FiSearch aria-hidden />}
-                aria-busy={searchPending}
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search categories..."
-                inputClassName="pr-10"
-              />
-              {searchPending && (
-                <span
-                  role="status"
-                  aria-label="Loading category results"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-black/45 dark:text-white/45"
-                >
-                  <FiLoader className="animate-spin motion-reduce:animate-none" />
-                </span>
-              )}
+            <div className="sticky top-0 z-20 -mx-1 mb-4 grid gap-3 bg-white px-1 pb-3 dark:bg-[#181818] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+              <div className="relative">
+                <Input
+                  label="Search categories"
+                  name="category-search"
+                  hideLabel
+                  leadingIcon={<FiSearch aria-hidden />}
+                  aria-busy={searchPending}
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Search categories..."
+                  inputClassName="pr-10"
+                />
+                {searchPending && (
+                  <span
+                    role="status"
+                    aria-label="Loading category results"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-black/45 dark:text-white/45"
+                  >
+                    <FiLoader className="animate-spin motion-reduce:animate-none" />
+                  </span>
+                )}
+              </div>
+              <div
+                className="flex flex-wrap gap-2"
+                aria-label="Filter categories"
+              >
+                {(["active", "archived", "all"] as const).map((status) => (
+                  <FilterChip
+                    key={status}
+                    active={categoryStatus === status}
+                    onClick={() => setCategoryStatus(status)}
+                    className="h-10 px-4 py-0"
+                  >
+                    {status}
+                  </FilterChip>
+                ))}
+              </div>
             </div>
             <div className="relative" aria-busy={searchPending}>
               {searchPending && (
@@ -377,42 +562,10 @@ export function CategoriesModal({
                 className={`${searchPending ? "pointer-events-none opacity-55" : ""} grid auto-rows-fr items-stretch gap-4 transition-opacity md:grid-cols-2 ${embedded ? "xl:grid-cols-3" : ""}`}
               >
                 {categories.map((category) => (
-                  <div
+                  <ManagementCard
                     key={category.id}
-                    className="flex h-full flex-col rounded-xl border border-black/10 bg-black/[0.015] p-4 dark:border-white/10 dark:bg-white/[0.025]"
-                  >
-                    <div className="flex items-start gap-3">
-                      <span
-                        aria-hidden
-                        className="mt-1 h-4 w-4 shrink-0 rounded-full ring-4 ring-black/5 dark:ring-white/5"
-                        style={{ backgroundColor: category.color }}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-semibold">
-                          {category.name}
-                        </p>
-                        {category.description && (
-                          <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-black/60 dark:text-white/60">
-                            {category.description}
-                          </p>
-                        )}
-                      </div>
-                      <IconButton
-                        label={`Edit ${category.name}`}
-                        onClick={() => beginEdit(category)}
-                      >
-                        <FiEdit2 />
-                      </IconButton>
-                      <IconButton
-                        label={`Delete ${category.name}`}
-                        variant="danger"
-                        onClick={() => setPendingDelete(category)}
-                      >
-                        <FiTrash2 />
-                      </IconButton>
-                    </div>
-                    {embedded && (
-                      <div className="mt-auto flex justify-end pt-3">
+                    footer={
+                      embedded ? (
                         <Button.Link
                           href={withAccessPreview(
                             `/board?category=${encodeURIComponent(category.id)}`,
@@ -424,9 +577,50 @@ export function CategoriesModal({
                         >
                           Open board
                         </Button.Link>
-                      </div>
+                      ) : undefined
+                    }
+                  >
+                    <span
+                      aria-hidden
+                      className="mt-1 h-4 w-4 shrink-0 rounded-full ring-4 ring-black/5 dark:ring-white/5"
+                      style={{ backgroundColor: category.color }}
+                    />
+                    <div className="min-w-0 flex-1 py-1">
+                      <span
+                        className={`block truncate font-semibold ${category.archived_at ? "text-black/45 line-through dark:text-white/45" : ""}`}
+                      >
+                        {category.name}
+                      </span>
+                      {category.description && (
+                        <span className="mt-0.5 block line-clamp-2 text-xs text-black/60 dark:text-white/60">
+                          {category.description}
+                        </span>
+                      )}
+                      {(category.links ?? []).length > 0 && (
+                        <ProjectLinks
+                          links={category.links}
+                          className={`mt-2 ${embedded ? "mb-4" : ""}`}
+                        />
+                      )}
+                    </div>
+                    {category.archived_at && (
+                      <span className="mt-1 hidden text-[10px] font-semibold uppercase tracking-widest text-black/45 dark:text-white/45 sm:inline">
+                        Archived
+                      </span>
                     )}
-                  </div>
+                    <IconButton
+                      label={`Edit ${category.name}`}
+                      onClick={() => beginEdit(category)}
+                    >
+                      <FiEdit2 />
+                    </IconButton>
+                    <IconButton
+                      label={`${category.archived_at ? "Restore" : "Archive"} ${category.name}`}
+                      onClick={() => void toggleArchived(category)}
+                    >
+                      {category.archived_at ? <FiRotateCcw /> : <FiArchive />}
+                    </IconButton>
+                  </ManagementCard>
                 ))}
                 {categories.length === 0 && (
                   <div
@@ -447,17 +641,59 @@ export function CategoriesModal({
             (item) => item.id === editingId,
           );
           if (!category) return null;
+          const categoryChanged =
+            editingName.trim() !== category.name ||
+            editingDescription.trim() !== (category.description ?? "") ||
+            editingColor !== category.color ||
+            JSON.stringify(editingLinks) !==
+              JSON.stringify(category.links ?? []);
           return (
             <Modal
               open
               setIsOpen={(nextOpen) => {
-                if (!nextOpen && !saving) setEditingId(null);
+                if (!nextOpen && !saving) {
+                  setEditingId(null);
+                  if (editCategoryId) setOpen(false);
+                }
               }}
               title={`Edit ${category.name}`}
-              size="md"
+              size="lg"
               hideActions
+              maxHeight="min(42rem, calc(100dvh - max(1rem, env(safe-area-inset-top)) - max(1rem, env(safe-area-inset-bottom))))"
+              footer={
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      setEditingId(null);
+                      if (editCategoryId) setOpen(false);
+                    }}
+                    disabled={saving}
+                  >
+                    Cancel
+                  </Button>
+                  <Tooltip
+                    content="Make a change before saving."
+                    disabled={categoryChanged}
+                  >
+                    <span tabIndex={categoryChanged ? -1 : 0}>
+                      <Button
+                        type="submit"
+                        form={`edit-category-form-${category.id}`}
+                        disabled={!categoryChanged}
+                        loading={saving}
+                        loadingText="Saving..."
+                      >
+                        Save changes
+                      </Button>
+                    </span>
+                  </Tooltip>
+                </div>
+              }
             >
               <form
+                id={`edit-category-form-${category.id}`}
                 className="space-y-4"
                 onSubmit={(event) => {
                   event.preventDefault();
@@ -488,43 +724,23 @@ export function CategoriesModal({
                   rows={3}
                   disabled={saving}
                 />
-                <div className="flex justify-end gap-2 border-t border-black/10 pt-4 dark:border-white/10">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => setEditingId(null)}
-                    disabled={saving}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    loading={saving}
-                    loadingText="Saving..."
-                  >
-                    Save changes
-                  </Button>
-                </div>
+                <LinksFields
+                  links={editingLinks}
+                  setLinks={setEditingLinks}
+                  disabled={saving}
+                  namePrefix={`category-${category.id}`}
+                />
+                <ProjectAttachments
+                  resourceKind="category"
+                  categoryId={category.id}
+                  demoMode={demoMode}
+                  disabled={saving}
+                  currentUserId={data.currentProfile.id}
+                />
               </form>
             </Modal>
           );
         })()}
-
-      <ConfirmationDialog
-        open={Boolean(pendingDelete)}
-        setOpen={(nextOpen) => {
-          if (!nextOpen && !deleting) setPendingDelete(null);
-        }}
-        title="Delete category?"
-        description="This category will be removed from every task using it. This cannot be undone."
-        confirmLabel="Delete category"
-        pendingLabel="Deleting..."
-        pending={deleting}
-        destructive
-        onConfirm={() => {
-          if (pendingDelete) void deleteCategory(pendingDelete);
-        }}
-      />
     </>
   );
 }

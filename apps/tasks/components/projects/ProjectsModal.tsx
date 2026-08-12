@@ -10,7 +10,6 @@ import {
 import {
   Button,
   Avatar,
-  DisclosureCard,
   FilterChip,
   IconButton,
   Input,
@@ -28,16 +27,16 @@ import {
   FiPlus,
   FiRotateCcw,
   FiSearch,
-  FiTrash2,
   FiUsers,
 } from "react-icons/fi";
 import { useSearchFilter } from "@ryanmeetup/hooks";
 import { withAccessPreview } from "@/lib/access-preview";
-import { normalizeProjectLinkUrl } from "@/lib/project-links";
+import { ManagementCard } from "@/components/global";
 import type { Project, ProjectLink, WorkspaceData } from "@/lib/types";
 import { ProjectLinks } from "./ProjectLinks";
 import { ProjectAttachments } from "./ProjectAttachments";
 import type { ProjectAttachmentDraft } from "./ProjectAttachments";
+import { LinksFields } from "./LinksFields";
 
 export function ProjectsModal({
   open,
@@ -381,10 +380,11 @@ export function ProjectsModal({
         disabled={creating}
         required
       />
-      <ProjectLinksFields
+      <LinksFields
         links={links}
         setLinks={setLinks}
         disabled={creating}
+        namePrefix="project"
       />
       <ProjectAttachments
         demoMode={demoMode}
@@ -563,118 +563,118 @@ export function ProjectsModal({
                       return profile ? [profile] : [];
                     });
                   return (
-                    <div
+                    <ManagementCard
                       key={project.id}
-                      className="flex h-full flex-col rounded-xl border border-black/10 bg-black/[0.015] px-4 py-3 dark:border-white/10 dark:bg-white/[0.025]"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="min-w-0 flex-1 py-1">
-                          <span
-                            className={`block truncate font-semibold ${project.archived_at ? "text-black/45 line-through dark:text-white/45" : ""}`}
-                          >
-                            {project.name}
-                          </span>
-                          {project.description && (
-                            <span className="mt-0.5 block line-clamp-2 text-xs text-black/60 dark:text-white/60">
-                              {project.description}
+                      footerClassName="justify-start"
+                      footer={
+                        <>
+                          {owners.length > 0 ? (
+                            <div
+                              className="flex shrink-0 -space-x-2"
+                              aria-label={`${owners.length} ${owners.length === 1 ? "owner" : "owners"}`}
+                            >
+                              {owners.slice(0, 3).map((owner) => (
+                                <Tooltip
+                                  key={owner.id}
+                                  content={owner.full_name}
+                                  placement="top"
+                                >
+                                  <Avatar
+                                    name={owner.full_name}
+                                    src={owner.avatar_url}
+                                    size="md"
+                                    className="ring-2 ring-white dark:ring-[#181818]"
+                                  />
+                                </Tooltip>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-dashed border-black/25 text-black/40 dark:border-white/25 dark:text-white/40">
+                              <FiUsers aria-hidden size={14} />
                             </span>
                           )}
-                          {(project.links ?? []).length > 0 && (
-                            <ProjectLinks
-                              links={project.links}
-                              className={`mt-2 ${embedded ? "mb-4" : ""}`}
-                            />
-                          )}
-                        </div>
-                        {project.archived_at && (
-                          <span className="mt-2 hidden text-[10px] font-semibold uppercase tracking-widest text-black/45 dark:text-white/45 sm:inline">
-                            Archived
-                          </span>
-                        )}
-                        {!readOnly && (
-                          <>
-                            <IconButton
-                              label={`Edit ${project.name}`}
-                              onClick={() => beginRename(project)}
-                            >
-                              <FiEdit2 />
-                            </IconButton>
-                            <IconButton
-                              label={`${project.archived_at ? "Restore" : "Archive"} ${project.name}`}
-                              onClick={() => void toggleArchived(project)}
-                            >
-                              {project.archived_at ? (
-                                <FiRotateCcw />
-                              ) : (
-                                <FiArchive />
-                              )}
-                            </IconButton>
-                          </>
-                        )}
-                      </div>
-                      <div className="mt-auto flex min-w-0 items-center gap-3 border-t border-black/10 pt-3 dark:border-white/10">
-                        {owners.length > 0 ? (
-                          <div
-                            className="flex shrink-0 -space-x-2"
-                            aria-label={`${owners.length} ${owners.length === 1 ? "owner" : "owners"}`}
-                          >
-                            {owners.slice(0, 3).map((owner) => (
-                              <Tooltip
-                                key={owner.id}
-                                content={owner.full_name}
-                                placement="top"
-                              >
-                                <Avatar
-                                  name={owner.full_name}
-                                  src={owner.avatar_url}
-                                  size="md"
-                                  className="ring-2 ring-white dark:ring-[#181818]"
-                                />
-                              </Tooltip>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-dashed border-black/25 text-black/40 dark:border-white/25 dark:text-white/40">
-                            <FiUsers aria-hidden size={14} />
-                          </span>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-black/40 dark:text-white/40">
-                            Owners
-                          </p>
-                          {owners.length === 0 && (
-                            <p className="truncate text-xs font-medium text-black/65 dark:text-white/65">
-                              Unassigned
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-black/40 dark:text-white/40">
+                              Owners
                             </p>
-                          )}
-                          {showOwnerNames && owners.length > 0 && (
-                            <p
-                              className="truncate text-xs font-medium text-black/65 dark:text-white/65"
-                              title={owners
-                                .map((owner) => owner.full_name)
-                                .join(", ")}
-                            >
-                              {owners
-                                .map((owner) => owner.full_name)
-                                .join(", ")}
-                            </p>
-                          )}
-                        </div>
-                        {embedded && (
-                          <Button.Link
-                            href={withAccessPreview(
-                              `/board?project=${encodeURIComponent(project.id)}`,
-                              data.accessPreview,
+                            {owners.length === 0 && (
+                              <p className="truncate text-xs font-medium text-black/65 dark:text-white/65">
+                                Unassigned
+                              </p>
                             )}
-                            variant="secondary"
-                            size="sm"
-                            rightIcon={<FiArrowRight aria-hidden />}
-                          >
-                            Open board
-                          </Button.Link>
+                            {showOwnerNames && owners.length > 0 && (
+                              <p
+                                className="truncate text-xs font-medium text-black/65 dark:text-white/65"
+                                title={owners
+                                  .map((owner) => owner.full_name)
+                                  .join(", ")}
+                              >
+                                {owners
+                                  .map((owner) => owner.full_name)
+                                  .join(", ")}
+                              </p>
+                            )}
+                          </div>
+                          {embedded && (
+                            <Button.Link
+                              href={withAccessPreview(
+                                `/board?project=${encodeURIComponent(project.id)}`,
+                                data.accessPreview,
+                              )}
+                              variant="secondary"
+                              size="sm"
+                              rightIcon={<FiArrowRight aria-hidden />}
+                            >
+                              Open board
+                            </Button.Link>
+                          )}
+                        </>
+                      }
+                    >
+                      <div className="min-w-0 flex-1 py-1">
+                        <span
+                          className={`block truncate font-semibold ${project.archived_at ? "text-black/45 line-through dark:text-white/45" : ""}`}
+                        >
+                          {project.name}
+                        </span>
+                        {project.description && (
+                          <span className="mt-0.5 block line-clamp-2 text-xs text-black/60 dark:text-white/60">
+                            {project.description}
+                          </span>
+                        )}
+                        {(project.links ?? []).length > 0 && (
+                          <ProjectLinks
+                            links={project.links}
+                            className={`mt-2 ${embedded ? "mb-4" : ""}`}
+                          />
                         )}
                       </div>
-                    </div>
+                      {project.archived_at && (
+                        <span className="mt-2 hidden text-[10px] font-semibold uppercase tracking-widest text-black/45 dark:text-white/45 sm:inline">
+                          Archived
+                        </span>
+                      )}
+                      {!readOnly && (
+                        <>
+                          <IconButton
+                            label={`Edit ${project.name}`}
+                            onClick={() => beginRename(project)}
+                          >
+                            <FiEdit2 />
+                          </IconButton>
+                          <IconButton
+                            label={`${project.archived_at ? "Restore" : "Archive"} ${project.name}`}
+                            onClick={() => void toggleArchived(project)}
+                          >
+                            {project.archived_at ? (
+                              <FiRotateCcw />
+                            ) : (
+                              <FiArchive />
+                            )}
+                          </IconButton>
+                        </>
+                      )}
+                    </ManagementCard>
                   );
                 })}
                 {projects.length === 0 && (
@@ -704,9 +704,7 @@ export function ProjectsModal({
             JSON.stringify(editingLinks) !==
               JSON.stringify(project.links ?? []) ||
             savedOwnerIds.length !== editingOwnerIds.length ||
-            savedOwnerIds.some(
-              (ownerId) => !editingOwnerIds.includes(ownerId),
-            );
+            savedOwnerIds.some((ownerId) => !editingOwnerIds.includes(ownerId));
           return (
             <Modal
               open
@@ -777,10 +775,11 @@ export function ProjectsModal({
                   rows={3}
                   required
                 />
-                <ProjectLinksFields
+                <LinksFields
                   links={editingLinks}
                   setLinks={setEditingLinks}
                   disabled={renaming}
+                  namePrefix={`project-${project.id}`}
                 />
                 <ProjectAttachments
                   projectId={project.id}
@@ -802,116 +801,5 @@ export function ProjectsModal({
           );
         })()}
     </>
-  );
-}
-
-function ProjectLinksFields({
-  links,
-  setLinks,
-  disabled,
-}: {
-  links: ProjectLink[];
-  setLinks: Dispatch<SetStateAction<ProjectLink[]>>;
-  disabled: boolean;
-}) {
-  function update(index: number, field: keyof ProjectLink, value: string) {
-    setLinks((current) =>
-      current.map((link, linkIndex) =>
-        linkIndex === index ? { ...link, [field]: value } : link,
-      ),
-    );
-  }
-
-  return (
-    <DisclosureCard
-      defaultOpen
-      collapsible={links.length > 0}
-      className="rounded-xl border border-black/10 bg-black/[0.015] p-3 dark:border-white/10 dark:bg-white/[0.025]"
-      buttonClassName="flex w-fit items-center gap-2 text-left"
-      panelClassName="pt-3"
-      iconClassName="h-3.5 w-3.5"
-      description={
-        <p className="pr-2 text-xs leading-relaxed text-black/55 dark:text-white/55">
-          Attach docs, designs, folders, or any other helpful web page.
-        </p>
-      }
-      actions={
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          leftIcon={<FiPlus aria-hidden />}
-          className="shrink-0 px-3 py-1.5 normal-case tracking-normal"
-          disabled={disabled || links.length >= 10}
-          onClick={() =>
-            setLinks((current) => [...current, { label: "", url: "" }])
-          }
-        >
-          Add link
-        </Button>
-      }
-      summary={
-        <span className="flex items-center gap-2 text-sm font-semibold">
-          Useful links
-          {links.length > 0 && (
-            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-black/10 px-1.5 text-[10px] font-semibold leading-none tabular-nums text-black/55 dark:bg-white/10 dark:text-white/55">
-              {links.length}
-            </span>
-          )}
-        </span>
-      }
-    >
-      <div className={links.length > 0 ? "space-y-2" : undefined}>
-        {links.map((link, index) => (
-          <div
-            key={index}
-            className="grid gap-2 rounded-lg border border-black/10 bg-white/60 p-3 dark:border-white/10 dark:bg-black/10 sm:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)_auto] sm:items-end"
-          >
-            <Input
-              label="Label"
-              name={`project-link-label-${index}`}
-              value={link.label}
-              placeholder="Design file"
-              maxLength={80}
-              required
-              disabled={disabled}
-              onChange={(event) => update(index, "label", event.target.value)}
-            />
-            <Input
-              label="URL"
-              name={`project-link-url-${index}`}
-              type="text"
-              inputMode="url"
-              autoCapitalize="none"
-              autoCorrect="off"
-              value={link.url}
-              placeholder="ryanmeetup.com"
-              required
-              disabled={disabled}
-              onChange={(event) => update(index, "url", event.target.value)}
-              onBlur={(event) =>
-                update(
-                  index,
-                  "url",
-                  normalizeProjectLinkUrl(event.target.value),
-                )
-              }
-            />
-            <IconButton
-              type="button"
-              label={`Remove ${link.label || "link"}`}
-              disabled={disabled}
-              onClick={() =>
-                setLinks((current) =>
-                  current.filter((_, linkIndex) => linkIndex !== index),
-                )
-              }
-            >
-              <FiTrash2 />
-            </IconButton>
-          </div>
-        ))}
-      </div>
-    </DisclosureCard>
   );
 }

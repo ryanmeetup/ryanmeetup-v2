@@ -255,40 +255,46 @@ export function TaskEditor({
                   <span className="text-red-500">*</span>
                 </legend>
                 <div className="flex flex-wrap gap-2">
-                  {data.categories.map((item) => {
-                    const selected = draft.category_ids.includes(item.id);
-                    return (
-                      <label
-                        key={item.id}
-                        className={`flex cursor-pointer items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold transition focus-within:ring-2 focus-within:ring-black/20 dark:focus-within:ring-white/30 ${
-                          selected
-                            ? "border-black/25 bg-black text-white dark:border-white/30 dark:bg-white dark:text-black"
-                            : "border-black/10 bg-white dark:border-white/10 dark:bg-white/5"
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          className="sr-only"
-                          checked={selected}
-                          onChange={() =>
-                            setDraft({
-                              ...draft,
-                              category_ids: selected
-                                ? draft.category_ids.filter(
-                                    (id) => id !== item.id,
-                                  )
-                                : [...draft.category_ids, item.id],
-                            })
-                          }
-                        />
-                        <i
-                          className="h-2.5 w-2.5 rounded-full"
-                          style={{ backgroundColor: item.color }}
-                        />
-                        {item.name}
-                      </label>
-                    );
-                  })}
+                  {data.categories
+                    .filter(
+                      (item) =>
+                        !item.archived_at ||
+                        draft.category_ids.includes(item.id),
+                    )
+                    .map((item) => {
+                      const selected = draft.category_ids.includes(item.id);
+                      return (
+                        <label
+                          key={item.id}
+                          className={`flex cursor-pointer items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold transition focus-within:ring-2 focus-within:ring-black/20 dark:focus-within:ring-white/30 ${
+                            selected
+                              ? "border-black/25 bg-black text-white dark:border-white/30 dark:bg-white dark:text-black"
+                              : "border-black/10 bg-white dark:border-white/10 dark:bg-white/5"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            className="sr-only"
+                            checked={selected}
+                            onChange={() =>
+                              setDraft({
+                                ...draft,
+                                category_ids: selected
+                                  ? draft.category_ids.filter(
+                                      (id) => id !== item.id,
+                                    )
+                                  : [...draft.category_ids, item.id],
+                              })
+                            }
+                          />
+                          <i
+                            className="h-2.5 w-2.5 rounded-full"
+                            style={{ backgroundColor: item.color }}
+                          />
+                          {item.name}
+                        </label>
+                      );
+                    })}
                 </div>
               </fieldset>
               <DropdownSelect

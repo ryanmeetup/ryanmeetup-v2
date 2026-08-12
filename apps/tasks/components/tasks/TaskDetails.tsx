@@ -27,6 +27,7 @@ import {
   FiEdit2,
   FiExternalLink,
   FiFile,
+  FiLink,
   FiMessageSquare,
   FiPaperclip,
   FiPlus,
@@ -34,6 +35,8 @@ import {
   FiX,
 } from "react-icons/fi";
 import { MAX_ATTACHMENT_SIZE } from "@/lib/task-attachments";
+import { attachmentUrlName } from "@/lib/task-attachment-urls";
+import { normalizeHttpUrl } from "@ryanmeetup/utils";
 import type {
   Subtask,
   Task,
@@ -106,6 +109,8 @@ export function TaskDetails({
   const [commentSaving, setCommentSaving] = useState(false);
   const [draggingFiles, setDraggingFiles] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState(false);
+  const [attachmentUrl, setAttachmentUrl] = useState("");
+  const [addingUrl, setAddingUrl] = useState(false);
   const [previewAttachment, setPreviewAttachment] =
     useState<TaskAttachment | null>(null);
   const [detailSaving, setDetailSaving] = useState(false);
@@ -119,7 +124,10 @@ export function TaskDetails({
   const attachments = data.attachments.filter(
     (item) =>
       item.task_id === task.id &&
-      (item.file_path || item.mime_type || item.size_bytes !== null),
+      (item.file_path ||
+        item.mime_type ||
+        item.size_bytes !== null ||
+        item.url !== "#"),
   );
   const comments = useMemo(
     () =>
@@ -559,8 +567,8 @@ export function TaskDetails({
   async function uploadFiles(files: File[]) {
     if (uploadingFiles || files.length === 0) return;
     const validFiles = files.filter((file) => {
-      if (file.size <= MAX_ATTACHMENT_SIZE) return true;
-      toast.error(`${file.name} is larger than the 10 MB file limit.`);
+      if (file.size > 0 && file.size <= MAX_ATTACHMENT_SIZE) return true;
+      toast.error(`${file.name} must be between 1 byte and 10 MB.`);
       return false;
     });
     if (validFiles.length === 0) return;
@@ -586,24 +594,82 @@ export function TaskDetails({
       );
   }
 
+  async function addUrlAttachment() {
+    const url = normalizeHttpUrl(attachmentUrl);
+    if (!url) {
+      toast.error("Enter a valid web address.");
+      return;
+    }
+    if (attachments.some((item) => item.url === url)) {
+      toast.error("That URL is already attached.");
+      return;
+    }
+
+    setAddingUrl(true);
+    try {
+      if (demoMode) {
+        await addAttachment({
+          id: crypto.randomUUID(),
+          task_id: task.id,
+          name: attachmentUrlName(url),
+          url,
+          file_path: null,
+          mime_type: null,
+          size_bytes: null,
+          created_by: data.currentProfile.id,
+          created_at: now(),
+        });
+      } else {
+        const response = await fetch("/api/task-attachments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ taskId: task.id, url }),
+        });
+        const result = (await response.json()) as {
+          attachment?: TaskAttachment;
+          activity?: TaskActivity;
+          error?: string;
+        };
+        if (!response.ok || !result.attachment)
+          throw new Error(result.error ?? "The URL could not be attached.");
+        setData((current) => ({
+          ...current,
+          attachments: [...current.attachments, result.attachment!],
+          activity: result.activity
+            ? [result.activity, ...current.activity]
+            : current.activity,
+        }));
+      }
+      setAttachmentUrl("");
+      toast.success("URL attached.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "The URL could not be attached.",
+      );
+    } finally {
+      setAddingUrl(false);
+    }
+  }
+
   useEffect(() => {
     if (!active || (section !== "all" && section !== "work")) return;
 
     const handlePaste = (event: ClipboardEvent) => {
       if (uploadingFiles) return;
 
-      const imageFiles = Array.from(event.clipboardData?.items ?? []).flatMap(
+      const files = Array.from(event.clipboardData?.items ?? []).flatMap(
         (item) => {
-          if (item.kind !== "file" || !item.type.startsWith("image/"))
-            return [];
+          if (item.kind !== "file") return [];
           const file = item.getAsFile();
           return file ? [file] : [];
         },
       );
 
-      if (imageFiles.length === 0) return;
+      if (files.length === 0) return;
       event.preventDefault();
-      void uploadFiles(imageFiles);
+      void uploadFiles(files);
     };
 
     document.addEventListener("paste", handlePaste);
@@ -799,6 +865,10 @@ export function TaskDetails({
                       className="object-cover"
                     />
                   </button>
+                ) : item.file_path === null && item.url !== "#" ? (
+                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-black/5 text-black/55 dark:bg-white/5 dark:text-white/55">
+                    <FiLink aria-hidden />
+                  </span>
                 ) : (
                   <span className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-black/5 text-black/55 dark:bg-white/5 dark:text-white/55">
                     <FiFile aria-hidden />
@@ -835,6 +905,33 @@ export function TaskDetails({
                 </IconButton>
               </div>
             ))}
+            <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+              <Input
+                label="Attachment URL"
+                name={`task-${task.id}-attachment-url`}
+                type="url"
+                value={attachmentUrl}
+                placeholder="https://example.com/resource"
+                disabled={addingUrl}
+                onChange={(event) => setAttachmentUrl(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter") return;
+                  event.preventDefault();
+                  void addUrlAttachment();
+                }}
+              />
+              <Button
+                type="button"
+                variant="action"
+                leftIcon={<FiLink aria-hidden />}
+                disabled={!attachmentUrl.trim()}
+                loading={addingUrl}
+                loadingText="Adding..."
+                onClick={() => void addUrlAttachment()}
+              >
+                Add URL
+              </Button>
+            </div>
             <div
               className={`rounded-xl border border-dashed p-4 text-center transition duration-200 ease-in-out ${
                 draggingFiles
@@ -868,7 +965,7 @@ export function TaskDetails({
               <FiPaperclip className="mx-auto mb-2 h-5 w-5 text-black/45 dark:text-white/45" />
               <p className="text-sm font-semibold">Drop files here</p>
               <p className="mt-1 text-xs text-black/50 dark:text-white/50">
-                Multiple files supported · 10 MB maximum per file
+                Paste, drop, or choose files · 10 MB maximum per file
               </p>
               <Button
                 type="button"
@@ -885,6 +982,7 @@ export function TaskDetails({
                 aria-label="Upload task attachments"
                 type="file"
                 multiple
+                accept=".pdf,.txt,image/jpeg,image/png,image/webp"
                 className="sr-only"
                 onChange={(event) => {
                   const files = Array.from(event.target.files ?? []);

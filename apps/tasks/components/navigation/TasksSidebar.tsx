@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { useQueryParamState } from "@ryanmeetup/hooks";
 import { AnimatedCollapse, IconButton, Pill, Tooltip } from "@ryanmeetup/ui";
 import {
   FiCalendar,
@@ -38,6 +39,9 @@ export function TasksSidebar({
   const activeProjects = data.projects.filter(
     (project) => !project.archived_at,
   );
+  const activeCategories = data.categories.filter(
+    (category) => !category.archived_at,
+  );
   const {
     categoriesExpanded,
     setCategoriesExpanded,
@@ -46,9 +50,8 @@ export function TasksSidebar({
     sectionsLoaded,
   } = useSidebarSections();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const selectedCategory = searchParams.get("category");
-  const selectedProject = searchParams.get("project");
+  const [selectedCategory] = useQueryParamState("category");
+  const [selectedProject] = useQueryParamState("project");
   const isBoard = pathname === "/board";
   const closeSidebar = () => setOpen(false);
   const linkClass = (active: boolean) =>
@@ -164,12 +167,12 @@ export function TasksSidebar({
               className={categoriesExpanded ? "mt-2 min-h-0 flex-1" : ""}
               contentClassName="h-full scroll-pb-2 space-y-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]"
             >
-              {data.categories.length === 0 && (
+              {activeCategories.length === 0 && (
                 <p className="px-3 py-2 text-xs text-black/50 dark:text-white/50">
                   No categories yet.
                 </p>
               )}
-              {data.categories.map((category) => (
+              {activeCategories.map((category) => (
                 <Link
                   key={category.id}
                   href={withAccessPreview(

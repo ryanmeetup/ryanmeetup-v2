@@ -40,17 +40,21 @@ export async function GET(request: Request): Promise<NextResponse> {
   const paginated = params.get("paginated") === "1";
   const { requestedPage, pageSize } = parsePagination(params);
   const sort = params.get("sort") === "due" ? "due" : "updated";
-  const involved = params.get("involved");
-  const hasInvolvedFilter = Boolean(involved && uuidPattern.test(involved));
-  const dueWithin = params.get("dueWithin");
-  const dueWithinDays =
-    dueWithin && ["7", "14", "30"].includes(dueWithin)
-      ? Number.parseInt(dueWithin, 10)
-      : null;
+  const parseDueDays = (name: string) =>
+    (params.get(name) ?? "")
+      .split(",")
+      .filter((value) => ["7", "14", "30"].includes(value))
+      .map(Number);
+  const dueWithinDays = Math.max(...parseDueDays("dueWithin"), 0) || null;
+  const excludedDueDays =
+    Math.max(...parseDueDays("excludeDueWithin"), 0) || null;
   const hasDueWithinFilter = dueWithinDays !== null;
   const today = new Date();
   const dueBoundary = new Date(
     today.getTime() + (dueWithinDays ?? 0) * 86_400_000,
+  );
+  const excludedDueBoundary = new Date(
+    today.getTime() + (excludedDueDays ?? 0) * 86_400_000,
   );
   const dateValue = (date: Date) => date.toISOString().slice(0, 10);
   let previewProjectIds: string[] | undefined;
@@ -136,24 +140,49 @@ export async function GET(request: Request): Promise<NextResponse> {
   }
 
   const exactFilters = [
-    ["status", "status_id"],
-    ["project", "project_id"],
-    ["assignee", "assignee_id"],
-    ["reporter", "reported_by"],
-    ["priority", "priority"],
+    ["status", "excludeStatuses", "status_id"],
+    ["project", "excludeProjects", "project_id"],
+    ["assignee", "excludeAssignees", "assignee_id"],
+    ["reporter", "excludeReporters", "reported_by"],
+    ["priority", "excludePriorities", "priority"],
   ] as const;
-  for (const [param, column] of exactFilters) {
-    const value = params.get(param);
-    if (value === "none" || value === "unassigned")
-      query = query.is(column, null);
-    else if (value && value !== "all") query = query.eq(column, value);
+  for (const [includeParam, excludeParam, column] of exactFilters) {
+    const included = (params.get(includeParam) ?? "")
+      .split(",")
+      .filter((value) => value && value !== "all");
+    const excluded = (params.get(excludeParam) ?? "")
+      .split(",")
+      .filter(Boolean);
+    const includeNull = included.some(
+      (value) => value === "none" || value === "unassigned",
+    );
+    const excludeNull = excluded.some(
+      (value) => value === "none" || value === "unassigned",
+    );
+    const includedValues = included.filter(
+      (value) => value !== "none" && value !== "unassigned",
+    );
+    const excludedValues = excluded.filter(
+      (value) => value !== "none" && value !== "unassigned",
+    );
+    if (includeNull && includedValues.length)
+      query = query.or(
+        `${column}.is.null,${column}.in.(${includedValues.join(",")})`,
+      );
+    else if (includeNull) query = query.is(column, null);
+    else if (includedValues.length) query = query.in(column, includedValues);
+    if (excludeNull) query = query.not(column, "is", null);
+    if (excludedValues.length)
+      query = query.not(column, "in", `(${excludedValues.join(",")})`);
   }
-  if (hasInvolvedFilter)
-    query = query.or(`assignee_id.eq.${involved},reported_by.eq.${involved}`);
   if (hasDueWithinFilter)
     query = query
       .gte("due_date", dateValue(today))
       .lte("due_date", dateValue(dueBoundary));
+  if (excludedDueDays)
+    query = query.or(
+      `due_date.is.null,due_date.lt.${dateValue(today)},due_date.gt.${dateValue(excludedDueBoundary)}`,
+    );
   if (includedCategoryIds.length)
     query = query.in(
       "id",
@@ -209,21 +238,48 @@ export async function GET(request: Request): Promise<NextResponse> {
           : "project_id.is.null",
       );
     }
-    for (const [param, column] of exactFilters) {
-      const value = params.get(param);
-      if (value === "none" || value === "unassigned")
-        corrected = corrected.is(column, null);
-      else if (value && value !== "all")
-        corrected = corrected.eq(column, value);
-    }
-    if (hasInvolvedFilter)
-      corrected = corrected.or(
-        `assignee_id.eq.${involved},reported_by.eq.${involved}`,
+    for (const [includeParam, excludeParam, column] of exactFilters) {
+      const included = (params.get(includeParam) ?? "")
+        .split(",")
+        .filter((value) => value && value !== "all");
+      const excluded = (params.get(excludeParam) ?? "")
+        .split(",")
+        .filter(Boolean);
+      const includeNull = included.some(
+        (value) => value === "none" || value === "unassigned",
       );
+      const excludeNull = excluded.some(
+        (value) => value === "none" || value === "unassigned",
+      );
+      const includedValues = included.filter(
+        (value) => value !== "none" && value !== "unassigned",
+      );
+      const excludedValues = excluded.filter(
+        (value) => value !== "none" && value !== "unassigned",
+      );
+      if (includeNull && includedValues.length)
+        corrected = corrected.or(
+          `${column}.is.null,${column}.in.(${includedValues.join(",")})`,
+        );
+      else if (includeNull) corrected = corrected.is(column, null);
+      else if (includedValues.length)
+        corrected = corrected.in(column, includedValues);
+      if (excludeNull) corrected = corrected.not(column, "is", null);
+      if (excludedValues.length)
+        corrected = corrected.not(
+          column,
+          "in",
+          `(${excludedValues.join(",")})`,
+        );
+    }
     if (hasDueWithinFilter)
       corrected = corrected
         .gte("due_date", dateValue(today))
         .lte("due_date", dateValue(dueBoundary));
+    if (excludedDueDays)
+      corrected = corrected.or(
+        `due_date.is.null,due_date.lt.${dateValue(today)},due_date.gt.${dateValue(excludedDueBoundary)}`,
+      );
     if (includedCategoryIds.length)
       corrected = corrected.in(
         "id",

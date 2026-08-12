@@ -73,10 +73,6 @@ export function CategoriesModalLegacy({
     id: string;
     name: string;
   } | null>(null);
-  const [groupToDelete, setGroupToDelete] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
   const [groupActionPending, setGroupActionPending] = useState(false);
 
   function randomizeColor() {
@@ -94,7 +90,9 @@ export function CategoriesModalLegacy({
       name: groupName,
       description: null,
       color,
+      links: [],
       created_by: data.currentProfile.id,
+      archived_at: null,
     };
     if (!demoMode) {
       try {
@@ -106,6 +104,7 @@ export function CategoriesModalLegacy({
               name: item.name,
               description: item.description,
               color: item.color,
+              links: item.links,
             }),
           },
         );
@@ -158,31 +157,6 @@ export function CategoriesModalLegacy({
     setGroupActionPending(false);
   }
 
-  async function deleteCategory(id: string) {
-    setGroupActionPending(true);
-    if (!demoMode) {
-      try {
-        await mutate("/api/categories", {
-          method: "DELETE",
-          body: JSON.stringify({ id }),
-        });
-      } catch (error) {
-        setMessage(mutationErrorMessage(error, "Category deletion failed."));
-        setGroupActionPending(false);
-        return;
-      }
-    }
-    setData((current) => ({
-      ...current,
-      categories: current.categories.filter((item) => item.id !== id),
-      taskCategories: current.taskCategories.filter(
-        (item) => item.category_id !== id,
-      ),
-    }));
-    setGroupToDelete(null);
-    setGroupActionPending(false);
-  }
-
   return (
     <>
       <Modal
@@ -211,13 +185,6 @@ export function CategoriesModalLegacy({
               >
                 <FiMoreHorizontal />
               </IconButton>
-              <IconButton
-                label={`Delete ${item.name}`}
-                variant="danger"
-                onClick={() => setGroupToDelete(item)}
-              >
-                <FiTrash2 />
-              </IconButton>
             </div>
           ))}
         </div>
@@ -226,7 +193,7 @@ export function CategoriesModalLegacy({
           onSubmit={addCategory}
         >
           <Input
-            label="New category"
+            label="New Category"
             name="category-name"
             value={name}
             onChange={(event) => setName(event.target.value)}
@@ -284,21 +251,6 @@ export function CategoriesModalLegacy({
         onConfirm={(nextName) => {
           if (groupToRename)
             void renameCategory(groupToRename.id, groupToRename.name, nextName);
-        }}
-      />
-      <ConfirmationDialog
-        open={Boolean(groupToDelete)}
-        setOpen={(nextOpen) => {
-          if (!nextOpen) setGroupToDelete(null);
-        }}
-        title="Delete category?"
-        description="This category will be removed from every task using it."
-        confirmLabel="Delete category"
-        pendingLabel="Deleting..."
-        pending={groupActionPending}
-        destructive
-        onConfirm={() => {
-          if (groupToDelete) void deleteCategory(groupToDelete.id);
         }}
       />
     </>
