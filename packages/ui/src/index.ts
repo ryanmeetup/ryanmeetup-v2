@@ -32,6 +32,7 @@ export * from "./Pagination";
 export * from "./RichTextarea";
 export * from "./Select";
 export * from "./SectionHeader";
+export * from "./SiteFooter";
 export * from "./SocialLinkGrid";
 export * from "./Spinner";
 export * from "./SuccessCallout";

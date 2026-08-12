@@ -3,15 +3,16 @@
 import { useState, useEffect } from "react";
 
 // Components
-import { Banner, Header, NewFooter } from "@/components/navigation";
+import { Banner, Header } from "@/components/navigation";
 import { FloatingCta } from "@/components/global";
+import { SiteFooter } from "@ryanmeetup/ui";
 import { FiSun } from "react-icons/fi";
 import {
   FaCalendarAlt as Calendar,
   FaMapMarkerAlt as MapPin,
 } from "react-icons/fa";
 import { useTheme } from "next-themes";
-import { layoutPaddingX } from "@/lib/constants";
+import { layoutPaddingX, socials } from "@/lib/constants";
 
 // Types
 import type { ReactNode } from "react";
@@ -85,7 +86,13 @@ const Layout = (props: LayoutProps) => {
           },
         ]}
         ariaLabel="RSVP to upcoming California events"
-        hiddenRoutes={["/rsvp", "/rpr", "/sunsoaked", "/awards", "/name-change"]}
+        hiddenRoutes={[
+          "/rsvp",
+          "/rpr",
+          "/sunsoaked",
+          "/awards",
+          "/name-change",
+        ]}
         theme={{
           panel: "bg-[#ef3d23]",
           border: "border-[#f6c500] hover:border-[#ffe168]",
@@ -96,16 +103,46 @@ const Layout = (props: LayoutProps) => {
           iconText: "text-[#4b210f]",
           dismissPanel:
             "border-[#f6c500] bg-[#ef3d23] text-[#f4f0df] hover:border-[#ffe168]",
-          glow:
-            "bg-[radial-gradient(circle_at_top,_rgba(246,197,0,0.4),_transparent_60%)]",
-          halo:
-            "bg-[conic-gradient(from_180deg,_rgba(246,197,0,0.65),_rgba(244,240,223,0.15),_rgba(246,197,0,0.65))]",
+          glow: "bg-[radial-gradient(circle_at_top,_rgba(246,197,0,0.4),_transparent_60%)]",
+          halo: "bg-[conic-gradient(from_180deg,_rgba(246,197,0,0.65),_rgba(244,240,223,0.15),_rgba(246,197,0,0.65))]",
           focusRing: "focus-visible:ring-[#f6c500]/80",
         }}
         icon={<FiSun className="h-7 w-7" aria-hidden />}
       />
 
-      <NewFooter />
+      <SiteFooter
+        title="RYAN MEETUP"
+        subtitle="NO BRYANS ALLOWED"
+        className={layoutPaddingX}
+        sections={[
+          {
+            title: "Follow us",
+            links: socials.map((social) => ({
+              href: social.href,
+              label: social.text,
+            })),
+          },
+          {
+            title: "Built with",
+            columns: 2,
+            links: [
+              { href: "https://vercel.com", label: "Vercel" },
+              { href: "https://nextjs.org/", label: "Next.js" },
+              { href: "https://react.dev/", label: "React" },
+              { href: "https://tailwindcss.com/", label: "Tailwind CSS" },
+              { href: "https://headlessui.com/", label: "Headless UI" },
+              { href: "https://www.contentful.com/", label: "Contentful" },
+              { href: "https://www.mapbox.com/", label: "Mapbox" },
+            ],
+          },
+        ]}
+        socialLinks={socials.map((social) => ({
+          href: social.href,
+          icon: social.icon,
+          label: social.text,
+        }))}
+        credit={{ href: "https://ryanle.dev/", label: "Ryan Le" }}
+      />
     </main>
   );
 };

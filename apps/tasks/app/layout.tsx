@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { ThemeProvider } from "@/components/global";
+import { TasksFooter } from "@/components/navigation";
 import { ToastHost } from "@ryanmeetup/ui";
 import localFont from "next/font/local";
 import "./globals.css";
@@ -88,6 +89,7 @@ export default async function RootLayout({
       <body className={inter.className}>
         <ThemeProvider>
           {children}
+          <TasksFooter />
           <ToastHost />
         </ThemeProvider>
       </body>
