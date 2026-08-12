@@ -96,7 +96,6 @@ const PressPage = async () => {
     <Layout fullscreen>
       <script
         type="application/ld+json"
-        // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
       <div className={`pt-8 ${layoutPaddingX}`}>
