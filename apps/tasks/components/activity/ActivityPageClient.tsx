@@ -29,6 +29,7 @@ import { useQueryParamState } from "@ryanmeetup/hooks";
 import { usePagination } from "@/hooks/usePagination";
 import type { TaskActivity, WorkspaceData } from "@/lib/types";
 import { taskPath } from "@/lib/task-key";
+import { prioritizeCurrentProfile } from "@/lib/profile-order";
 import { TaskKeyBadge } from "@/components/tasks/TaskKeyBadge";
 import { ActivityFilterMenu } from "./ActivityFilterMenu";
 
@@ -147,6 +148,10 @@ export function ActivityPageClient({
   const profiles = useMemo(
     () => new Map(data.profiles.map((profile) => [profile.id, profile])),
     [data.profiles],
+  );
+  const orderedProfiles = useMemo(
+    () => prioritizeCurrentProfile(data.profiles, data.currentProfile.id),
+    [data.currentProfile.id, data.profiles],
   );
   const includedProjectValues = splitFilterValues(projectFilter);
   const excludedProjectValues = splitFilterValues(excludedProjects);
@@ -373,19 +378,9 @@ export function ActivityPageClient({
 
             <FilterPanel
               count={filterCount}
+              defaultExpanded
               onClear={clearFilters}
               preferenceStorageKey={filterPanelsExpandedPreferenceKey}
-              trailing={
-                <span
-                  aria-live="polite"
-                  className="ml-auto shrink-0 pl-2 text-xs text-black/50 dark:text-white/50"
-                >
-                  {data.activityPage?.totalCount ?? data.activity.length}{" "}
-                  {(data.activityPage?.totalCount ?? data.activity.length) === 1
-                    ? "event"
-                    : "events"}
-                </span>
-              }
             >
               <ActivityFilterMenu
                 label="Project"
@@ -417,7 +412,7 @@ export function ActivityPageClient({
                 }
                 options={[
                   { label: "System", value: "system" },
-                  ...data.profiles.map((profile) => ({
+                  ...orderedProfiles.map((profile) => ({
                     avatar: {
                       name: profile.full_name || "Teammate",
                       src: profile.avatar_url,
@@ -464,7 +459,14 @@ export function ActivityPageClient({
               className={`overflow-hidden transition-opacity ${loading ? "opacity-60" : ""}`}
             >
               <div className="overflow-x-auto" aria-busy={loading}>
-                <table className="w-full min-w-[760px] text-left text-sm">
+                <table className="w-full min-w-[760px] table-fixed text-left text-sm">
+                  <colgroup>
+                    <col className="w-[20%]" />
+                    <col className="w-[22%]" />
+                    <col className="w-[21%]" />
+                    <col className="w-[23%]" />
+                    <col className="w-[14%]" />
+                  </colgroup>
                   <thead className="border-b border-black/10 bg-black/[0.025] text-[10px] uppercase tracking-[0.16em] text-black/50 dark:border-white/10 dark:bg-white/[0.025] dark:text-white/50">
                     <tr>
                       <th className="px-4 py-3 font-semibold">When</th>
@@ -497,7 +499,7 @@ export function ActivityPageClient({
                               )}
                             </time>
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="whitespace-nowrap px-4 py-3">
                             <span className="flex items-center gap-2 font-semibold">
                               <Avatar
                                 name={profile?.full_name ?? "System"}
@@ -508,7 +510,9 @@ export function ActivityPageClient({
                             </span>
                           </td>
                           <td className="px-4 py-3">
-                            {activityDescription(item, data.statuses)}
+                            <div className="truncate">
+                              {activityDescription(item, data.statuses)}
+                            </div>
                           </td>
                           <td className="px-4 py-3 font-semibold">
                             {task ? (
@@ -517,10 +521,12 @@ export function ActivityPageClient({
                                   taskPath(task),
                                   data.accessPreview,
                                 )}
-                                className="rounded hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/40"
+                                className="flex min-w-0 items-center gap-2 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/40"
                               >
-                                <span className="inline-flex flex-wrap items-center gap-2">
-                                  <span>{task.title}</span>
+                                <span className="min-w-0 truncate hover:underline">
+                                  {task.title}
+                                </span>
+                                <span className="shrink-0">
                                   <TaskKeyBadge task={task} />
                                 </span>
                               </Link>

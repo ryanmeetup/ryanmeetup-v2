@@ -13,7 +13,6 @@ export type FilterPanelProps = {
   defaultExpanded?: boolean;
   onClear?: () => void;
   preferenceStorageKey?: string;
-  trailing?: ReactNode;
 };
 
 const FilterPanel = ({
@@ -23,7 +22,6 @@ const FilterPanel = ({
   defaultExpanded = true,
   onClear,
   preferenceStorageKey,
-  trailing,
 }: FilterPanelProps) => {
   const [expanded, setExpanded] = useState(defaultExpanded);
 
@@ -61,7 +59,6 @@ const FilterPanel = ({
           <div className="flex items-center gap-2 overflow-x-auto pb-1">
             {children}
             {count > 0 && onClear && <ClearFiltersButton onClick={onClear} />}
-            {trailing}
           </div>
         </div>
       </AnimatedCollapse>
