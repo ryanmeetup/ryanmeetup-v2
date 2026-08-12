@@ -220,6 +220,12 @@ Rules:
 
 ## Forms and Feedback
 
+- For user-entered web URLs, accept bare domains and paths such as
+  `example.com/resource`; use the shared `ensureHttpUrlScheme` or
+  `normalizeHttpUrl` helpers from `@ryanmeetup/utils` so HTTPS is assumed when
+  the scheme is omitted. Reuse these helpers in both the UI and API validation
+  instead of adding app-local URL normalization.
+
 - Use the shared field components so labels, required markers, focus rings,
   placeholders, errors, and theme behavior remain consistent.
 - All search inputs must use the shared debounced search behavior established by
