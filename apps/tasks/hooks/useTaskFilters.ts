@@ -49,7 +49,10 @@ export function useTaskFilters(setSearch: (value: string) => void) {
   );
   const visibility: "active" | "archived" =
     visibilityParam === "archived" ? "archived" : "active";
-  const [sort, setSort] = useState("updated");
+  const [sortParam, setSort] = useQueryParamState("sort", "updated");
+  const sort = ["updated", "due", "priority"].includes(sortParam)
+    ? sortParam
+    : "updated";
   const [clock, setClock] = useState(() => Date.now());
 
   useEffect(() => {
@@ -75,6 +78,7 @@ export function useTaskFilters(setSearch: (value: string) => void) {
     setDueWithin("all");
     setExcludedDueWithin("");
     setVisibility("active");
+    setSort("updated");
   }
 
   return {

@@ -2,8 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Dialog, DialogBackdrop, DialogPanel } from "@headlessui/react";
 import { useQueryParamState } from "@ryanmeetup/hooks";
-import { AnimatedCollapse, IconButton, Pill, Tooltip } from "@ryanmeetup/ui";
+import {
+  AnimatedCollapse,
+  DropdownMenu,
+  DropdownMenuButton,
+  DropdownMenuItem,
+  DropdownMenuItems,
+  Pill,
+} from "@ryanmeetup/ui";
 import {
   FiCalendar,
   FiClock,
@@ -12,8 +20,11 @@ import {
   FiGrid,
   FiHome,
   FiPlus,
+  FiStar,
+  FiTag,
   FiX,
 } from "react-icons/fi";
+import { useEffect } from "react";
 import type { WorkspaceData } from "@/lib/types";
 import { useSidebarSections } from "@/hooks/useSidebarSections";
 import { withAccessPreview } from "@/lib/access-preview";
@@ -42,6 +53,15 @@ export function TasksSidebar({
   const activeCategories = data.categories.filter(
     (category) => !category.archived_at,
   );
+  const favoriteProjects = activeProjects.filter((project) =>
+    (data.currentProfile.favorite_project_ids ?? []).includes(project.id),
+  );
+  const favoriteProjectIds = new Set(
+    favoriteProjects.map((project) => project.id),
+  );
+  const otherProjects = activeProjects.filter(
+    (project) => !favoriteProjectIds.has(project.id),
+  );
   const {
     categoriesExpanded,
     setCategoriesExpanded,
@@ -53,23 +73,31 @@ export function TasksSidebar({
   const [selectedCategory] = useQueryParamState("category");
   const [selectedProject] = useQueryParamState("project");
   const isBoard = pathname === "/board";
+  const isTasksRoute = isBoard || pathname.startsWith("/task/");
+  const selectedProjectIsFavorite = favoriteProjects.some(
+    (project) =>
+      project.id === selectedProject || project.name === selectedProject,
+  );
   const closeSidebar = () => setOpen(false);
   const linkClass = (active: boolean) =>
     `sidebar-link ${active ? "sidebar-link-active" : ""}`;
 
-  return (
+  useEffect(() => {
+    if (selectedCategory) setCategoriesExpanded(true);
+    if (selectedProject && !selectedProjectIsFavorite) {
+      setProjectsExpanded(true);
+    }
+  }, [
+    selectedCategory,
+    selectedProject,
+    selectedProjectIsFavorite,
+    setCategoriesExpanded,
+    setProjectsExpanded,
+  ]);
+
+  const sidebarContent = (mobile = false) => (
     <>
-      {open && (
-        <button
-          aria-label="Close navigation"
-          className="fixed inset-0 z-30 bg-black/40 lg:hidden"
-          onClick={() => setOpen(false)}
-        />
-      )}
-      <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-black/10 bg-white px-4 pt-4 transition-transform dark:border-white/10 dark:bg-black lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}
-      >
-        <div className="flex h-12 items-center justify-between px-2">
+        <div className="relative flex h-12 items-center px-2">
           <Link
             href={withAccessPreview("/", data.accessPreview)}
             aria-label="Task tracker home"
@@ -80,13 +108,16 @@ export function TasksSidebar({
               Task tracker
             </p>
           </Link>
-          <IconButton
-            label="Close navigation"
-            tooltipTriggerClassName="lg:hidden"
-            onClick={() => setOpen(false)}
-          >
-            <FiX />
-          </IconButton>
+          {mobile && (
+            <button
+              type="button"
+              aria-label="Close navigation"
+              onClick={closeSidebar}
+              className="absolute right-0 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-lg text-xl text-black/60 transition hover:bg-black/5 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:text-white/60 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:ring-white/40"
+            >
+              <FiX aria-hidden />
+            </button>
+          )}
         </div>
         <nav className="mt-8 space-y-1" aria-label="Main navigation">
           <Link
@@ -100,7 +131,7 @@ export function TasksSidebar({
           <Link
             href={withAccessPreview("/board", data.accessPreview)}
             onClick={closeSidebar}
-            className={linkClass(isBoard)}
+            className={linkClass(isTasksRoute)}
           >
             <FiGrid />
             Tasks
@@ -113,23 +144,85 @@ export function TasksSidebar({
             <FiClock />
             Activity
           </Link>
-          <Tooltip
-            content="Calendar view is coming soon"
-            placement="right"
-            triggerClassName="w-full"
+          <div
+            className="sidebar-link cursor-default opacity-50"
+            aria-label="Calendar, coming soon"
           >
-            <button disabled className="sidebar-link opacity-40">
-              <FiCalendar />
-              Calendar
-              <Pill size="sm" className="ml-auto">
-                Soon
-              </Pill>
-            </button>
-          </Tooltip>
+            <FiCalendar />
+            Calendar
+            <Pill size="sm" className="ml-auto">Soon</Pill>
+          </div>
         </nav>
-        <div className="mt-8 flex min-h-0 flex-1 flex-col">
+        {isOwner && (
+          <section className="mt-4 border-y border-black/10 py-3 dark:border-white/10">
+            <DropdownMenu>
+              <DropdownMenuButton
+                unstyled
+                className="flex w-full items-center gap-3 rounded-lg border border-black/10 bg-black/[0.03] px-3 py-2.5 text-left text-sm font-semibold text-black/70 transition hover:border-black/20 hover:bg-black/[0.07] hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-black/30 dark:border-white/10 dark:bg-white/[0.06] dark:text-white/70 dark:hover:border-white/20 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:ring-white/40"
+              >
+                <FiPlus aria-hidden />
+                New
+                <FiChevronDown className="ml-auto" aria-hidden />
+              </DropdownMenuButton>
+              <DropdownMenuItems align="start" className="w-56">
+                <DropdownMenuItem
+                  onClick={() => {
+                    closeSidebar();
+                    onCreateProject();
+                  }}
+                >
+                  <FiFolder aria-hidden /> New project
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    closeSidebar();
+                    onCreateCategory();
+                  }}
+                >
+                  <FiTag aria-hidden /> New category
+                </DropdownMenuItem>
+              </DropdownMenuItems>
+            </DropdownMenu>
+          </section>
+        )}
+        <div className="mt-4 min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pb-4 pr-1 [scrollbar-gutter:stable]">
+          {!data.accessPreview && favoriteProjects.length > 0 && (
+            <section className="shrink-0 border-b border-black/10 pb-4 dark:border-white/10">
+              <div className="flex items-center justify-between px-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-black/45 dark:text-white/45">
+                  Favorites
+                </p>
+                <Link
+                  href="/projects"
+                  className="text-[10px] font-semibold text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white"
+                >
+                  Manage
+                </Link>
+              </div>
+              <div className="mt-2 space-y-1">
+                {favoriteProjects.map((project) => (
+                  <Link
+                    key={project.id}
+                    href={`/board?project=${encodeURIComponent(project.name)}`}
+                    onClick={closeSidebar}
+                    className={linkClass(
+                      isBoard &&
+                        (selectedProject === project.id ||
+                          selectedProject === project.name),
+                    )}
+                  >
+                    <FiStar
+                      className="shrink-0 text-amber-600 dark:text-amber-300"
+                      fill="currentColor"
+                    />
+                    <span className="truncate">{project.name}</span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
           <section
-            className={`flex max-h-[70%] min-h-0 shrink-0 flex-col overflow-hidden ${categoriesExpanded ? "border-b border-black/10 dark:border-white/10" : ""}`}
+            className={`border-b border-black/10 pb-4 dark:border-white/10`}
           >
             <div className="flex items-center justify-between px-3">
               <button
@@ -144,28 +237,19 @@ export function TasksSidebar({
                 Categories
               </button>
               {isOwner && (
-                <span className="flex items-center gap-1">
-                  <Link
-                    href={withAccessPreview("/categories", data.accessPreview)}
-                    className="text-[10px] font-semibold text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white"
-                  >
-                    Manage
-                  </Link>
-                  <IconButton
-                    label="Create category"
-                    size="sm"
-                    onClick={onCreateCategory}
-                  >
-                    <FiPlus />
-                  </IconButton>
-                </span>
+                <Link
+                  href={withAccessPreview("/categories", data.accessPreview)}
+                  className="text-[10px] font-semibold text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white"
+                >
+                  Manage
+                </Link>
               )}
             </div>
             <AnimatedCollapse
               animate={sectionsLoaded}
               open={categoriesExpanded}
-              className={categoriesExpanded ? "mt-2 min-h-0 flex-1" : ""}
-              contentClassName="h-full scroll-pb-2 space-y-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]"
+              className={categoriesExpanded ? "mt-2" : ""}
+              contentClassName="space-y-1"
             >
               {activeCategories.length === 0 && (
                 <p className="px-3 py-2 text-xs text-black/50 dark:text-white/50">
@@ -197,7 +281,7 @@ export function TasksSidebar({
             </AnimatedCollapse>
           </section>
           <section
-            className={`flex min-h-0 flex-col overflow-hidden pt-4 ${projectsExpanded ? "flex-1" : "shrink-0"}`}
+            className="pb-2"
           >
             <div className="flex items-center justify-between px-3">
               <button
@@ -211,36 +295,27 @@ export function TasksSidebar({
                 />
                 Projects
               </button>
-              <span className="flex items-center gap-1">
-                <Link
-                  href={withAccessPreview("/projects", data.accessPreview)}
-                  className="text-[10px] font-semibold text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white"
-                >
-                  Manage
-                </Link>
-                {isOwner && (
-                  <IconButton
-                    label="Create project"
-                    size="sm"
-                    onClick={onCreateProject}
-                  >
-                    <FiPlus />
-                  </IconButton>
-                )}
-              </span>
+              <Link
+                href={withAccessPreview("/projects", data.accessPreview)}
+                className="text-[10px] font-semibold text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white"
+              >
+                Manage
+              </Link>
             </div>
             <AnimatedCollapse
               animate={sectionsLoaded}
               open={projectsExpanded}
-              className={projectsExpanded ? "mt-2 min-h-0 flex-1" : ""}
-              contentClassName="h-full scroll-pb-2 space-y-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]"
+              className={projectsExpanded ? "mt-2" : ""}
+              contentClassName="space-y-1"
             >
-              {activeProjects.length === 0 && (
+              {otherProjects.length === 0 && (
                 <p className="px-3 py-2 text-xs text-black/50 dark:text-white/50">
-                  No projects yet.
+                  {favoriteProjects.length > 0
+                    ? "All projects are favorited."
+                    : "No projects yet."}
                 </p>
               )}
-              {activeProjects.map((project) => (
+              {otherProjects.map((project) => (
                 <Link
                   key={project.id}
                   href={withAccessPreview(
@@ -261,7 +336,25 @@ export function TasksSidebar({
             </AnimatedCollapse>
           </section>
         </div>
+    </>
+  );
+
+  return (
+    <>
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-black/10 bg-white px-4 pt-4 dark:border-white/10 dark:bg-black lg:flex">
+        {sidebarContent()}
       </aside>
+      <Dialog open={open} onClose={setOpen} className="relative z-50 lg:hidden">
+        <DialogBackdrop className="fixed inset-0 bg-black/40 transition-opacity data-closed:opacity-0" />
+        <div className="fixed inset-0 overflow-hidden">
+          <DialogPanel
+            transition
+            className="flex h-full w-64 flex-col border-r border-black/10 bg-white px-4 pt-4 shadow-xl transition duration-200 ease-out data-closed:-translate-x-full dark:border-white/10 dark:bg-black"
+          >
+            {sidebarContent(true)}
+          </DialogPanel>
+        </div>
+      </Dialog>
     </>
   );
 }

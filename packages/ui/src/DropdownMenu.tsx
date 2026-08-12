@@ -15,7 +15,9 @@ import type {
 
 export type DropdownMenuProps = ComponentProps<typeof Menu>;
 
-export type DropdownMenuButtonProps = ButtonHTMLAttributes<HTMLButtonElement>;
+export type DropdownMenuButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  unstyled?: boolean;
+};
 
 export type DropdownMenuItemsProps = Omit<
   ComponentProps<typeof MenuItems>,
@@ -38,11 +40,16 @@ const DropdownMenu = (props: DropdownMenuProps) => <Menu {...props} />;
 const DropdownMenuButton = ({
   className,
   type = "button",
+  unstyled = false,
   ...props
 }: DropdownMenuButtonProps) => (
   <MenuButton
     type={type}
-    className={`inline-flex items-center justify-center gap-2 rounded-lg border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-black transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 dark:focus-visible:ring-white/30 ${className ?? ""}`}
+    className={
+      unstyled
+        ? className
+        : `inline-flex items-center justify-center gap-2 rounded-lg border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-black transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 dark:focus-visible:ring-white/30 ${className ?? ""}`
+    }
     {...props}
   />
 );
