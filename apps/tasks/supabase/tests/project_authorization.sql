@@ -7,6 +7,8 @@ grant usage on schema extensions to authenticated;
 -- Grant only the relations exercised here so RLS, rather than ACL setup, is
 -- the boundary under test.
 grant select, insert, update, delete on public.projects, public.tasks, public.project_owners to authenticated;
+grant select on public.statuses to authenticated;
+grant insert on public.access_group_members to authenticated;
 set local search_path = public, extensions;
 select extensions.plan(47);
 
@@ -33,10 +35,12 @@ alter table public.profiles enable trigger profiles_protect_owner_role;
 
 -- The new-user trigger may add test profiles to the live/default Members group.
 -- Remove that implicit fixture state so each permission below is isolated.
+select set_config('app.replacing_access_tier', 'true', true);
 delete from public.access_group_members
 where profile_id between
   '10000000-0000-4000-8000-000000000001'
   and '10000000-0000-4000-8000-000000000007';
+select set_config('app.replacing_access_tier', 'false', true);
 
 insert into public.access_groups (id, name, created_by) values
   ('20000000-0000-4000-8000-000000000001', 'Auth test viewer', '10000000-0000-4000-8000-000000000001'),
