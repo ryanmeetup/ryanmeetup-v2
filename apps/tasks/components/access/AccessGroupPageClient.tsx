@@ -13,7 +13,6 @@ import {
   Heading,
   IconButton,
   Input,
-  Pill,
   Textarea,
   toast,
 } from "@ryanmeetup/ui";
@@ -531,7 +530,7 @@ export function AccessGroupPageClient({
                     Scroll to see all {members.length} members
                   </p>
                 )}
-                <ul className="-mb-5 mt-2 min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain pb-5 pr-2 [scrollbar-gutter:stable]">
+                <ul className="-mb-5 mt-2 min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain pb-5">
                   {members.map((member) => {
                     const profile = data.profiles.find(
                       (item) => item.id === member.profile_id,
@@ -566,11 +565,10 @@ export function AccessGroupPageClient({
                 </ul>
               </Card>
               <Card className="flex h-[32rem] max-h-[32rem] min-h-[28rem] flex-col overflow-hidden p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h2 className="font-semibold">Project visibility</h2>
-                  </div>
-                  <Pill variant="neutral" size="sm">
+                <h2 className="font-semibold">
+                  Project visibility{" "}
+                  <span className="text-black/45 dark:text-white/45">
+                    {"("}
                     {group.grants_global_content
                       ? `${data.projects.length} global`
                       : `${
@@ -579,8 +577,9 @@ export function AccessGroupPageClient({
                             ...inheritedAccessByProject.keys(),
                           ]).size
                         } of ${data.projects.length}`}
-                  </Pill>
-                </div>
+                    {")"}
+                  </span>
+                </h2>
                 {group.grants_global_content && (
                   <div className="mt-3 rounded-xl border border-black/10 bg-black/[0.035] px-3 py-2 text-xs text-black/65 dark:border-white/10 dark:bg-white/[0.035] dark:text-white/65">
                     This tier already has manager access to every current and
