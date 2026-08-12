@@ -30,7 +30,7 @@ export function HeaderProfileControls({
   );
 
   return (
-    <div className="flex shrink-0 items-center gap-2 border-l border-black/10 pl-2 dark:border-white/10 sm:pl-3">
+    <div className="flex shrink-0 items-center gap-1 border-l border-black/10 pl-1.5 dark:border-white/10 sm:gap-2 sm:pl-3">
       {demoMode ? (
         <div className="flex min-w-0 items-center gap-2">{summary}</div>
       ) : (
@@ -45,15 +45,17 @@ export function HeaderProfileControls({
         </Tooltip>
       )}
       {!demoMode && (
-        <IconButton
-          label="Sign out"
-          onClick={async () => {
-            await createClient().auth.signOut();
-            window.location.href = "/login";
-          }}
-        >
-          <FiLogOut />
-        </IconButton>
+        <span className="hidden sm:inline-flex">
+          <IconButton
+            label="Sign out"
+            onClick={async () => {
+              await createClient().auth.signOut();
+              window.location.href = "/login";
+            }}
+          >
+            <FiLogOut />
+          </IconButton>
+        </span>
       )}
     </div>
   );

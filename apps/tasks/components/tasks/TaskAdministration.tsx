@@ -468,15 +468,14 @@ export function StatusSettingsModal({
       <Modal
         open={open}
         setIsOpen={setOpen}
-        title="Status settings"
+        title="Status Settings"
         description="Completion statuses mark tasks complete when they enter the column and automatically archive them after 14 days. Moving a task back to an active status reopens it."
         hideActions
         size="lg"
-        maxHeight="min(42rem, calc(100dvh - max(1rem, env(safe-area-inset-top)) - max(1rem, env(safe-area-inset-bottom))))"
         footer={
           <form
             id="create-status-form"
-            className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]"
+            className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 sm:grid-cols-[minmax(0,24rem)_auto] sm:justify-between"
             onSubmit={(event) => {
               event.preventDefault();
               void add();
@@ -493,12 +492,12 @@ export function StatusSettingsModal({
               <span>Color</span>
               <input
                 type="color"
-                className="color-input"
+                className="color-input !h-11 !w-11"
                 value={color}
                 onChange={(event) => setColor(event.target.value)}
               />
             </label>
-            <div className="flex justify-end gap-2 sm:col-span-2">
+            <div className="col-span-2 flex flex-wrap justify-end gap-2">
               <Button
                 type="button"
                 variant="secondary"
@@ -527,10 +526,10 @@ export function StatusSettingsModal({
               .map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-center gap-3 rounded-xl border border-black/10 p-3 dark:border-white/10"
+                  className="flex items-start gap-3 rounded-xl border border-black/10 p-3 dark:border-white/10"
                 >
                   <i
-                    className="h-3 w-3 rounded-full"
+                    className="mt-1.5 h-3 w-3 shrink-0 rounded-full"
                     style={{ backgroundColor: item.color }}
                   />
                   {editingStatusId === item.id ? (
@@ -578,60 +577,66 @@ export function StatusSettingsModal({
                       </IconButton>
                     </form>
                   ) : (
-                    <span className="flex-1 font-semibold">{item.name}</span>
-                  )}
-                  {editingStatusId !== item.id && (
-                    <>
-                      {"is_default" in item && item.is_default && (
-                        <Pill size="sm">Default</Pill>
-                      )}
-                      <button
-                        type="button"
-                        aria-label={`${item.name} ${item.is_completed ? "currently completes tasks and archives them after 14 days" : "is an active workflow status"}`}
-                        aria-pressed={item.is_completed}
-                        disabled={settingActionPending}
-                        onClick={() =>
-                          void toggleCompletedStatus(
-                            item.id,
-                            !item.is_completed,
-                          )
-                        }
-                        className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-black/20 disabled:opacity-50 dark:focus:ring-white/30 ${item.is_completed ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-200" : "border-black/10 text-black/60 hover:text-black dark:border-white/10 dark:text-white/60 dark:hover:text-white"}`}
-                      >
-                        {item.is_completed
-                          ? "Completes tasks"
-                          : "Set as completion"}
-                      </button>
-                      <IconButton
-                        label={`Move ${item.name} up`}
-                        onClick={() => void moveStatus(item.id, -1)}
-                      >
-                        <FiChevronDown className="rotate-180" />
-                      </IconButton>
-                      <IconButton
-                        label={`Move ${item.name} down`}
-                        onClick={() => void moveStatus(item.id, 1)}
-                      >
-                        <FiChevronDown />
-                      </IconButton>
-                      <IconButton
-                        label={`Edit ${item.name}`}
-                        disabled={settingActionPending}
-                        onClick={() => {
-                          setEditingStatusId(item.id);
-                          setEditingStatusName(item.name);
-                        }}
-                      >
-                        <FiEdit2 />
-                      </IconButton>
-                      <IconButton
-                        label={`Delete ${item.name}`}
-                        variant="danger"
-                        onClick={() => setStatusToDelete(item)}
-                      >
-                        <FiTrash2 />
-                      </IconButton>
-                    </>
+                    <div className="min-w-0 flex-1 space-y-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="min-w-0 font-semibold">
+                          {item.name}
+                        </span>
+                        {"is_default" in item && item.is_default && (
+                          <Pill size="sm">Default</Pill>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          aria-label={`${item.name} ${item.is_completed ? "currently completes tasks and archives them after 14 days" : "is an active workflow status"}`}
+                          aria-pressed={item.is_completed}
+                          disabled={settingActionPending}
+                          onClick={() =>
+                            void toggleCompletedStatus(
+                              item.id,
+                              !item.is_completed,
+                            )
+                          }
+                          className={`rounded-full border px-2.5 py-1 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-black/20 disabled:opacity-50 dark:focus:ring-white/30 ${item.is_completed ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-200" : "border-black/10 text-black/60 hover:text-black dark:border-white/10 dark:text-white/60 dark:hover:text-white"}`}
+                        >
+                          {item.is_completed
+                            ? "Completes tasks"
+                            : "Set as completion"}
+                        </button>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <IconButton
+                            label={`Move ${item.name} up`}
+                            onClick={() => void moveStatus(item.id, -1)}
+                          >
+                            <FiChevronDown className="rotate-180" />
+                          </IconButton>
+                          <IconButton
+                            label={`Move ${item.name} down`}
+                            onClick={() => void moveStatus(item.id, 1)}
+                          >
+                            <FiChevronDown />
+                          </IconButton>
+                          <IconButton
+                            label={`Edit ${item.name}`}
+                            disabled={settingActionPending}
+                            onClick={() => {
+                              setEditingStatusId(item.id);
+                              setEditingStatusName(item.name);
+                            }}
+                          >
+                            <FiEdit2 />
+                          </IconButton>
+                          <IconButton
+                            label={`Delete ${item.name}`}
+                            variant="danger"
+                            onClick={() => setStatusToDelete(item)}
+                          >
+                            <FiTrash2 />
+                          </IconButton>
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
               ))}

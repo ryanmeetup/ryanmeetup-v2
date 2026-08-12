@@ -283,12 +283,13 @@ export function ProfileForm({
       <p className="-mt-3 text-xs text-black/55 dark:text-white/55">
         Your sign-in email cannot be changed here.
       </p>
-      <div className="flex flex-wrap justify-end gap-3">
+      <div className="grid gap-3 sm:flex sm:flex-wrap sm:justify-end">
         {!onboardingRequired && (
           <Button
             type="button"
             variant="secondary"
             leftIcon={<FiLock />}
+            className="w-full sm:w-auto"
             onClick={onChangePassword}
           >
             Change password
@@ -297,6 +298,7 @@ export function ProfileForm({
         <Button
           type="submit"
           leftIcon={<FiSave />}
+          className="w-full sm:w-auto"
           loading={saving}
           loadingText="Saving..."
         >

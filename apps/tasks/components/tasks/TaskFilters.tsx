@@ -51,6 +51,7 @@ export function TaskFilters({
     <FilterPanel
       count={filterCount}
       className="mb-6"
+      controlsClassName="grid grid-cols-1 overflow-visible min-[360px]:grid-cols-2 [&>button]:min-w-0 [&>button]:w-full [&>button>span]:truncate [&>div]:min-w-0 [&>div>button]:min-w-0 [&>div>button]:w-full [&>div>button>span]:truncate lg:flex lg:overflow-x-auto lg:[&>button]:w-auto lg:[&>div>button]:w-auto"
       defaultExpanded
       onClear={clearFilters}
       preferenceStorageKey={filterPanelsExpandedPreferenceKey}

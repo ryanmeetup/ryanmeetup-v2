@@ -18,6 +18,7 @@ import {
   FiTrash2,
 } from "react-icons/fi";
 import { MAX_ATTACHMENT_SIZE } from "@/lib/task-attachments";
+import { CountBadge } from "@/components/global";
 import type { CategoryAttachment, ProjectAttachment } from "@/lib/types";
 
 type ResourceAttachment = ProjectAttachment | CategoryAttachment;
@@ -265,9 +266,7 @@ export function ProjectAttachments({
           <span className="flex items-center gap-2 text-sm font-semibold">
             Notes
             {notes.length > 0 && (
-              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-black/10 px-1.5 text-[10px] font-semibold leading-none tabular-nums text-black/55 dark:bg-white/10 dark:text-white/55">
-                {notes.length}
-              </span>
+              <CountBadge>{notes.length}</CountBadge>
             )}
           </span>
         }
@@ -382,9 +381,7 @@ export function ProjectAttachments({
           <span className="flex items-center gap-2 text-sm font-semibold">
             Attachments
             {files.length > 0 && (
-              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-black/10 px-1.5 text-[10px] font-semibold leading-none tabular-nums text-black/55 dark:bg-white/10 dark:text-white/55">
-                {files.length}
-              </span>
+              <CountBadge>{files.length}</CountBadge>
             )}
           </span>
         }

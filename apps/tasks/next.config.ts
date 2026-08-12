@@ -9,6 +9,8 @@ const monorepoRoot = path.resolve(
 );
 
 const nextConfig: NextConfig = {
+  // The development toolbar overlaps controls at the bottom of task modals.
+  devIndicators: false,
   turbopack: {
     root: monorepoRoot,
   },

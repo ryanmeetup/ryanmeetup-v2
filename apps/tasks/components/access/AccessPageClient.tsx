@@ -25,7 +25,7 @@ import {
   FiFolder,
   FiCheckCircle,
   FiClock,
-  FiMenu,
+  FiSidebar,
   FiPlus,
   FiShield,
   FiTrash2,
@@ -43,6 +43,7 @@ import { CategoriesModal } from "@/components/categories";
 import { TaskBanners } from "@/components/global";
 import {
   TaskHeaderActions,
+  TaskHeaderBrand,
   TaskSearch,
   TasksSidebar,
 } from "@/components/navigation";
@@ -469,14 +470,15 @@ export function AccessPageClient({
         onCreateProject={() => setProjectCreateOpen(true)}
       />
       <main className="min-w-0 lg:pl-64">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-black/10 bg-[#f7f7f5]/90 px-4 backdrop-blur-xl focus-within:z-[2147483647] dark:border-white/10 dark:bg-[#101010]/90 sm:px-6 lg:px-8">
+        <header className="tasks-app-header">
           <IconButton
             label="Open navigation"
             tooltipTriggerClassName="lg:hidden"
             onClick={() => setSidebarOpen(true)}
           >
-            <FiMenu />
+            <FiSidebar />
           </IconButton>
+          <TaskHeaderBrand />
           <TaskSearch
             tasks={data.tasks}
             projects={data.projects}
@@ -488,7 +490,7 @@ export function AccessPageClient({
         </header>
         <TaskBanners />
         <div className="p-4 sm:p-6 lg:p-8">
-          <div className="space-y-8">
+          <div className="mx-auto max-w-7xl space-y-8">
             <div>
               <Heading size="h1" className="flex items-center gap-2 text-4xl">
                 <FiShield />
@@ -501,13 +503,14 @@ export function AccessPageClient({
             </div>
 
             <section aria-labelledby="groups-heading" className="space-y-4">
-              <div className="flex items-center justify-between gap-4">
+              <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <h2 id="groups-heading" className="text-xl font-semibold">
                   Organizational tiers and teams
                 </h2>
                 <Button
                   size="sm"
                   leftIcon={<FiPlus />}
+                  className="w-full sm:w-auto"
                   onClick={() => setGroupCreateOpen(true)}
                 >
                   New group
@@ -518,7 +521,7 @@ export function AccessPageClient({
                   No access groups yet.
                 </Card>
               )}
-              <div className="grid auto-rows-fr gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="grid auto-rows-fr gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {groups.map((group) => {
                   const groupMembers = members.filter(
                     (item) => item.group_id === group.id,
@@ -608,7 +611,7 @@ export function AccessPageClient({
               aria-labelledby="team-heading"
               className="space-y-4 border-t border-black/10 pt-8 dark:border-white/10"
             >
-              <div className="flex items-center justify-between gap-4">
+              <div>
                 <div>
                   <h2 id="team-heading" className="text-xl font-semibold">
                     Team
@@ -617,10 +620,15 @@ export function AccessPageClient({
                     Manage the people who can sign in to this workspace.
                   </p>
                 </div>
-                <Tooltip content={`Disabled until Resend is set up`}>
+                <Tooltip
+                  content="Disabled until Resend is set up"
+                  triggerClassName="mt-4 w-full sm:w-auto"
+                >
                   <Button
                     size="sm"
                     leftIcon={<FiPlus />}
+                    fullWidth
+                    className="sm:w-auto"
                     onClick={() => setInviteOpen(true)}
                     disabled
                   >
@@ -629,16 +637,223 @@ export function AccessPageClient({
                 </Tooltip>
               </div>
               <Card size="none" className="overflow-hidden">
-                <div className="overflow-x-auto">
+                <ul className="grid gap-4 p-4 lg:grid-cols-2 2xl:hidden">
+                  {paginatedProfiles.map((profile) => {
+                    const metadata = metadataByProfile.get(profile.id);
+                    const profileGroups = members
+                      .filter((member) => member.profile_id === profile.id)
+                      .map((member) =>
+                        groups.find((group) => group.id === member.group_id),
+                      )
+                      .filter((group) => group !== undefined)
+                      .sort((a, b) => a.name.localeCompare(b.name));
+
+                    return (
+                      <li
+                        key={profile.id}
+                        className="flex min-w-0 flex-col rounded-xl border border-black/10 bg-black/[0.025] p-4 dark:border-white/10 dark:bg-white/[0.025]"
+                      >
+                        <div className="flex min-w-0 items-start justify-between gap-3">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <Avatar
+                              name={profile.full_name}
+                              src={profile.avatar_url}
+                              size="md"
+                            />
+                            <div className="min-w-0">
+                              <h3 className="truncate font-semibold">
+                                {profile.full_name}
+                              </h3>
+                              {metadata?.email && (
+                                <p className="truncate text-xs text-black/55 dark:text-white/55">
+                                  {metadata.email}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <Tooltip
+                            placement="left"
+                            content={
+                              <dl className="space-y-1">
+                                <div className="flex justify-between gap-4">
+                                  <dt className="opacity-65">Last login</dt>
+                                  <dd>
+                                    {formatAccountDate(
+                                      metadata?.lastSignInAt ?? null,
+                                    ) ?? "Never"}
+                                  </dd>
+                                </div>
+                                <div className="flex justify-between gap-4">
+                                  <dt className="opacity-65">
+                                    {metadata?.lastSignInAt
+                                      ? "Joined"
+                                      : "Invite sent"}
+                                  </dt>
+                                  <dd>
+                                    {formatAccountDate(
+                                      metadata?.lastSignInAt
+                                        ? metadata.createdAt
+                                        : (metadata?.invitedAt ??
+                                            metadata?.createdAt ??
+                                            null),
+                                    ) ?? "—"}
+                                  </dd>
+                                </div>
+                              </dl>
+                            }
+                          >
+                            <span
+                              tabIndex={0}
+                              className={`inline-flex shrink-0 cursor-help items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/30 ${
+                                metadata?.lastSignInAt
+                                  ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                                  : "bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                              }`}
+                            >
+                              {metadata?.lastSignInAt ? (
+                                <FiCheckCircle aria-hidden />
+                              ) : (
+                                <FiClock aria-hidden />
+                              )}
+                              {metadata?.lastSignInAt ? "Active" : "Invited"}
+                            </span>
+                          </Tooltip>
+                        </div>
+
+                        <dl className="mt-4 grid grid-cols-3 gap-2 text-center">
+                          <div className="flex flex-col rounded-lg bg-blue-500/[0.08] px-2 py-2 text-blue-700 dark:text-blue-300">
+                            <dt className="order-2 text-[9px] font-semibold uppercase tracking-wider opacity-75">
+                              Open
+                            </dt>
+                            <dd className="order-1 font-semibold">
+                              {metadata?.assignedOpen ?? 0}
+                            </dd>
+                          </div>
+                          <div className="flex flex-col rounded-lg bg-emerald-500/[0.08] px-2 py-2 text-emerald-700 dark:text-emerald-300">
+                            <dt className="order-2 text-[9px] font-semibold uppercase tracking-wider opacity-75">
+                              Done
+                            </dt>
+                            <dd className="order-1 font-semibold">
+                              {metadata?.assignedCompleted ?? 0}
+                            </dd>
+                          </div>
+                          <div className="flex flex-col rounded-lg bg-amber-500/[0.08] px-2 py-2 text-amber-700 dark:text-amber-300">
+                            <dt className="order-2 text-[9px] font-semibold uppercase tracking-wider opacity-75">
+                              Reported
+                            </dt>
+                            <dd className="order-1 font-semibold">
+                              {metadata?.reported ?? 0}
+                            </dd>
+                          </div>
+                        </dl>
+                        <dl className="mt-2 flex justify-center gap-4 text-[10px] text-black/45 dark:text-white/45">
+                          <div className="flex items-baseline gap-1">
+                            <dt>Assigned:</dt>
+                            <dd className="font-medium tabular-nums">
+                              {metadata?.assigned ?? 0}
+                            </dd>
+                          </div>
+                          <div className="flex items-baseline gap-1">
+                            <dt>Created:</dt>
+                            <dd className="font-medium tabular-nums">
+                              {metadata?.created ?? 0}
+                            </dd>
+                          </div>
+                        </dl>
+
+                        <div className="mt-4 flex-1 border-t border-black/10 pt-4 dark:border-white/10">
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-black/50 dark:text-white/50">
+                            Access groups
+                          </p>
+                          {profileGroups.length > 0 ? (
+                            <ul className="mt-2 flex flex-wrap gap-1.5">
+                              {profileGroups.map((group) => (
+                                <li key={group.id}>
+                                  <Link
+                                    href={`/access/${accessGroupSlug(group.name)}`}
+                                    className="inline-flex rounded-md transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:hover:brightness-125 dark:focus-visible:ring-white/30"
+                                  >
+                                    <Pill
+                                      variant="code"
+                                      size="md"
+                                      className={
+                                        group.kind === "tier"
+                                          ? "rounded-md border-violet-500/30 ring-1 ring-inset ring-violet-500/15"
+                                          : "rounded-full border-sky-500/30 ring-1 ring-inset ring-sky-500/15"
+                                      }
+                                      style={{
+                                        backgroundColor: `${group.color}14`,
+                                        borderColor: group.color,
+                                        color: group.color,
+                                      }}
+                                    >
+                                      <span className="inline-flex items-center gap-1.5">
+                                        {group.kind === "tier" ? (
+                                          <FiShield aria-hidden />
+                                        ) : (
+                                          <FiUsers aria-hidden />
+                                        )}
+                                        {group.name}
+                                      </span>
+                                    </Pill>
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="mt-2 text-sm text-black/45 dark:text-white/45">
+                              No access assigned
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-2 gap-2 border-t border-black/10 pt-4 dark:border-white/10 sm:grid-cols-3">
+                          <Button
+                            size="xs"
+                            variant="secondary"
+                            leftIcon={<FiShield />}
+                            onClick={() => editProfileAccess(profile)}
+                          >
+                            Manage
+                          </Button>
+                          <Button.Link
+                            href={userAccessPreviewHref(profile.id)}
+                            size="xs"
+                            variant="secondary"
+                            leftIcon={<FiEye />}
+                          >
+                            View as
+                          </Button.Link>
+                          <Button
+                            size="xs"
+                            variant="danger"
+                            leftIcon={<FiTrash2 />}
+                            disabled={profile.id === currentUserId}
+                            title={
+                              profile.id === currentUserId
+                                ? "You cannot remove your own owner account"
+                                : undefined
+                            }
+                            className="col-span-2 sm:col-span-1"
+                            onClick={() => setProfileToRemove(profile)}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <div className="hidden min-w-0 overflow-x-auto 2xl:block">
                   <table className="w-full text-left text-sm">
                     <thead className="border-b border-black/10 bg-black/[0.025] text-[10px] uppercase tracking-[0.16em] text-black/50 dark:border-white/10 dark:bg-white/[0.025] dark:text-white/50">
                       <tr>
                         <th className="px-4 py-3 font-semibold">Person</th>
                         <th className="px-4 py-3 font-semibold">Account</th>
-                        <th className="w-px whitespace-nowrap px-4 py-3 font-semibold">
+                        <th className="hidden w-px whitespace-nowrap px-4 py-3 font-semibold 2xl:table-cell">
                           Tasks
                         </th>
-                        <th className="px-4 py-3 font-semibold">
+                        <th className="hidden px-4 py-3 font-semibold 2xl:table-cell">
                           Access groups
                         </th>
                         <th className="px-4 py-3 text-right font-semibold">
@@ -730,7 +945,7 @@ export function AccessPageClient({
                                 </span>
                               </Tooltip>
                             </td>
-                            <td className="w-px whitespace-nowrap px-4 py-3">
+                            <td className="hidden w-px whitespace-nowrap px-4 py-3 2xl:table-cell">
                               <dl className="grid grid-cols-[repeat(3,6rem)] gap-1.5 text-center">
                                 <div className="flex flex-col rounded-lg bg-blue-500/[0.08] px-2 py-1.5 text-blue-700 dark:text-blue-300">
                                   <dt className="order-2 text-[9px] font-semibold uppercase tracking-wider opacity-75">
@@ -772,7 +987,7 @@ export function AccessPageClient({
                                 </div>
                               </dl>
                             </td>
-                            <td className="min-w-48 px-4 py-3">
+                            <td className="hidden min-w-48 px-4 py-3 2xl:table-cell">
                               {profileGroups.length > 0 ? (
                                 <ul className="flex flex-wrap gap-1.5">
                                   {profileGroups.map((group) => (

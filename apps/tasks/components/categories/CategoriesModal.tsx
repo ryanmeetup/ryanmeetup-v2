@@ -428,6 +428,7 @@ export function CategoriesModal({
               type="button"
               variant="action"
               size="sm"
+              className="w-full sm:w-auto"
               leftIcon={<FiPlus aria-hidden />}
               onClick={onCreate}
             >
@@ -438,7 +439,6 @@ export function CategoriesModal({
         hideActions
         size={createOnly ? "lg" : "xl"}
         embedded={embedded}
-        maxHeight="min(42rem, calc(100dvh - max(1rem, env(safe-area-inset-top)) - max(1rem, env(safe-area-inset-bottom))))"
         footer={
           embedded ? undefined : createOnly ? (
             <div className="flex justify-end gap-2">
@@ -606,7 +606,7 @@ export function CategoriesModal({
                 )}
               </div>
               <div
-                className="flex flex-wrap gap-2"
+                className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap"
                 aria-label="Filter categories"
               >
                 {(["active", "archived", "all"] as const).map((status) => (
@@ -614,7 +614,7 @@ export function CategoriesModal({
                     key={status}
                     active={categoryStatus === status}
                     onClick={() => setCategoryStatus(status)}
-                    className="h-10 px-4 py-0"
+                    className="h-10 w-full justify-center px-2 py-0 sm:w-auto sm:px-4"
                   >
                     {status}
                   </FilterChip>
@@ -635,7 +635,7 @@ export function CategoriesModal({
                 </div>
               )}
               <div
-                className={`${searchPending ? "pointer-events-none opacity-55" : ""} grid auto-rows-fr items-stretch gap-4 transition-opacity md:grid-cols-2 ${embedded ? "xl:grid-cols-3" : ""}`}
+                className={`${searchPending ? "pointer-events-none opacity-55" : ""} grid auto-rows-fr items-stretch gap-4 transition-opacity md:grid-cols-2 ${embedded ? "lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3" : ""}`}
               >
                 {categories.map((category) => {
                   const owners = data.categoryOwners
@@ -667,7 +667,7 @@ export function CategoriesModal({
                           </div>
                         ) : undefined
                       }
-                      footerClassName="justify-start"
+                      footerClassName="flex-wrap justify-start"
                       footer={
                         <>
                           {owners.length > 0 ? (
@@ -736,6 +736,7 @@ export function CategoriesModal({
                               )}
                               variant="secondary"
                               size="sm"
+                              className="w-full justify-center sm:ml-auto sm:w-auto"
                               rightIcon={<FiArrowRight aria-hidden />}
                             >
                               Open board
@@ -782,7 +783,7 @@ export function CategoriesModal({
                 })}
                 {categories.length === 0 && (
                   <div
-                    className={`rounded-xl border border-dashed border-black/10 px-4 py-10 text-center text-sm text-black/55 dark:border-white/10 dark:text-white/55 md:col-span-2 ${embedded ? "xl:col-span-3" : ""}`}
+                    className={`rounded-xl border border-dashed border-black/10 px-4 py-10 text-center text-sm text-black/55 dark:border-white/10 dark:text-white/55 md:col-span-2 ${embedded ? "lg:col-span-1 xl:col-span-2 2xl:col-span-3" : ""}`}
                   >
                     No categories match this search.
                   </div>
@@ -823,7 +824,6 @@ export function CategoriesModal({
               title={`Edit ${category.name}`}
               size="lg"
               hideActions
-              maxHeight="min(42rem, calc(100dvh - max(1rem, env(safe-area-inset-top)) - max(1rem, env(safe-area-inset-bottom))))"
               footer={
                 <div className="flex justify-end gap-2">
                   <Button

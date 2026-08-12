@@ -22,13 +22,14 @@ import {
   FiFlag,
   FiFolder,
   FiLink,
-  FiMenu,
+  FiSidebar,
   FiUser,
   FiUserCheck,
 } from "react-icons/fi";
 import { TaskBanners } from "@/components/global";
 import {
   TaskHeaderActions,
+  TaskHeaderBrand,
   TaskSearch,
   TasksSidebar,
 } from "@/components/navigation";
@@ -43,7 +44,7 @@ import type { Task, WorkspaceData } from "@/lib/types";
 import { TaskDetails } from "./TaskDetails";
 import { TaskDueDate } from "./TaskDueDate";
 import { TaskEditor } from "./TaskEditor";
-import { TaskKeyBadge } from "./TaskKeyBadge";
+import { TaskPriorityBadge } from "./TaskPriorityBadge";
 import { emptyNewTaskDetails } from "./NewTaskDetails";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", { dateStyle: "medium" });
@@ -196,14 +197,15 @@ export function TaskPageClient({
       />
 
       <main className="min-w-0 lg:pl-64">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-black/10 bg-[#f7f7f5]/90 px-4 backdrop-blur-xl focus-within:z-[2147483647] dark:border-white/10 dark:bg-[#101010]/90 sm:px-6 lg:px-8">
+        <header className="tasks-app-header">
           <IconButton
             label="Open navigation"
             tooltipTriggerClassName="lg:hidden"
             onClick={() => setSidebarOpen(true)}
           >
-            <FiMenu />
+            <FiSidebar />
           </IconButton>
+          <TaskHeaderBrand />
           <TaskSearch
             tasks={data.tasks}
             projects={data.projects}
@@ -219,8 +221,8 @@ export function TaskPageClient({
         </header>
         <TaskBanners preview={data.accessPreview} />
 
-        <div className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6 lg:p-8">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+        <div className="mx-auto max-w-6xl space-y-5 p-4 sm:space-y-6 sm:p-6 lg:p-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-5">
             <div className="min-w-0 flex-1">
               <Breadcrumbs
                 className="mb-2"
@@ -243,32 +245,33 @@ export function TaskPageClient({
               />
               <h1 className="text-3xl font-bold leading-tight sm:text-4xl">
                 {task.title}
-                <TaskKeyBadge
-                  task={task}
-                  size="title"
-                  className="ml-3 align-middle"
-                />
               </h1>
             </div>
-            <div className="flex shrink-0 flex-wrap gap-2">
+            <div className="grid shrink-0 grid-cols-2 gap-2 sm:flex sm:flex-wrap">
               <Button
                 type="button"
                 variant="secondary"
                 size="sm"
+                className="w-full sm:w-auto"
                 leftIcon={<FiLink />}
                 onClick={copyLink}
               >
                 Copy link
               </Button>
-              <Button size="sm" leftIcon={<FiEdit3 />} onClick={openEditor}>
+              <Button
+                size="sm"
+                className="w-full sm:w-auto"
+                leftIcon={<FiEdit3 />}
+                onClick={openEditor}
+              >
                 Edit task
               </Button>
             </div>
           </div>
 
           <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
-            <div className="space-y-6">
-              <Card className="space-y-5">
+            <div className="contents xl:block xl:space-y-6">
+              <Card className="order-1 space-y-5">
                 <div>
                   <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-black/55 dark:text-white/55">
                     Description
@@ -306,6 +309,7 @@ export function TaskPageClient({
                 active
                 pageLayout
                 section="work"
+                className="order-3"
                 data={data}
                 demoMode={demoMode}
                 setData={setData}
@@ -315,6 +319,7 @@ export function TaskPageClient({
                 active
                 pageLayout
                 section="comment"
+                className="order-4"
                 data={data}
                 demoMode={demoMode}
                 setData={setData}
@@ -322,12 +327,12 @@ export function TaskPageClient({
               />
             </div>
 
-            <div className="space-y-6 xl:sticky xl:top-24">
-              <Card className="space-y-5">
+            <div className="contents xl:sticky xl:top-24 xl:block xl:space-y-6">
+              <Card className="order-2 space-y-5">
                 <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-black/55 dark:text-white/55">
                   Task details
                 </h2>
-                <dl className="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-4 text-sm sm:gap-x-6">
                   <div>
                     <dt className="flex items-center gap-1.5 text-black/50 dark:text-white/50">
                       <FiCalendar aria-hidden /> Created
@@ -370,8 +375,8 @@ export function TaskPageClient({
                     <dt className="flex items-center gap-1.5 text-black/50 dark:text-white/50">
                       <FiFlag aria-hidden /> Priority
                     </dt>
-                    <dd className="mt-1 font-semibold capitalize">
-                      {task.priority}
+                    <dd className="mt-1">
+                      <TaskPriorityBadge priority={task.priority} />
                     </dd>
                   </div>
                   <div>
@@ -400,7 +405,7 @@ export function TaskPageClient({
                       {assignee?.full_name ?? "Unassigned"}
                     </dd>
                   </div>
-                  <div className="sm:col-span-2">
+                  <div className="col-span-2">
                     <dt className="flex items-center gap-1.5 text-black/50 dark:text-white/50">
                       <FiFolder aria-hidden /> Project
                     </dt>
@@ -413,7 +418,7 @@ export function TaskPageClient({
 
               <div
                 ref={conversationTopRef}
-                className="overflow-hidden rounded-2xl"
+                className="order-5 overflow-hidden rounded-2xl"
                 style={
                   conversationHeight
                     ? { maxHeight: conversationHeight }

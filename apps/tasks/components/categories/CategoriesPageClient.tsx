@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { IconButton } from "@ryanmeetup/ui";
-import { FiMenu } from "react-icons/fi";
+import { FiSidebar } from "react-icons/fi";
 import { CategoriesModal } from "./CategoriesModal";
 import { TaskBanners } from "@/components/global";
 import {
   TaskHeaderActions,
+  TaskHeaderBrand,
   TaskSearch,
   TasksSidebar,
 } from "@/components/navigation";
@@ -35,15 +36,16 @@ export function CategoriesPageClient({
         onCreateCategory={() => setCreateOpen(true)}
         onCreateProject={() => setProjectCreateOpen(true)}
       />
-      <main className="min-w-0 lg:pl-64">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-black/10 bg-[#f7f7f5]/90 px-4 backdrop-blur-xl focus-within:z-[2147483647] dark:border-white/10 dark:bg-[#101010]/90 sm:px-6 lg:px-8">
+      <main className="min-w-0 overflow-x-hidden lg:pl-64">
+        <header className="tasks-app-header">
           <IconButton
             label="Open navigation"
             tooltipTriggerClassName="lg:hidden"
             onClick={() => setSidebarOpen(true)}
           >
-            <FiMenu />
+            <FiSidebar />
           </IconButton>
+          <TaskHeaderBrand />
           <TaskSearch
             tasks={data.tasks}
             projects={data.projects}
@@ -58,7 +60,7 @@ export function CategoriesPageClient({
           />
         </header>
         <TaskBanners />
-        <div className="p-4 sm:p-6 lg:p-8">
+        <div className="p-3 sm:p-6 lg:p-6 xl:p-8">
           <CategoriesModal
             open
             setOpen={() => undefined}

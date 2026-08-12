@@ -100,8 +100,8 @@ const DropdownSelect = ({
         leaveTo="translate-y-1 scale-95 opacity-0"
       >
         <ListboxOptions
-          anchor="bottom start"
-          className={`z-50 mt-2 flex origin-top flex-col gap-1 rounded-xl border border-black/10 bg-white/95 p-1.5 text-black shadow-xl backdrop-blur focus:outline-none dark:border-white/10 dark:bg-[#181818]/95 dark:text-white ${field ? "w-[var(--button-width)]" : "w-56"}`}
+          anchor={{ to: "bottom start", padding: 16 }}
+          className={`z-50 mt-2 flex max-w-[calc(100vw-2rem)] origin-top flex-col gap-1 rounded-xl border border-black/10 bg-white/95 p-1.5 text-black shadow-xl backdrop-blur focus:outline-none dark:border-white/10 dark:bg-[#181818]/95 dark:text-white ${field ? "w-[var(--button-width)]" : "w-56"}`}
         >
           {options.map((option) => (
             <ListboxOption

@@ -50,12 +50,18 @@ export function TaskWorkspaceHeader({
                 ? "Personal workspace"
                 : "Team workspace"}
         </p>
-        <div className="flex flex-wrap items-center gap-3">
-          <Heading size="h1" className="text-3xl sm:text-4xl">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <Heading size="h1" className="text-2xl sm:text-4xl">
             {viewTitle}
           </Heading>
-          <Pill size="sm">
-            {taskCount} {taskCount === 1 ? "task" : "tasks"}
+          <Pill
+            size="sm"
+            className="px-2 tracking-[0.2em] sm:px-3 sm:tracking-[0.35em]"
+          >
+            <span>{taskCount}</span>
+            <span className="ml-1 hidden sm:inline">
+              {taskCount === 1 ? "task" : "tasks"}
+            </span>
           </Pill>
         </div>
         {scopeDescription && (
@@ -123,7 +129,7 @@ export function TaskWorkspaceHeader({
           </div>
         )}
       </div>
-      <div className="flex flex-col items-end gap-2">
+      <div className="flex w-full flex-col gap-2 xl:w-auto xl:items-end">
         {selectedProject && !previewing && (
           <Button
             type="button"
@@ -146,16 +152,16 @@ export function TaskWorkspaceHeader({
             Edit category
           </Button>
         )}
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:justify-end">
           <div
             role="group"
-            className="flex rounded-lg border border-black/10 bg-white p-1 dark:border-white/10 dark:bg-white/5"
+            className="grid min-w-0 grid-cols-2 rounded-lg border border-black/10 bg-white p-1 dark:border-white/10 dark:bg-white/5 sm:flex"
             aria-label="Task scope"
           >
             <button
               aria-pressed={assignee === "all"}
               onClick={() => onSetAssignee("all")}
-              className={`view-button ${assignee === "all" ? "view-button-active" : ""}`}
+              className={`view-button min-w-0 px-2 tracking-[0.08em] sm:px-3 sm:tracking-[0.14em] ${assignee === "all" ? "view-button-active" : ""}`}
             >
               All
             </button>
@@ -164,7 +170,7 @@ export function TaskWorkspaceHeader({
                 <button
                   type="button"
                   disabled
-                  className="view-button opacity-40"
+                  className="view-button min-w-0 px-2 tracking-[0.08em] opacity-40 sm:px-3 sm:tracking-[0.14em]"
                 >
                   Mine
                 </button>
@@ -173,7 +179,7 @@ export function TaskWorkspaceHeader({
               <button
                 aria-pressed={isMyTasks}
                 onClick={() => onSetAssignee(myTasksName)}
-                className={`view-button ${isMyTasks ? "view-button-active" : ""}`}
+                className={`view-button min-w-0 px-2 tracking-[0.08em] sm:px-3 sm:tracking-[0.14em] ${isMyTasks ? "view-button-active" : ""}`}
               >
                 Mine
               </button>
@@ -181,20 +187,20 @@ export function TaskWorkspaceHeader({
           </div>
           <div
             role="group"
-            className="flex rounded-lg border border-black/10 bg-white p-1 dark:border-white/10 dark:bg-white/5"
+            className="grid min-w-0 grid-cols-2 rounded-lg border border-black/10 bg-white p-1 dark:border-white/10 dark:bg-white/5 sm:flex"
             aria-label="Task layout"
           >
             <button
               aria-pressed={view === "board"}
               onClick={() => onSetView("board")}
-              className={`view-button ${view === "board" ? "view-button-active" : ""}`}
+              className={`view-button min-w-0 gap-1 px-2 tracking-[0.08em] sm:gap-2 sm:px-3 sm:tracking-[0.14em] ${view === "board" ? "view-button-active" : ""}`}
             >
               <FiGrid /> Board
             </button>
             <button
               aria-pressed={view === "list"}
               onClick={() => onSetView("list")}
-              className={`view-button ${view === "list" ? "view-button-active" : ""}`}
+              className={`view-button min-w-0 gap-1 px-2 tracking-[0.08em] sm:gap-2 sm:px-3 sm:tracking-[0.14em] ${view === "list" ? "view-button-active" : ""}`}
             >
               <FiList /> List
             </button>

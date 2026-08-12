@@ -36,6 +36,7 @@ import {
 } from "react-icons/fi";
 import { MAX_ATTACHMENT_SIZE } from "@/lib/task-attachments";
 import { attachmentUrlName } from "@/lib/task-attachment-urls";
+import { CountBadge } from "@/components/global";
 import { normalizeHttpUrl } from "@ryanmeetup/utils";
 import type {
   Subtask,
@@ -62,13 +63,18 @@ function DetailGroup({
   card,
   className,
   children,
+  header,
 }: {
   card: boolean;
   className?: string;
   children: ReactNode;
+  header?: ReactNode;
 }) {
   return card ? (
-    <Card className={`space-y-6 ${className ?? ""}`}>{children}</Card>
+    <Card className={`space-y-6 ${className ?? ""}`}>
+      {header}
+      {children}
+    </Card>
   ) : (
     <>{children}</>
   );
@@ -713,7 +719,14 @@ export function TaskDetails({
       className={`${pageLayout ? "" : "space-y-6 border-t border-black/10 pt-6 dark:border-white/10"} ${className ?? ""}`}
     >
       {(section === "all" || section === "work") && (
-        <DetailGroup card={pageLayout}>
+        <DetailGroup
+          card={pageLayout}
+          header={
+            <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-black/55 dark:text-white/55">
+              Task work
+            </h2>
+          }
+        >
           <DisclosureCard
             defaultOpen
             className=""
@@ -721,13 +734,11 @@ export function TaskDetails({
             panelClassName="space-y-3 pt-3"
             iconClassName="h-3.5 w-3.5"
             summary={
-              <span className="flex items-center justify-between gap-3">
+              <span className="flex items-center gap-2">
                 <span className="text-xs font-semibold uppercase tracking-[0.2em]">
                   Checklist
                 </span>
-                <span className="text-xs text-black/50 dark:text-white/50">
-                  {completed}/{subtasks.length}
-                </span>
+                <CountBadge>{subtasks.length}</CountBadge>
               </span>
             }
           >
@@ -771,7 +782,7 @@ export function TaskDetails({
                 ))}
               </div>
             )}
-            <div className="flex w-full gap-2">
+            <div className="grid w-full gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
               <div className="min-w-0 flex-1">
                 <Input
                   label="New checklist item"
@@ -795,16 +806,26 @@ export function TaskDetails({
                 onClick={() => void addSubtask()}
                 loading={detailSaving}
                 disabled={detailSaving || !subtaskTitle.trim()}
+                className="w-full sm:w-auto"
               >
                 Add
               </Button>
             </div>
           </DisclosureCard>
 
-          <section className="space-y-3">
-            <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em]">
-              <FiPaperclip /> Attachments
-            </h3>
+          <DisclosureCard
+            defaultOpen
+            className=""
+            buttonClassName="flex w-full items-center justify-between gap-3 rounded-lg py-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-black/25 dark:focus-visible:ring-white/30"
+            panelClassName="space-y-3 pt-3"
+            iconClassName="h-3.5 w-3.5"
+            summary={
+              <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em]">
+                <FiPaperclip aria-hidden /> Attachments
+                <CountBadge>{attachments.length}</CountBadge>
+              </span>
+            }
+          >
             {previewAttachment && (
               <div className="overflow-hidden rounded-xl border border-black/10 bg-black/[0.025] dark:border-white/10 dark:bg-white/[0.035]">
                 <div className="relative aspect-[4/3] w-full bg-black/5 dark:bg-black/30">
@@ -927,13 +948,14 @@ export function TaskDetails({
                 disabled={!attachmentUrl.trim()}
                 loading={addingUrl}
                 loadingText="Adding..."
+                className="w-full sm:w-auto"
                 onClick={() => void addUrlAttachment()}
               >
                 Add URL
               </Button>
             </div>
             <div
-              className={`rounded-xl border border-dashed p-4 text-center transition duration-200 ease-in-out ${
+              className={`rounded-xl border border-dashed p-3 text-center transition duration-200 ease-in-out sm:p-4 ${
                 draggingFiles
                   ? "border-black/50 bg-black/5 ring-2 ring-black/10 dark:border-white/60 dark:bg-white/10 dark:ring-white/15"
                   : "border-black/20 bg-black/[0.02] dark:border-white/20 dark:bg-white/[0.03]"
@@ -962,15 +984,23 @@ export function TaskDetails({
                 void uploadFiles(Array.from(event.dataTransfer.files));
               }}
             >
-              <FiPaperclip className="mx-auto mb-2 h-5 w-5 text-black/45 dark:text-white/45" />
-              <p className="text-sm font-semibold">Drop files here</p>
+              <FiPaperclip className="mx-auto mb-1.5 h-5 w-5 text-black/45 dark:text-white/45 sm:mb-2" />
+              <p className="text-sm font-semibold">
+                <span className="sm:hidden">Add files</span>
+                <span className="hidden sm:inline">Drop files here</span>
+              </p>
               <p className="mt-1 text-xs text-black/50 dark:text-white/50">
-                Paste, drop, or choose files · 10 MB maximum per file
+                <span className="sm:hidden">
+                  Choose files · 10 MB maximum each
+                </span>
+                <span className="hidden sm:inline">
+                  Paste, drop, or choose files · 10 MB maximum per file
+                </span>
               </p>
               <Button
                 type="button"
                 variant="secondary"
-                className="mt-3"
+                className="mt-3 w-full sm:w-auto"
                 loading={uploadingFiles}
                 loadingText="Uploading..."
                 onClick={() => fileInputRef.current?.click()}
@@ -991,7 +1021,7 @@ export function TaskDetails({
                 }}
               />
             </div>
-          </section>
+          </DisclosureCard>
         </DetailGroup>
       )}
 
@@ -1000,9 +1030,7 @@ export function TaskDetails({
           <section className="space-y-3">
             <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em]">
               <FiMessageSquare /> Comments
-              <span className="rounded-full bg-black/10 px-2 py-0.5 tracking-normal text-black/60 dark:bg-white/10 dark:text-white/60">
-                {comments.length}
-              </span>
+              <CountBadge>{comments.length}</CountBadge>
             </h3>
             {comments.length > 0 && (
               <div className="max-h-72 space-y-3 overflow-y-auto overscroll-contain pr-2">
@@ -1144,19 +1172,17 @@ export function TaskDetails({
       )}
 
       {(section === "all" || section === "activity") && (
-        <DetailGroup card={pageLayout} className="overflow-hidden !pb-0">
+        <DetailGroup card={pageLayout} className="overflow-hidden">
           <DisclosureCard
             defaultOpen={pageLayout}
             className=""
-            buttonClassName="flex w-full items-center justify-between gap-3 py-1 text-left"
+            buttonClassName="flex w-full items-center justify-between gap-3 rounded-lg py-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-black/25 dark:focus-visible:ring-white/30"
             panelClassName="space-y-3 pt-3"
             iconClassName="h-3.5 w-3.5"
             summary={
               <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em]">
                 Activity
-                <span className="rounded-full bg-black/10 px-2 py-0.5 tracking-normal text-black/60 dark:bg-white/10 dark:text-white/60">
-                  {activity.length}
-                </span>
+                <CountBadge>{activity.length}</CountBadge>
               </span>
             }
           >

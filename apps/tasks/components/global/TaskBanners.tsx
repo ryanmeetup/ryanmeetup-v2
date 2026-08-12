@@ -4,7 +4,7 @@ import { BetaBanner } from "./BetaBanner";
 
 export function TaskBanners({ preview }: { preview?: AccessPreview }) {
   return (
-    <div className="sticky top-16 z-10">
+    <div className="sticky top-[6.5rem] z-10 sm:top-16">
       <BetaBanner />
       <AccessPreviewBanner preview={preview} />
     </div>

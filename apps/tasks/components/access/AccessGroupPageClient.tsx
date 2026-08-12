@@ -20,7 +20,7 @@ import {
   FiArrowDown,
   FiCheckCircle,
   FiLoader,
-  FiMenu,
+  FiSidebar,
   FiSearch,
   FiShield,
   FiTrash2,
@@ -34,9 +34,10 @@ import {
 import { accessMutation } from "@/lib/access-mutations";
 import type { WorkspaceData } from "@/lib/types";
 import { CategoriesModal } from "@/components/categories";
-import { TaskBanners } from "@/components/global";
+import { CountBadge, TaskBanners } from "@/components/global";
 import {
   TaskHeaderActions,
+  TaskHeaderBrand,
   TaskSearch,
   TasksSidebar,
 } from "@/components/navigation";
@@ -353,14 +354,15 @@ export function AccessGroupPageClient({
         onCreateProject={() => setProjectCreateOpen(true)}
       />
       <main className="min-w-0 lg:pl-64">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-black/10 bg-[#f7f7f5]/90 px-4 backdrop-blur-xl focus-within:z-[2147483647] dark:border-white/10 dark:bg-[#101010]/90 sm:px-6 lg:px-8">
+        <header className="tasks-app-header">
           <IconButton
             label="Open navigation"
             tooltipTriggerClassName="lg:hidden"
             onClick={() => setSidebarOpen(true)}
           >
-            <FiMenu />
+            <FiSidebar />
           </IconButton>
+          <TaskHeaderBrand />
           <TaskSearch
             tasks={data.tasks}
             projects={data.projects}
@@ -374,6 +376,7 @@ export function AccessGroupPageClient({
         <div className="p-4 sm:p-6 lg:p-8">
           <div className="mx-auto max-w-7xl space-y-6">
             <Breadcrumbs
+              variant="compact"
               crumbs={[
                 {
                   current: false,
@@ -390,7 +393,10 @@ export function AccessGroupPageClient({
               ]}
             />
             <div>
-              <Heading size="h1" className="flex items-center gap-3 text-4xl">
+              <Heading
+                size="h1"
+                className="flex flex-wrap items-center gap-3 text-3xl sm:text-4xl"
+              >
                 <span
                   aria-hidden
                   className="h-3.5 w-3.5 shrink-0 rounded-full"
@@ -482,7 +488,7 @@ export function AccessGroupPageClient({
                   </p>
                   <Button
                     type="submit"
-                    className="self-end sm:shrink-0"
+                    className="w-full sm:w-auto sm:shrink-0"
                     loading={saving}
                     loadingText="Saving..."
                   >
@@ -491,13 +497,10 @@ export function AccessGroupPageClient({
                 </div>
               </Card>
             </form>
-            <div className="grid items-stretch gap-6 xl:grid-cols-[minmax(0,4fr)_minmax(0,6fr)]">
-              <Card className="flex h-[32rem] max-h-[32rem] min-h-[28rem] flex-col overflow-hidden p-5">
-                <h2 className="font-semibold">
-                  Members{" "}
-                  <span className="text-black/45 dark:text-white/45">
-                    ({members.length})
-                  </span>
+            <div className="grid items-stretch gap-6 2xl:grid-cols-[minmax(0,4fr)_minmax(0,6fr)]">
+              <Card className="flex min-h-0 flex-col overflow-hidden p-5 2xl:h-[32rem] 2xl:max-h-[32rem] 2xl:min-h-[28rem]">
+                <h2 className="flex items-center gap-2 font-semibold">
+                  Members <CountBadge>{members.length}</CountBadge>
                 </h2>
                 <div className="mt-4">
                   {availableMembers.length > 0 ? (
@@ -564,11 +567,10 @@ export function AccessGroupPageClient({
                   })}
                 </ul>
               </Card>
-              <Card className="flex h-[32rem] max-h-[32rem] min-h-[28rem] flex-col overflow-hidden p-5">
-                <h2 className="font-semibold">
-                  Project visibility{" "}
-                  <span className="text-black/45 dark:text-white/45">
-                    {"("}
+              <Card className="flex min-h-0 flex-col overflow-hidden p-5 2xl:h-[32rem] 2xl:max-h-[32rem] 2xl:min-h-[28rem]">
+                <h2 className="flex items-center gap-2 font-semibold">
+                  Project visibility
+                  <CountBadge>
                     {group.grants_global_content
                       ? `${data.projects.length} global`
                       : `${
@@ -577,8 +579,7 @@ export function AccessGroupPageClient({
                             ...inheritedAccessByProject.keys(),
                           ]).size
                         } of ${data.projects.length}`}
-                    {")"}
-                  </span>
+                  </CountBadge>
                 </h2>
                 {group.grants_global_content && (
                   <div className="mt-3 rounded-xl border border-black/10 bg-black/[0.035] px-3 py-2 text-xs text-black/65 dark:border-white/10 dark:bg-white/[0.035] dark:text-white/65">
@@ -634,8 +635,8 @@ export function AccessGroupPageClient({
                             key={project.id}
                             className="rounded-xl border border-black/5 bg-black/[0.035] p-3 dark:border-white/5 dark:bg-white/[0.035]"
                           >
-                            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                              <div className="min-w-0 flex-1 self-center">
+                            <div className="grid min-w-0 gap-3 min-[400px]:grid-cols-[minmax(0,1fr)_11rem] min-[400px]:items-end">
+                              <div className="min-w-0 self-center">
                                 <p className="truncate text-sm font-medium">
                                   {project.name}
                                 </p>
@@ -689,27 +690,31 @@ export function AccessGroupPageClient({
                                   )}
                                 </div>
                               </div>
-                              <DropdownSelect
-                                className="sm:w-52"
-                                label="Direct permission"
-                                variant="field"
-                                value={directGrant?.permission ?? "none"}
-                                onChange={(value) =>
-                                  void updateProjectGrant(
-                                    project.id,
-                                    value as Permission | "none",
-                                  )
-                                }
-                                options={[
-                                  { label: "No direct access", value: "none" },
-                                  { label: "Viewer", value: "viewer" },
-                                  { label: "Editor", value: "editor" },
-                                  { label: "Manager", value: "manager" },
-                                ]}
-                                disabled={
-                                  group.grants_global_content || savingProject
-                                }
-                              />
+                              <div className="min-w-0">
+                                <DropdownSelect
+                                  label="Direct permission"
+                                  variant="field"
+                                  value={directGrant?.permission ?? "none"}
+                                  onChange={(value) =>
+                                    void updateProjectGrant(
+                                      project.id,
+                                      value as Permission | "none",
+                                    )
+                                  }
+                                  options={[
+                                    {
+                                      label: "No direct access",
+                                      value: "none",
+                                    },
+                                    { label: "Viewer", value: "viewer" },
+                                    { label: "Editor", value: "editor" },
+                                    { label: "Manager", value: "manager" },
+                                  ]}
+                                  disabled={
+                                    group.grants_global_content || savingProject
+                                  }
+                                />
+                              </div>
                             </div>
                           </li>
                         );
@@ -724,11 +729,9 @@ export function AccessGroupPageClient({
               </Card>
             </div>
             <Card className="p-5">
-              <h2 className="font-semibold">
-                Restricted category access{" "}
-                <span className="text-black/45 dark:text-white/45">
-                  ({categoryGrants.length})
-                </span>
+              <h2 className="flex items-center gap-2 font-semibold">
+                Restricted category access
+                <CountBadge>{categoryGrants.length}</CountBadge>
               </h2>
               <p className="mt-1 text-sm text-black/65 dark:text-white/65">
                 When a category is restricted, only groups listed here for that
@@ -752,7 +755,7 @@ export function AccessGroupPageClient({
                   />
                   <Button
                     type="button"
-                    className="self-end whitespace-nowrap"
+                    className="w-full whitespace-nowrap sm:w-auto"
                     disabled={!categoryId}
                     onClick={() => void addCategoryGrant(categoryId)}
                   >
@@ -789,7 +792,7 @@ export function AccessGroupPageClient({
                 </div>
               )}
             </Card>
-            <Card className="flex items-center justify-between gap-4 border-red-500/25 p-5">
+            <Card className="flex flex-col items-start gap-4 border-red-500/25 p-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="font-semibold">Delete access group</h2>
                 <p className="mt-1 text-sm text-black/65 dark:text-white/65">
@@ -800,6 +803,7 @@ export function AccessGroupPageClient({
               <Button
                 variant="danger"
                 leftIcon={<FiTrash2 />}
+                className="w-full sm:w-auto"
                 onClick={() => setDeleteOpen(true)}
               >
                 Delete group

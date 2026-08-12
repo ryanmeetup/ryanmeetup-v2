@@ -469,6 +469,7 @@ export function ProjectsModal({
               type="button"
               variant="action"
               size="sm"
+              className="w-full sm:w-auto"
               leftIcon={<FiPlus aria-hidden />}
               onClick={onCreate}
             >
@@ -479,7 +480,6 @@ export function ProjectsModal({
         hideActions
         size={createOnly ? "lg" : "xl"}
         embedded={embedded}
-        maxHeight="min(42rem, calc(100dvh - max(1rem, env(safe-area-inset-top)) - max(1rem, env(safe-area-inset-bottom))))"
         footer={
           embedded ? undefined : createOnly ? (
             <div className="flex justify-end gap-2">
@@ -579,7 +579,7 @@ export function ProjectsModal({
                 )}
               </div>
               <div
-                className="flex flex-wrap gap-2"
+                className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap"
                 aria-label="Filter projects"
               >
                 {(["active", "archived", "all"] as const).map((status) => (
@@ -587,7 +587,7 @@ export function ProjectsModal({
                     key={status}
                     active={projectStatus === status}
                     onClick={() => setProjectStatus(status)}
-                    className="h-10 px-4 py-0"
+                    className="h-10 w-full justify-center px-2 py-0 sm:w-auto sm:px-4"
                   >
                     {status}
                   </FilterChip>
@@ -608,7 +608,7 @@ export function ProjectsModal({
                 </div>
               )}
               <div
-                className={`${searchPending ? "pointer-events-none opacity-55" : ""} grid items-stretch gap-4 transition-opacity md:grid-cols-2 ${embedded ? "xl:grid-cols-3" : ""}`}
+                className={`${searchPending ? "pointer-events-none opacity-55" : ""} grid min-w-0 grid-cols-1 items-stretch gap-4 transition-opacity md:grid-cols-2 ${embedded ? "lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3" : ""}`}
               >
                 {projects.map((project) => {
                   const isFavorite = (
@@ -627,14 +627,14 @@ export function ProjectsModal({
                       key={project.id}
                       className={
                         isFavorite
-                          ? "border-amber-500/40 bg-amber-400/10 shadow-sm shadow-amber-900/5 dark:border-amber-400/35 dark:bg-amber-300/[0.08] dark:shadow-none"
-                          : undefined
+                          ? "min-w-0 overflow-hidden border-amber-500/40 bg-amber-400/10 shadow-sm shadow-amber-900/5 dark:border-amber-400/35 dark:bg-amber-300/[0.08] dark:shadow-none"
+                          : "min-w-0 overflow-hidden"
                       }
                       body={
                         project.description || (project.links ?? []).length ? (
                           <div className="min-w-0">
                             {project.description && (
-                              <p className="text-sm text-black/60 dark:text-white/60">
+                              <p className="break-words text-sm text-black/60 dark:text-white/60">
                                 {project.description}
                               </p>
                             )}
@@ -647,7 +647,7 @@ export function ProjectsModal({
                           </div>
                         ) : undefined
                       }
-                      footerClassName="justify-start"
+                      footerClassName="flex-wrap justify-start"
                       footer={
                         <>
                           {owners.length > 0 ? (
@@ -722,6 +722,7 @@ export function ProjectsModal({
                               )}
                               variant="secondary"
                               size="sm"
+                              className="w-full justify-center sm:ml-auto sm:w-auto"
                               rightIcon={<FiArrowRight aria-hidden />}
                             >
                               Open board
@@ -785,7 +786,7 @@ export function ProjectsModal({
                 })}
                 {projects.length === 0 && (
                   <div
-                    className={`rounded-xl border border-dashed border-black/10 px-4 py-10 text-center text-sm text-black/55 dark:border-white/10 dark:text-white/55 md:col-span-2 ${embedded ? "xl:col-span-3" : ""}`}
+                    className={`rounded-xl border border-dashed border-black/10 px-4 py-10 text-center text-sm text-black/55 dark:border-white/10 dark:text-white/55 md:col-span-2 ${embedded ? "lg:col-span-1 xl:col-span-2 2xl:col-span-3" : ""}`}
                   >
                     No projects match this search and filter.
                   </div>
@@ -820,7 +821,6 @@ export function ProjectsModal({
               title={`Edit ${project.name}`}
               size="lg"
               hideActions
-              maxHeight="min(42rem, calc(100dvh - max(1rem, env(safe-area-inset-top)) - max(1rem, env(safe-area-inset-bottom))))"
               footer={
                 <div className="flex justify-end gap-2">
                   <Button

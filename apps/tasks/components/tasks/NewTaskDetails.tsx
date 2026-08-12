@@ -26,6 +26,7 @@ import {
 } from "react-icons/fi";
 import { MAX_ATTACHMENT_SIZE } from "@/lib/task-attachments";
 import { attachmentUrlName } from "@/lib/task-attachment-urls";
+import { CountBadge } from "@/components/global";
 import { normalizeHttpUrl } from "@ryanmeetup/utils";
 
 export type NewTaskDetailsDraft = {
@@ -131,13 +132,11 @@ export function NewTaskDetails({
         panelClassName="space-y-3 pt-3"
         iconClassName="h-3.5 w-3.5"
         summary={
-          <span className="flex items-center justify-between gap-3">
+          <span className="flex items-center gap-2">
             <span className="text-xs font-semibold uppercase tracking-[0.2em]">
               Checklist
             </span>
-            <span className="text-xs text-black/50 dark:text-white/50">
-              0/{value.checklist.length}
-            </span>
+            <CountBadge>{value.checklist.length}</CountBadge>
           </span>
         }
       >
@@ -194,9 +193,7 @@ export function NewTaskDetails({
         <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em]">
           <FiPaperclip aria-hidden /> Attachments
           {value.files.length + value.urls.length > 0 && (
-            <span className="rounded-full bg-black/10 px-2 py-0.5 tracking-normal text-black/60 dark:bg-white/10 dark:text-white/60">
-              {value.files.length + value.urls.length}
-            </span>
+            <CountBadge>{value.files.length + value.urls.length}</CountBadge>
           )}
         </h3>
         {value.files.map((file, index) => (
@@ -347,9 +344,7 @@ export function NewTaskDetails({
       <section className="space-y-3 border-t border-black/10 pt-5 dark:border-white/10">
         <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em]">
           <FiMessageSquare aria-hidden /> Comments
-          <span className="rounded-full bg-black/10 px-2 py-0.5 tracking-normal text-black/60 dark:bg-white/10 dark:text-white/60">
-            {value.comment.trim() ? 1 : 0}
-          </span>
+          <CountBadge>{value.comment.trim() ? 1 : 0}</CountBadge>
         </h3>
         <Textarea
           id="new-task-initial-comment"
@@ -396,9 +391,7 @@ export function NewTaskDetails({
         summary={
           <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em]">
             <FiActivity aria-hidden /> Activity
-            <span className="rounded-full bg-black/10 px-2 py-0.5 tracking-normal text-black/60 dark:bg-white/10 dark:text-white/60">
-              0
-            </span>
+            <CountBadge>0</CountBadge>
           </span>
         }
       >

@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 const storageKey = "ryanmeetup.tasks.sidebar-sections";
 
 export function useSidebarSections() {
+  const [favoritesExpanded, setFavoritesExpanded] = useState(true);
   const [categoriesExpanded, setCategoriesExpanded] = useState(false);
   const [projectsExpanded, setProjectsExpanded] = useState(true);
   const [sectionsLoaded, setSectionsLoaded] = useState(false);
@@ -14,9 +15,11 @@ export function useSidebarSections() {
     queueMicrotask(() => {
       try {
         const saved = JSON.parse(localStorage.getItem(storageKey) ?? "{}") as {
+          favoritesExpanded?: boolean;
           categoriesExpanded?: boolean;
           projectsExpanded?: boolean;
         };
+        setFavoritesExpanded(saved.favoritesExpanded ?? true);
         setCategoriesExpanded(saved.categoriesExpanded ?? false);
         setProjectsExpanded(saved.projectsExpanded ?? true);
       } catch {
@@ -32,11 +35,17 @@ export function useSidebarSections() {
     if (!loaded.current) return;
     localStorage.setItem(
       storageKey,
-      JSON.stringify({ categoriesExpanded, projectsExpanded }),
+      JSON.stringify({
+        favoritesExpanded,
+        categoriesExpanded,
+        projectsExpanded,
+      }),
     );
-  }, [categoriesExpanded, projectsExpanded]);
+  }, [favoritesExpanded, categoriesExpanded, projectsExpanded]);
 
   return {
+    favoritesExpanded,
+    setFavoritesExpanded,
     categoriesExpanded,
     setCategoriesExpanded,
     projectsExpanded,

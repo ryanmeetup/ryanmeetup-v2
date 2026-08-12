@@ -35,6 +35,9 @@ button:disabled {
 }
 
 @layer components {
+  .tasks-app-header {
+    @apply sticky top-0 z-20 flex min-h-16 flex-wrap items-center gap-2 border-b border-black/10 bg-[#f7f7f5]/90 px-4 py-2 backdrop-blur-xl focus-within:z-[2147483647] dark:border-white/10 dark:bg-[#101010]/90 sm:h-16 sm:flex-nowrap sm:gap-3 sm:px-6 sm:py-0 lg:px-8;
+  }
   .sidebar-link {
     @apply flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-black/60 transition hover:bg-black/5 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-black/30 dark:text-white/60 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:ring-white/40;
   }

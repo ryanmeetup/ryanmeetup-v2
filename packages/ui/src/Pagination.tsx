@@ -1,6 +1,11 @@
 "use client";
 
-import { FiChevronsLeft, FiChevronsRight, FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import {
+  FiChevronsLeft,
+  FiChevronsRight,
+  FiChevronLeft,
+  FiChevronRight,
+} from "react-icons/fi";
 import { DropdownSelect } from "./DropdownSelect";
 import { IconButton } from "./IconButton";
 
@@ -40,7 +45,7 @@ export function Pagination({
       <p className="text-black/60 dark:text-white/60">
         Showing {start}–{end} of {totalCount} {itemLabel}
       </p>
-      <div className="flex items-center gap-2">
+      <div className="flex w-full flex-wrap items-center justify-between gap-2 sm:w-auto sm:justify-start">
         <DropdownSelect
           label="Rows"
           disabled={disabled}
@@ -54,16 +59,36 @@ export function Pagination({
         <span className="whitespace-nowrap px-1 text-xs text-black/60 dark:text-white/60">
           Page {currentPage} of {totalPages}
         </span>
-        <IconButton className="disabled:cursor-not-allowed disabled:opacity-40" label="First page" disabled={disabled || atStart} onClick={() => onPageChange(1)}>
+        <IconButton
+          className="hidden disabled:cursor-not-allowed disabled:opacity-40 sm:inline-flex"
+          label="First page"
+          disabled={disabled || atStart}
+          onClick={() => onPageChange(1)}
+        >
           <FiChevronsLeft />
         </IconButton>
-        <IconButton className="disabled:cursor-not-allowed disabled:opacity-40" label="Previous page" disabled={disabled || atStart} onClick={() => onPageChange(currentPage - 1)}>
+        <IconButton
+          className="disabled:cursor-not-allowed disabled:opacity-40"
+          label="Previous page"
+          disabled={disabled || atStart}
+          onClick={() => onPageChange(currentPage - 1)}
+        >
           <FiChevronLeft />
         </IconButton>
-        <IconButton className="disabled:cursor-not-allowed disabled:opacity-40" label="Next page" disabled={disabled || atEnd} onClick={() => onPageChange(currentPage + 1)}>
+        <IconButton
+          className="disabled:cursor-not-allowed disabled:opacity-40"
+          label="Next page"
+          disabled={disabled || atEnd}
+          onClick={() => onPageChange(currentPage + 1)}
+        >
           <FiChevronRight />
         </IconButton>
-        <IconButton className="disabled:cursor-not-allowed disabled:opacity-40" label="Last page" disabled={disabled || atEnd} onClick={() => onPageChange(totalPages)}>
+        <IconButton
+          className="hidden disabled:cursor-not-allowed disabled:opacity-40 sm:inline-flex"
+          label="Last page"
+          disabled={disabled || atEnd}
+          onClick={() => onPageChange(totalPages)}
+        >
           <FiChevronsRight />
         </IconButton>
       </div>

@@ -75,8 +75,8 @@ export function InclusionFilterMenu({
         />
       </PopoverButton>
       <PopoverPanel
-        anchor="bottom start"
-        className="z-50 mt-2 w-80 rounded-xl border border-black/10 bg-white/95 p-2 text-black shadow-xl backdrop-blur dark:border-white/10 dark:bg-[#181818]/95 dark:text-white"
+        anchor={{ to: "bottom start", padding: 16 }}
+        className="z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-black/10 bg-white/95 p-2 text-black shadow-xl backdrop-blur dark:border-white/10 dark:bg-[#181818]/95 dark:text-white"
       >
         <div className="flex items-center px-2 pb-2 text-[10px] font-semibold uppercase tracking-widest text-black/45 dark:text-white/45">
           <span className="flex-1">{label}</span>

@@ -14,12 +14,13 @@ import {
   Spinner,
   toast,
 } from "@ryanmeetup/ui";
-import { FiArrowRight, FiMenu } from "react-icons/fi";
+import { FiArrowRight, FiSidebar } from "react-icons/fi";
 import { CategoriesModal } from "@/components/categories";
 import { TaskBanners } from "@/components/global";
 import { filterPanelsExpandedPreferenceKey } from "@/lib/user-preferences";
 import {
   TaskHeaderActions,
+  TaskHeaderBrand,
   TaskSearch,
   TasksSidebar,
 } from "@/components/navigation";
@@ -338,14 +339,15 @@ export function ActivityPageClient({
       />
 
       <main className="min-w-0 lg:pl-64">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-black/10 bg-[#f7f7f5]/90 px-4 backdrop-blur-xl focus-within:z-[2147483647] dark:border-white/10 dark:bg-[#101010]/90 sm:px-6 lg:px-8">
+        <header className="tasks-app-header">
           <IconButton
             label="Open navigation"
             tooltipTriggerClassName="lg:hidden"
             onClick={() => setSidebarOpen(true)}
           >
-            <FiMenu />
+            <FiSidebar />
           </IconButton>
+          <TaskHeaderBrand />
           <TaskSearch
             tasks={data.tasks}
             projects={data.projects}
@@ -378,6 +380,7 @@ export function ActivityPageClient({
 
             <FilterPanel
               count={filterCount}
+              controlsClassName="grid grid-cols-1 overflow-visible min-[360px]:grid-cols-2 [&>button]:min-w-0 [&>button]:w-full [&>button>span]:truncate [&>div]:min-w-0 [&>div>button]:min-w-0 [&>div>button]:w-full [&>div>button>span]:truncate lg:flex lg:overflow-x-auto lg:[&>button]:w-auto lg:[&>div>button]:w-auto"
               defaultExpanded
               onClear={clearFilters}
               preferenceStorageKey={filterPanelsExpandedPreferenceKey}
@@ -458,7 +461,97 @@ export function ActivityPageClient({
               size="none"
               className={`overflow-hidden transition-opacity ${loading ? "opacity-60" : ""}`}
             >
-              <div className="overflow-x-auto" aria-busy={loading}>
+              <div className="md:hidden" aria-busy={loading}>
+                <div className="border-b border-black/10 bg-black/[0.025] px-4 py-3 dark:border-white/10 dark:bg-white/[0.025]">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-black/50 dark:text-white/50">
+                    Activity
+                  </p>
+                </div>
+                <div className="divide-y divide-black/10 dark:divide-white/10">
+                  {data.activity.map((item) => {
+                    const task = tasks.get(item.task_id);
+                    const profile = item.actor_id
+                      ? profiles.get(item.actor_id)
+                      : undefined;
+                    const project = task?.project_id
+                      ? data.projects.find(
+                          (entry) => entry.id === task.project_id,
+                        )
+                      : undefined;
+
+                    return (
+                      <article key={item.id} className="space-y-3 p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <span className="flex min-w-0 items-center gap-2 font-semibold">
+                            <Avatar
+                              name={profile?.full_name ?? "System"}
+                              src={profile?.avatar_url}
+                              size="sm"
+                            />
+                            <span className="truncate">
+                              {profile?.full_name ?? "System"}
+                            </span>
+                          </span>
+                          <time
+                            dateTime={item.created_at}
+                            className="shrink-0 text-right text-xs text-black/55 dark:text-white/55"
+                          >
+                            {dateTimeFormatter.format(new Date(item.created_at))}
+                          </time>
+                        </div>
+                        <div className="text-sm">
+                          {activityDescription(item, data.statuses)}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+                          {task ? (
+                            <Link
+                              href={withAccessPreview(
+                                taskPath(task),
+                                data.accessPreview,
+                              )}
+                              className="inline-flex min-w-0 items-center gap-2 rounded font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/40"
+                            >
+                              <span className="truncate hover:underline">
+                                {task.title}
+                              </span>
+                              <TaskKeyBadge task={task} />
+                            </Link>
+                          ) : (
+                            <span className="text-black/45 dark:text-white/45">
+                              Task unavailable
+                            </span>
+                          )}
+                          {project && (
+                            <span className="text-black/60 dark:text-white/60">
+                              {project.name}
+                            </span>
+                          )}
+                        </div>
+                      </article>
+                    );
+                  })}
+                  {loading && data.activity.length === 0 && (
+                    <div className="flex items-center justify-center gap-2 px-4 py-12 text-sm text-black/60 dark:text-white/60">
+                      <Spinner size={18} label="Loading activity" />
+                      <span>Loading activity…</span>
+                    </div>
+                  )}
+                  {!loading && data.activity.length === 0 && (
+                    <EmptyState
+                      variant="plain"
+                      message={
+                        filterCount === 0
+                          ? "No activity yet. The next task update will show up here."
+                          : "No activity matches these filters. Try widening your selection."
+                      }
+                    />
+                  )}
+                </div>
+              </div>
+              <div
+                className="hidden overflow-x-auto md:block"
+                aria-busy={loading}
+              >
                 <table className="w-full min-w-[760px] table-fixed text-left text-sm">
                   <colgroup>
                     <col className="w-[20%]" />

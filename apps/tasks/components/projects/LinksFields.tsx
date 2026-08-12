@@ -4,6 +4,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { Button, DisclosureCard, IconButton, Input } from "@ryanmeetup/ui";
 import { ensureHttpUrlScheme } from "@ryanmeetup/utils";
 import { FiPlus, FiTrash2 } from "react-icons/fi";
+import { CountBadge } from "@/components/global";
 import type { ProjectLink } from "@/lib/types";
 
 export function LinksFields({
@@ -57,9 +58,7 @@ export function LinksFields({
         <span className="flex items-center gap-2 text-sm font-semibold">
           Useful links
           {links.length > 0 && (
-            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-black/10 px-1.5 text-[10px] font-semibold leading-none tabular-nums text-black/55 dark:bg-white/10 dark:text-white/55">
-              {links.length}
-            </span>
+            <CountBadge>{links.length}</CountBadge>
           )}
         </span>
       }

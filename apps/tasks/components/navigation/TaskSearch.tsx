@@ -27,6 +27,7 @@ import {
 import type { Category, Profile, Project, Status, Task } from "@/lib/types";
 import { taskKey, taskPath } from "@/lib/task-key";
 import { TaskKeyBadge } from "@/components/tasks/TaskKeyBadge";
+import { TaskPriorityBadge } from "@/components/tasks/TaskPriorityBadge";
 import {
   ACCESS_PREVIEW_PARAM,
   USER_ACCESS_PREVIEW_PARAM,
@@ -260,7 +261,7 @@ export function TaskSearch({
     <form
       role="search"
       onSubmit={submit}
-      className="relative min-w-0 flex-1 sm:max-w-[35rem]"
+      className="relative order-last min-w-0 basis-full sm:order-none sm:flex-1 sm:basis-auto sm:max-w-[35rem]"
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
       }}
@@ -426,9 +427,12 @@ export function TaskSearch({
                                 {statusName}
                               </span>
                             )}
-                            <span className="inline-flex items-center gap-1 capitalize">
+                            <span className="inline-flex items-center gap-1">
                               <FiFlag aria-hidden />
-                              {task.priority}
+                              <TaskPriorityBadge
+                                priority={task.priority}
+                                size="compact"
+                              />
                             </span>
                             {assignee && (
                               <span className="inline-flex min-w-0 items-center gap-1.5">

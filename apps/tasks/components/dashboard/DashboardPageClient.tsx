@@ -26,7 +26,7 @@ import {
   FiClock,
   FiEdit2,
   FiFileText,
-  FiMenu,
+  FiSidebar,
   FiPlus,
   FiSend,
   FiStar,
@@ -36,6 +36,7 @@ import { CategoriesModal } from "@/components/categories";
 import { TaskBanners } from "@/components/global";
 import {
   TaskHeaderActions,
+  TaskHeaderBrand,
   TaskSearch,
   TasksSidebar,
 } from "@/components/navigation";
@@ -367,14 +368,15 @@ export function DashboardPageClient({
         onCreateProject={() => setProjectCreateOpen(true)}
       />
       <main className="min-w-0 lg:pl-64">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-black/10 bg-[#f7f7f5]/90 px-4 backdrop-blur-xl focus-within:z-[2147483647] dark:border-white/10 dark:bg-[#101010]/90 sm:px-6 lg:px-8">
+        <header className="tasks-app-header">
           <IconButton
             label="Open navigation"
             tooltipTriggerClassName="lg:hidden"
             onClick={() => setSidebarOpen(true)}
           >
-            <FiMenu />
+            <FiSidebar />
           </IconButton>
+          <TaskHeaderBrand />
           <TaskSearch
             tasks={data.tasks}
             projects={data.projects}
@@ -430,16 +432,18 @@ export function DashboardPageClient({
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-3 gap-2 sm:gap-4">
               {[
                 {
                   label: "Assigned to me",
+                  mobileLabel: "Assigned",
                   value: assignedToMe.length,
                   icon: <FiCheckCircle />,
                   href: viewAllAssigned,
                 },
                 {
                   label: "Reported by me",
+                  mobileLabel: "Reported",
                   value: reportedByMe.length,
                   icon: <FiSend />,
                   href: withAccessPreview(
@@ -449,6 +453,7 @@ export function DashboardPageClient({
                 },
                 {
                   label: "Due within 14 days",
+                  mobileLabel: "Due soon",
                   value: upcoming.length,
                   icon: <FiCalendar />,
                   href: withAccessPreview(
@@ -464,33 +469,34 @@ export function DashboardPageClient({
                   className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f7f7f5] dark:focus-visible:ring-white/50 dark:focus-visible:ring-offset-[#101010]"
                 >
                   <Card
-                    size="sm"
-                    className={`relative h-full min-h-32 cursor-pointer overflow-hidden transition duration-200 group-hover:-translate-y-1 group-hover:border-black/25 group-hover:shadow-lg motion-reduce:transform-none dark:group-hover:border-white/35 ${
+                    size="none"
+                    className={`relative h-full min-h-24 cursor-pointer overflow-hidden p-3 transition duration-200 group-hover:-translate-y-1 group-hover:shadow-lg motion-reduce:transform-none sm:min-h-32 sm:p-4 ${
                       index === 0
-                        ? "bg-blue-50/90 dark:bg-blue-400/10"
+                        ? "border-blue-400/70! bg-blue-50! dark:border-blue-300/55! dark:bg-blue-400/15!"
                         : index === 1
-                          ? "bg-violet-50/90 dark:bg-violet-400/10"
+                          ? "border-violet-400/70! bg-violet-50! dark:border-violet-300/55! dark:bg-violet-400/15!"
                           : index === 2
-                            ? "bg-amber-50/90 dark:bg-amber-400/10"
+                            ? "border-amber-400/75! bg-amber-50! dark:border-amber-300/60! dark:bg-amber-400/15!"
                             : "bg-emerald-50/90 dark:bg-emerald-400/10"
                     }`}
                   >
-                    <span className="flex items-center gap-2 pr-8 text-xs font-semibold uppercase tracking-[0.16em] text-black/50 dark:text-white/50">
+                    <span className="flex items-center gap-1.5 pr-4 text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-black/50 dark:text-white/50 sm:gap-2 sm:pr-8 sm:text-xs sm:tracking-[0.16em]">
                       {item.icon}
-                      {item.label}
+                      <span className="sm:hidden">{item.mobileLabel}</span>
+                      <span className="hidden sm:inline">{item.label}</span>
                     </span>
-                    <p className="mt-5 font-cooper text-5xl leading-none">
+                    <p className="mt-4 font-cooper text-3xl leading-none sm:mt-5 sm:text-5xl">
                       {item.value}
                     </p>
                     <span
                       aria-hidden
-                      className="absolute -bottom-7 -right-5 text-[6rem] opacity-[0.045] transition-transform duration-300 group-hover:rotate-6 group-hover:scale-110 dark:opacity-[0.06]"
+                      className="absolute -bottom-3 -right-2 text-[3.75rem] opacity-[0.045] transition-transform duration-300 group-hover:rotate-6 group-hover:scale-110 dark:opacity-[0.06] sm:-bottom-7 sm:-right-5 sm:text-[6rem]"
                     >
                       {item.icon}
                     </span>
                     <FiArrowRight
                       aria-hidden="true"
-                      className="absolute right-4 top-4 text-black/35 transition group-hover:translate-x-1 group-hover:text-black/70 motion-reduce:transform-none dark:text-white/35 dark:group-hover:text-white/75"
+                      className="absolute right-2 top-2 z-10 text-sm text-black/35 transition group-hover:translate-x-1 group-hover:text-black/70 motion-reduce:transform-none dark:text-white/35 dark:group-hover:text-white/75 sm:right-4 sm:top-4 sm:text-base"
                     />
                   </Card>
                 </Link>

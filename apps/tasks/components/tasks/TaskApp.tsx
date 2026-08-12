@@ -22,7 +22,7 @@ import {
   FiChevronDown,
   FiFolder,
   FiLoader,
-  FiMenu,
+  FiSidebar,
   FiMoreHorizontal,
   FiPlus,
   FiSearch,
@@ -33,6 +33,7 @@ import type { Category, Priority, Task, WorkspaceData } from "@/lib/types";
 import { TaskBanners } from "@/components/global";
 import {
   TaskHeaderActions,
+  TaskHeaderBrand,
   TaskSearch,
   TasksSidebar,
 } from "@/components/navigation";
@@ -43,6 +44,7 @@ import {
 } from "./NewTaskDetails";
 import { persistNewTaskDetails } from "@/lib/new-task-details";
 import { TaskKeyBadge } from "./TaskKeyBadge";
+import { TaskPriorityBadge } from "./TaskPriorityBadge";
 import { TaskFilters } from "./TaskFilters";
 import { TaskListView } from "./TaskListView";
 import { localDateValue, TaskDueDate } from "./TaskDueDate";
@@ -74,15 +76,6 @@ type Draft = TaskDraft;
 const priorities: Priority[] = ["low", "medium", "high", "urgent"];
 const dragScrollEdgeSize = 96;
 const dragScrollMaxSpeed = 18;
-const priorityStyles: Record<Priority, string> = {
-  low: "border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200",
-  medium:
-    "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200",
-  high: "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200",
-  urgent:
-    "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-200",
-};
-
 function blankDraft(statusId: string, reportedBy: string): Draft {
   return {
     title: "",
@@ -1194,11 +1187,7 @@ export function TaskApp({
         <div className="mb-3 flex items-start justify-between gap-3">
           <span className="flex flex-wrap items-center gap-1.5">
             <TaskKeyBadge task={task} />
-            <span
-              className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.16em] ${priorityStyles[task.priority]}`}
-            >
-              {task.priority}
-            </span>
+            <TaskPriorityBadge priority={task.priority} size="compact" />
           </span>
           <FiMoreHorizontal className="shrink-0 text-black/30 transition group-hover:text-black/70 dark:text-white/30 dark:group-hover:text-white/70" />
         </div>
@@ -1283,14 +1272,15 @@ export function TaskApp({
       />
 
       <main className="min-w-0 lg:pl-64">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-black/10 bg-[#f7f7f5]/90 px-4 backdrop-blur-xl focus-within:z-[2147483647] dark:border-white/10 dark:bg-[#101010]/90 sm:px-6 lg:px-8">
+        <header className="tasks-app-header">
           <IconButton
             label="Open navigation"
             tooltipTriggerClassName="lg:hidden"
             onClick={() => setSidebarOpen(true)}
           >
-            <FiMenu />
+            <FiSidebar />
           </IconButton>
+          <TaskHeaderBrand />
           <TaskSearch
             tasks={data.tasks}
             projects={data.projects}
@@ -1441,7 +1431,7 @@ export function TaskApp({
               {view === "board" ? (
                 <div
                   ref={boardScrollRef}
-                  className="flex flex-nowrap items-start gap-4 overflow-x-auto overscroll-x-contain pb-5"
+                  className="-mx-4 flex flex-nowrap items-start gap-4 overflow-x-auto overscroll-x-contain px-4 pb-5 scroll-px-4 sm:mx-0 sm:px-0 sm:scroll-px-0"
                 >
                   {statuses.map((item) => {
                     const columnTasks = visibleTasks.filter(
@@ -1543,8 +1533,18 @@ export function TaskApp({
                   categoriesByTask={categoriesByTask}
                   loading={taskPageLoading}
                   onOpenTask={openEdit}
-                  onPageChange={setPage}
-                  onPageSizeChange={setPageSize}
+                  onPageChange={(nextPage) => {
+                    setView("list");
+                    setPage(nextPage);
+                  }}
+                  onPageSizeChange={(nextPageSize) => {
+                    setView("list");
+                    setPageSize(nextPageSize);
+                  }}
+                  onSortChange={(nextSort) => {
+                    setView("list");
+                    setSort(nextSort);
+                  }}
                   onToggleSort={() =>
                     setSort(sort === "due" ? "updated" : "due")
                   }
@@ -1552,6 +1552,7 @@ export function TaskApp({
                   pageSize={data.taskPage?.pageSize ?? pageSize}
                   profiles={profiles}
                   projects={projects}
+                  sort={sort}
                   statuses={statuses}
                   tasks={listTasks}
                   totalCount={data.taskPage?.totalCount ?? visibleTasks.length}

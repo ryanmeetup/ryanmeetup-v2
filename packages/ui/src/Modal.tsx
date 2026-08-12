@@ -6,7 +6,8 @@ import {
   DialogPanel,
   DialogTitle,
 } from "@headlessui/react";
-import { MdClose as Close } from "react-icons/md";
+import { MdClose as Close, MdKeyboardArrowDown } from "react-icons/md";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Button } from "./Button";
 import { IconButton } from "./IconButton";
@@ -67,6 +68,44 @@ const Modal = ({
   size = "md",
   embedded = false,
 }: ModalProps) => {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const scrollContentRef = useRef<HTMLDivElement>(null);
+  const [scrollState, setScrollState] = useState({
+    canScrollUp: false,
+    canScrollDown: false,
+  });
+
+  const updateScrollState = useCallback(() => {
+    const container = scrollContainerRef.current;
+
+    if (!container) return;
+
+    const scrollBuffer = 2;
+    setScrollState({
+      canScrollUp: container.scrollTop > scrollBuffer,
+      canScrollDown:
+        container.scrollTop + container.clientHeight <
+        container.scrollHeight - scrollBuffer,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!open || embedded) return;
+
+    const container = scrollContainerRef.current;
+    const content = scrollContentRef.current;
+
+    if (!container || !content) return;
+
+    updateScrollState();
+
+    const resizeObserver = new ResizeObserver(updateScrollState);
+    resizeObserver.observe(container);
+    resizeObserver.observe(content);
+
+    return () => resizeObserver.disconnect();
+  }, [embedded, open, updateScrollState]);
+
   const legacyActions =
     cancelButtonText && continueButtonText && cancelAction && continueAction ? (
       <div
@@ -152,12 +191,8 @@ const Modal = ({
       />
       <div className="fixed inset-0 flex w-screen items-center justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
         <DialogPanel
-          style={{
-            maxHeight:
-              maxHeight ??
-              "calc(100dvh - max(1rem, env(safe-area-inset-top)) - max(1rem, env(safe-area-inset-bottom)))",
-          }}
-          className={`mx-auto flex w-full min-h-0 flex-col ${sizeStyles[size]} overflow-hidden rounded-2xl border border-black/15 bg-white shadow-[0_24px_80px_rgba(0,0,0,0.35)] ring-1 ring-black/5 dark:border-white/20 dark:bg-[#181818] dark:shadow-[0_28px_100px_rgba(0,0,0,0.85)] dark:ring-white/10 ${panelClassName ?? ""}`}
+          style={maxHeight ? { maxHeight } : undefined}
+          className={`mx-auto flex w-full min-h-0 flex-col ${sizeStyles[size]} ${maxHeight ? "" : "max-h-[min(42rem,calc(100dvh-max(1rem,env(safe-area-inset-top))-max(1rem,env(safe-area-inset-bottom))))] sm:max-h-[calc(100dvh-max(1rem,env(safe-area-inset-top))-max(1rem,env(safe-area-inset-bottom)))]"} overflow-hidden rounded-2xl border border-black/15 bg-white shadow-[0_24px_80px_rgba(0,0,0,0.35)] ring-1 ring-black/5 dark:border-white/20 dark:bg-[#181818] dark:shadow-[0_28px_100px_rgba(0,0,0,0.85)] dark:ring-white/10 ${panelClassName ?? ""}`}
         >
           <div className="flex w-full shrink-0 items-start justify-between gap-4 border-b border-black/10 px-6 pb-4 pt-6 dark:border-white/10">
             <div className="min-w-0">
@@ -176,8 +211,33 @@ const Modal = ({
               </IconButton>
             )}
           </div>
-          <div className="min-h-0 min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain">
-            <div className="p-6">{children}</div>
+          <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+            <div
+              ref={scrollContainerRef}
+              onScroll={updateScrollState}
+              className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain"
+            >
+              <div ref={scrollContentRef} className="p-6">
+                {children}
+              </div>
+            </div>
+            {scrollState.canScrollUp && (
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-0 top-0 z-10 h-6 bg-gradient-to-b from-black/15 to-transparent dark:from-black/45"
+              />
+            )}
+            {scrollState.canScrollDown && (
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex h-16 items-end justify-center bg-gradient-to-t from-white via-white/90 to-transparent pb-2 dark:from-[#181818] dark:via-[#181818]/90"
+              >
+                <span className="flex items-center gap-1 rounded-full border border-black/10 bg-white/95 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-black/65 shadow-sm dark:border-white/15 dark:bg-[#242424]/95 dark:text-white/70">
+                  Scroll for more
+                  <MdKeyboardArrowDown className="h-4 w-4" />
+                </span>
+              </div>
+            )}
           </div>
           {(footer || (!hideActions && (actions || legacyActions))) && (
             <div className="shrink-0 border-t border-black/10 px-6 py-4 dark:border-white/10">

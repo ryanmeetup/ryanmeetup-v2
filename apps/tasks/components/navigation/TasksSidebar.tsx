@@ -63,6 +63,8 @@ export function TasksSidebar({
     (project) => !favoriteProjectIds.has(project.id),
   );
   const {
+    favoritesExpanded,
+    setFavoritesExpanded,
     categoriesExpanded,
     setCategoriesExpanded,
     projectsExpanded,
@@ -84,26 +86,37 @@ export function TasksSidebar({
 
   useEffect(() => {
     if (selectedCategory) setCategoriesExpanded(true);
-    if (selectedProject && !selectedProjectIsFavorite) {
-      setProjectsExpanded(true);
+    if (selectedProject) {
+      if (selectedProjectIsFavorite) {
+        setFavoritesExpanded(true);
+      } else {
+        setProjectsExpanded(true);
+      }
     }
   }, [
     selectedCategory,
     selectedProject,
     selectedProjectIsFavorite,
+    setFavoritesExpanded,
     setCategoriesExpanded,
     setProjectsExpanded,
   ]);
 
   const sidebarContent = (mobile = false) => (
     <>
-        <div className="relative flex h-12 items-center px-2">
+        <div
+          className={`relative flex h-12 items-center px-2 ${mobile ? "pr-12" : ""}`}
+        >
           <Link
             href={withAccessPreview("/", data.accessPreview)}
             aria-label="Task tracker home"
-            className="-ml-2 rounded-lg px-2 py-1 transition duration-300 ease-in-out hover:-translate-y-0.5 hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 motion-reduce:transform-none dark:hover:bg-white/10 dark:focus-visible:ring-white/40"
+            className="-ml-2 min-w-0 rounded-lg px-2 py-1 transition duration-300 ease-in-out hover:-translate-y-0.5 hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 motion-reduce:transform-none dark:hover:bg-white/10 dark:focus-visible:ring-white/40"
           >
-            <p className="font-cooper text-2xl uppercase">Ryan Meetup</p>
+            <p
+              className={`whitespace-nowrap font-cooper uppercase ${mobile ? "text-xl" : "text-2xl"}`}
+            >
+              Ryan Meetup
+            </p>
             <p className="text-[9px] font-semibold uppercase tracking-[0.28em] text-black/45 dark:text-white/45">
               Task tracker
             </p>
@@ -189,9 +202,17 @@ export function TasksSidebar({
           {!data.accessPreview && favoriteProjects.length > 0 && (
             <section className="shrink-0 border-b border-black/10 pb-4 dark:border-white/10">
               <div className="flex items-center justify-between px-3">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-black/45 dark:text-white/45">
+                <button
+                  type="button"
+                  aria-expanded={favoritesExpanded}
+                  onClick={() => setFavoritesExpanded((current) => !current)}
+                  className="-ml-1 inline-flex items-center gap-1 rounded px-1 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-black/45 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:text-white/45 dark:hover:text-white dark:focus-visible:ring-white/40"
+                >
+                  <FiChevronDown
+                    className={`transition-transform duration-200 motion-reduce:transition-none ${favoritesExpanded ? "" : "-rotate-90"}`}
+                  />
                   Favorites
-                </p>
+                </button>
                 <Link
                   href="/projects"
                   className="text-[10px] font-semibold text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white"
@@ -199,7 +220,12 @@ export function TasksSidebar({
                   Manage
                 </Link>
               </div>
-              <div className="mt-2 space-y-1">
+              <AnimatedCollapse
+                animate={sectionsLoaded}
+                open={favoritesExpanded}
+                className={favoritesExpanded ? "mt-2" : ""}
+                contentClassName="space-y-1"
+              >
                 {favoriteProjects.map((project) => (
                   <Link
                     key={project.id}
@@ -218,7 +244,7 @@ export function TasksSidebar({
                     <span className="truncate">{project.name}</span>
                   </Link>
                 ))}
-              </div>
+              </AnimatedCollapse>
             </section>
           )}
           <section
