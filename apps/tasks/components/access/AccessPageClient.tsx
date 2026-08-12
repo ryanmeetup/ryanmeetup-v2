@@ -611,7 +611,7 @@ export function AccessPageClient({
               aria-labelledby="team-heading"
               className="space-y-4 border-t border-black/10 pt-8 dark:border-white/10"
             >
-              <div>
+              <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 id="team-heading" className="text-xl font-semibold">
                     Team
@@ -622,13 +622,12 @@ export function AccessPageClient({
                 </div>
                 <Tooltip
                   content="Disabled until Resend is set up"
-                  triggerClassName="mt-4 w-full sm:w-auto"
+                  triggerClassName="w-full sm:w-auto"
                 >
                   <Button
                     size="sm"
                     leftIcon={<FiPlus />}
-                    fullWidth
-                    className="sm:w-auto"
+                    className="w-full sm:w-auto"
                     onClick={() => setInviteOpen(true)}
                     disabled
                   >
