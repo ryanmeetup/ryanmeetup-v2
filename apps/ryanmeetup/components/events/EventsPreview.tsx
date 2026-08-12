@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useQueryParamState } from "@ryanmeetup/hooks";
 import { Heading, Text } from "@ryanmeetup/ui";
 import { EventsListPager } from "@/components/events/EventsListPager";
 import type { RyanEvent } from "@/lib/types";
@@ -11,7 +11,9 @@ type EventsPreviewProps = {
 
 const EventsPreview = (props: EventsPreviewProps) => {
   const { events } = props;
-  const [view, setView] = useState<"upcoming" | "past">("upcoming");
+  const [viewParam, setView] = useQueryParamState("event-view", "upcoming");
+  const view: "upcoming" | "past" =
+    viewParam === "past" ? "past" : "upcoming";
   const pageSize = 5;
 
   return (
