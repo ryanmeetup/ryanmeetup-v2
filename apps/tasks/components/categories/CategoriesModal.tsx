@@ -9,15 +9,17 @@ import {
 } from "react";
 import {
   Button,
+  Avatar,
   FilterChip,
   IconButton,
   Input,
   Modal,
+  MultiSelect,
   Textarea,
   Tooltip,
   toast,
 } from "@ryanmeetup/ui";
-import { useSearchFilter } from "@ryanmeetup/hooks";
+import { useQueryParamState, useSearchFilter } from "@ryanmeetup/hooks";
 import {
   FiArchive,
   FiArrowRight,
@@ -27,9 +29,10 @@ import {
   FiRefreshCw,
   FiRotateCcw,
   FiSearch,
+  FiUsers,
 } from "react-icons/fi";
 import { withAccessPreview } from "@/lib/access-preview";
-import { ManagementCard } from "@/components/global";
+import { ManagementCard, ManagementCardTitle } from "@/components/global";
 import type { Category, ProjectLink, WorkspaceData } from "@/lib/types";
 import { LinksFields } from "@/components/projects/LinksFields";
 import {
@@ -85,9 +88,17 @@ export function CategoriesModal({
   const [links, setLinks] = useState<ProjectLink[]>([]);
   const [attachments, setAttachments] = useState<ProjectAttachmentDraft[]>([]);
   const [creating, setCreating] = useState(false);
-  const [categoryStatus, setCategoryStatus] = useState<
-    "active" | "archived" | "all"
-  >("active");
+  const [newOwnerIds, setNewOwnerIds] = useState<string[]>([
+    data.currentProfile.id,
+  ]);
+  const [categoryStatusParam, setCategoryStatus] = useQueryParamState(
+    "category-status",
+    "active",
+  );
+  const categoryStatus: "active" | "archived" | "all" =
+    categoryStatusParam === "archived" || categoryStatusParam === "all"
+      ? categoryStatusParam
+      : "active";
   const [editingId, setEditingId] = useState<string | null>(
     directEditCategory?.id ?? null,
   );
@@ -102,6 +113,13 @@ export function CategoriesModal({
   );
   const [editingLinks, setEditingLinks] = useState<ProjectLink[]>(
     directEditCategory?.links ?? [],
+  );
+  const [editingOwnerIds, setEditingOwnerIds] = useState<string[]>(
+    directEditCategory
+      ? data.categoryOwners
+          .filter((item) => item.category_id === directEditCategory.id)
+          .map((item) => item.profile_id)
+      : [],
   );
   const [saving, setSaving] = useState(false);
   const {
@@ -148,8 +166,8 @@ export function CategoriesModal({
     event.preventDefault();
     const nextName = name.trim();
     const nextDescription = description.trim();
-    if (!nextName || !nextDescription) {
-      toast.error("Add a category name and description.");
+    if (!nextName || !nextDescription || newOwnerIds.length === 0) {
+      toast.error("Add a category name, description, and at least one owner.");
       return;
     }
     setCreating(true);
@@ -170,6 +188,7 @@ export function CategoriesModal({
             description: nextDescription,
             color,
             links,
+            ownerIds: newOwnerIds,
           })
         ).category!;
       if (!demoMode && attachments.length > 0) {
@@ -208,6 +227,13 @@ export function CategoriesModal({
       setData((current) => ({
         ...current,
         categories: [...current.categories, category],
+        categoryOwners: [
+          ...current.categoryOwners,
+          ...newOwnerIds.map((profile_id) => ({
+            category_id: category.id,
+            profile_id,
+          })),
+        ],
       }));
       setName("");
       setDescription("");
@@ -233,12 +259,26 @@ export function CategoriesModal({
     setEditingDescription(category.description ?? "");
     setEditingColor(category.color);
     setEditingLinks(category.links ?? []);
+    setEditingOwnerIds(
+      data.categoryOwners
+        .filter((item) => item.category_id === category.id)
+        .map((item) => item.profile_id),
+    );
   }
 
   async function updateCategory(category: Category) {
     const nextName = editingName.trim();
-    if (!nextName) return;
+    if (!nextName || editingOwnerIds.length === 0) {
+      toast.error("Add a category name and at least one owner.");
+      return;
+    }
     const nextDescription = editingDescription.trim() || null;
+    const currentOwnerIds = data.categoryOwners
+      .filter((item) => item.category_id === category.id)
+      .map((item) => item.profile_id);
+    const ownersChanged =
+      currentOwnerIds.length !== editingOwnerIds.length ||
+      currentOwnerIds.some((ownerId) => !editingOwnerIds.includes(ownerId));
     setSaving(true);
     try {
       if (!demoMode)
@@ -248,6 +288,7 @@ export function CategoriesModal({
           description: nextDescription,
           color: editingColor,
           links: editingLinks,
+          ...(ownersChanged ? { ownerIds: editingOwnerIds } : {}),
         });
       const updatedCategory: Category = {
         ...category,
@@ -261,6 +302,17 @@ export function CategoriesModal({
         categories: current.categories.map((item) =>
           item.id === category.id ? updatedCategory : item,
         ),
+        categoryOwners: ownersChanged
+          ? [
+              ...current.categoryOwners.filter(
+                (item) => item.category_id !== category.id,
+              ),
+              ...editingOwnerIds.map((profile_id) => ({
+                category_id: category.id,
+                profile_id,
+              })),
+            ]
+          : current.categoryOwners,
       }));
       onCategoryUpdated?.(updatedCategory);
       setEditingId(null);
@@ -335,6 +387,28 @@ export function CategoriesModal({
         <FiRefreshCw />
       </IconButton>
     </div>
+  );
+
+  const ownerOptions = data.profiles.map((profile) => ({
+    avatar: { name: profile.full_name, src: profile.avatar_url },
+    label: profile.full_name,
+    value: profile.id,
+  }));
+
+  const ownerControl = (
+    value: string[],
+    onChange: (value: string[]) => void,
+    disabled: boolean,
+  ) => (
+    <MultiSelect
+      label="Category owners"
+      options={ownerOptions}
+      value={value}
+      onChange={onChange}
+      placeholder="Select owners"
+      disabled={disabled}
+      required
+    />
   );
 
   return (
@@ -413,6 +487,7 @@ export function CategoriesModal({
                 disabled={creating}
                 required
               />
+              {ownerControl(newOwnerIds, setNewOwnerIds, creating)}
               <LinksFields
                 links={links}
                 setLinks={setLinks}
@@ -484,6 +559,7 @@ export function CategoriesModal({
               disabled={creating}
               required
             />
+            {ownerControl(newOwnerIds, setNewOwnerIds, creating)}
             <LinksFields
               links={links}
               setLinks={setLinks}
@@ -561,67 +637,149 @@ export function CategoriesModal({
               <div
                 className={`${searchPending ? "pointer-events-none opacity-55" : ""} grid auto-rows-fr items-stretch gap-4 transition-opacity md:grid-cols-2 ${embedded ? "xl:grid-cols-3" : ""}`}
               >
-                {categories.map((category) => (
-                  <ManagementCard
-                    key={category.id}
-                    footer={
-                      embedded ? (
-                        <Button.Link
-                          href={withAccessPreview(
-                            `/board?category=${encodeURIComponent(category.id)}`,
-                            data.accessPreview,
+                {categories.map((category) => {
+                  const owners = data.categoryOwners
+                    .filter((item) => item.category_id === category.id)
+                    .flatMap((item) => {
+                      const profile = data.profiles.find(
+                        (candidate) => candidate.id === item.profile_id,
+                      );
+                      return profile ? [profile] : [];
+                    });
+                  return (
+                    <ManagementCard
+                      key={category.id}
+                      body={
+                        category.description ||
+                        (category.links ?? []).length ? (
+                          <div className="min-w-0">
+                            {category.description && (
+                              <p className="text-sm text-black/60 dark:text-white/60">
+                                {category.description}
+                              </p>
+                            )}
+                            {(category.links ?? []).length > 0 && (
+                              <ProjectLinks
+                                links={category.links}
+                                className={`mt-2 ${embedded ? "mb-4" : ""}`}
+                              />
+                            )}
+                          </div>
+                        ) : undefined
+                      }
+                      footerClassName="justify-start"
+                      footer={
+                        <>
+                          {owners.length > 0 ? (
+                            <div
+                              className="flex shrink-0 -space-x-2"
+                              aria-label={`${owners.length} ${owners.length === 1 ? "owner" : "owners"}`}
+                            >
+                              {owners.slice(0, 3).map((owner) => (
+                                <Tooltip
+                                  key={owner.id}
+                                  content={owner.full_name}
+                                  placement="top"
+                                >
+                                  <Avatar
+                                    name={owner.full_name}
+                                    src={owner.avatar_url}
+                                    size="md"
+                                    className="ring-2 ring-white dark:ring-[#181818]"
+                                  />
+                                </Tooltip>
+                              ))}
+                              {owners.length > 3 && (
+                                <Tooltip
+                                  content={owners
+                                    .slice(3)
+                                    .map((owner) => owner.full_name)
+                                    .join(", ")}
+                                  placement="top"
+                                >
+                                  <span className="relative grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 border-white bg-black text-[10px] font-bold text-white dark:border-[#181818] dark:bg-white dark:text-black">
+                                    +{owners.length - 3}
+                                  </span>
+                                </Tooltip>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-dashed border-black/25 text-black/40 dark:border-white/25 dark:text-white/40">
+                              <FiUsers aria-hidden size={14} />
+                            </span>
                           )}
-                          variant="secondary"
-                          size="sm"
-                          rightIcon={<FiArrowRight aria-hidden />}
-                        >
-                          Open board
-                        </Button.Link>
-                      ) : undefined
-                    }
-                  >
-                    <span
-                      aria-hidden
-                      className="mt-1 h-4 w-4 shrink-0 rounded-full ring-4 ring-black/5 dark:ring-white/5"
-                      style={{ backgroundColor: category.color }}
-                    />
-                    <div className="min-w-0 flex-1 py-1">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-black/40 dark:text-white/40">
+                              Owners
+                            </p>
+                            <p
+                              className="truncate text-xs font-medium text-black/65 dark:text-white/65"
+                              title={owners
+                                .map((owner) => owner.full_name)
+                                .join(", ")}
+                            >
+                              {owners.length > 0
+                                ? `${owners
+                                    .slice(0, 3)
+                                    .map((owner) => owner.full_name)
+                                    .join(
+                                      ", ",
+                                    )}${owners.length > 3 ? ` +${owners.length - 3}` : ""}`
+                                : "Unassigned"}
+                            </p>
+                          </div>
+                          {embedded && (
+                            <Button.Link
+                              href={withAccessPreview(
+                                `/board?category=${encodeURIComponent(category.id)}`,
+                                data.accessPreview,
+                              )}
+                              variant="secondary"
+                              size="sm"
+                              rightIcon={<FiArrowRight aria-hidden />}
+                            >
+                              Open board
+                            </Button.Link>
+                          )}
+                        </>
+                      }
+                    >
                       <span
-                        className={`block truncate font-semibold ${category.archived_at ? "text-black/45 line-through dark:text-white/45" : ""}`}
-                      >
-                        {category.name}
-                      </span>
-                      {category.description && (
-                        <span className="mt-0.5 block line-clamp-2 text-xs text-black/60 dark:text-white/60">
-                          {category.description}
+                        aria-hidden
+                        className="h-4 w-4 shrink-0 rounded-full ring-4 ring-black/5 dark:ring-white/5"
+                        style={{ backgroundColor: category.color }}
+                      />
+                      <div className="min-w-0 flex-1 py-1">
+                        <ManagementCardTitle
+                          className={
+                            category.archived_at
+                              ? "text-black/45 line-through dark:text-white/45"
+                              : undefined
+                          }
+                        >
+                          {category.name}
+                        </ManagementCardTitle>
+                      </div>
+                      {category.archived_at && (
+                        <span className="mt-1 hidden text-[10px] font-semibold uppercase tracking-widest text-black/45 dark:text-white/45 sm:inline">
+                          Archived
                         </span>
                       )}
-                      {(category.links ?? []).length > 0 && (
-                        <ProjectLinks
-                          links={category.links}
-                          className={`mt-2 ${embedded ? "mb-4" : ""}`}
-                        />
-                      )}
-                    </div>
-                    {category.archived_at && (
-                      <span className="mt-1 hidden text-[10px] font-semibold uppercase tracking-widest text-black/45 dark:text-white/45 sm:inline">
-                        Archived
-                      </span>
-                    )}
-                    <IconButton
-                      label={`Edit ${category.name}`}
-                      onClick={() => beginEdit(category)}
-                    >
-                      <FiEdit2 />
-                    </IconButton>
-                    <IconButton
-                      label={`${category.archived_at ? "Restore" : "Archive"} ${category.name}`}
-                      onClick={() => void toggleArchived(category)}
-                    >
-                      {category.archived_at ? <FiRotateCcw /> : <FiArchive />}
-                    </IconButton>
-                  </ManagementCard>
-                ))}
+                      <IconButton
+                        label={`Edit ${category.name}`}
+                        onClick={() => beginEdit(category)}
+                      >
+                        <FiEdit2 />
+                      </IconButton>
+                      <IconButton
+                        label={`${category.archived_at ? "Restore" : "Archive"} ${category.name}`}
+                        onClick={() => void toggleArchived(category)}
+                      >
+                        {category.archived_at ? <FiRotateCcw /> : <FiArchive />}
+                      </IconButton>
+                    </ManagementCard>
+                  );
+                })}
                 {categories.length === 0 && (
                   <div
                     className={`rounded-xl border border-dashed border-black/10 px-4 py-10 text-center text-sm text-black/55 dark:border-white/10 dark:text-white/55 md:col-span-2 ${embedded ? "xl:col-span-3" : ""}`}
@@ -646,7 +804,13 @@ export function CategoriesModal({
             editingDescription.trim() !== (category.description ?? "") ||
             editingColor !== category.color ||
             JSON.stringify(editingLinks) !==
-              JSON.stringify(category.links ?? []);
+              JSON.stringify(category.links ?? []) ||
+            editingOwnerIds.slice().sort().join(",") !==
+              data.categoryOwners
+                .filter((item) => item.category_id === category.id)
+                .map((item) => item.profile_id)
+                .sort()
+                .join(",");
           return (
             <Modal
               open
@@ -730,6 +894,7 @@ export function CategoriesModal({
                   disabled={saving}
                   namePrefix={`category-${category.id}`}
                 />
+                {ownerControl(editingOwnerIds, setEditingOwnerIds, saving)}
                 <ProjectAttachments
                   resourceKind="category"
                   categoryId={category.id}

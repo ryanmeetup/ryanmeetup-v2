@@ -13,9 +13,10 @@ export async function POST(request: Request) {
   if ("response" in parsed) return parsed.response;
   const context = await privilegedContext({ owner: true });
   if ("response" in context) return context.response;
+  const { ownerIds, ...categoryInput } = parsed.data;
   const { data, error } = await context.admin
     .from("work_groups")
-    .insert({ ...parsed.data, created_by: context.user.id })
+    .insert({ ...categoryInput, created_by: context.user.id })
     .select()
     .single();
   if (error) {
@@ -24,6 +25,18 @@ export async function POST(request: Request) {
       conflictError: "A category with that name or color already exists.",
     });
   }
+  const { error: ownersError } = await context.admin
+    .from("category_owners")
+    .insert(
+      ownerIds!.map((profile_id) => ({
+        category_id: data.id,
+        profile_id,
+      })),
+    );
+  if (ownersError)
+    return databaseFailure(request, "category-owners.create", ownersError, {
+      error: "The category was created, but its owners could not be saved.",
+    });
   if (
     !(await auditPrivilegedAction(context.admin, context.user, {
       action: "category.create",
@@ -65,6 +78,28 @@ export async function PATCH(request: Request) {
       error: "The category could not be updated. Try again.",
       conflictError: "A category with that name or color already exists.",
     });
+  }
+  if (parsed.data.ownerIds !== undefined) {
+    const { error: clearError } = await context.admin
+      .from("category_owners")
+      .delete()
+      .eq("category_id", parsed.data.id!);
+    if (clearError)
+      return databaseFailure(request, "category-owners.clear", clearError, {
+        error: "The category owners could not be updated. Try again.",
+      });
+    const { error: ownersError } = await context.admin
+      .from("category_owners")
+      .insert(
+        parsed.data.ownerIds.map((profile_id) => ({
+          category_id: parsed.data.id!,
+          profile_id,
+        })),
+      );
+    if (ownersError)
+      return databaseFailure(request, "category-owners.update", ownersError, {
+        error: "The category owners could not be updated. Try again.",
+      });
   }
   if (
     !(await auditPrivilegedAction(context.admin, context.user, {

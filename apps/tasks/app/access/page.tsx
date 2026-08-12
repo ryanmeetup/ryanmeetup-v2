@@ -14,7 +14,7 @@ export default async function AccessPage() {
     user,
     data: workspaceData,
   } = await loadWorkspacePage(
-    ["profiles", "projects", "statuses", "categories"],
+    ["profiles", "projects", "statuses", "categories", "categoryOwners"],
     { owner: true },
   );
 

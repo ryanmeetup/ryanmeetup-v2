@@ -22,7 +22,7 @@ export default async function ProfilePage() {
 
   try {
     const result = await loadWorkspacePage(
-      ["profiles", "statuses", "categories", "projects"],
+      ["profiles", "statuses", "categories", "categoryOwners", "projects"],
       { requireOnboarding: false },
     );
     data = result.data;
@@ -36,7 +36,9 @@ export default async function ProfilePage() {
     if (authError || !auth.user) redirect("/login");
     const { data: profile } = await supabase
       .from("profiles")
-      .select("id,full_name,avatar_url,onboarding_completed,task_details_open_by_default,app_role")
+      .select(
+        "id,full_name,avatar_url,onboarding_completed,task_details_open_by_default,favorite_project_ids,app_role",
+      )
       .eq("id", auth.user.id)
       .maybeSingle();
     if (!profile) redirect("/login?error=profile");
@@ -48,6 +50,7 @@ export default async function ProfilePage() {
       categories: [],
       projects: [],
       projectOwners: [],
+      categoryOwners: [],
       tasks: [],
       subtasks: [],
       comments: [],

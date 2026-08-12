@@ -20,7 +20,7 @@ export default async function AccessGroupPage({
     user,
     data: initialData,
   } = await loadWorkspacePage(
-    ["profiles", "projects", "statuses", "categories"],
+    ["profiles", "projects", "statuses", "categories", "categoryOwners"],
     { owner: true },
   );
 

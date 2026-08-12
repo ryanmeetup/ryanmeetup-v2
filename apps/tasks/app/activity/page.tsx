@@ -38,6 +38,7 @@ export default async function ActivityPage({
     "profiles",
     "statuses",
     "categories",
+    "categoryOwners",
     "projects",
   ]);
   const { supabase } = loaded;

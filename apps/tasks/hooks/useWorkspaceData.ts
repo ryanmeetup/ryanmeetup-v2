@@ -10,6 +10,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { WORKSPACE_COLUMNS } from "@/lib/workspace-loader";
 import type {
+  CategoryOwner,
   Project,
   ProjectOwner,
   Subtask,
@@ -46,6 +47,7 @@ function restoreWorkspace(
     categories: restored.categories ?? initial.categories,
     taskCategories: restored.taskCategories ?? [],
     projectOwners: restored.projectOwners ?? [],
+    categoryOwners: restored.categoryOwners ?? [],
     taskAssignees: restored.taskAssignees ?? [],
     taskLabels: restored.taskLabels ?? [],
     statuses: (restored.statuses ?? initial.statuses).map((status) => ({
@@ -393,6 +395,30 @@ export function useWorkspaceData(
                   ),
           }));
           queueTaskRefresh();
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "category_owners" },
+        (value) => {
+          const payload = value as unknown as RealtimePayload;
+          const row = eventRow(payload);
+          setData((current) => ({
+            ...current,
+            categoryOwners:
+              payload.eventType === "DELETE"
+                ? removeByKey(
+                    current.categoryOwners,
+                    row,
+                    (item) =>
+                      `${String(item.category_id)}:${String(item.profile_id)}`,
+                  )
+                : replaceByKey(
+                    current.categoryOwners,
+                    row as CategoryOwner,
+                    (item) => `${item.category_id}:${item.profile_id}`,
+                  ),
+          }));
         },
       )
       .subscribe();

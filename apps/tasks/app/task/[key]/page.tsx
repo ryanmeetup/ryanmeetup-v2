@@ -75,6 +75,7 @@ export default async function SharedTaskPage({
     "profiles",
     "statuses",
     "categories",
+    "categoryOwners",
     "projects",
     "projectOwners",
     "labels",

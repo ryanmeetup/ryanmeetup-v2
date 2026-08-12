@@ -91,6 +91,7 @@ export function categorySchema(value: unknown, requireId = false) {
     "description",
     "color",
     "links",
+    "ownerIds",
     "archived",
   ]);
   if (!body) return null;
@@ -100,6 +101,8 @@ export function categorySchema(value: unknown, requireId = false) {
   const validColor = color(body.color);
   const links = projectLinks(body.links ?? []);
   const archived = body.archived;
+  const ownerIds =
+    body.ownerIds === undefined ? undefined : uuidList(body.ownerIds);
   if (
     (requireId && !id) ||
     !name ||
@@ -107,6 +110,9 @@ export function categorySchema(value: unknown, requireId = false) {
     (!requireId && !description) ||
     !validColor ||
     !links ||
+    ownerIds === null ||
+    (!requireId && (!ownerIds || ownerIds.length === 0)) ||
+    (ownerIds !== undefined && ownerIds.length === 0) ||
     (archived !== undefined && typeof archived !== "boolean")
   )
     return null;
@@ -116,6 +122,7 @@ export function categorySchema(value: unknown, requireId = false) {
     description: description || null,
     color: validColor,
     links,
+    ownerIds,
     archived: archived as boolean | undefined,
   };
 }

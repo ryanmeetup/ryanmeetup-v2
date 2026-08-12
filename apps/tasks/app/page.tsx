@@ -7,10 +7,7 @@ import {
 } from "@/lib/access-preview";
 import { resolveAccessPreview } from "@/lib/access-preview-server";
 import { demoData } from "@/lib/demo-data";
-import {
-  requireQueryData,
-  WORKSPACE_COLUMNS,
-} from "@/lib/workspace-loader";
+import { requireQueryData, WORKSPACE_COLUMNS } from "@/lib/workspace-loader";
 import {
   isWorkspaceDemo,
   loadWorkspacePage,
@@ -41,6 +38,7 @@ export default async function DashboardPage({
     "profiles",
     "statuses",
     "categories",
+    "categoryOwners",
     "projects",
     "projectOwners",
   ]);

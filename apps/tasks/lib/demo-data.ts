@@ -7,6 +7,7 @@ export const demoData: WorkspaceData = {
     avatar_url: null,
     onboarding_completed: true,
     task_details_open_by_default: false,
+    favorite_project_ids: ["ryancon-2027"],
   },
   profiles: [
     {
@@ -15,6 +16,7 @@ export const demoData: WorkspaceData = {
       avatar_url: null,
       onboarding_completed: true,
       task_details_open_by_default: false,
+      favorite_project_ids: ["ryancon-2027"],
     },
     {
       id: "alex",
@@ -22,6 +24,7 @@ export const demoData: WorkspaceData = {
       avatar_url: null,
       onboarding_completed: true,
       task_details_open_by_default: false,
+      favorite_project_ids: [],
     },
     {
       id: "jordan",
@@ -29,6 +32,7 @@ export const demoData: WorkspaceData = {
       avatar_url: null,
       onboarding_completed: true,
       task_details_open_by_default: false,
+      favorite_project_ids: [],
     },
   ],
   statuses: [
@@ -168,6 +172,12 @@ export const demoData: WorkspaceData = {
     { project_id: "ryancon-2027", profile_id: "ryan" },
     { project_id: "september-meetup", profile_id: "ryan" },
     { project_id: "september-meetup", profile_id: "alex" },
+  ],
+  categoryOwners: [
+    { category_id: "events", profile_id: "ryan" },
+    { category_id: "events", profile_id: "alex" },
+    { category_id: "sponsors", profile_id: "ryan" },
+    { category_id: "design", profile_id: "alex" },
   ],
   taskCategories: [
     { task_id: "1", category_id: "events" },

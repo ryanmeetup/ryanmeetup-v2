@@ -27,11 +27,12 @@ import {
   FiPlus,
   FiRotateCcw,
   FiSearch,
+  FiStar,
   FiUsers,
 } from "react-icons/fi";
-import { useSearchFilter } from "@ryanmeetup/hooks";
+import { useQueryParamState, useSearchFilter } from "@ryanmeetup/hooks";
 import { withAccessPreview } from "@/lib/access-preview";
-import { ManagementCard } from "@/components/global";
+import { ManagementCard, ManagementCardTitle } from "@/components/global";
 import type { Project, ProjectLink, WorkspaceData } from "@/lib/types";
 import { ProjectLinks } from "./ProjectLinks";
 import { ProjectAttachments } from "./ProjectAttachments";
@@ -73,9 +74,14 @@ export function ProjectsModal({
   const [links, setLinks] = useState<ProjectLink[]>([]);
   const [attachments, setAttachments] = useState<ProjectAttachmentDraft[]>([]);
   const [creating, setCreating] = useState(false);
-  const [projectStatus, setProjectStatus] = useState<
-    "active" | "archived" | "all"
-  >("active");
+  const [projectStatusParam, setProjectStatus] = useQueryParamState(
+    "project-status",
+    "active",
+  );
+  const projectStatus: "active" | "archived" | "all" =
+    projectStatusParam === "archived" || projectStatusParam === "all"
+      ? projectStatusParam
+      : "active";
   const [editingProjectId, setEditingProjectId] = useState<string | null>(
     directEditProject?.id ?? null,
   );
@@ -94,6 +100,9 @@ export function ProjectsModal({
       : [],
   );
   const [renaming, setRenaming] = useState(false);
+  const [favoritePendingIds, setFavoritePendingIds] = useState<Set<string>>(
+    new Set(),
+  );
   const [newOwnerIds, setNewOwnerIds] = useState<string[]>([
     data.currentProfile.id,
   ]);
@@ -326,6 +335,54 @@ export function ProjectsModal({
     }
   }
 
+  async function toggleFavorite(project: Project) {
+    const currentFavoriteIds = data.currentProfile.favorite_project_ids ?? [];
+    const favorite = !currentFavoriteIds.includes(project.id);
+    setFavoritePendingIds((current) => new Set(current).add(project.id));
+    try {
+      let favoriteProjectIds = favorite
+        ? [...currentFavoriteIds, project.id]
+        : currentFavoriteIds.filter((projectId) => projectId !== project.id);
+      if (!demoMode) {
+        const response = await fetch("/api/profile/favorite-projects", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ projectId: project.id, favorite }),
+        });
+        const result = (await response.json()) as {
+          error?: string;
+          favoriteProjectIds?: string[];
+        };
+        if (!response.ok || !result.favoriteProjectIds) {
+          throw new Error(result.error ?? "Your favorite could not be saved.");
+        }
+        favoriteProjectIds = result.favoriteProjectIds;
+      }
+      setData((current) => ({
+        ...current,
+        currentProfile: {
+          ...current.currentProfile,
+          favorite_project_ids: favoriteProjectIds,
+        },
+      }));
+      toast.success(
+        `${project.name} ${favorite ? "added to" : "removed from"} favorites.`,
+      );
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Your favorite could not be saved.",
+      );
+    } finally {
+      setFavoritePendingIds((current) => {
+        const next = new Set(current);
+        next.delete(project.id);
+        return next;
+      });
+    }
+  }
+
   const projects = useMemo(
     () =>
       [...searchedProjects]
@@ -554,6 +611,9 @@ export function ProjectsModal({
                 className={`${searchPending ? "pointer-events-none opacity-55" : ""} grid items-stretch gap-4 transition-opacity md:grid-cols-2 ${embedded ? "xl:grid-cols-3" : ""}`}
               >
                 {projects.map((project) => {
+                  const isFavorite = (
+                    data.currentProfile.favorite_project_ids ?? []
+                  ).includes(project.id);
                   const owners = data.projectOwners
                     .filter((item) => item.project_id === project.id)
                     .flatMap((item) => {
@@ -565,6 +625,28 @@ export function ProjectsModal({
                   return (
                     <ManagementCard
                       key={project.id}
+                      className={
+                        isFavorite
+                          ? "border-amber-500/40 bg-amber-400/10 shadow-sm shadow-amber-900/5 dark:border-amber-400/35 dark:bg-amber-300/[0.08] dark:shadow-none"
+                          : undefined
+                      }
+                      body={
+                        project.description || (project.links ?? []).length ? (
+                          <div className="min-w-0">
+                            {project.description && (
+                              <p className="text-sm text-black/60 dark:text-white/60">
+                                {project.description}
+                              </p>
+                            )}
+                            {(project.links ?? []).length > 0 && (
+                              <ProjectLinks
+                                links={project.links}
+                                className={`mt-2 ${embedded ? "mb-4" : ""}`}
+                              />
+                            )}
+                          </div>
+                        ) : undefined
+                      }
                       footerClassName="justify-start"
                       footer={
                         <>
@@ -587,6 +669,19 @@ export function ProjectsModal({
                                   />
                                 </Tooltip>
                               ))}
+                              {owners.length > 3 && (
+                                <Tooltip
+                                  content={owners
+                                    .slice(3)
+                                    .map((owner) => owner.full_name)
+                                    .join(", ")}
+                                  placement="top"
+                                >
+                                  <span className="relative grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 border-white bg-black text-[10px] font-bold text-white dark:border-[#181818] dark:bg-white dark:text-black">
+                                    +{owners.length - 3}
+                                  </span>
+                                </Tooltip>
+                              )}
                             </div>
                           ) : (
                             <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-dashed border-black/25 text-black/40 dark:border-white/25 dark:text-white/40">
@@ -610,8 +705,12 @@ export function ProjectsModal({
                                   .join(", ")}
                               >
                                 {owners
+                                  .slice(0, 3)
                                   .map((owner) => owner.full_name)
                                   .join(", ")}
+                                {owners.length > 3
+                                  ? ` +${owners.length - 3}`
+                                  : ""}
                               </p>
                             )}
                           </div>
@@ -632,27 +731,34 @@ export function ProjectsModal({
                       }
                     >
                       <div className="min-w-0 flex-1 py-1">
-                        <span
-                          className={`block truncate font-semibold ${project.archived_at ? "text-black/45 line-through dark:text-white/45" : ""}`}
+                        <ManagementCardTitle
+                          className={
+                            project.archived_at
+                              ? "text-black/45 line-through dark:text-white/45"
+                              : undefined
+                          }
                         >
                           {project.name}
-                        </span>
-                        {project.description && (
-                          <span className="mt-0.5 block line-clamp-2 text-xs text-black/60 dark:text-white/60">
-                            {project.description}
-                          </span>
-                        )}
-                        {(project.links ?? []).length > 0 && (
-                          <ProjectLinks
-                            links={project.links}
-                            className={`mt-2 ${embedded ? "mb-4" : ""}`}
-                          />
-                        )}
+                        </ManagementCardTitle>
                       </div>
                       {project.archived_at && (
                         <span className="mt-2 hidden text-[10px] font-semibold uppercase tracking-widest text-black/45 dark:text-white/45 sm:inline">
                           Archived
                         </span>
+                      )}
+                      {!data.accessPreview && !project.archived_at && (
+                        <IconButton
+                          label={`${isFavorite ? "Remove" : "Add"} ${project.name} ${isFavorite ? "from" : "to"} favorites`}
+                          disabled={favoritePendingIds.has(project.id)}
+                          onClick={() => void toggleFavorite(project)}
+                          className={
+                            isFavorite
+                              ? "!border-amber-500/35 !bg-amber-400/15 !text-amber-700 hover:!bg-amber-400/25 dark:!border-amber-300/30 dark:!bg-amber-300/10 dark:!text-amber-200 dark:hover:!bg-amber-300/20"
+                              : undefined
+                          }
+                        >
+                          <FiStar fill={isFavorite ? "currentColor" : "none"} />
+                        </IconButton>
                       )}
                       {!readOnly && (
                         <>

@@ -1,17 +1,40 @@
 import type { ReactNode } from "react";
 
-export function ManagementCard({
+export function ManagementCardTitle({
   children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <span
+      className={`block truncate text-lg font-semibold leading-tight ${className ?? ""}`}
+    >
+      {children}
+    </span>
+  );
+}
+
+export function ManagementCard({
+  body,
+  children,
+  className,
   footer,
   footerClassName = "justify-end",
 }: {
+  body?: ReactNode;
   children: ReactNode;
+  className?: string;
   footer?: ReactNode;
   footerClassName?: string;
 }) {
   return (
-    <div className="flex h-full flex-col rounded-xl border border-black/10 bg-black/[0.015] px-4 py-3 dark:border-white/10 dark:bg-white/[0.025]">
-      <div className="flex items-start gap-3">{children}</div>
+    <div
+      className={`flex h-full flex-col rounded-xl border border-black/10 bg-black/[0.015] px-4 py-3 dark:border-white/10 dark:bg-white/[0.025] ${className ?? ""}`}
+    >
+      <div className="flex items-center gap-3">{children}</div>
+      {body && <div className="mt-2 min-w-0">{body}</div>}
       {footer && (
         <div
           className={`mt-auto flex min-w-0 items-center gap-3 border-t border-black/10 pt-3 dark:border-white/10 ${footerClassName}`}

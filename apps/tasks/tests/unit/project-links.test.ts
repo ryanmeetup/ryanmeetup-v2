@@ -48,12 +48,14 @@ describe("ensureHttpUrlScheme", () => {
   });
 
   it("normalizes and validates category links through the same API boundary", () => {
+    const ownerId = "7b27db83-577d-4de1-b4ca-9f088832f25b";
     expect(
       categorySchema({
         name: "Meetups",
         description: "Local meetup work.",
         color: "#0f766e",
         links: [{ label: "Runbook", url: "example.com/runbook" }],
+        ownerIds: [ownerId],
       }),
     ).toMatchObject({
       links: [{ label: "Runbook", url: "https://example.com/runbook" }],
@@ -64,8 +66,20 @@ describe("ensureHttpUrlScheme", () => {
         description: "Local meetup work.",
         color: "#0f766e",
         links: [{ label: "Unsafe", url: "javascript:alert(1)" }],
+        ownerIds: [ownerId],
       }),
     ).toBeNull();
+  });
+
+  it("requires at least one owner when creating or assigning category owners", () => {
+    const category = {
+      name: "Meetups",
+      description: "Local meetup work.",
+      color: "#0f766e",
+      links: [],
+    };
+    expect(categorySchema(category)).toBeNull();
+    expect(categorySchema({ ...category, ownerIds: [] })).toBeNull();
   });
 
   it("requires a description and owner when editing project details", () => {

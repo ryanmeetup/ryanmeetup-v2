@@ -63,10 +63,13 @@ export const TASK_PAGE_SIZE = 50;
 export const WORKSPACE_COLUMNS = {
   profiles:
     "id,full_name,avatar_url,onboarding_completed,task_details_open_by_default,app_role",
+  currentProfile:
+    "id,full_name,avatar_url,onboarding_completed,task_details_open_by_default,favorite_project_ids,app_role",
   statuses: "id,name,color,sort_order,order_revision,is_default,is_completed",
   categories: "id,name,description,color,links,created_by,archived_at",
   projects: "id,name,description,links,created_by,archived_at,created_at",
   projectOwners: "project_id,profile_id",
+  categoryOwners: "category_id,profile_id",
   tasks:
     "id,task_number,title,description,status_id,project_id,assignee_id,created_by,reported_by,start_date,due_date,due_time,reminder_at,priority,board_position,completed_at,archived_at,created_at,updated_at",
   subtasks: "id,task_id,title,is_completed,sort_order,created_by,created_at",
@@ -87,6 +90,7 @@ const emptyWorkspace = (): Omit<WorkspaceData, "currentProfile"> => ({
   categories: [],
   projects: [],
   projectOwners: [],
+  categoryOwners: [],
   tasks: [],
   subtasks: [],
   comments: [],
@@ -117,6 +121,8 @@ export async function loadWorkspace(
       supabase.from("projects").select(columns.projects).order("name"),
     projectOwners: () =>
       supabase.from("project_owners").select(columns.projectOwners),
+    categoryOwners: () =>
+      supabase.from("category_owners").select(columns.categoryOwners),
     tasks: () =>
       supabase
         .from("tasks")
@@ -150,7 +156,7 @@ export async function loadWorkspace(
   const [profileResult, ...results] = await Promise.all([
     supabase
       .from("profiles")
-      .select(columns.profiles)
+      .select(columns.currentProfile)
       .eq("id", userId)
       .maybeSingle(),
     ...collections.map((collection) => queries[collection]()),

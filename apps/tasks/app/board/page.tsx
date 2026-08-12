@@ -43,6 +43,7 @@ export default async function BoardPage({
     "profiles",
     "statuses",
     "categories",
+    "categoryOwners",
     "projects",
     "projectOwners",
     "labels",

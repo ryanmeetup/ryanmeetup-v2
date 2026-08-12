@@ -39,6 +39,7 @@ export default async function ProjectsPage({
     "projects",
     "projectOwners",
     "categories",
+    "categoryOwners",
     "statuses",
   ]);
   const { supabase } = loaded;

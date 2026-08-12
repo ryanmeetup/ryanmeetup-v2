@@ -18,6 +18,7 @@ export default async function CategoriesPage() {
     "profiles",
     "statuses",
     "categories",
+    "categoryOwners",
     "projects",
   ]);
   return <CategoriesPageClient initialData={initialData} demoMode={false} />;

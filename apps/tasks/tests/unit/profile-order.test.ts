@@ -8,15 +8,16 @@ const profile = (id: string): Profile => ({
   avatar_url: null,
   onboarding_completed: true,
   task_details_open_by_default: false,
+  favorite_project_ids: [],
 });
 
 describe("prioritizeCurrentProfile", () => {
   it("moves the current profile first while preserving teammate order", () => {
     const profiles = [profile("alex"), profile("ryan"), profile("sam")];
 
-    expect(prioritizeCurrentProfile(profiles, "ryan").map(({ id }) => id)).toEqual(
-      ["ryan", "alex", "sam"],
-    );
+    expect(
+      prioritizeCurrentProfile(profiles, "ryan").map(({ id }) => id),
+    ).toEqual(["ryan", "alex", "sam"]);
     expect(profiles.map(({ id }) => id)).toEqual(["alex", "ryan", "sam"]);
   });
 

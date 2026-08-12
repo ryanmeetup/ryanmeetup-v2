@@ -6,6 +6,7 @@ export type Profile = {
   avatar_url: string | null;
   onboarding_completed: boolean;
   task_details_open_by_default: boolean;
+  favorite_project_ids?: string[];
   app_role?: "owner" | "member";
 };
 
@@ -135,6 +136,7 @@ export type TaskAssignee = { task_id: string; profile_id: string };
 export type TaskLabel = { task_id: string; label_id: string };
 export type TaskCategory = { task_id: string; category_id: string };
 export type ProjectOwner = { project_id: string; profile_id: string };
+export type CategoryOwner = { category_id: string; profile_id: string };
 
 export type AccessPreview = {
   kind: "group" | "user";
@@ -158,6 +160,7 @@ export type WorkspaceData = {
   taskLabels: TaskLabel[];
   taskCategories: TaskCategory[];
   projectOwners: ProjectOwner[];
+  categoryOwners: CategoryOwner[];
   taskPage?: import("./pagination").PaginationState;
   activityPage?: import("./pagination").PaginationState;
   accessPreview?: AccessPreview;
