@@ -191,7 +191,7 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   const authorization = await authorize();
   if ("response" in authorization) return authorization.response;
-  const { supabase } = authorization;
+  const { supabase, user } = authorization;
 
   const id = new URL(request.url).searchParams.get("id");
   if (!id)
@@ -202,7 +202,7 @@ export async function DELETE(request: Request) {
 
   const { data: attachment, error: lookupError } = await supabase
     .from("task_attachments")
-    .select("id, task_id, file_path")
+    .select("id, task_id, name, file_path")
     .eq("id", id)
     .maybeSingle();
   if (lookupError)
@@ -232,6 +232,17 @@ export async function DELETE(request: Request) {
   if (rowError)
     return databaseFailure(request, "attachment.delete", rowError, {
       error: "The attachment could not be removed. Try again.",
+    });
+
+  const { error: activityError } = await supabase.from("task_activity").insert({
+    task_id: attachment.task_id,
+    actor_id: user.id,
+    action: `removed attachment “${attachment.name}”`,
+    details: { attachment_id: attachment.id },
+  });
+  if (activityError)
+    return databaseFailure(request, "attachment.activity", activityError, {
+      error: "The attachment was removed, but its activity could not be recorded.",
     });
 
   if (!attachment.file_path) return NextResponse.json({ deleted: true });

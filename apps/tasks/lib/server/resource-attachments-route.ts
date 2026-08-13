@@ -21,6 +21,7 @@ import {
   deleteAttachment,
   insertAttachment,
 } from "@/lib/server/resource-attachment-persistence";
+import { recordWorkspaceActivity } from "@/lib/privileged-api";
 
 type AttachmentRow = {
   id: string;
@@ -36,6 +37,30 @@ type AttachmentRow = {
   created_by: string;
   created_at: string;
 };
+
+async function recordAttachmentActivity(
+  supabase: Parameters<typeof canEditProject>[0],
+  user: Parameters<typeof recordWorkspaceActivity>[0],
+  resource: { kind: "project" | "category"; id: string },
+  action: "add" | "delete",
+  attachmentName: string,
+) {
+  const parent = await supabase
+    .from(resource.kind === "category" ? "work_groups" : "projects")
+    .select("name")
+    .eq("id", resource.id)
+    .single();
+  if (parent.error) return false;
+  return recordWorkspaceActivity(user, {
+    action: `${resource.kind}.attachment.${action}`,
+    targetType: resource.kind,
+    targetId: resource.id,
+    name: parent.data.name,
+    href: resource.kind === "category" ? "/categories" : "/projects",
+    projectId: resource.kind === "project" ? resource.id : null,
+    metadata: { attachment_name: attachmentName },
+  });
+}
 
 async function canEditProject(
   supabase: Awaited<ReturnType<typeof authorize>> extends infer T
@@ -131,6 +156,11 @@ export async function POST(request: Request) {
       return databaseFailure(request, "resource-attachment.note", error, {
         error: "The note could not be attached.",
       });
+    if (!(await recordAttachmentActivity(supabase, user, resource, "add", name)))
+      return NextResponse.json(
+        { error: "The note was attached, but its activity could not be recorded." },
+        { status: 500 },
+      );
     return NextResponse.json({ attachment: data });
   }
 
@@ -205,6 +235,19 @@ export async function POST(request: Request) {
       error: "The file was uploaded but could not be opened.",
     });
   }
+  if (
+    !(await recordAttachmentActivity(
+      supabase,
+      user,
+      resource,
+      "add",
+      validatedFile.file.name,
+    ))
+  )
+    return NextResponse.json(
+      { error: "The file was attached, but its activity could not be recorded." },
+      { status: 500 },
+    );
   return NextResponse.json({
     attachment: { ...attachment, url: signed.data.signedUrl },
   });
@@ -225,7 +268,7 @@ export async function DELETE(request: Request) {
     );
   const { data, error } = await authorization.supabase
     .from(isCategory ? "category_attachments" : "project_attachments")
-    .select(`id,${isCategory ? "category_id" : "project_id"},file_path`)
+    .select(`id,${isCategory ? "category_id" : "project_id"},name,file_path`)
     .eq("id", id)
     .maybeSingle();
   if (error)
@@ -266,5 +309,18 @@ export async function DELETE(request: Request) {
     if (cleanup)
       logServerFailure(request, "resource-attachment.cleanup", cleanup);
   }
+  if (
+    !(await recordAttachmentActivity(
+      authorization.supabase,
+      authorization.user,
+      resource,
+      "delete",
+      data.name,
+    ))
+  )
+    return NextResponse.json(
+      { error: "The attachment was removed, but its activity could not be recorded." },
+      { status: 500 },
+    );
   return NextResponse.json({ deleted: true });
 }

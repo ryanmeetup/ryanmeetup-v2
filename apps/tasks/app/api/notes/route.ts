@@ -3,6 +3,8 @@ import { noteColumns } from "@/lib/notes";
 import { databaseFailure } from "@/lib/server/api-response";
 import { authorize } from "@/lib/server/auth";
 import { readJson } from "@/lib/server/request";
+import { recordWorkspaceActivity } from "@/lib/privileged-api";
+import { noteTitle } from "@/lib/notes";
 
 function text(value: unknown, max: number) {
   if (typeof value !== "string") return null;
@@ -58,6 +60,18 @@ export async function POST(request: Request) {
     return databaseFailure(request, "note.create", result.error, {
       error: "The note could not be saved.",
     });
+  const recorded = await recordWorkspaceActivity(authorization.user, {
+    action: "note.create",
+    targetType: "note",
+    targetId: result.data.id,
+    name: noteTitle(result.data),
+    href: "/notes",
+  });
+  if (!recorded)
+    return NextResponse.json(
+      { error: "The note was saved, but its activity could not be recorded." },
+      { status: 500 },
+    );
   return NextResponse.json({ note: result.data });
 }
 
@@ -120,6 +134,28 @@ export async function PATCH(request: Request) {
     return databaseFailure(request, "note.update", result.error, {
       error: "The note could not be updated.",
     });
+  const action =
+    input.convertedTaskId !== undefined
+      ? "note.convert"
+      : input.archived === true
+        ? "note.archive"
+        : input.archived === false
+          ? "note.restore"
+          : "note.update";
+  if (
+    !(await recordWorkspaceActivity(authorization.user, {
+      action,
+      targetType: "note",
+      targetId: result.data.id,
+      name: noteTitle(result.data),
+      href: "/notes",
+      coalesceSeconds: action === "note.update" ? 300 : undefined,
+    }))
+  )
+    return NextResponse.json(
+      { error: "The note was updated, but its activity could not be recorded." },
+      { status: 500 },
+    );
   return NextResponse.json({ note: result.data });
 }
 
@@ -137,10 +173,24 @@ export async function DELETE(request: Request) {
   const result = await authorization.supabase
     .from("notes")
     .delete()
-    .eq("id", parsed.data.id);
+    .eq("id", parsed.data.id)
+    .select(noteColumns)
+    .single();
   if (result.error)
     return databaseFailure(request, "note.delete", result.error, {
       error: "The note could not be deleted.",
     });
+  if (
+    !(await recordWorkspaceActivity(authorization.user, {
+      action: "note.delete",
+      targetType: "note",
+      targetId: result.data.id,
+      name: noteTitle(result.data),
+    }))
+  )
+    return NextResponse.json(
+      { error: "The note was deleted, but its activity could not be recorded." },
+      { status: 500 },
+    );
   return NextResponse.json({ ok: true });
 }

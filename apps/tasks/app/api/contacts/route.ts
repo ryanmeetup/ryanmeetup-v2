@@ -4,6 +4,7 @@ import { databaseFailure } from "@/lib/server/api-response";
 import { authorize } from "@/lib/server/auth";
 import { loadContact } from "@/lib/server/contacts";
 import { readJson } from "@/lib/server/request";
+import { recordWorkspaceActivity } from "@/lib/privileged-api";
 
 async function save(request: Request) {
   const parsed = await readJson(request, contactSaveSchema);
@@ -44,6 +45,52 @@ async function save(request: Request) {
       { error: "The organization was saved, but could not be reloaded." },
       { status: 500 },
     );
+  if (
+    !(await recordWorkspaceActivity(authorization.user, {
+      action: parsed.data.id ? "organization.update" : "organization.create",
+      targetType: "organization",
+      targetId: contactId,
+      name: result.data.display_name,
+      href: "/contacts",
+    }))
+  )
+    return NextResponse.json(
+      {
+        error:
+          "The organization was saved, but its activity could not be recorded.",
+      },
+      { status: 500 },
+    );
+  if (parsed.data.newCategoryNames.length) {
+    const categories = await authorization.supabase
+      .from("work_groups")
+      .select("id,name")
+      .in("name", parsed.data.newCategoryNames);
+    if (categories.error)
+      return databaseFailure(request, "contact.category-activity", categories.error, {
+        error:
+          "The organization was saved, but its new categories could not be recorded.",
+      });
+    const categoryActivity = await Promise.all(
+      (categories.data ?? []).map((category) =>
+        recordWorkspaceActivity(authorization.user, {
+          action: "category.create",
+          targetType: "category",
+          targetId: category.id,
+          name: category.name,
+          href: "/categories",
+        }),
+      ),
+    );
+    if (categoryActivity.some((recorded) => !recorded))
+      return NextResponse.json(
+        {
+          error:
+            "The organization was saved, but its new category activity could not be recorded.",
+        },
+        { status: 500 },
+      );
+  }
   return NextResponse.json({ contact: result.data });
 }
 
@@ -55,13 +102,30 @@ export async function DELETE(request: Request) {
   if ("response" in parsed) return parsed.response;
   const authorization = await authorize({ onboarded: true });
   if ("response" in authorization) return authorization.response;
-  const { error } = await authorization.supabase
+  const result = await authorization.supabase
     .from("contacts")
     .delete()
-    .eq("id", parsed.data.id);
-  if (error)
-    return databaseFailure(request, "contact.delete", error, {
+    .eq("id", parsed.data.id)
+    .select("id,display_name")
+    .single();
+  if (result.error)
+    return databaseFailure(request, "contact.delete", result.error, {
       error: "The organization could not be deleted. Try again.",
     });
+  if (
+    !(await recordWorkspaceActivity(authorization.user, {
+      action: "organization.delete",
+      targetType: "organization",
+      targetId: result.data.id,
+      name: result.data.display_name,
+    }))
+  )
+    return NextResponse.json(
+      {
+        error:
+          "The organization was deleted, but its activity could not be recorded.",
+      },
+      { status: 500 },
+    );
   return NextResponse.json({ ok: true });
 }

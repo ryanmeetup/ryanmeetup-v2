@@ -4,6 +4,7 @@ import { databaseFailure, notFound } from "@/lib/server/api-response";
 import { authorize } from "@/lib/server/auth";
 import { readJson } from "@/lib/server/request";
 import type { ProjectLink } from "@/lib/resource-types";
+import { recordWorkspaceActivity } from "@/lib/privileged-api";
 
 export async function POST(request: Request) {
   const parsed = await readJson(request, projectCreateSchema);
@@ -39,6 +40,20 @@ export async function POST(request: Request) {
         error: "The project was created, but its owners could not be saved.",
       });
   }
+  if (
+    !(await recordWorkspaceActivity(authorization.user, {
+      action: "project.create",
+      targetType: "project",
+      targetId: data.id,
+      name: data.name,
+      href: "/projects",
+      projectId: data.id,
+    }))
+  )
+    return NextResponse.json(
+      { error: "The project was created, but its activity could not be recorded." },
+      { status: 500 },
+    );
   return NextResponse.json({ project: data });
 }
 
@@ -106,5 +121,34 @@ export async function PATCH(request: Request) {
         });
     }
   }
+  const projectResult = await supabase
+    .from("projects")
+    .select("id,name")
+    .eq("id", parsed.data.id)
+    .single();
+  if (projectResult.error)
+    return databaseFailure(request, "project.activity-target", projectResult.error, {
+      error: "The project was updated, but its activity could not be recorded.",
+    });
+  const action =
+    parsed.data.archived === true
+      ? "project.archive"
+      : parsed.data.archived === false
+        ? "project.restore"
+        : "project.update";
+  if (
+    !(await recordWorkspaceActivity(authorization.user, {
+      action,
+      targetType: "project",
+      targetId: parsed.data.id,
+      name: projectResult.data.name,
+      href: "/projects",
+      projectId: parsed.data.id,
+    }))
+  )
+    return NextResponse.json(
+      { error: "The project was updated, but its activity could not be recorded." },
+      { status: 500 },
+    );
   return NextResponse.json({ ok: true });
 }

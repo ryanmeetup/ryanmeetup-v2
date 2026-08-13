@@ -3,8 +3,8 @@ import { categorySchema } from "@/lib/api-schemas";
 import { databaseFailure } from "@/lib/server/api-response";
 import {
   apiError,
-  auditPrivilegedAction,
   privilegedContext,
+  recordWorkspaceActivity,
   readJson,
 } from "@/lib/privileged-api";
 
@@ -69,10 +69,12 @@ export async function POST(request: Request) {
       error: "The category was created, but its owners could not be saved.",
     });
   if (
-    !(await auditPrivilegedAction(context.admin, context.user, {
+    !(await recordWorkspaceActivity(context.user, {
       action: "category.create",
       targetType: "category",
       targetId: data.id,
+      name: data.name,
+      href: "/categories",
     }))
   )
     return apiError(
@@ -134,10 +136,17 @@ export async function PATCH(request: Request) {
       });
   }
   if (
-    !(await auditPrivilegedAction(context.admin, context.user, {
-      action: "category.update",
+    !(await recordWorkspaceActivity(context.user, {
+      action:
+        parsed.data.archived === true
+          ? "category.archive"
+          : parsed.data.archived === false
+            ? "category.restore"
+            : "category.update",
       targetType: "category",
       targetId: parsed.data.id,
+      name: parsed.data.name,
+      href: "/categories",
     }))
   )
     return apiError(

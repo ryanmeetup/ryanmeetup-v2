@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   describeActivity,
   groupActivityByDate,
+  resolveActivityRows,
 } from "@/lib/activity-presentation";
 import type { TaskActivity } from "@/lib/activity-types";
 import type { Status } from "@/lib/task-types";
@@ -21,6 +22,24 @@ const activity = (
   }) as TaskActivity;
 
 describe("activity presentation", () => {
+  it("resolves non-task resource labels and links", () => {
+    const item = activity("resource", "2026-08-13T12:00:00Z", {
+      resource_name: "Acme",
+      resource_href: "/contacts",
+    });
+    item.task_id = null;
+    const [row] = resolveActivityRows([item], {
+      tasks: [],
+      profiles: [],
+      projects: [],
+      statuses: [],
+    });
+    expect(row).toMatchObject({
+      resourceName: "Acme",
+      resourceHref: "/contacts",
+    });
+  });
+
   it("describes moves with resolved statuses and falls back safely", () => {
     const statuses = [
       { id: "todo", name: "To do" },

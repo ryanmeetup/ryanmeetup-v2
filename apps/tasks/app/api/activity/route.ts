@@ -10,6 +10,7 @@ import {
   USER_ACCESS_PREVIEW_PARAM,
 } from "@/lib/access-preview";
 import { resolveAccessPreview } from "@/lib/access-preview-server";
+import { getAdminClient } from "@/lib/server/admin-client";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -172,39 +173,19 @@ export async function GET(request: Request) {
     }
   }
 
-  let countQuery = authorization.supabase
-    .from("task_activity")
-    .select(selection, { count: "exact", head: true });
-  countQuery = applyActivityFilters(
-    countQuery,
-    params,
-    previewProjectIds,
-    previewInaccessibleTaskIds,
-  );
-  const countResult = await countQuery;
-  if (countResult.error)
-    return databaseFailure(request, "activity.count", countResult.error, {
-      error: "Activity could not be loaded. Try again.",
-    });
-
-  const page = derivePagination(
-    requestedPage,
-    pageSize,
-    countResult.count ?? 0,
-  );
   let itemQuery = authorization.supabase
     .from("task_activity")
     .select(selection);
   itemQuery = applyActivityFilters(
     itemQuery,
-    params,
+    new URLSearchParams(),
     previewProjectIds,
     previewInaccessibleTaskIds,
   );
   const result = await itemQuery
     .order("created_at", { ascending: false })
     .order("id", { ascending: false })
-    .range(page.from, page.to);
+    .limit(5000);
   if (result.error)
     return databaseFailure(request, "activity.list", result.error, {
       error: "Activity could not be loaded. Try again.",
@@ -216,10 +197,141 @@ export async function GET(request: Request) {
   const tasks = [
     ...new Map(rows.map((row) => [row.tasks.id, row.tasks])).values(),
   ];
-  const activity = rows.map(({ tasks: relatedTask, ...item }) => {
+  const taskById = new Map(tasks.map((task) => [task.id, task]));
+  const admin = getAdminClient();
+  const auditResult = admin
+    ? await admin
+        .from("permission_audit_events")
+        .select("id,actor_id,action,target_type,target_id,after_state,created_at")
+        .contains("after_state", { activity: true })
+        .order("created_at", { ascending: false })
+        .limit(2000)
+    : { data: [], error: null };
+  if (auditResult.error)
+    return databaseFailure(request, "activity.resources", auditResult.error, {
+      error: "Resource activity could not be loaded. Try again.",
+    });
+
+  const [visibleProjectsResult, visibleCategoriesResult, visibleNotesResult] =
+    await Promise.all([
+      authorization.supabase.from("projects").select("id"),
+      authorization.supabase.from("work_groups").select("id"),
+      authorization.supabase.from("notes").select("id"),
+    ]);
+  const visibilityError =
+    visibleProjectsResult.error ??
+    visibleCategoriesResult.error ??
+    visibleNotesResult.error;
+  if (visibilityError)
+    return databaseFailure(request, "activity.visibility", visibilityError, {
+      error: "Activity permissions could not be resolved. Try again.",
+    });
+  const visibleProjectIds = new Set(
+    (visibleProjectsResult.data ?? []).map((item) => item.id),
+  );
+  const visibleCategoryIds = new Set(
+    (visibleCategoriesResult.data ?? []).map((item) => item.id),
+  );
+  const visibleNoteIds = new Set(
+    (visibleNotesResult.data ?? []).map((item) => item.id),
+  );
+
+  const taskActivity = rows.map(({ tasks: relatedTask, ...item }) => {
     void relatedTask;
     return item;
   });
+  const resourceActivity = (auditResult.data ?? []).flatMap((event) => {
+    const visible =
+      event.target_type === "project"
+        ? Boolean(event.target_id && visibleProjectIds.has(event.target_id))
+        : event.target_type === "category"
+          ? Boolean(event.target_id && visibleCategoryIds.has(event.target_id))
+          : event.target_type === "note"
+            ? Boolean(
+                event.target_id &&
+                  (visibleNoteIds.has(event.target_id) ||
+                    event.actor_id === authorization.user.id),
+              )
+            : event.target_type === "organization";
+    if (!visible) return [];
+    const metadata = (event.after_state ?? {}) as Record<string, unknown>;
+    return [{
+      id: event.id,
+      task_id: null,
+      actor_id: event.actor_id,
+      action: event.action,
+      details: {
+        resource_type: event.target_type,
+        resource_id: event.target_id ?? undefined,
+        resource_name:
+          typeof metadata.resource_name === "string"
+            ? metadata.resource_name
+            : undefined,
+        resource_href:
+          typeof metadata.resource_href === "string"
+            ? metadata.resource_href
+            : undefined,
+        project_id:
+          typeof metadata.project_id === "string"
+            ? metadata.project_id
+            : undefined,
+      },
+      created_at: event.created_at,
+    } satisfies TaskActivity];
+  });
+  const values = (name: string) =>
+    (params.get(name) ?? "").split(",").filter(Boolean);
+  const includedProjects = values("projects");
+  const excludedProjects = values("excludeProjects");
+  const includedPeople = values("people");
+  const excludedPeople = values("excludePeople");
+  const includedEvents = values("events");
+  const excludedEvents = values("excludeEvents");
+  const eventKind = (item: TaskActivity) => {
+    if (item.action.startsWith("note.")) return "note";
+    if (item.action.startsWith("organization.")) return "organization";
+    if (item.action.startsWith("project.")) return "project";
+    if (item.action.startsWith("category.")) return "category";
+    if (item.action === "created the task") return "created";
+    if (item.action === "updated the task") return "updated";
+    if (item.action === "moved task") return "moved";
+    if (item.action.includes("checklist")) return "checklist";
+    if (item.action.includes("attach")) return "attachment";
+    return "other";
+  };
+  const when = params.get("when");
+  const cutoff =
+    when === "day"
+      ? Date.now() - DAY
+      : when === "week"
+        ? Date.now() - 7 * DAY
+        : when === "month"
+          ? Date.now() - 30 * DAY
+          : null;
+  const allActivity = [...taskActivity, ...resourceActivity]
+    .filter((item) => {
+      const task = item.task_id ? taskById.get(item.task_id) : undefined;
+      const projectId = task?.project_id ?? item.details.project_id ?? null;
+      const projectValue = projectId ?? "none";
+      const actorValue = item.actor_id ?? "system";
+      const kind = eventKind(item);
+      return (
+        (!includedProjects.length || includedProjects.includes(projectValue)) &&
+        !excludedProjects.includes(projectValue) &&
+        (!includedPeople.length || includedPeople.includes(actorValue)) &&
+        !excludedPeople.includes(actorValue) &&
+        (!includedEvents.length || includedEvents.includes(kind)) &&
+        !excludedEvents.includes(kind) &&
+        (!cutoff || new Date(item.created_at).getTime() >= cutoff) &&
+        (!previewProjectIds || !projectId || previewProjectIds.includes(projectId))
+      );
+    })
+    .sort(
+      (a, b) =>
+        b.created_at.localeCompare(a.created_at) || b.id.localeCompare(a.id),
+    );
+  const page = derivePagination(requestedPage, pageSize, allActivity.length);
+  const activity = allActivity.slice(page.from, page.to + 1);
   return NextResponse.json({
     activity,
     tasks,

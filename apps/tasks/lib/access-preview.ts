@@ -55,7 +55,9 @@ export function applyAccessPreview(
     tasks,
     subtasks: data.subtasks.filter((item) => visibleTaskIds.has(item.task_id)),
     comments: data.comments.filter((item) => visibleTaskIds.has(item.task_id)),
-    activity: data.activity.filter((item) => visibleTaskIds.has(item.task_id)),
+    activity: data.activity.filter(
+      (item) => !item.task_id || visibleTaskIds.has(item.task_id),
+    ),
     attachments: data.attachments.filter((item) =>
       visibleTaskIds.has(item.task_id),
     ),

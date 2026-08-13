@@ -128,6 +128,16 @@ export async function POST(request: Request) {
       return databaseFailure(request, "comment.create", error, {
         error: "The comment could not be added. Try again.",
       });
+    const activity = await recordTaskActivity(
+      supabase,
+      body.taskId,
+      user.id,
+      "added a comment",
+    );
+    if (activity.error)
+      return databaseFailure(request, "comment.activity", activity.error, {
+        error: "The comment was added, but its activity could not be recorded.",
+      });
     return NextResponse.json({ comment: data as TaskComment });
   }
   return failure("Invalid task detail type.");
@@ -157,6 +167,16 @@ export async function PATCH(request: Request) {
       return databaseFailure(request, "comment.update", error, {
         error: "The comment could not be updated. Try again.",
       });
+    const activity = await recordTaskActivity(
+      supabase,
+      data.task_id,
+      user.id,
+      "edited a comment",
+    );
+    if (activity.error)
+      return databaseFailure(request, "comment.activity", activity.error, {
+        error: "The comment was edited, but its activity could not be recorded.",
+      });
     return NextResponse.json({ comment: data as TaskComment });
   }
   if (!body.id || typeof body.completed !== "boolean")
@@ -170,6 +190,16 @@ export async function PATCH(request: Request) {
   if (error)
     return databaseFailure(request, "subtask.update", error, {
       error: "The checklist item could not be updated. Try again.",
+    });
+  const activity = await recordTaskActivity(
+    supabase,
+    data.task_id,
+    user.id,
+    body.completed ? "completed a checklist item" : "reopened a checklist item",
+  );
+  if (activity.error)
+    return databaseFailure(request, "subtask.activity", activity.error, {
+      error: "The checklist was updated, but its activity could not be recorded.",
     });
   return NextResponse.json({ subtask: data as Subtask });
 }
@@ -188,11 +218,21 @@ export async function DELETE(request: Request) {
       .delete()
       .eq("id", id)
       .eq("created_by", user.id)
-      .select("id")
+      .select("id,task_id")
       .single();
     if (error)
       return databaseFailure(request, "comment.delete", error, {
         error: "The comment could not be deleted. Try again.",
+      });
+    const activity = await recordTaskActivity(
+      supabase,
+      data.task_id,
+      user.id,
+      "deleted a comment",
+    );
+    if (activity.error)
+      return databaseFailure(request, "comment.activity", activity.error, {
+        error: "The comment was deleted, but its activity could not be recorded.",
       });
     return NextResponse.json({ id: data.id });
   }
@@ -201,11 +241,38 @@ export async function DELETE(request: Request) {
     .from("subtasks")
     .delete()
     .eq("id", id)
-    .select("id")
+    .select("id,task_id")
     .single();
   if (error)
     return databaseFailure(request, "subtask.delete", error, {
       error: "The checklist item could not be removed. Try again.",
     });
+  const activity = await recordTaskActivity(
+    supabase,
+    data.task_id,
+    user.id,
+    "deleted a checklist item",
+  );
+  if (activity.error)
+    return databaseFailure(request, "subtask.activity", activity.error, {
+      error: "The checklist item was deleted, but its activity could not be recorded.",
+    });
   return NextResponse.json({ id: data.id });
+}
+async function recordTaskActivity(
+  supabase: Awaited<ReturnType<typeof authorize>> extends infer T
+    ? T extends { supabase: infer S }
+      ? S
+      : never
+    : never,
+  taskId: string,
+  actorId: string,
+  action: string,
+) {
+  return supabase.from("task_activity").insert({
+    task_id: taskId,
+    actor_id: actorId,
+    action,
+    details: {},
+  });
 }

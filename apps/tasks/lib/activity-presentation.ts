@@ -15,6 +15,8 @@ export type ActivityPresentationRow = {
   actorName: string;
   task?: Task;
   project?: Project;
+  resourceName?: string;
+  resourceHref?: string;
   description: ActivityDescription;
 };
 
@@ -52,14 +54,20 @@ export function resolveActivityRows(
     data.projects.map((project) => [project.id, project]),
   );
   return activity.map((item) => {
-    const task = tasks.get(item.task_id);
+    const task = item.task_id ? tasks.get(item.task_id) : undefined;
     const actor = item.actor_id ? profiles.get(item.actor_id) : undefined;
     return {
       item,
       actor,
       actorName: actor ? profileDisplayName(actor) : "System",
       task,
-      project: task?.project_id ? projects.get(task.project_id) : undefined,
+      project: task?.project_id
+        ? projects.get(task.project_id)
+        : item.details.project_id
+          ? projects.get(item.details.project_id)
+          : undefined,
+      resourceName: item.details.resource_name,
+      resourceHref: item.details.resource_href,
       description: describeActivity(item, data.statuses),
     };
   });

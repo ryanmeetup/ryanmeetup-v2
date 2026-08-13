@@ -316,7 +316,7 @@ export function ActivityPageClient({
               Activity
             </Heading>
             <p className="mt-2 text-sm text-black/65 dark:text-white/65">
-              The latest task creations, moves, edits, and other workspace
+              The latest task, note, organization, project, and category
               happenings.
             </p>
           </div>
@@ -385,6 +385,10 @@ export function ActivityPageClient({
                 { label: "Task moved", value: "moved" },
                 { label: "Checklist", value: "checklist" },
                 { label: "Attachment", value: "attachment" },
+                { label: "Notes", value: "note" },
+                { label: "Organizations", value: "organization" },
+                { label: "Projects", value: "project" },
+                { label: "Categories", value: "category" },
               ]}
             />
             <DropdownSelect
@@ -417,10 +421,12 @@ export function ActivityPageClient({
                     task,
                     actor: profile,
                     project,
+                    resourceName,
+                    resourceHref,
                   } = rowsById.get(item.id)!;
 
-                  return (
-                    <article key={item.id} className="space-y-3 p-4">
+                  const content = (
+                    <article className="space-y-3 p-4">
                       <div className="flex items-start justify-between gap-3">
                         <span className="flex min-w-0 items-center gap-2 font-semibold">
                           <Avatar
@@ -444,25 +450,17 @@ export function ActivityPageClient({
                       </div>
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
                         {task ? (
-                          <Link
-                            href={withAccessPreview(
-                              taskPath(task),
-                              data.accessPreview,
-                            )}
-                            className="min-w-0 rounded font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/40"
-                          >
+                          <span className="min-w-0 font-semibold">
                             <TaskKeyBadge
                               task={task}
                               className="mr-2 align-middle"
                             />
-                            <span className="hover:underline">
-                              {task.title}
-                            </span>
-                          </Link>
-                        ) : (
-                          <span className="text-black/45 dark:text-white/45">
-                            Task unavailable
+                            <span>{task.title}</span>
                           </span>
+                        ) : resourceName ? (
+                          <span className="min-w-0 font-semibold">{resourceName}</span>
+                        ) : (
+                          <span className="text-black/45 dark:text-white/45">Item unavailable</span>
                         )}
                         {project && (
                           <span className="text-black/60 dark:text-white/60">
@@ -471,6 +469,22 @@ export function ActivityPageClient({
                         )}
                       </div>
                     </article>
+                  );
+
+                  const href = task
+                    ? withAccessPreview(taskPath(task), data.accessPreview)
+                    : resourceHref;
+                  return href ? (
+                    <Link
+                      key={item.id}
+                      href={href}
+                      className="block transition hover:bg-black/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-black/30 dark:hover:bg-white/[0.025] dark:focus-visible:ring-white/40"
+                      aria-label={`Open ${task?.title ?? resourceName ?? "item"}`}
+                    >
+                      {content}
+                    </Link>
+                  ) : (
+                    <div key={item.id}>{content}</div>
                   );
                 })}
                 {loading && data.activity.length === 0 && (
@@ -484,7 +498,7 @@ export function ActivityPageClient({
                     variant="plain"
                     message={
                       filterCount === 0
-                        ? "No activity yet. The next task update will show up here."
+                        ? "No activity yet. The next workspace update will show up here."
                         : "No activity matches these filters. Try widening your selection."
                     }
                   />
@@ -508,7 +522,7 @@ export function ActivityPageClient({
                     <th className="px-4 py-3 font-semibold">When</th>
                     <th className="px-4 py-3 font-semibold">Who</th>
                     <th className="px-4 py-3 font-semibold">What happened</th>
-                    <th className="px-4 py-3 font-semibold">Task</th>
+                    <th className="px-4 py-3 font-semibold">Item</th>
                     <th className="px-4 py-3 font-semibold">Project</th>
                   </tr>
                 </thead>
@@ -518,13 +532,25 @@ export function ActivityPageClient({
                       task,
                       actor: profile,
                       project,
+                      resourceName,
+                      resourceHref,
                     } = rowsById.get(item.id)!;
+                    const href = task
+                      ? withAccessPreview(taskPath(task), data.accessPreview)
+                      : resourceHref;
                     return (
                       <tr
                         key={item.id}
-                        className="align-middle hover:bg-black/[0.025] dark:hover:bg-white/[0.025]"
+                        className="group relative align-middle transition hover:bg-black/[0.025] focus-within:bg-black/[0.025] dark:hover:bg-white/[0.025] dark:focus-within:bg-white/[0.025]"
                       >
                         <td className="whitespace-nowrap px-4 py-3 text-black/55 dark:text-white/55">
+                          {href && (
+                            <Link
+                              href={href}
+                              aria-label={`Open ${task?.title ?? resourceName ?? "item"}`}
+                              className="absolute inset-0 z-10 focus-visible:outline-none group-focus-within:ring-2 group-focus-within:ring-inset group-focus-within:ring-black/30 dark:group-focus-within:ring-white/40"
+                            />
+                          )}
                           <time dateTime={item.created_at}>
                             {dateTimeFormatter.format(
                               new Date(item.created_at),
@@ -548,25 +574,17 @@ export function ActivityPageClient({
                         </td>
                         <td className="px-4 py-3 font-semibold">
                           {task ? (
-                            <Link
-                              href={withAccessPreview(
-                                taskPath(task),
-                                data.accessPreview,
-                              )}
-                              className="min-w-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/40"
-                            >
+                            <span className="min-w-0">
                               <TaskKeyBadge
                                 task={task}
                                 className="mr-2 align-middle"
                               />
-                              <span className="hover:underline">
-                                {task.title}
-                              </span>
-                            </Link>
-                          ) : (
-                            <span className="text-black/45 dark:text-white/45">
-                              Task unavailable
+                              <span>{task.title}</span>
                             </span>
+                          ) : resourceName ? (
+                            <span className="min-w-0">{resourceName}</span>
+                          ) : (
+                            <span className="text-black/45 dark:text-white/45">Item unavailable</span>
                           )}
                         </td>
                         <td className="px-4 py-3 text-black/65 dark:text-white/65">
@@ -592,7 +610,7 @@ export function ActivityPageClient({
                           variant="plain"
                           message={
                             filterCount === 0
-                              ? "No activity yet. The next task update will show up here."
+                              ? "No activity yet. The next workspace update will show up here."
                               : "No activity matches these filters. Try widening your selection."
                           }
                         />
