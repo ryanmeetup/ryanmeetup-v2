@@ -5,6 +5,7 @@ import {
   Button,
   ConfirmationDialog,
   DropdownSelect,
+  Modal,
   Textarea,
   toast,
 } from "@ryanmeetup/ui";
@@ -164,21 +165,29 @@ export function NotesPageClient({
         demoMode={demoMode}
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
-        contentClassName="p-4 sm:p-6 xl:p-8"
+        contentClassName="p-3 sm:p-6 lg:p-6 xl:p-8"
       >
-        <div className="mx-auto max-w-7xl space-y-6">
-          <header>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-black/50 dark:text-white/50">
-              Shared scratchpad
-            </p>
-            <h1 className="mt-2 font-cooper text-3xl sm:text-4xl">Notes</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-black/65 dark:text-white/65">
-              Catch quick thoughts before they escape. When an idea becomes real
-              work, turn it into a task.
-            </p>
-          </header>
-
-          <section className="rounded-2xl border border-black/10 bg-white/90 p-4 shadow-[0_12px_35px_rgba(0,0,0,0.045)] dark:border-white/10 dark:bg-white/[0.055] dark:shadow-none sm:p-5">
+        <Modal
+          open
+          setIsOpen={() => undefined}
+          title="Notes"
+          description="Catch quick thoughts before they escape. When an idea becomes real work, turn it into a task."
+          actions={
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="w-full sm:w-auto"
+              onClick={() => setShowArchived((value) => !value)}
+            >
+              {showArchived ? "View active" : "View archive"}
+            </Button>
+          }
+          hideActions
+          size="xl"
+          embedded
+        >
+          <section className="rounded-xl border border-black/10 bg-black/[0.015] p-4 dark:border-white/10 dark:bg-white/[0.025] sm:p-5">
             <Textarea
               id="quick-note"
               label="Quick note"
@@ -220,19 +229,11 @@ export function NotesPageClient({
             </div>
           </section>
 
-          <section className="rounded-2xl border border-black/10 bg-white/90 p-4 shadow-[0_12px_35px_rgba(0,0,0,0.045)] dark:border-white/10 dark:bg-white/[0.055] dark:shadow-none sm:p-5">
-            <div className="mb-5 flex items-center justify-between gap-4">
+          <section className="mt-6 border-t border-black/10 pt-5 dark:border-white/10">
+            <div className="mb-5 flex items-center gap-4">
               <h2 className="text-sm font-semibold uppercase tracking-[0.18em]">
                 {showArchived ? "Archived notes" : "Recent notes"}
               </h2>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => setShowArchived((value) => !value)}
-              >
-                {showArchived ? "View active" : "View archive"}
-              </Button>
             </div>
 
             {activeNotes.length ? (
@@ -267,7 +268,7 @@ export function NotesPageClient({
               </div>
             )}
           </section>
-        </div>
+        </Modal>
       </WorkspacePageShell>
 
       <ConfirmationDialog
