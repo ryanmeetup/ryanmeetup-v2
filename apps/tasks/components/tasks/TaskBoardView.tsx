@@ -99,6 +99,7 @@ export function TaskBoardView({
     const card = model.cards.get(task.id)!;
     return (
       <TaskBoardCard
+        key={task.id}
         {...card}
         draggedTaskId={drag.state.draggedTaskId}
         dropTarget={drag.state.dropTarget}

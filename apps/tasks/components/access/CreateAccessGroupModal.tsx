@@ -139,7 +139,7 @@ export function CreateAccessGroupModal({
         />
         <Textarea
           id="access-group-description"
-          label="Description (optional)"
+          label="Description"
           name="access-group-description"
           value={description}
           onChange={(event) => setDescription(event.target.value)}

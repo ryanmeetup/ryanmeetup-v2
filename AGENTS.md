@@ -19,6 +19,7 @@ business logic into a generic package.
 - `packages/brand`: shared fonts and brand theme CSS.
 - `packages/ui`: reusable visual primitives and generic compositions.
 - `packages/contact`: shared contact-form behavior and integrations.
+- `packages/hooks`: reusable client-side state and query hooks.
 - `packages/sponsors`: shared sponsor-domain components.
 - `packages/utils`: framework-agnostic shared utilities.
 
@@ -229,11 +230,11 @@ Rules:
 
 ## Forms and Feedback
 
-- Every editable form field must communicate whether it is required or
-  optional. Required fields must use the shared component's `required` prop (or
-  native `required` semantics) so the visible required marker, ARIA state, and
-  browser behavior agree. Optional fields must include `(optional)` in the
-  visible label. Apply this convention to create and edit forms, not search,
+- Every editable form field must communicate whether it is required. Required
+  fields must use the shared component's `required` prop (or native `required`
+  semantics) so the visible red asterisk, ARIA state, and browser behavior
+  agree. Optional fields must not display an `(optional)` suffix or any other
+  optional marker. Apply this convention to create and edit forms, not search,
   filter, display-only, disabled, or action controls.
 - A field with a default value is still required when the user must submit one
   of its allowed values. Keep UI required state aligned with client validation,
@@ -289,14 +290,21 @@ Rules:
 
 Validate in proportion to the change, from the affected workspace.
 
-### Supabase migrations
+### Supabase database changes
 
-When a requested change adds or modifies a Supabase migration, applying the
-migration to the linked Supabase project is part of the implementation work.
-Do not hand off a database-dependent application change with an unapplied
-migration unless deployment is genuinely blocked. After applying migrations,
-verify the affected table, column, function, policy, or trigger through the
-live project and report any blocker explicitly.
+The linked Supabase project is the source of truth. Do not retain chronological
+Supabase migration files in this repository and do not make builds, CI, tests,
+or local development depend on replaying migration history.
+
+For a database change, write the SQL in a temporary file, apply it directly to
+the linked project, verify the affected table, column, function, policy, or
+trigger through the live project, and delete the temporary file before handoff.
+Prefer a temporary directory outside the repository. If a tool requires the
+file under `supabase/migrations`, remove it after successful application and
+verification. Do not use a migration-history workflow such as `supabase db
+push` for these ephemeral files; it would leave the remote migration ledger
+dependent on a file the repository intentionally does not retain. Report any
+deployment or verification blocker explicitly.
 
 Minimum expectations:
 

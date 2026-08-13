@@ -192,7 +192,7 @@ export function NotesPageClient({
             />
             <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <DropdownSelect
-                label="Category (optional)"
+                label="Category"
                 value={categoryId}
                 onChange={setCategoryId}
                 options={[

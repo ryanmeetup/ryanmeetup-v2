@@ -99,7 +99,7 @@ export function ProfileAccessModal({
           required
         />
         <MultiSelect
-          label="Teams (optional)"
+          label="Teams"
           options={teamGroups.map((group) => ({
             label: group.name,
             value: group.id,

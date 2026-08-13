@@ -151,7 +151,7 @@ export function AccessGroupPageClient({
                 />
                 <Textarea
                   id="group-description"
-                  label="Description (optional)"
+                  label="Description"
                   name="group-description"
                   value={description}
                   onChange={(event) => setDescription(event.target.value)}

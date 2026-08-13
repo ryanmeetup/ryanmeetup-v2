@@ -12,6 +12,7 @@ import {
   MultiSelect,
   Pill,
   RichTextarea,
+  Tooltip,
   toast,
 } from "@ryanmeetup/ui";
 import {
@@ -270,7 +271,7 @@ export function TaskEditor(props: TaskEditorProps) {
                     htmlFor="task-description"
                     className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.2em] text-black/70 sm:tracking-[0.3em] dark:text-white/70"
                   >
-                    Description (optional)
+                    Description
                   </label>
                   <RichTextarea
                     id="task-description"
@@ -370,7 +371,7 @@ export function TaskEditor(props: TaskEditorProps) {
                   </fieldset>
                   <DropdownSelect
                     variant="field"
-                    label="Project (optional)"
+                    label="Project"
                     value={draft.project_id ?? ""}
                     onChange={(value) =>
                       setDraft({ ...draft, project_id: value || null })
@@ -390,7 +391,7 @@ export function TaskEditor(props: TaskEditorProps) {
                   />
                   <DropdownSelect
                     variant="field"
-                    label="Assignee (optional)"
+                    label="Assignee"
                     proximityValue={data.currentProfile.id}
                     value={draft.assignee_id ?? ""}
                     onChange={(value) =>
@@ -427,7 +428,7 @@ export function TaskEditor(props: TaskEditorProps) {
                     }))}
                   />
                   <label className="date-field">
-                    <span>Due date (optional)</span>
+                    <span>Due date</span>
                     <input
                       type="date"
                       value={draft.due_date ?? ""}
@@ -440,7 +441,7 @@ export function TaskEditor(props: TaskEditorProps) {
                     />
                   </label>
                   <MultiSelect
-                    label="Tags (optional)"
+                    label="Tags"
                     options={tagOptions}
                     value={selectedTagValues}
                     onChange={updateTags}
@@ -463,13 +464,24 @@ export function TaskEditor(props: TaskEditorProps) {
                         Coming soon
                       </Pill>
                     </span>
-                    <input
-                      type="datetime-local"
-                      value=""
-                      disabled
-                      aria-label="Reminder (coming soon)"
-                      className="cursor-not-allowed"
-                    />
+                    <Tooltip
+                      content="Reminders are coming soon."
+                      triggerClassName="w-full !block !text-sm !font-normal !normal-case !tracking-normal"
+                    >
+                      <span
+                        className="block w-full cursor-help"
+                        tabIndex={0}
+                        aria-label="Reminder is coming soon"
+                      >
+                        <input
+                          type="datetime-local"
+                          value=""
+                          disabled
+                          aria-label="Reminder (coming soon)"
+                          className="cursor-not-allowed"
+                        />
+                      </span>
+                    </Tooltip>
                   </label>
                 </div>
               </>

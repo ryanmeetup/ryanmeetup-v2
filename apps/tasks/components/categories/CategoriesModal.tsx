@@ -540,7 +540,7 @@ export function CategoriesModal({
           newAccessMode === "restricted" && (
           <div className="mt-4">
             <MultiSelect
-              label="Allowed access groups (optional)"
+              label="Allowed access groups"
               options={accessGroups.map((group) => ({
                 label: group.name,
                 value: group.id,
@@ -569,7 +569,7 @@ export function CategoriesModal({
     <ResourceFields section="primary" resource={{ kind: "category" }} values={{ name, description, ownerIds: newOwnerIds, links, attachments }} changes={{ setName, setDescription, setOwnerIds: setNewOwnerIds, setLinks, setAttachments }} editor={{ disabled: creating, demoMode, currentUserId: data.currentProfile.id, profiles: data.profiles }} copy={{ nameLabel: "Category name", namePlaceholder: "Marketing", descriptionPlaceholder: "What kind of work belongs in this category?" }} primarySlot={<>
       {colorControl(color, setColor, creating)}
       <TagInput
-        label="Tags (optional)"
+        label="Tags"
         value={tags}
         onChange={setTags}
         placeholder="Feature"
@@ -1068,7 +1068,7 @@ export function CategoriesModal({
                 </div>
                 <Textarea
                   id={`edit-category-description-${category.id}`}
-                  label="Description (optional)"
+                  label="Description"
                   name={`edit-category-description-${category.id}`}
                   value={editingDescription}
                   onChange={(event) =>
@@ -1079,7 +1079,7 @@ export function CategoriesModal({
                   disabled={saving}
                 />
                 <TagInput
-                  label="Tags (optional)"
+                  label="Tags"
                   value={editingTags}
                   onChange={setEditingTags}
                   placeholder="Feature"
@@ -1113,7 +1113,7 @@ export function CategoriesModal({
                       editingAccessMode === "restricted" && (
                       <div className="mt-4">
                         <MultiSelect
-                          label="Allowed access groups (optional)"
+                          label="Allowed access groups"
                           options={accessGroups.map((group) => ({
                             label: group.name,
                             value: group.id,

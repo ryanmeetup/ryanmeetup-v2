@@ -270,7 +270,7 @@ export function StatusSettingsModal({
             <div className="col-span-2">
               <Textarea
                 id="setting-description"
-                label="Brief description (optional)"
+                label="Brief description"
                 name="setting-description"
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}

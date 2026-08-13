@@ -6,6 +6,7 @@ import {
   Input,
   MultiSelect,
   RichTextarea,
+  Tooltip,
 } from "@ryanmeetup/ui";
 import type { Category, Project } from "@/lib/resource-types";
 import type { Priority, Status } from "@/lib/task-types";
@@ -64,7 +65,7 @@ export function TaskFields({
       {density === "full" && (
         <div className="flex flex-col gap-2">
           <label htmlFor="task-description" className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.2em] text-black/70 sm:tracking-[0.3em] dark:text-white/70">
-            Description (optional)
+            Description
           </label>
           <RichTextarea
             id="task-description"
@@ -93,14 +94,34 @@ export function TaskFields({
             })}
           </div>
         </fieldset>
-        {density === "full" && <DropdownSelect variant="field" label="Project (optional)" value={draft.project_id ?? ""} onChange={(project_id) => patch({ project_id: project_id || null })} options={[{ label: "No project", value: "" }, ...options.projects.filter((item) => !item.archived_at || item.id === draft.project_id).map((item) => ({ label: `${item.name}${item.archived_at ? " (archived)" : ""}`, value: item.id }))]} />}
-        <DropdownSelect variant="field" label="Assignee (optional)" proximityValue={options.currentProfileId} value={draft.assignee_id ?? ""} onChange={(assignee_id) => patch({ assignee_id: assignee_id || null })} options={[{ label: "Unassigned", value: "" }, ...options.profiles.map((item) => ({ avatar: { name: profileDisplayName(item), src: item.avatar_url }, label: profileDisplayName(item), value: item.id }))]} />
+        {density === "full" && <DropdownSelect variant="field" label="Project" value={draft.project_id ?? ""} onChange={(project_id) => patch({ project_id: project_id || null })} options={[{ label: "No project", value: "" }, ...options.projects.filter((item) => !item.archived_at || item.id === draft.project_id).map((item) => ({ label: `${item.name}${item.archived_at ? " (archived)" : ""}`, value: item.id }))]} />}
+        <DropdownSelect variant="field" label="Assignee" proximityValue={options.currentProfileId} value={draft.assignee_id ?? ""} onChange={(assignee_id) => patch({ assignee_id: assignee_id || null })} options={[{ label: "Unassigned", value: "" }, ...options.profiles.map((item) => ({ avatar: { name: profileDisplayName(item), src: item.avatar_url }, label: profileDisplayName(item), value: item.id }))]} />
         {density === "full" && <DropdownSelect variant="field" label="Reported by" proximityValue={options.currentProfileId} required value={draft.reported_by} onChange={(reported_by) => patch({ reported_by })} options={options.profiles.map((item) => ({ avatar: { name: profileDisplayName(item), src: item.avatar_url }, label: profileDisplayName(item), value: item.id }))} />}
-        <label className="date-field"><span>Start date (optional)</span><input type="date" value={draft.start_date ?? ""} max={draft.due_date ?? undefined} onChange={(event) => patch({ start_date: event.target.value || null })} /></label>
-        <label className="date-field"><span>Due date (optional)</span><input type="date" value={draft.due_date ?? ""} min={draft.start_date ?? undefined} onChange={(event) => patch({ due_date: event.target.value || null, due_time: event.target.value ? draft.due_time : null })} /></label>
-        {density === "full" && <label className="date-field"><span>Due time (optional)</span><input type="time" value={draft.due_time ?? ""} disabled={!draft.due_date} onChange={(event) => patch({ due_time: event.target.value || null })} /></label>}
-        {density === "full" && <MultiSelect label="Tags (optional)" options={tagOptions} value={selectedTagValues} onChange={(values) => { const category_tags: Record<string, string[]> = {}; for (const value of values) { const [categoryId, tag] = JSON.parse(value) as [string, string]; category_tags[categoryId] = [...(category_tags[categoryId] ?? []), tag]; } patch({ category_tags }); }} searchable searchPlaceholder="Search tags" disabled={tagOptions.length === 0} placeholder={draft.category_ids.length === 0 ? "Select a category first" : "No tags for selected categories"} />}
-        {density === "full" && <label className="date-field"><span>Reminder (optional)</span><input type="datetime-local" value={draft.reminder_at ? draft.reminder_at.slice(0, 16) : ""} onChange={(event) => patch({ reminder_at: event.target.value || null })} /></label>}
+        <label className="date-field"><span>Due date</span><input type="date" value={draft.due_date ?? ""} onChange={(event) => patch({ due_date: event.target.value || null, due_time: event.target.value ? draft.due_time : null })} /></label>
+        {density === "full" && <MultiSelect label="Tags" options={tagOptions} value={selectedTagValues} onChange={(values) => { const category_tags: Record<string, string[]> = {}; for (const value of values) { const [categoryId, tag] = JSON.parse(value) as [string, string]; category_tags[categoryId] = [...(category_tags[categoryId] ?? []), tag]; } patch({ category_tags }); }} searchable searchPlaceholder="Search tags" disabled={tagOptions.length === 0} placeholder={draft.category_ids.length === 0 ? "Select a category first" : "No tags for selected categories"} />}
+        {density === "full" && (
+          <label className="date-field opacity-60">
+            <span>Reminder</span>
+            <Tooltip
+              content="Reminders are coming soon."
+              triggerClassName="w-full !block !text-sm !font-normal !normal-case !tracking-normal"
+            >
+              <span
+                className="block w-full cursor-help"
+                tabIndex={0}
+                aria-label="Reminder is coming soon"
+              >
+                <input
+                  type="datetime-local"
+                  value=""
+                  disabled
+                  aria-label="Reminder (coming soon)"
+                  className="cursor-not-allowed"
+                />
+              </span>
+            </Tooltip>
+          </label>
+        )}
       </div>
     </div>
   );

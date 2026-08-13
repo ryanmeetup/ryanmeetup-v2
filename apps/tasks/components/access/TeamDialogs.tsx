@@ -61,7 +61,7 @@ export function InviteTeammateModal({
         onSubmit={onSubmit}
       >
         <Input
-          label="Name (optional)"
+          label="Name"
           name="invite-name"
           value={name}
           onChange={(event) => onNameChange(event.target.value)}
