@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { boardDragScrollSpeed } from "@/lib/board-drag";
+import { emptyBoardDragState, leaveBoardColumn } from "@/lib/board-drag";
 
 describe("board drag scrolling", () => {
   it("scrolls toward nearby viewport edges", () => {
@@ -9,5 +10,12 @@ describe("board drag scrolling", () => {
 
   it("does not scroll away from the edges", () => {
     expect(boardDragScrollSpeed(500, 0, 1000)).toBe(0);
+  });
+
+  it("clears only the column that is actually being left", () => {
+    const state = { ...emptyBoardDragState, draggedTaskId: "task", dragOverStatusId: "doing" };
+    expect(leaveBoardColumn(state, "todo")).toBe(state);
+    expect(leaveBoardColumn(state, "doing")).toEqual({ ...state, dragOverStatusId: null });
+    expect(emptyBoardDragState).toEqual({ draggedTaskId: null, dragOverStatusId: null, dropTarget: null });
   });
 });

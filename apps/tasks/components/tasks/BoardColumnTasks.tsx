@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { FiLoader, FiSearch } from "react-icons/fi";
 import { useSearchFilter } from "@ryanmeetup/hooks";
-import type { Task } from "@/lib/types";
+import type { Task } from "@/lib/task-types";
 import { taskKey } from "@/lib/task-key";
 
 export function BoardColumnTasks({

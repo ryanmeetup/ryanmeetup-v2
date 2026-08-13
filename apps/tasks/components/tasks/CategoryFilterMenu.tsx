@@ -1,4 +1,4 @@
-import type { Category } from "@/lib/types";
+import type { Category } from "@/lib/resource-types";
 import { InclusionFilterMenu } from "./InclusionFilterMenu";
 
 export function CategoryFilterMenu({

@@ -1,4 +1,5 @@
-import type { AccessPreview, Priority } from "@/lib/types";
+import type { AccessPreview } from "@/lib/workspace-types";
+import type { Priority } from "@/lib/task-types";
 
 export type TaskQueryFilters = {
   statuses: string[];

@@ -2,7 +2,8 @@ import { Avatar, Button, IconButton, Textarea } from "@ryanmeetup/ui";
 import { FiEdit2, FiMessageSquare, FiTrash2 } from "react-icons/fi";
 import { CountBadge } from "@/components/global";
 import { profileDisplayName } from "@/lib/presentation";
-import type { Profile, TaskComment } from "@/lib/types";
+import type { Profile } from "@/lib/workspace-types";
+import type { TaskComment } from "@/lib/task-types";
 
 const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",

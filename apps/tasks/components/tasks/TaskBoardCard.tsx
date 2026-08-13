@@ -3,12 +3,14 @@ import type { DragEvent } from "react";
 import { FiFolder, FiMoreHorizontal, FiUsers } from "react-icons/fi";
 import type {
   Category,
-  Profile,
   Project,
+} from "@/lib/resource-types";
+import type { Profile } from "@/lib/workspace-types";
+import type {
   Status,
   Subtask,
   Task,
-} from "@/lib/types";
+} from "@/lib/task-types";
 import { profileDisplayName } from "@/lib/presentation";
 import { TaskCategoryBadge } from "./TaskCategoryBadge";
 import { TaskDueDate } from "./TaskDueDate";

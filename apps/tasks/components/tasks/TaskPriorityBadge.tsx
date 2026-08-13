@@ -1,4 +1,4 @@
-import type { Priority } from "@/lib/types";
+import type { Priority } from "@/lib/task-types";
 
 const priorityStyles: Record<Priority, string> = {
   low: "border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200",

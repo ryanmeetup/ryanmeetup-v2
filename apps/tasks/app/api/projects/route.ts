@@ -3,7 +3,7 @@ import { projectCreateSchema, projectPatchSchema } from "@/lib/api-schemas";
 import { databaseFailure, notFound } from "@/lib/server/api-response";
 import { authorize } from "@/lib/server/auth";
 import { readJson } from "@/lib/server/request";
-import type { ProjectLink } from "@/lib/types";
+import type { ProjectLink } from "@/lib/resource-types";
 
 export async function POST(request: Request) {
   const parsed = await readJson(request, projectCreateSchema);

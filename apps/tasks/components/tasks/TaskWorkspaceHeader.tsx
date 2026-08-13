@@ -1,6 +1,10 @@
 import { Avatar, Button, Heading, Pill, Tooltip } from "@ryanmeetup/ui";
 import { FiEdit2, FiGrid, FiList, FiUsers } from "react-icons/fi";
-import type { Category, Profile, Project } from "@/lib/types";
+import type {
+  Category,
+  Project,
+} from "@/lib/resource-types";
+import type { Profile } from "@/lib/workspace-types";
 import { ResourceLinks } from "@/components/resources";
 
 export type TaskWorkspaceHeaderScope = {

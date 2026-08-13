@@ -1,34 +1,16 @@
 "use client";
 
-import {
-  useEffect,
-  useCallback,
-  useMemo,
-  useRef,
-  useState,
-  type FormEvent,
-  type SetStateAction,
-} from "react";
-import {
-  AnimatedCollapse,
-  ConfirmationDialog,
-  IconButton,
-  toast,
-} from "@ryanmeetup/ui";
-import { FiChevronDown, FiLoader, FiPlus } from "react-icons/fi";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ConfirmationDialog, toast } from "@ryanmeetup/ui";
+import { FiLoader } from "react-icons/fi";
 import { useQueryParamState, useSearchFilter } from "@ryanmeetup/hooks";
-import type { Task, WorkspaceData } from "@/lib/types";
+import type { Task } from "@/lib/task-types";
+import type { WorkspaceData } from "@/lib/workspace-types";
 import { WorkspacePageShell } from "@/components/global";
 import { TaskEditor } from "./TaskEditor";
-import {
-  emptyNewTaskDetails,
-  type NewTaskDetailsDraft,
-} from "./NewTaskDetails";
-import { persistNewTaskDetails } from "@/lib/new-task-details";
 import { TaskFilters } from "./TaskFilters";
 import { TaskListView } from "./TaskListView";
 import { TaskWorkspaceHeader } from "./TaskWorkspaceHeader";
-import { TaskBoardCard } from "./TaskBoardCard";
 import { CategoriesModal } from "@/components/categories";
 import { ProjectsModal } from "@/components/projects";
 import { useWorkspaceData } from "@/hooks/useWorkspaceData";
@@ -36,14 +18,9 @@ import { useTaskFilters } from "@/hooks/useTaskFilters";
 import { usePagination } from "@/hooks/usePagination";
 import { useCollapsedStatuses } from "@/hooks/useCollapsedStatuses";
 import { useBoardAutoScroll } from "@/hooks/useBoardAutoScroll";
-import {
-  createTaskMutationService,
-  type TaskDraft,
-} from "@/lib/task-mutations";
+import { createTaskMutationService } from "@/lib/task-mutations";
 import { taskKey } from "@/lib/task-key";
 import { errorMessage, profileDisplayName } from "@/lib/presentation";
-import { emptyTaskDraft, taskDraftFromTask } from "@/lib/task-draft-factory";
-import { BoardColumnTasks } from "./BoardColumnTasks";
 import {
   resolveDueFilterValues,
   resolveEntityFilterIds,
@@ -61,27 +38,13 @@ import {
   type TaskQueryFilters,
 } from "@/lib/task-query";
 import { parseTaskKey } from "@/lib/task-key";
-import {
-  deleteTaskDraft,
-  draftSavedStatus,
-  hasDraftAutosaveContent,
-  hasDraftContent,
-  saveTaskDraft,
-  taskDraftAutosaveDelayMs,
-} from "@/lib/task-drafts";
+import { useTaskEditorController } from "@/hooks/useTaskEditorController";
+import { useTaskBoardDrag } from "@/hooks/useTaskBoardDrag";
+import { TaskBoardView } from "./TaskBoardView";
 
 export { StatusSettingsModal } from "./TaskAdministration";
 
 type View = "board" | "list";
-type Draft = TaskDraft;
-function editDraft(task: Task, categoryIds: string[]): Draft {
-  return {
-    ...taskDraftFromTask(task, categoryIds),
-    start_date: null,
-    due_time: null,
-  };
-}
-
 export function TaskApp({
   initialData,
   demoMode,
@@ -109,74 +72,15 @@ export function TaskApp({
   const { page, pageSize, setPage, setPageSize, syncPage, syncPageSize } =
     usePagination();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [taskOpen, setTaskOpen] = useState(Boolean(initialEditing));
-  const [taskDetailsOpen, setTaskDetailsOpen] = useState(
-    Boolean(initialEditing) &&
-      initialData.currentProfile.task_details_open_by_default,
-  );
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [categoryEditId, setCategoryEditId] = useState<string | null>(null);
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [projectEditId, setProjectEditId] = useState<string | null>(null);
-  const [taskMessage, setTaskMessage] = useState("");
-  const [taskSaving, setTaskSaving] = useState(false);
-  const [newTaskDetails, setNewTaskDetails] =
-    useState<NewTaskDetailsDraft>(emptyNewTaskDetails);
-  const [createAnother, setCreateAnother] = useState(false);
-  const draftId = useRef<string | null>(null);
-  const draftTouched = useRef(false);
-  const taskSaveInFlight = useRef(false);
   const [taskPendingDelete, setTaskPendingDelete] = useState<Task | null>(null);
   const [taskDeleting, setTaskDeleting] = useState(false);
   const [taskPageLoading, setTaskPageLoading] = useState(false);
   const loadedTaskQuery = useRef("");
-  const [dragOverStatusId, setDragOverStatusId] = useState<string | null>(null);
-  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
-  const [dragTarget, setDragTarget] = useState<{
-    taskId: string;
-    edge: "before" | "after";
-  } | null>(null);
   const boardScrollRef = useRef<HTMLDivElement>(null);
-  const [editing, setEditing] = useState<Task | null>(initialEditing);
-  const [draft, setDraft] = useState<Draft>(
-    initialEditing
-      ? editDraft(
-          initialEditing,
-          initialData.taskCategories
-            .filter((item) => item.task_id === initialEditing.id)
-            .map((item) => item.category_id),
-        )
-      : emptyTaskDraft(
-          initialData.statuses[1]?.id ?? initialData.statuses[0]?.id ?? "",
-          initialData.currentProfile.id,
-        ),
-  );
-
-  useEffect(() => {
-    if (
-      !taskOpen ||
-      taskSaving ||
-      editing ||
-      !draftTouched.current ||
-      !hasDraftAutosaveContent(draft)
-    )
-      return;
-    const timer = window.setTimeout(() => {
-      const saved = saveTaskDraft(
-        data.currentProfile.id,
-        draft,
-        draftId.current ?? undefined,
-      );
-      draftId.current = saved.id;
-      toast.success(draftSavedStatus("auto"), {
-        id: `task-draft-autosave-${data.currentProfile.id}`,
-        duration: 2500,
-      });
-    }, taskDraftAutosaveDelayMs);
-    return () => window.clearTimeout(timer);
-  }, [data.currentProfile.id, draft, editing, taskOpen, taskSaving]);
-
-  useBoardAutoScroll(Boolean(draggedTaskId), boardScrollRef);
   const {
     setQuery: setSearch,
     filtered: searchedTasks,
@@ -459,6 +363,24 @@ export function TaskApp({
     }
   }, [profiles, reporter, selectedReporter, setReporter]);
   useEffect(() => {
+    const readable = excludedAssigneeIds
+      .map((id) =>
+        id === "unassigned"
+          ? "Unassigned"
+          : profileDisplayName(profiles.get(id)),
+      )
+      .join(",");
+    if (excludedAssignees && excludedAssignees !== readable)
+      setExcludedAssignees(readable);
+  }, [excludedAssigneeIds, excludedAssignees, profiles, setExcludedAssignees]);
+  useEffect(() => {
+    const readable = excludedReporterIds
+      .map((id) => profileDisplayName(profiles.get(id)))
+      .join(",");
+    if (excludedReporters && excludedReporters !== readable)
+      setExcludedReporters(readable);
+  }, [excludedReporterIds, excludedReporters, profiles, setExcludedReporters]);
+  useEffect(() => {
     if (group !== "all" && categories.has(group) && selectedCategory)
       setGroup(selectedCategory.name);
   }, [categories, group, selectedCategory, setGroup]);
@@ -471,6 +393,14 @@ export function TaskApp({
     )
       setProject(selectedProject.name);
   }, [project, projects, selectedProject, setProject]);
+  useEffect(() => {
+    const readable = excludedProjectIds
+      .map((id) => (id === "none" ? "none" : (projects.get(id)?.name ?? "")))
+      .filter(Boolean)
+      .join(",");
+    if (excludedProjects && excludedProjects !== readable)
+      setExcludedProjects(readable);
+  }, [excludedProjectIds, excludedProjects, projects, setExcludedProjects]);
   useEffect(() => {
     const readableIncluded = categoryNames(includedCategoryIds);
     const readableExcluded = categoryNames(excludedCategoryIds);
@@ -492,6 +422,14 @@ export function TaskApp({
       setStatus(selectedStatus.name);
     }
   }, [selectedStatus, setStatus, status]);
+  useEffect(() => {
+    const readable = excludedStatusIds
+      .map((id) => data.statuses.find((item) => item.id === id)?.name ?? "")
+      .filter(Boolean)
+      .join(",");
+    if (excludedStatuses && excludedStatuses !== readable)
+      setExcludedStatuses(readable);
+  }, [data.statuses, excludedStatusIds, excludedStatuses, setExcludedStatuses]);
   useEffect(() => {
     if (selectedPriority) {
       const readablePriority =
@@ -587,144 +525,25 @@ export function TaskApp({
       ? (data.taskPage?.totalCount ?? visibleTasks.length)
       : visibleTasks.length;
 
-  function openCreate(statusId?: string) {
-    setTaskMessage("");
-    setEditing(null);
-    setTaskDetailsOpen(false);
-    setCreateAnother(false);
-    draftId.current = null;
-    setNewTaskDetails(emptyNewTaskDetails());
-    draftTouched.current = false;
-    const scopedDraft = emptyTaskDraft(
-      statusId ??
-        selectedStatus?.id ??
-        statuses[1]?.id ??
-        statuses[0]?.id ??
-        "",
-      data.currentProfile.id,
-    );
-    scopedDraft.category_ids =
-      includedCategoryIds.length === 1 ? [...includedCategoryIds] : [];
-    scopedDraft.project_id = selectedProject?.id ?? null;
-    scopedDraft.assignee_id = selectedAssignee?.id ?? null;
-    scopedDraft.priority = selectedPriority ?? "medium";
-    setDraft(scopedDraft);
-    setTaskOpen(true);
-  }
-
-  function updateDraft(nextDraft: SetStateAction<Draft>) {
-    draftTouched.current = true;
-    setDraft(nextDraft);
-  }
-
-  function openEdit(task: Task) {
-    setTaskMessage("");
-    setEditing(task);
-    setTaskDetailsOpen(data.currentProfile.task_details_open_by_default);
-    setCreateAnother(false);
-    draftId.current = null;
-    setDraft(editDraft(task, [...(categoriesByTask.get(task.id) ?? [])]));
-    setTaskOpen(true);
-  }
-
-  function saveAsDraft() {
-    if (!hasDraftContent(draft)) {
-      toast.error("Add a title or a few details before saving a draft.");
-      return;
-    }
-    const saved = saveTaskDraft(
-      data.currentProfile.id,
-      draft,
-      draftId.current ?? undefined,
-    );
-    draftId.current = saved.id;
-    toast.success(draftSavedStatus("manual"));
-    setTaskOpen(false);
-  }
-
-  async function saveTask(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    event.stopPropagation();
-    if (taskSaveInFlight.current) return;
-    const validationMessage = !draft.title.trim()
-      ? "A task title is required."
-      : !draft.status_id
-        ? "A status is required."
-        : !draft.priority
-          ? "A priority is required."
-          : draft.category_ids.length === 0
-            ? "Select at least one category."
-            : null;
-    if (validationMessage) {
-      setTaskMessage(validationMessage);
-      toast.error(validationMessage);
-      queueMicrotask(() => setTaskOpen(true));
-      return;
-    }
-    setTaskMessage("");
-    taskSaveInFlight.current = true;
-    setTaskSaving(true);
-    try {
-      const saved = await mutations.save(draft, editing);
-      mutations.applySaved(saved, Boolean(editing));
-      let detailFailures = 0;
-      if (!editing) {
-        detailFailures = await persistNewTaskDetails({
-          taskId: saved.task.id,
-          draft: newTaskDetails,
-          demoMode,
-          setData,
-        });
-        setNewTaskDetails(emptyNewTaskDetails());
-      }
-      if (!editing && draftId.current) {
-        deleteTaskDraft(data.currentProfile.id, draftId.current);
-        draftId.current = null;
-      }
+  const editor = useTaskEditorController({
+    initialEditing,
+    initialData,
+    data,
+    setData,
+    demoMode,
+    mutations,
+    categoriesByTask,
+    defaults: {
+      statusId: selectedStatus?.id ?? statuses[1]?.id ?? statuses[0]?.id ?? "",
+      categoryIds: includedCategoryIds,
+      projectId: selectedProject?.id ?? null,
+      assigneeId: selectedAssignee?.id ?? null,
+      priority: selectedPriority ?? "medium",
+    },
+    afterSave: async () => {
       if (!demoMode && view === "list") await loadTaskPage(true);
-      if (!editing && createAnother) {
-        draftTouched.current = false;
-        setDraft({
-          ...emptyTaskDraft(draft.status_id, data.currentProfile.id),
-          priority: draft.priority,
-          category_ids: [...draft.category_ids],
-          project_id: draft.project_id,
-          assignee_id: draft.assignee_id,
-        });
-        toast.success("Task created. Add the next one.");
-        if (detailFailures > 0)
-          toast.error(
-            `${detailFailures} ${detailFailures === 1 ? "task detail" : "task details"} could not be added.`,
-          );
-        return;
-      }
-      setTaskOpen(false);
-      const movedToStatus = editing
-        ? data.statuses.find(
-            (item) =>
-              item.id === draft.status_id && item.id !== editing.status_id,
-          )
-        : null;
-      toast.success(
-        movedToStatus
-          ? `Task moved to ${movedToStatus.name}.`
-          : editing
-            ? "Task updated."
-            : "Task created.",
-      );
-      if (detailFailures > 0)
-        toast.error(
-          `${detailFailures} ${detailFailures === 1 ? "task detail" : "task details"} could not be added. Open the task to retry.`,
-        );
-    } catch (error) {
-      const message = errorMessage(error, "The task could not be saved.");
-      setTaskMessage(message);
-      toast.error(message);
-    } finally {
-      taskSaveInFlight.current = false;
-      setTaskSaving(false);
-    }
-  }
+    },
+  });
 
   async function removeTask(id: string) {
     setTaskDeleting(true);
@@ -732,7 +551,7 @@ export function TaskApp({
       await mutations.remove(id);
       if (!demoMode && view === "list") await loadTaskPage(true);
       setTaskPendingDelete(null);
-      setTaskOpen(false);
+      editor.modal.setOpen(false);
       toast.success("Task deleted.");
     } catch (error) {
       toast.error(errorMessage(error, "The task could not be deleted."));
@@ -760,6 +579,8 @@ export function TaskApp({
       toast.error(errorMessage(error, "The task could not be moved."));
     }
   }
+  const boardDrag = useTaskBoardDrag(moveTask);
+  useBoardAutoScroll(Boolean(boardDrag.state.draggedTaskId), boardScrollRef);
   const filterCount =
     (isMyTasks ? 0 : includedAssigneeIds.length) +
     excludedAssigneeIds.length +
@@ -776,52 +597,6 @@ export function TaskApp({
     includedDueValues.length +
     excludedDueValues.length +
     (visibility === "archived" ? 1 : 0);
-  const taskCard = (task: Task) => {
-    const taskStatus = data.statuses.find((item) => item.id === task.status_id);
-    const taskCategories = [...(categoriesByTask.get(task.id) ?? [])]
-      .map((id) => categories.get(id))
-      .filter((item) => item !== undefined);
-    const taskProject = task.project_id ? projects.get(task.project_id) : null;
-    const taskPeople = [...(assigneesByTask.get(task.id) ?? [])]
-      .map((id) => profiles.get(id))
-      .filter((person) => person !== undefined);
-    const taskSubtasks = data.subtasks.filter(
-      (item) => item.task_id === task.id,
-    );
-    return (
-      <TaskBoardCard
-        task={task}
-        status={taskStatus}
-        categories={taskCategories}
-        people={taskPeople}
-        project={taskProject}
-        subtasks={taskSubtasks}
-        draggedTaskId={draggedTaskId}
-        dropTarget={dragTarget}
-        onDragStart={setDraggedTaskId}
-        onDragOver={(draggedOverTask, edge) => {
-          setDragOverStatusId(draggedOverTask.status_id);
-          setDragTarget({
-            taskId: draggedOverTask.id,
-            edge,
-          });
-        }}
-        onDrop={(dropTask, id, edge) => {
-          setDragOverStatusId(null);
-          setDragTarget(null);
-          setDraggedTaskId(null);
-          void moveTask(id, dropTask.status_id, dropTask.id, edge);
-        }}
-        onDragEnd={() => {
-          setDragOverStatusId(null);
-          setDragTarget(null);
-          setDraggedTaskId(null);
-        }}
-        onOpen={openEdit}
-      />
-    );
-  };
-
   return (
     <>
       <WorkspacePageShell
@@ -837,7 +612,7 @@ export function TaskApp({
           setProjectEditId(null);
           setProjectsOpen(true);
         }}
-        onNewTask={() => openCreate()}
+        onNewTask={() => editor.openCreate()}
         setData={setData}
       >
         {demoMode && (
@@ -941,8 +716,24 @@ export function TaskApp({
                   setGroup("all");
               },
               setSelection: (filter, kind, values) => {
-                const value = values.length
-                  ? values.join(",")
+                const readableValues = values.map((value) => {
+                  if (filter === "assignee" || filter === "reporter")
+                    return value === "unassigned"
+                      ? "Unassigned"
+                      : profileDisplayName(profiles.get(value));
+                  if (filter === "project")
+                    return value === "none"
+                      ? value
+                      : (projects.get(value)?.name ?? value);
+                  if (filter === "status")
+                    return (
+                      data.statuses.find((item) => item.id === value)?.name ??
+                      value
+                    );
+                  return value;
+                });
+                const value = readableValues.length
+                  ? readableValues.join(",")
                   : kind === "included"
                     ? "all"
                     : "";
@@ -985,108 +776,17 @@ export function TaskApp({
               }
             >
               {view === "board" ? (
-                <div
-                  ref={boardScrollRef}
-                  className="-mx-4 flex flex-nowrap items-start gap-4 overflow-x-auto overscroll-x-contain px-4 pb-5 scroll-px-4 sm:mx-0 sm:px-0 sm:scroll-px-0"
-                >
-                  {statuses.map((item) => {
-                    const columnTasks = visibleTasks.filter(
-                      (task) => task.status_id === item.id,
-                    );
-                    const isCollapsed =
-                      collapsedStatusIds?.has(item.id) ?? false;
-                    const columnSizeClass = isCollapsed
-                      ? "min-h-0 w-[240px]"
-                      : "min-h-0 w-[min(320px,calc(100vw-3rem))]";
-                    return (
-                      <section
-                        key={item.id}
-                        onDragEnter={(event) => {
-                          event.preventDefault();
-                          setDragOverStatusId(item.id);
-                        }}
-                        onDragOver={(event) => {
-                          event.preventDefault();
-                          event.dataTransfer.dropEffect = "move";
-                        }}
-                        onDragLeave={(event) => {
-                          const nextTarget = event.relatedTarget;
-                          if (
-                            !(nextTarget instanceof Node) ||
-                            !event.currentTarget.contains(nextTarget)
-                          ) {
-                            setDragOverStatusId((current) =>
-                              current === item.id ? null : current,
-                            );
-                          }
-                        }}
-                        onDrop={(event) => {
-                          event.preventDefault();
-                          setDragOverStatusId(null);
-                          setDragTarget(null);
-                          setDraggedTaskId(null);
-                          void moveTask(
-                            event.dataTransfer.getData("text/task-id"),
-                            item.id,
-                          );
-                        }}
-                        className={`${columnSizeClass} shrink-0 rounded-2xl p-3 transition-[width,background-color,box-shadow] ${
-                          dragOverStatusId === item.id
-                            ? "bg-black/[0.07] ring-2 ring-inset ring-black/30 dark:bg-white/[0.09] dark:ring-white/40"
-                            : "bg-black/[0.035] dark:bg-white/[0.035]"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 px-1">
-                          <i
-                            className="h-2.5 w-2.5 shrink-0 rounded-full"
-                            style={{ backgroundColor: item.color }}
-                          />
-                          <h2 className="shrink-0 whitespace-nowrap text-xs font-bold uppercase tracking-[0.16em]">
-                            {item.name}
-                          </h2>
-                          <span className="text-xs text-black/40 dark:text-white/40">
-                            {columnTasks.length}
-                          </span>
-                          <IconButton
-                            label={`Add task to “${item.name}”`}
-                            tooltipTriggerClassName="ml-auto"
-                            onClick={() => openCreate(item.id)}
-                          >
-                            <FiPlus />
-                          </IconButton>
-                          <IconButton
-                            label={`${isCollapsed ? "Expand" : "Collapse"} “${item.name}”`}
-                            aria-expanded={!isCollapsed}
-                            aria-controls={`status-column-${item.id}`}
-                            onClick={() => toggleStatusSection(item.id)}
-                          >
-                            <FiChevronDown
-                              className={`transition-transform ${isCollapsed ? "-rotate-90" : ""}`}
-                            />
-                          </IconButton>
-                        </div>
-                        {!isCollapsed && item.description && (
-                          <p className="mt-2 px-1 text-sm leading-snug text-black/60 dark:text-white/60">
-                            {item.description}
-                          </p>
-                        )}
-                        <AnimatedCollapse
-                          id={`status-column-${item.id}`}
-                          open={!isCollapsed}
-                          className={isCollapsed ? "" : "mt-3"}
-                        >
-                          <BoardColumnTasks
-                            statusId={item.id}
-                            statusName={item.name}
-                            tasks={columnTasks}
-                            renderTask={taskCard}
-                            onCreate={() => openCreate(item.id)}
-                          />
-                        </AnimatedCollapse>
-                      </section>
-                    );
-                  })}
-                </div>
+                <TaskBoardView
+                  data={data}
+                  tasks={visibleTasks}
+                  statuses={statuses}
+                  collapsedStatusIds={collapsedStatusIds}
+                  scrollRef={boardScrollRef}
+                  drag={boardDrag}
+                  onToggleStatus={toggleStatusSection}
+                  onCreate={editor.openCreate}
+                  onOpen={editor.openEdit}
+                />
               ) : (
                 <TaskListView
                   data={{
@@ -1099,7 +799,7 @@ export function TaskApp({
                     tasks: listTasks,
                   }}
                   loading={taskPageLoading}
-                  onOpenTask={openEdit}
+                  onOpenTask={editor.openEdit}
                   pagination={{
                     page: data.taskPage?.page ?? page,
                     pageSize: data.taskPage?.pageSize ?? pageSize,
@@ -1130,36 +830,9 @@ export function TaskApp({
       </WorkspacePageShell>
 
       <TaskEditor
-        modal={{
-          open: taskOpen,
-          setOpen: setTaskOpen,
-          detailsOpen: taskDetailsOpen,
-          setDetailsOpen: setTaskDetailsOpen,
-        }}
-        form={{
-          draft,
-          setDraft: updateDraft,
-          saving: taskSaving,
-          message: taskMessage,
-          onSubmit: saveTask,
-        }}
+        controller={editor}
         workspace={{ statuses, data, setData, demoMode }}
-        mode={
-          editing
-            ? {
-                kind: "edit",
-                task: editing,
-                onDelete: setTaskPendingDelete,
-              }
-            : {
-                kind: "create",
-                createAnother,
-                setCreateAnother,
-                details: newTaskDetails,
-                setDetails: setNewTaskDetails,
-                onSaveDraft: saveAsDraft,
-              }
-        }
+        onDelete={setTaskPendingDelete}
       />
       <ConfirmationDialog
         open={Boolean(taskPendingDelete)}

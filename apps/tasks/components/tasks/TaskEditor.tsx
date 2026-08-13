@@ -20,13 +20,17 @@ import {
   FiLink,
   FiTrash2,
 } from "react-icons/fi";
-import type { Priority, Status, Task, WorkspaceData } from "@/lib/types";
+import type { Priority, Status, Task } from "@/lib/task-types";
+import type { WorkspaceData } from "@/lib/workspace-types";
 import type { TaskDraft } from "@/lib/task-mutations";
 import { taskKey, taskPath } from "@/lib/task-key";
 import { profileDisplayName } from "@/lib/presentation";
 import { TaskDetails } from "./TaskDetails";
 import { TaskKeyBadge } from "./TaskKeyBadge";
-import { NewTaskDetails, type NewTaskDetailsDraft } from "./NewTaskDetails";
+import type { NewTaskDetailsDraft } from "@/lib/task-types";
+import { NewTaskDetails } from "./NewTaskDetails";
+import { TaskFields } from "./TaskFields";
+import type { TaskEditorController } from "@/hooks/useTaskEditorController";
 
 const priorities: Priority[] = ["low", "medium", "high", "urgent"];
 
@@ -67,17 +71,28 @@ export type TaskEditorMode =
       onDelete: (task: Task) => void;
     };
 
-export function TaskEditor({
-  modal,
-  form,
-  workspace,
-  mode,
-}: {
-  modal: TaskEditorModalState;
-  form: TaskEditorFormState;
-  workspace: TaskEditorWorkspace;
-  mode: TaskEditorMode;
-}) {
+type TaskEditorProps =
+  | {
+      controller: TaskEditorController;
+      workspace: TaskEditorWorkspace;
+      onDelete: (task: Task) => void;
+    }
+  | {
+      modal: TaskEditorModalState;
+      form: TaskEditorFormState;
+      workspace: TaskEditorWorkspace;
+      mode: TaskEditorMode;
+    };
+
+export function TaskEditor(props: TaskEditorProps) {
+  const { modal, form, mode, workspace } =
+    "controller" in props
+      ? { ...props.controller, workspace: props.workspace }
+      : props;
+  const onDelete =
+    "controller" in props
+      ? props.onDelete
+      : (task: Task) => props.mode.kind === "edit" && props.mode.onDelete(task);
   const { open, setOpen, detailsOpen, setDetailsOpen } = modal;
   const { draft, setDraft, saving, message, onSubmit } = form;
   const { statuses, data, setData, demoMode } = workspace;
@@ -156,7 +171,7 @@ export function TaskEditor({
                 label="Delete task"
                 variant="danger"
                 size="md"
-                onClick={() => mode.kind === "edit" && mode.onDelete(editing)}
+                onClick={() => onDelete(editing)}
               >
                 <FiTrash2 />
               </IconButton>
@@ -227,219 +242,238 @@ export function TaskEditor({
           }
         >
           <div className="min-w-0 space-y-5">
-            <Input
-              label="Task title"
-              name="task-title"
-              required
-              value={draft.title}
-              onChange={(event) =>
-                setDraft({ ...draft, title: event.target.value })
-              }
-              placeholder="What needs doing?"
+            <TaskFields
+              draft={draft}
+              setDraft={setDraft}
+              options={{
+                statuses,
+                categories: data.categories,
+                projects: data.projects,
+                profiles: data.profiles,
+                currentProfileId: data.currentProfile.id,
+              }}
             />
-            <div className="flex flex-col gap-2">
-              <label
-                htmlFor="task-description"
-                className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.2em] text-black/70 sm:tracking-[0.3em] dark:text-white/70"
-              >
-                Description
-              </label>
-              <RichTextarea
-                id="task-description"
-                name="description"
-                aria-label="Description"
-                value={draft.description ?? ""}
-                onChange={(event) =>
-                  setDraft({ ...draft, description: event.target.value })
-                }
-                placeholder="Add useful context, links, or a tiny pep talk…"
-              />
-            </div>
-            <div className="grid min-w-0 gap-4 sm:grid-cols-2">
-              <DropdownSelect
-                variant="field"
-                label="Status"
-                required
-                value={draft.status_id}
-                onChange={(value) => setDraft({ ...draft, status_id: value })}
-                options={statuses.map((item) => ({
-                  label: item.name,
-                  value: item.id,
-                }))}
-              />
-              <DropdownSelect
-                variant="field"
-                label="Priority"
-                required
-                value={draft.priority}
-                onChange={(value) =>
-                  setDraft({ ...draft, priority: value as Priority })
-                }
-                options={priorities.map((item) => ({
-                  label: item[0].toUpperCase() + item.slice(1),
-                  value: item,
-                }))}
-              />
-              <fieldset className="sm:col-span-2" aria-required="true">
-                <legend className="mb-2 flex gap-1 text-sm font-semibold">
-                  <span>Categories</span>
-                  <span className="text-red-500">*</span>
-                </legend>
-                <div className="flex flex-wrap gap-2">
-                  {data.categories
-                    .filter(
-                      (item) =>
-                        !item.archived_at ||
-                        draft.category_ids.includes(item.id),
-                    )
-                    .map((item) => {
-                      const selected = draft.category_ids.includes(item.id);
-                      return (
-                        <label
-                          key={item.id}
-                          className={`flex cursor-pointer items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold transition focus-within:ring-2 focus-within:ring-black/20 dark:focus-within:ring-white/30 ${
-                            selected
-                              ? "border-black/25 bg-black text-white dark:border-white/30 dark:bg-white dark:text-black"
-                              : "border-black/10 bg-white dark:border-white/10 dark:bg-white/5"
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            className="sr-only"
-                            checked={selected}
-                            onChange={() =>
-                              setDraft({
-                                ...draft,
-                                category_ids: selected
-                                  ? draft.category_ids.filter(
-                                      (id) => id !== item.id,
-                                    )
-                                  : [...draft.category_ids, item.id],
-                                category_tags: selected
-                                  ? Object.fromEntries(
-                                      Object.entries(
-                                        draft.category_tags,
-                                      ).filter(
-                                        ([categoryId]) =>
-                                          categoryId !== item.id,
-                                      ),
-                                    )
-                                  : draft.category_tags,
-                              })
-                            }
-                          />
-                          <i
-                            className="h-2.5 w-2.5 rounded-full"
-                            style={{ backgroundColor: item.color }}
-                          />
-                          {item.name}
-                        </label>
-                      );
-                    })}
-                </div>
-              </fieldset>
-              <DropdownSelect
-                variant="field"
-                label="Project"
-                value={draft.project_id ?? ""}
-                onChange={(value) =>
-                  setDraft({ ...draft, project_id: value || null })
-                }
-                options={[
-                  { label: "No project", value: "" },
-                  ...data.projects
-                    .filter(
-                      (item) =>
-                        !item.archived_at || item.id === draft.project_id,
-                    )
-                    .map((item) => ({
-                      label: `${item.name}${item.archived_at ? " (archived)" : ""}`,
-                      value: item.id,
-                    })),
-                ]}
-              />
-              <DropdownSelect
-                variant="field"
-                label="Assignee"
-                proximityValue={data.currentProfile.id}
-                value={draft.assignee_id ?? ""}
-                onChange={(value) =>
-                  setDraft({ ...draft, assignee_id: value || null })
-                }
-                options={[
-                  { label: "Unassigned", value: "" },
-                  ...data.profiles.map((item) => ({
-                    avatar: {
-                      name: profileDisplayName(item),
-                      src: item.avatar_url,
-                    },
-                    label: profileDisplayName(item),
-                    value: item.id,
-                  })),
-                ]}
-              />
-              <DropdownSelect
-                variant="field"
-                label="Reported by"
-                proximityValue={data.currentProfile.id}
-                required
-                value={draft.reported_by}
-                onChange={(value) => setDraft({ ...draft, reported_by: value })}
-                options={data.profiles.map((item) => ({
-                  avatar: {
-                    name: profileDisplayName(item),
-                    src: item.avatar_url,
-                  },
-                  label: profileDisplayName(item),
-                  value: item.id,
-                }))}
-              />
-              <label className="date-field">
-                <span>Due date</span>
-                <input
-                  type="date"
-                  value={draft.due_date ?? ""}
+            {false && (
+              <>
+                <Input
+                  label="Task title"
+                  name="task-title"
+                  required
+                  value={draft.title}
                   onChange={(event) =>
-                    setDraft({
-                      ...draft,
-                      due_date: event.target.value || null,
-                    })
+                    setDraft({ ...draft, title: event.target.value })
                   }
+                  placeholder="What needs doing?"
                 />
-              </label>
-              <MultiSelect
-                label="Tags"
-                options={tagOptions}
-                value={selectedTagValues}
-                onChange={updateTags}
-                searchable
-                searchPlaceholder="Search tags"
-                disabled={tagOptions.length === 0}
-                placeholder={
-                  draft.category_ids.length === 0
-                    ? "Select a category first"
-                    : "No tags for selected categories"
-                }
-              />
-              <label className="date-field opacity-60">
-                <span className="items-center">
-                  Reminder
-                  <Pill
-                    size="sm"
-                    className="!px-2 !py-0 text-[8px] leading-3 !tracking-[0.18em]"
+                <div className="flex flex-col gap-2">
+                  <label
+                    htmlFor="task-description"
+                    className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.2em] text-black/70 sm:tracking-[0.3em] dark:text-white/70"
                   >
-                    Coming soon
-                  </Pill>
-                </span>
-                <input
-                  type="datetime-local"
-                  value=""
-                  disabled
-                  aria-label="Reminder (coming soon)"
-                  className="cursor-not-allowed"
-                />
-              </label>
-            </div>
+                    Description (optional)
+                  </label>
+                  <RichTextarea
+                    id="task-description"
+                    name="description"
+                    aria-label="Description"
+                    value={draft.description ?? ""}
+                    onChange={(event) =>
+                      setDraft({ ...draft, description: event.target.value })
+                    }
+                    placeholder="Add useful context, links, or a tiny pep talk…"
+                  />
+                </div>
+                <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+                  <DropdownSelect
+                    variant="field"
+                    label="Status"
+                    required
+                    value={draft.status_id}
+                    onChange={(value) =>
+                      setDraft({ ...draft, status_id: value })
+                    }
+                    options={statuses.map((item) => ({
+                      label: item.name,
+                      value: item.id,
+                    }))}
+                  />
+                  <DropdownSelect
+                    variant="field"
+                    label="Priority"
+                    required
+                    value={draft.priority}
+                    onChange={(value) =>
+                      setDraft({ ...draft, priority: value as Priority })
+                    }
+                    options={priorities.map((item) => ({
+                      label: item[0].toUpperCase() + item.slice(1),
+                      value: item,
+                    }))}
+                  />
+                  <fieldset className="sm:col-span-2" aria-required="true">
+                    <legend className="mb-2 flex gap-1 text-sm font-semibold">
+                      <span>Categories</span>
+                      <span className="text-red-500">*</span>
+                    </legend>
+                    <div className="flex flex-wrap gap-2">
+                      {data.categories
+                        .filter(
+                          (item) =>
+                            !item.archived_at ||
+                            draft.category_ids.includes(item.id),
+                        )
+                        .map((item) => {
+                          const selected = draft.category_ids.includes(item.id);
+                          return (
+                            <label
+                              key={item.id}
+                              className={`flex cursor-pointer items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold transition focus-within:ring-2 focus-within:ring-black/20 dark:focus-within:ring-white/30 ${
+                                selected
+                                  ? "border-black/25 bg-black text-white dark:border-white/30 dark:bg-white dark:text-black"
+                                  : "border-black/10 bg-white dark:border-white/10 dark:bg-white/5"
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                className="sr-only"
+                                checked={selected}
+                                onChange={() =>
+                                  setDraft({
+                                    ...draft,
+                                    category_ids: selected
+                                      ? draft.category_ids.filter(
+                                          (id) => id !== item.id,
+                                        )
+                                      : [...draft.category_ids, item.id],
+                                    category_tags: selected
+                                      ? Object.fromEntries(
+                                          Object.entries(
+                                            draft.category_tags,
+                                          ).filter(
+                                            ([categoryId]) =>
+                                              categoryId !== item.id,
+                                          ),
+                                        )
+                                      : draft.category_tags,
+                                  })
+                                }
+                              />
+                              <i
+                                className="h-2.5 w-2.5 rounded-full"
+                                style={{ backgroundColor: item.color }}
+                              />
+                              {item.name}
+                            </label>
+                          );
+                        })}
+                    </div>
+                  </fieldset>
+                  <DropdownSelect
+                    variant="field"
+                    label="Project (optional)"
+                    value={draft.project_id ?? ""}
+                    onChange={(value) =>
+                      setDraft({ ...draft, project_id: value || null })
+                    }
+                    options={[
+                      { label: "No project", value: "" },
+                      ...data.projects
+                        .filter(
+                          (item) =>
+                            !item.archived_at || item.id === draft.project_id,
+                        )
+                        .map((item) => ({
+                          label: `${item.name}${item.archived_at ? " (archived)" : ""}`,
+                          value: item.id,
+                        })),
+                    ]}
+                  />
+                  <DropdownSelect
+                    variant="field"
+                    label="Assignee (optional)"
+                    proximityValue={data.currentProfile.id}
+                    value={draft.assignee_id ?? ""}
+                    onChange={(value) =>
+                      setDraft({ ...draft, assignee_id: value || null })
+                    }
+                    options={[
+                      { label: "Unassigned", value: "" },
+                      ...data.profiles.map((item) => ({
+                        avatar: {
+                          name: profileDisplayName(item),
+                          src: item.avatar_url,
+                        },
+                        label: profileDisplayName(item),
+                        value: item.id,
+                      })),
+                    ]}
+                  />
+                  <DropdownSelect
+                    variant="field"
+                    label="Reported by"
+                    proximityValue={data.currentProfile.id}
+                    required
+                    value={draft.reported_by}
+                    onChange={(value) =>
+                      setDraft({ ...draft, reported_by: value })
+                    }
+                    options={data.profiles.map((item) => ({
+                      avatar: {
+                        name: profileDisplayName(item),
+                        src: item.avatar_url,
+                      },
+                      label: profileDisplayName(item),
+                      value: item.id,
+                    }))}
+                  />
+                  <label className="date-field">
+                    <span>Due date (optional)</span>
+                    <input
+                      type="date"
+                      value={draft.due_date ?? ""}
+                      onChange={(event) =>
+                        setDraft({
+                          ...draft,
+                          due_date: event.target.value || null,
+                        })
+                      }
+                    />
+                  </label>
+                  <MultiSelect
+                    label="Tags (optional)"
+                    options={tagOptions}
+                    value={selectedTagValues}
+                    onChange={updateTags}
+                    searchable
+                    searchPlaceholder="Search tags"
+                    disabled={tagOptions.length === 0}
+                    placeholder={
+                      draft.category_ids.length === 0
+                        ? "Select a category first"
+                        : "No tags for selected categories"
+                    }
+                  />
+                  <label className="date-field opacity-60">
+                    <span className="items-center">
+                      Reminder
+                      <Pill
+                        size="sm"
+                        className="!px-2 !py-0 text-[8px] leading-3 !tracking-[0.18em]"
+                      >
+                        Coming soon
+                      </Pill>
+                    </span>
+                    <input
+                      type="datetime-local"
+                      value=""
+                      disabled
+                      aria-label="Reminder (coming soon)"
+                      className="cursor-not-allowed"
+                    />
+                  </label>
+                </div>
+              </>
+            )}
             {!detailsOpen && (
               <button
                 type="button"

@@ -1,4 +1,4 @@
-import type { Task } from "@/lib/types";
+import type { Task } from "@/lib/task-types";
 import { taskKey } from "@/lib/task-key";
 
 export function TaskKeyBadge({

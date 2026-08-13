@@ -1,12 +1,12 @@
 import type { Dispatch, SetStateAction } from "react";
-import type { NewTaskDetailsDraft } from "@/components/tasks/NewTaskDetails";
+import type { NewTaskDetailsDraft } from "./task-types";
 import type {
   Subtask,
-  TaskActivity,
   TaskAttachment,
   TaskComment,
-  WorkspaceData,
-} from "./types";
+} from "./task-types";
+import type { TaskActivity } from "./activity-types";
+import type { WorkspaceData } from "./workspace-types";
 import { attachmentUrlName } from "./task-attachment-urls";
 import { mutate } from "./mutation-client";
 

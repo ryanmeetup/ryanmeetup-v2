@@ -1,6 +1,7 @@
-import type { WorkspaceData } from "./types";
+import type { WorkspaceData } from "./workspace-types";
 
 export const demoData: WorkspaceData = {
+  canManageCategories: true,
   currentProfile: {
     id: "ryan",
     full_name: "Ryan",
@@ -97,6 +98,7 @@ export const demoData: WorkspaceData = {
       tags: ["Chicago", "New York", "Los Angeles"],
       created_by: "ryan",
       archived_at: null,
+      access_mode: "open",
     },
     {
       id: "sponsors",
@@ -107,6 +109,7 @@ export const demoData: WorkspaceData = {
       tags: [],
       created_by: "ryan",
       archived_at: null,
+      access_mode: "open",
     },
     {
       id: "web",
@@ -117,6 +120,7 @@ export const demoData: WorkspaceData = {
       tags: ["Feature", "Improvement", "Bug"],
       created_by: "ryan",
       archived_at: null,
+      access_mode: "open",
     },
     {
       id: "events",
@@ -127,6 +131,7 @@ export const demoData: WorkspaceData = {
       tags: [],
       created_by: "ryan",
       archived_at: null,
+      access_mode: "open",
     },
     {
       id: "design",
@@ -137,6 +142,7 @@ export const demoData: WorkspaceData = {
       tags: [],
       created_by: "ryan",
       archived_at: null,
+      access_mode: "open",
     },
     {
       id: "collaborations",
@@ -147,6 +153,7 @@ export const demoData: WorkspaceData = {
       tags: [],
       created_by: "ryan",
       archived_at: null,
+      access_mode: "open",
     },
   ],
   projects: [

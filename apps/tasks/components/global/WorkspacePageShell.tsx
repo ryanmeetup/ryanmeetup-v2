@@ -3,7 +3,7 @@
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { IconButton } from "@ryanmeetup/ui";
 import { FiSidebar } from "react-icons/fi";
-import type { WorkspaceData } from "@/lib/types";
+import type { WorkspaceData } from "@/lib/workspace-types";
 import {
   TaskHeaderActions,
   TaskHeaderBrand,

@@ -7,7 +7,7 @@ import {
   ACCESS_PREVIEW_PARAM,
   USER_ACCESS_PREVIEW_PARAM,
 } from "@/lib/access-preview";
-import type { AccessPreview } from "@/lib/types";
+import type { AccessPreview } from "@/lib/workspace-types";
 
 export function AccessPreviewBanner({ preview }: { preview?: AccessPreview }) {
   const pathname = usePathname();

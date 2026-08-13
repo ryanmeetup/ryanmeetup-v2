@@ -13,14 +13,7 @@ export class ApiMutationError extends Error {
   }
 }
 
-export async function mutate<T>(url: string, init: RequestInit): Promise<T> {
-  const response = await fetch(url, {
-    ...init,
-    headers:
-      init.body instanceof FormData
-        ? init.headers
-        : { "Content-Type": "application/json", ...init.headers },
-  });
+export async function parseMutationResponse<T>(response: Response): Promise<T> {
   const result = (await response.json()) as T & ApiErrorBody;
   if (!response.ok)
     throw new ApiMutationError(
@@ -29,4 +22,15 @@ export async function mutate<T>(url: string, init: RequestInit): Promise<T> {
       result.requestId ?? response.headers.get("x-request-id") ?? undefined,
     );
   return result;
+}
+
+export async function mutate<T>(url: string, init: RequestInit): Promise<T> {
+  const response = await fetch(url, {
+    ...init,
+    headers:
+      init.body instanceof FormData
+        ? init.headers
+        : { "Content-Type": "application/json", ...init.headers },
+  });
+  return parseMutationResponse<T>(response);
 }

@@ -1,5 +1,5 @@
 import { MultiSelect } from "@ryanmeetup/ui";
-import type { Profile } from "@/lib/types";
+import type { Profile } from "@/lib/workspace-types";
 import { profileSelectOptions } from "@/lib/resource-management";
 
 export function ResourceOwnerSelect({

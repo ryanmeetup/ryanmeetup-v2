@@ -1,7 +1,8 @@
 import { Avatar, Button, DisclosureCard } from "@ryanmeetup/ui";
 import { CountBadge } from "@/components/global";
 import { profileDisplayName } from "@/lib/presentation";
-import type { Profile, TaskActivity } from "@/lib/types";
+import type { Profile } from "@/lib/workspace-types";
+import type { TaskActivity } from "@/lib/activity-types";
 
 const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",

@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { databaseFailure, operationFailed } from "@/lib/server/api-response";
 import { authorize } from "@/lib/server/auth";
-import type { Subtask, TaskActivity, TaskComment } from "@/lib/types";
+import type {
+  Subtask,
+  TaskComment,
+} from "@/lib/task-types";
+import type { TaskActivity } from "@/lib/activity-types";
 import { TASK_PAGE_SIZE, WORKSPACE_COLUMNS } from "@/lib/workspace-loader";
 
 const failure = (message: string) => operationFailed(message);

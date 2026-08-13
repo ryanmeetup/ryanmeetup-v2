@@ -1,5 +1,13 @@
 import { DropdownSelect, FilterPanel } from "@ryanmeetup/ui";
-import type { Category, Priority, Profile, Project, Status } from "@/lib/types";
+import type {
+  Category,
+  Project,
+} from "@/lib/resource-types";
+import type {
+  Priority,
+  Status,
+} from "@/lib/task-types";
+import type { Profile } from "@/lib/workspace-types";
 import { filterPanelsExpandedPreferenceKey } from "@/lib/user-preferences";
 import { CategoryFilterMenu } from "./CategoryFilterMenu";
 import { InclusionFilterMenu } from "./InclusionFilterMenu";

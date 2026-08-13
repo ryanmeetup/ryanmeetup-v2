@@ -1,7 +1,11 @@
 import type { TaskDraft } from "@/lib/task-mutations";
-import type { Task, WorkspaceData } from "@/lib/types";
+import type { NewTaskDetailsDraft, Task } from "@/lib/task-types";
+import type { WorkspaceData } from "@/lib/workspace-types";
 
-export function emptyTaskDraft(statusId: string, reportedBy: string): TaskDraft {
+export function emptyTaskDraft(
+  statusId: string,
+  reportedBy: string,
+): TaskDraft {
   return {
     title: "",
     description: "",
@@ -16,6 +20,15 @@ export function emptyTaskDraft(statusId: string, reportedBy: string): TaskDraft 
     priority: "medium",
     category_ids: [],
     category_tags: {},
+  };
+}
+
+export function emptyNewTaskDetails(): NewTaskDetailsDraft {
+  return {
+    checklist: [],
+    files: [],
+    urls: [],
+    comment: "",
   };
 }
 
@@ -45,5 +58,16 @@ export function taskDraftFromTask(
     due_time: task.due_time,
     reminder_at: task.reminder_at,
     priority: task.priority,
+  };
+}
+
+export function editTaskDraft(
+  task: Task,
+  categoryIds: Iterable<string>,
+): TaskDraft {
+  return {
+    ...taskDraftFromTask(task, categoryIds),
+    start_date: null,
+    due_time: null,
   };
 }

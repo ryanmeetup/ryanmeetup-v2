@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { TaskPageClient } from "@/components/tasks/TaskPageClient";
+import { TaskPageClient } from "@/components/tasks";
 import {
   ACCESS_PREVIEW_PARAM,
   applyAccessPreview,

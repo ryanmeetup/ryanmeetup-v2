@@ -29,20 +29,7 @@ import { attachmentUrlName } from "@/lib/task-attachment-urls";
 import { CountBadge } from "@/components/global";
 import { normalizeHttpUrl } from "@ryanmeetup/utils";
 import { formatFileSize } from "@/lib/presentation";
-
-export type NewTaskDetailsDraft = {
-  checklist: { id: string; title: string }[];
-  files: File[];
-  urls: { id: string; url: string }[];
-  comment: string;
-};
-
-export const emptyNewTaskDetails = (): NewTaskDetailsDraft => ({
-  checklist: [],
-  files: [],
-  urls: [],
-  comment: "",
-});
+import type { NewTaskDetailsDraft } from "@/lib/task-types";
 
 export function NewTaskDetails({
   value,

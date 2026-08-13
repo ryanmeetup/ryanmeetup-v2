@@ -30,7 +30,7 @@ import {
 import { CategoriesModal } from "@/components/categories";
 import { WorkspacePageShell } from "@/components/global";
 import { ProjectsModal } from "@/components/projects";
-import { NewTaskModal } from "@/components/tasks/NewTaskModal";
+import { NewTaskModal, TaskKeyBadge } from "@/components/tasks";
 import { withAccessPreview } from "@/lib/access-preview";
 import {
   deleteTaskDraft,
@@ -38,9 +38,8 @@ import {
   taskDraftsChangedEvent,
   type StoredTaskDraft,
 } from "@/lib/task-drafts";
-import type { WorkspaceData } from "@/lib/types";
+import type { WorkspaceData } from "@/lib/workspace-types";
 import { taskPath } from "@/lib/task-key";
-import { TaskKeyBadge } from "@/components/tasks/TaskKeyBadge";
 import { profileDisplayName } from "@/lib/presentation";
 import { taskStatusChange } from "@/lib/task-activity";
 import {
@@ -104,6 +103,10 @@ export function DashboardPageClient({
     data.accessPreview?.kind === "user"
       ? data.accessPreview.subjectId
       : data.currentProfile.id;
+  const subjectName =
+    data.accessPreview?.kind === "user"
+      ? data.accessPreview.subjectName
+      : profileDisplayName(data.currentProfile);
   const completedStatusIds = useMemo(
     () =>
       new Set(
@@ -171,7 +174,7 @@ export function DashboardPageClient({
     data.profiles.map((profile) => [profile.id, profile]),
   );
   const viewAllAssigned = withAccessPreview(
-    `/board?assignee=${encodeURIComponent(subjectId)}`,
+    `/board?assignee=${encodeURIComponent(subjectName)}`,
     data.accessPreview,
   );
 
@@ -241,7 +244,7 @@ export function DashboardPageClient({
                 value: reportedByMe.length,
                 icon: <FiSend />,
                 href: withAccessPreview(
-                  `/board?reporter=${encodeURIComponent(subjectId)}`,
+                  `/board?reporter=${encodeURIComponent(subjectName)}`,
                   data.accessPreview,
                 ),
               },
@@ -251,7 +254,7 @@ export function DashboardPageClient({
                 value: upcoming.length,
                 icon: <FiCalendar />,
                 href: withAccessPreview(
-                  `/board?dueWithin=14&assignee=${encodeURIComponent(subjectId)}`,
+                  `/board?dueWithin=14&assignee=${encodeURIComponent(subjectName)}`,
                   data.accessPreview,
                 ),
               },
@@ -508,7 +511,7 @@ export function DashboardPageClient({
                 action={
                   <Link
                     href={withAccessPreview(
-                      `/board?view=list&reporter=${encodeURIComponent(subjectId)}`,
+                      `/board?view=list&reporter=${encodeURIComponent(subjectName)}`,
                       data.accessPreview,
                     )}
                     className="text-xs font-semibold hover:underline"

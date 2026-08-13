@@ -15,11 +15,15 @@ import {
   FiChevronLeft,
   FiChevronRight,
 } from "react-icons/fi";
-import type { Status, Task, WorkspaceData } from "@/lib/types";
+import type {
+  Status,
+  Task,
+} from "@/lib/task-types";
+import type { WorkspaceData } from "@/lib/workspace-types";
 import { withAccessPreview } from "@/lib/access-preview";
 import { taskPath } from "@/lib/task-key";
 import { profileDisplayName } from "@/lib/presentation";
-import { TaskKeyBadge } from "@/components/tasks/TaskKeyBadge";
+import { TaskKeyBadge } from "@/components/tasks";
 
 export const widgetPageSize = 5;
 

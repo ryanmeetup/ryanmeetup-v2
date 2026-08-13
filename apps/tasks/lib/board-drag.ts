@@ -17,3 +17,21 @@ export function boardDragScrollSpeed(
     return dragScrollMaxSpeed * edgeIntensity(distanceFromEnd);
   return 0;
 }
+
+export type BoardDragState = {
+  draggedTaskId: string | null;
+  dragOverStatusId: string | null;
+  dropTarget: { taskId: string; edge: "before" | "after" } | null;
+};
+
+export const emptyBoardDragState: BoardDragState = {
+  draggedTaskId: null,
+  dragOverStatusId: null,
+  dropTarget: null,
+};
+
+export function leaveBoardColumn(state: BoardDragState, statusId: string) {
+  return state.dragOverStatusId === statusId
+    ? { ...state, dragOverStatusId: null }
+    : state;
+}

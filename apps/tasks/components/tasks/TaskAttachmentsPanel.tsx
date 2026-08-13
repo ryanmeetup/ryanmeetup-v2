@@ -19,7 +19,7 @@ import {
 } from "react-icons/fi";
 import { CountBadge } from "@/components/global";
 import { formatFileSize, formatMimeSubtype } from "@/lib/presentation";
-import type { TaskAttachment } from "@/lib/types";
+import type { TaskAttachment } from "@/lib/task-types";
 
 export function TaskAttachmentsPanel({
   addingUrl,

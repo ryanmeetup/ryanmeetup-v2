@@ -15,11 +15,11 @@ import { normalizeHttpUrl } from "@ryanmeetup/utils";
 import type {
   Subtask,
   Task,
-  TaskActivity,
   TaskAttachment,
   TaskComment,
-  WorkspaceData,
-} from "@/lib/types";
+} from "@/lib/task-types";
+import type { TaskActivity } from "@/lib/activity-types";
+import type { WorkspaceData } from "@/lib/workspace-types";
 import { TaskActivityPanel } from "./TaskActivityPanel";
 import { TaskChecklistPanel } from "./TaskChecklistPanel";
 import { TaskCommentsPanel } from "./TaskCommentsPanel";

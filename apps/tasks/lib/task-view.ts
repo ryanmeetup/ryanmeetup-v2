@@ -1,5 +1,10 @@
-import type { Priority, Task, TaskAssignee, TaskCategory } from "@/lib/types";
-import { localDateValue } from "@/components/tasks/TaskDueDate";
+import type {
+  Priority,
+  Task,
+  TaskAssignee,
+  TaskCategory,
+} from "@/lib/task-types";
+import { localDateValue } from "@/lib/task-scheduling";
 import { taskPriorities } from "@/lib/task-filter-values";
 
 export function indexTaskCategories(rows: TaskCategory[]) {

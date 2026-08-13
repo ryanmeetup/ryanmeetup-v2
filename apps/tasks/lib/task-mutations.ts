@@ -5,8 +5,9 @@ import type {
   Task,
   TaskAssignee,
   TaskCategory,
-  WorkspaceData,
-} from "@/lib/types";
+} from "@/lib/task-types";
+import type { WorkspaceData } from "@/lib/workspace-types";
+import { withNormalizedTaskSchedule } from "@/lib/task-scheduling";
 
 export type TaskDraft = Pick<
   Task,
@@ -58,7 +59,8 @@ export function createTaskMutationService(context: MutationContext) {
   return {
     async save(draft: TaskDraft, editing: Task | null): Promise<SavedTask> {
       const snapshot = context.getData();
-      const { category_ids: categoryIds, ...taskDraft } = draft;
+      const { category_ids: categoryIds, ...rawTaskDraft } = draft;
+      const taskDraft = withNormalizedTaskSchedule(rawTaskDraft);
       if (context.demoMode) {
         const now = new Date().toISOString();
         const task: Task = editing

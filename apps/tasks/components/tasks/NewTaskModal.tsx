@@ -9,17 +9,15 @@ import {
   type SetStateAction,
 } from "react";
 import { toast } from "@ryanmeetup/ui";
-import type { WorkspaceData } from "@/lib/types";
-import type { Task } from "@/lib/types";
+import type { WorkspaceData } from "@/lib/workspace-types";
+import type { Task } from "@/lib/task-types";
 import {
   createTaskMutationService,
   type TaskDraft,
 } from "@/lib/task-mutations";
 import { TaskEditor } from "./TaskEditor";
-import {
-  emptyNewTaskDetails,
-  type NewTaskDetailsDraft,
-} from "./NewTaskDetails";
+import { emptyNewTaskDetails } from "@/lib/task-draft-factory";
+import type { NewTaskDetailsDraft } from "@/lib/task-types";
 import { persistNewTaskDetails } from "@/lib/new-task-details";
 import { errorMessage } from "@/lib/presentation";
 import { newWorkspaceTaskDraft } from "@/lib/task-draft-factory";

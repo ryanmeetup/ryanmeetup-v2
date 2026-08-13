@@ -1,17 +1,13 @@
-import {
-  Avatar,
-  Card,
-  DropdownSelect,
-  EmptyState,
-  Pagination,
-} from "@ryanmeetup/ui";
+import { Card, DropdownSelect, Pagination } from "@ryanmeetup/ui";
 import { FiChevronDown } from "react-icons/fi";
-import type { Category, Profile, Project, Status, Task } from "@/lib/types";
-import { TaskDueDate } from "./TaskDueDate";
-import { TaskKeyBadge } from "./TaskKeyBadge";
-import { TaskPriorityBadge } from "./TaskPriorityBadge";
-import { TaskCategoryBadge } from "./TaskCategoryBadge";
-import { profileDisplayName } from "@/lib/presentation";
+import type { Category, Project } from "@/lib/resource-types";
+import type { Profile } from "@/lib/workspace-types";
+import type { Status, Task } from "@/lib/task-types";
+import {
+  resolveTaskListItems,
+  TaskListCards,
+  TaskListRows,
+} from "./TaskListItems";
 
 export type TaskListData = {
   assigneesByTask: Map<string, Set<string>>;
@@ -50,15 +46,6 @@ export function TaskListView({
   loading: boolean;
   onOpenTask: (task: Task) => void;
 }) {
-  const {
-    assigneesByTask,
-    categories,
-    categoriesByTask,
-    profiles,
-    projects,
-    statuses,
-    tasks,
-  } = data;
   const { page, pageSize, totalCount, onPageChange, onPageSizeChange } =
     pagination;
   const {
@@ -66,6 +53,7 @@ export function TaskListView({
     onChange: onSortChange,
     onToggle: onToggleSort,
   } = sorting;
+  const items = resolveTaskListItems(data);
   return (
     <Card
       size="none"
@@ -89,94 +77,7 @@ export function TaskListView({
           />
         </div>
         <div className="divide-y divide-black/5 dark:divide-white/5">
-          {tasks.map((task) => {
-            const itemStatus = statuses.find(
-              (item) => item.id === task.status_id,
-            );
-            const taskCategories = [...(categoriesByTask.get(task.id) ?? [])]
-              .map((id) => categories.get(id))
-              .filter((item) => item !== undefined);
-            const taskProject = task.project_id
-              ? projects.get(task.project_id)
-              : null;
-            const taskPeople = [...(assigneesByTask.get(task.id) ?? [])]
-              .map((id) => profiles.get(id))
-              .filter((person) => person !== undefined);
-
-            return (
-              <button
-                type="button"
-                key={task.id}
-                onClick={() => onOpenTask(task)}
-                className="block w-full p-4 text-left transition hover:bg-black/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-black/30 dark:hover:bg-white/[0.025] dark:focus-visible:ring-white/30"
-              >
-                <span className="flex items-start justify-between gap-3">
-                  <span className="min-w-0 font-semibold leading-snug">
-                    <TaskKeyBadge task={task} className="mr-2 align-middle" />
-                    {task.title}
-                  </span>
-                  <TaskPriorityBadge priority={task.priority} />
-                </span>
-
-                <span className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-black/60 dark:text-white/60">
-                  {itemStatus && (
-                    <span className="inline-flex items-center gap-1.5 font-medium text-black/75 dark:text-white/75">
-                      <i
-                        className="h-2 w-2 shrink-0 rounded-full"
-                        style={{ backgroundColor: itemStatus.color }}
-                      />
-                      {itemStatus.name}
-                    </span>
-                  )}
-                  {taskProject && <span>{taskProject.name}</span>}
-                  {taskPeople.length > 0 && (
-                    <span className="inline-flex min-w-0 items-center gap-1.5">
-                      <span className="flex shrink-0 -space-x-1.5">
-                        {taskPeople.slice(0, 3).map((person) => (
-                          <Avatar
-                            key={person.id}
-                            name={profileDisplayName(person)}
-                            size="sm"
-                            src={person.avatar_url}
-                          />
-                        ))}
-                      </span>
-                      <span className="truncate">
-                        {taskPeople
-                          .map((person) => profileDisplayName(person))
-                          .join(", ")}
-                      </span>
-                    </span>
-                  )}
-                  {task.due_date && (
-                    <TaskDueDate
-                      dueDate={task.due_date}
-                      isCompleted={itemStatus?.is_completed ?? false}
-                      showIcon
-                    />
-                  )}
-                </span>
-
-                {taskCategories.length > 0 && (
-                  <span className="mt-3 flex flex-wrap gap-1.5">
-                    {taskCategories.map((category) => (
-                      <TaskCategoryBadge
-                        key={category.id}
-                        category={category}
-                        tags={task.category_tags?.[category.id]}
-                      />
-                    ))}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-          {tasks.length === 0 && (
-            <EmptyState
-              variant="plain"
-              message="No tasks found. Try clearing a filter or add the first task in this view."
-            />
-          )}
+          <TaskListCards items={items} onOpenTask={onOpenTask} />
         </div>
       </div>
       <div className="hidden overflow-x-auto md:block" aria-busy={loading}>
@@ -200,99 +101,7 @@ export function TaskListView({
             </tr>
           </thead>
           <tbody className="divide-y divide-black/5 dark:divide-white/5">
-            {tasks.map((task) => {
-              const itemStatus = statuses.find(
-                (item) => item.id === task.status_id,
-              );
-              const taskCategories = [...(categoriesByTask.get(task.id) ?? [])]
-                .map((id) => categories.get(id))
-                .filter((item) => item !== undefined);
-              const taskProject = task.project_id
-                ? projects.get(task.project_id)
-                : null;
-              const taskPeople = [...(assigneesByTask.get(task.id) ?? [])]
-                .map((id) => profiles.get(id))
-                .filter((person) => person !== undefined);
-              return (
-                <tr
-                  key={task.id}
-                  onClick={() => onOpenTask(task)}
-                  className="cursor-pointer text-sm hover:bg-black/[0.025] dark:hover:bg-white/[0.025]"
-                >
-                  <td className="px-4 py-4">
-                    <span className="font-semibold">
-                      <TaskKeyBadge task={task} className="mr-2 align-middle" />
-                      {task.title}
-                    </span>
-                  </td>
-                  <td>
-                    <span className="flex items-center gap-2">
-                      <i
-                        className="h-2 w-2 rounded-full"
-                        style={{ backgroundColor: itemStatus?.color }}
-                      />
-                      {itemStatus?.name}
-                    </span>
-                  </td>
-                  <td>
-                    {taskCategories.length > 0 ? (
-                      <span className="flex flex-wrap gap-1.5 py-2 pr-3">
-                        {taskCategories.map((category) => (
-                          <TaskCategoryBadge
-                            key={category.id}
-                            category={category}
-                            tags={task.category_tags?.[category.id]}
-                          />
-                        ))}
-                      </span>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td>{taskProject?.name ?? "—"}</td>
-                  <td>
-                    {taskPeople.length > 0 ? (
-                      <span className="flex items-center gap-2">
-                        <span className="flex -space-x-1.5">
-                          {taskPeople.slice(0, 3).map((person) => (
-                            <Avatar
-                              key={person.id}
-                              name={profileDisplayName(person)}
-                              size="sm"
-                              src={person.avatar_url}
-                            />
-                          ))}
-                        </span>
-                        {taskPeople
-                          .map((person) => profileDisplayName(person))
-                          .join(", ")}
-                      </span>
-                    ) : (
-                      "Unassigned"
-                    )}
-                  </td>
-                  <td>
-                    <TaskPriorityBadge priority={task.priority} />
-                  </td>
-                  <td>
-                    <TaskDueDate
-                      dueDate={task.due_date}
-                      isCompleted={itemStatus?.is_completed ?? false}
-                    />
-                  </td>
-                </tr>
-              );
-            })}
-            {tasks.length === 0 && (
-              <tr>
-                <td colSpan={7}>
-                  <EmptyState
-                    variant="plain"
-                    message="No tasks found. Try clearing a filter or add the first task in this view."
-                  />
-                </td>
-              </tr>
-            )}
+            <TaskListRows items={items} onOpenTask={onOpenTask} />
           </tbody>
         </table>
       </div>

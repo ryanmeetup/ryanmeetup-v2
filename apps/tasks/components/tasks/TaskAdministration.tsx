@@ -18,7 +18,7 @@ import {
   FiTrash2,
   FiX,
 } from "react-icons/fi";
-import type { WorkspaceData } from "@/lib/types";
+import type { WorkspaceData } from "@/lib/workspace-types";
 import { errorMessage } from "@/lib/presentation";
 import { mutate } from "@/lib/mutation-client";
 
@@ -249,24 +249,28 @@ export function StatusSettingsModal({
           >
             <Input
               label="New status"
+              required
               name="setting-name"
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="Name"
             />
             <label className="date-field">
-              <span>Color</span>
+              <span>
+                Color <span className="text-red-500">*</span>
+              </span>
               <input
                 type="color"
                 className="color-input !h-11 !w-11"
                 value={color}
+                required
                 onChange={(event) => setColor(event.target.value)}
               />
             </label>
             <div className="col-span-2">
               <Textarea
                 id="setting-description"
-                label="Brief description"
+                label="Brief description (optional)"
                 name="setting-description"
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
@@ -332,6 +336,7 @@ export function StatusSettingsModal({
                         }
                         inputClassName="h-9"
                         autoFocus
+                        required
                       />
                       <IconButton
                         type="submit"

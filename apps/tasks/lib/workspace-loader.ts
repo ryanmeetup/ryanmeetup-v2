@@ -1,5 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { WorkspaceData } from "./types";
+import type { WorkspaceData } from "./workspace-types";
+import {
+  TASK_ASSIGNEE_COLUMNS,
+  TASK_CATEGORY_COLUMNS,
+  TASK_COLUMNS,
+  TASK_LABEL_COLUMNS,
+} from "./database-shapes";
 
 type QueryFailure = {
   code?: string;
@@ -55,7 +61,11 @@ export function requireQueryResult<TResult extends QueryResult<unknown>>(
 
 export type WorkspaceCollection = Exclude<
   keyof WorkspaceData,
-  "currentProfile" | "accessPreview" | "taskPage" | "activityPage"
+  | "currentProfile"
+  | "canManageCategories"
+  | "accessPreview"
+  | "taskPage"
+  | "activityPage"
 >;
 
 export const TASK_PAGE_SIZE = 50;
@@ -67,21 +77,21 @@ export const WORKSPACE_COLUMNS = {
     "id,full_name,avatar_url,onboarding_completed,task_details_open_by_default,favorite_project_ids,app_role",
   statuses:
     "id,name,description,color,sort_order,order_revision,is_default,is_completed",
-  categories: "id,name,description,color,links,tags,created_by,archived_at",
+  categories:
+    "id,name,description,color,links,tags,created_by,archived_at,access_mode",
   projects: "id,name,description,links,created_by,archived_at,created_at",
   projectOwners: "project_id,profile_id",
   categoryOwners: "category_id,profile_id",
-  tasks:
-    "id,task_number,title,description,status_id,project_id,assignee_id,created_by,reported_by,start_date,due_date,due_time,reminder_at,priority,category_tags,board_position,completed_at,archived_at,created_at,updated_at",
+  tasks: TASK_COLUMNS,
   subtasks: "id,task_id,title,is_completed,sort_order,created_by,created_at",
   comments: "id,task_id,body,created_by,created_at,edited_at",
   activity: "id,task_id,actor_id,action,details,created_at",
   attachments:
     "id,task_id,name,url,file_path,mime_type,size_bytes,created_by,created_at",
   labels: "id,name,color,created_by",
-  taskAssignees: "task_id,profile_id",
-  taskLabels: "task_id,label_id",
-  taskCategories: "task_id,category_id",
+  taskAssignees: TASK_ASSIGNEE_COLUMNS,
+  taskLabels: TASK_LABEL_COLUMNS,
+  taskCategories: TASK_CATEGORY_COLUMNS,
 } as const;
 const columns = WORKSPACE_COLUMNS;
 
@@ -101,6 +111,7 @@ const emptyWorkspace = (): Omit<WorkspaceData, "currentProfile"> => ({
   taskAssignees: [],
   taskLabels: [],
   taskCategories: [],
+  canManageCategories: false,
 });
 
 export async function loadWorkspace(
@@ -154,18 +165,25 @@ export async function loadWorkspace(
       supabase.from("task_categories").select(columns.taskCategories),
   };
 
-  const [profileResult, ...results] = await Promise.all([
+  const [profileResult, categoryManagerResult, ...results] = await Promise.all([
     supabase
       .from("profiles")
       .select(columns.currentProfile)
       .eq("id", userId)
       .maybeSingle(),
+    supabase.rpc("can_manage_categories"),
     ...collections.map((collection) => queries[collection]()),
   ]);
   if (profileResult.error) {
     throw new WorkspaceLoadError("current profile", profileResult.error);
   }
   if (!profileResult.data) return null;
+  if (categoryManagerResult.error) {
+    throw new WorkspaceLoadError(
+      "category management access",
+      categoryManagerResult.error,
+    );
+  }
 
   const workspace = emptyWorkspace();
   collections.forEach((collection, index) => {
@@ -173,5 +191,9 @@ export async function loadWorkspace(
     Object.assign(workspace, { [collection]: data });
   });
 
-  return { ...workspace, currentProfile: profileResult.data } as WorkspaceData;
+  return {
+    ...workspace,
+    currentProfile: profileResult.data,
+    canManageCategories: Boolean(categoryManagerResult.data),
+  } as WorkspaceData;
 }

@@ -34,7 +34,8 @@ import {
 import { taskKey, taskPath } from "@/lib/task-key";
 import { errorMessage } from "@/lib/presentation";
 import { taskDraftFromTask } from "@/lib/task-draft-factory";
-import type { Task, WorkspaceData } from "@/lib/types";
+import type { Task } from "@/lib/task-types";
+import type { WorkspaceData } from "@/lib/workspace-types";
 import { TaskDetails } from "./TaskDetails";
 import { TaskDueDate } from "./TaskDueDate";
 import { TaskEditor } from "./TaskEditor";

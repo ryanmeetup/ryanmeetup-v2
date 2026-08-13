@@ -9,7 +9,7 @@ export { apiError } from "@/lib/server/api-response";
 export { readJson } from "@/lib/server/request";
 
 type ApiFailure = { response: ReturnType<typeof apiError> };
-type PrivilegedContext = Authorization & {
+export type PrivilegedContext = Authorization & {
   admin: NonNullable<ReturnType<typeof getAdminClient>>;
 };
 
