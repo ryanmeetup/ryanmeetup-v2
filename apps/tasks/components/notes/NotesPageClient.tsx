@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useQueryParamState } from "@ryanmeetup/hooks";
 import {
   Button,
   ConfirmationDialog,
@@ -17,6 +18,7 @@ import type { Note } from "@/lib/resource-types";
 import type { Task } from "@/lib/task-types";
 import type { WorkspaceData } from "@/lib/workspace-types";
 import { mutate } from "@/lib/mutation-client";
+import { archiveFilter } from "@/lib/resource-management";
 import { NoteCard } from "./NoteCard";
 export function NotesPageClient({
   initialData,
@@ -33,7 +35,11 @@ export function NotesPageClient({
   const [body, setBody] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [creating, setCreating] = useState(false);
-  const [showArchived, setShowArchived] = useState(false);
+  const [noteStatusParam, setNoteStatus] = useQueryParamState(
+    "note-status",
+    "active",
+  );
+  const showArchived = archiveFilter(noteStatusParam) === "archived";
   const [deleteTarget, setDeleteTarget] = useState<Note | null>(null);
   const [convertTarget, setConvertTarget] = useState<Note | null>(null);
 
@@ -178,7 +184,9 @@ export function NotesPageClient({
               variant="secondary"
               size="sm"
               className="w-full sm:w-auto"
-              onClick={() => setShowArchived((value) => !value)}
+              onClick={() =>
+                setNoteStatus(showArchived ? "active" : "archived")
+              }
             >
               {showArchived ? "View active" : "View archive"}
             </Button>
@@ -237,7 +245,7 @@ export function NotesPageClient({
             </div>
 
             {activeNotes.length ? (
-              <div className="grid items-start gap-4 xl:grid-cols-2">
+              <div className="grid items-start gap-4 xl:grid-cols-3">
                 {activeNotes.map((note) => (
                   <NoteCard
                     key={note.id}

@@ -102,54 +102,58 @@ export function NoteCard({
           </div>
         </div>
       </div>
-      <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-black/10 pt-3 dark:border-white/10">
-        {note.converted_task_id ? (
-          <Button.Link
-            href={convertedTask ? taskPath(convertedTask) : "/board"}
-            size="sm"
-            variant="secondary"
-            leftIcon={<FiCheck />}
-          >
-            View task
-          </Button.Link>
-        ) : !note.archived_at ? (
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-black/10 pt-3 dark:border-white/10">
+        <div className="flex items-center gap-2">
+          <IconButton
+            label={
+              note.archived_at
+                ? `Restore “${noteTitle(note)}”`
+                : `Archive “${noteTitle(note)}”`
+            }
             onClick={() =>
-              onConvert({
+              void onChange({
                 ...note,
-                title: draft.title.trim() || null,
-                body: draft.body,
+                archived_at: note.archived_at ? null : new Date().toISOString(),
               })
             }
           >
-            Convert to task
-          </Button>
-        ) : null}
-        <IconButton
-          label={
-            note.archived_at
-              ? `Restore “${noteTitle(note)}”`
-              : `Archive “${noteTitle(note)}”`
-          }
-          onClick={() =>
-            void onChange({
-              ...note,
-              archived_at: note.archived_at ? null : new Date().toISOString(),
-            })
-          }
-        >
-          {note.archived_at ? <FiRotateCcw /> : <FiArchive />}
-        </IconButton>
-        <IconButton
-          label={`Delete “${noteTitle(note)}”`}
-          variant="danger"
-          onClick={() => onDelete(note)}
-        >
-          <FiTrash2 />
-        </IconButton>
+            {note.archived_at ? <FiRotateCcw /> : <FiArchive />}
+          </IconButton>
+          <IconButton
+            label={`Delete “${noteTitle(note)}”`}
+            variant="danger"
+            onClick={() => onDelete(note)}
+          >
+            <FiTrash2 />
+          </IconButton>
+        </div>
+        <div className="ml-auto">
+          {note.converted_task_id ? (
+            <Button.Link
+              href={convertedTask ? taskPath(convertedTask) : "/board"}
+              size="sm"
+              variant="secondary"
+              leftIcon={<FiCheck />}
+            >
+              View task
+            </Button.Link>
+          ) : !note.archived_at ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={() =>
+                onConvert({
+                  ...note,
+                  title: draft.title.trim() || null,
+                  body: draft.body,
+                })
+              }
+            >
+              Convert to task
+            </Button>
+          ) : null}
+        </div>
       </div>
     </article>
   );
