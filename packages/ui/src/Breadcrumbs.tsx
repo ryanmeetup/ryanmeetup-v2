@@ -32,7 +32,7 @@ const Breadcrumbs = ({
         }
       >
         {crumbs.map((crumb, index) => {
-          const current = crumb.current ?? index === crumbs.length - 1;
+          const current = index === crumbs.length - 1 || crumb.current === true;
 
           return (
             <li
@@ -43,13 +43,21 @@ const Breadcrumbs = ({
               }
               key={`${crumb.href}-${crumb.title}`}
             >
-              {current && !compact ? (
+              {current ? (
                 <span
                   aria-current="page"
-                  className="flex items-center font-semibold text-black dark:text-white"
+                  className={
+                    compact
+                      ? "inline-flex items-center gap-1.5 text-sm font-semibold text-black dark:text-white"
+                      : "flex items-center font-semibold text-black dark:text-white"
+                  }
                 >
                   {crumb.icon}
-                  <Text className="title text-inherit">{crumb.title}</Text>
+                  <Text
+                    className={compact ? "text-inherit" : "title text-inherit"}
+                  >
+                    {crumb.title}
+                  </Text>
                 </span>
               ) : (
                 <Link
