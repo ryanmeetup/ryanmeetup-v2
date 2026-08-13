@@ -167,6 +167,26 @@ rather than failing through an API call.
 - Use the Inter variable font and established Tasks surfaces; Cooper remains
   reserved for intentional Ryan display moments inherited from the shared
   brand system.
+- On management cards and other compact resource rows, use the shared
+  `IconButton` for edit, archive, restore, delete, favorite, and similar
+  secondary actions, matching the Projects and Work Groups screens. Give every
+  icon action a specific accessible label that includes the resource name. Do
+  not replace these compact controls with exposed text-and-icon buttons unless
+  the action is the card's primary call to action or the text is needed to
+  prevent ambiguity.
+- Full-page resource-management screens must use the same embedded `Modal`
+  shell established by Projects and Work Groups: the page title and concise
+  description belong in the shell header, the primary page action belongs in
+  its `actions` slot, and the resource controls, results, and empty state belong
+  in the bordered shell body. Use the standard Tasks page padding
+  (`p-3 sm:p-6 lg:p-6 xl:p-8`) and avoid adding a separate marketing-style page
+  hero or stacking another full-size surface around the embedded shell.
+- Expandable and collapsible interface regions should use the shared
+  `AnimatedCollapse` transition established by the sidebar so motion, overflow,
+  and reduced-motion behavior remain consistent. Drive it from a real button
+  with `aria-expanded` and `aria-controls`, rotate its disclosure indicator in
+  sync with the shared 200 ms transition, and choose the initial open state
+  deliberately for the content rather than relying on native `details` styling.
 - Reuse `@ryanmeetup/ui` fields, dialogs, menus, filters, feedback, toast, and
   loading primitives before adding Tasks-local equivalents.
 - Preserve the light/dark theme bootstrap and CSP nonce. New inline scripts are
