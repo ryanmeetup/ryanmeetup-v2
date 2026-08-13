@@ -749,7 +749,7 @@ export function ProjectsModal({
                       )}
                       {!data.accessPreview && !project.archived_at && (
                         <IconButton
-                          label={`${isFavorite ? "Remove" : "Add"} ${project.name} ${isFavorite ? "from" : "to"} favorites`}
+                          label={`${isFavorite ? "Remove" : "Add"} “${project.name}” ${isFavorite ? "from" : "to"} favorites`}
                           disabled={favoritePendingIds.has(project.id)}
                           onClick={() => void toggleFavorite(project)}
                           className={
@@ -764,13 +764,13 @@ export function ProjectsModal({
                       {!readOnly && (
                         <>
                           <IconButton
-                            label={`Edit ${project.name}`}
+                            label={`Edit “${project.name}”`}
                             onClick={() => beginRename(project)}
                           >
                             <FiEdit2 />
                           </IconButton>
                           <IconButton
-                            label={`${project.archived_at ? "Restore" : "Archive"} ${project.name}`}
+                            label={`${project.archived_at ? "Restore" : "Archive"} “${project.name}”`}
                             onClick={() => void toggleArchived(project)}
                           >
                             {project.archived_at ? (

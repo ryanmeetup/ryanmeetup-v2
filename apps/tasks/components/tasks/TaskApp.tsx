@@ -1492,14 +1492,14 @@ export function TaskApp({
                             {columnTasks.length}
                           </span>
                           <IconButton
-                            label={`Add task to ${item.name}`}
+                            label={`Add task to “${item.name}”`}
                             tooltipTriggerClassName="ml-auto"
                             onClick={() => openCreate(item.id)}
                           >
                             <FiPlus />
                           </IconButton>
                           <IconButton
-                            label={`${isCollapsed ? "Expand" : "Collapse"} ${item.name}`}
+                            label={`${isCollapsed ? "Expand" : "Collapse"} “${item.name}”`}
                             aria-expanded={!isCollapsed}
                             aria-controls={`status-column-${item.id}`}
                             onClick={() => toggleStatusSection(item.id)}

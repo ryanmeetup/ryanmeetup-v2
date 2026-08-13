@@ -146,7 +146,7 @@ export function NewTaskDetails({
             <span className="min-w-0 flex-1 text-sm">{item.title}</span>
             <IconButton
               type="button"
-              label={`Remove ${item.title}`}
+              label={`Remove “${item.title}”`}
               variant="danger"
               disabled={disabled}
               onClick={() =>
@@ -212,7 +212,7 @@ export function NewTaskDetails({
             </div>
             <IconButton
               type="button"
-              label={`Remove ${file.name}`}
+              label={`Remove “${file.name}”`}
               variant="danger"
               disabled={disabled}
               onClick={() =>
@@ -246,7 +246,7 @@ export function NewTaskDetails({
             </div>
             <IconButton
               type="button"
-              label={`Remove ${item.url}`}
+              label={`Remove “${item.url}”`}
               variant="danger"
               disabled={disabled}
               onClick={() =>

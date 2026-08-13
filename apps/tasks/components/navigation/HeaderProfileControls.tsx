@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Avatar, IconButton, Tooltip } from "@ryanmeetup/ui";
 import { FiLogOut } from "react-icons/fi";
 import { createClient } from "@/lib/supabase/client";
@@ -13,6 +14,7 @@ export function HeaderProfileControls({
   demoMode: boolean;
   profile: Profile;
 }) {
+  const router = useRouter();
   const name = profile.full_name || "Teammate";
   const summary = (
     <>
@@ -50,7 +52,8 @@ export function HeaderProfileControls({
             label="Sign out"
             onClick={async () => {
               await createClient().auth.signOut();
-              window.location.href = "/login";
+              router.push("/login");
+              router.refresh();
             }}
           >
             <FiLogOut />

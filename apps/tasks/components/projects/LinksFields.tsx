@@ -97,7 +97,7 @@ export function LinksFields({
             />
             <IconButton
               type="button"
-              label={`Remove ${link.label || "link"}`}
+              label={`Remove “${link.label || "link"}”`}
               disabled={disabled}
               onClick={() =>
                 setLinks((current) =>

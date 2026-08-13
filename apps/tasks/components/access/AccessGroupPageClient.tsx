@@ -555,7 +555,7 @@ export function AccessGroupPageClient({
                         </span>
                         {group.kind === "team" && (
                           <IconButton
-                            label={`Remove ${profile?.full_name ?? "member"} from ${group.name}`}
+                            label={`Remove “${profile?.full_name ?? "member"}” from “${group.name}”`}
                             variant="danger"
                             onClick={() => removeMember(member.profile_id)}
                           >
@@ -775,7 +775,7 @@ export function AccessGroupPageClient({
                           "Unknown category"}
                       </span>
                       <IconButton
-                        label={`Remove access to ${categoryNames.get(grant.category_id) ?? "category"}`}
+                        label={`Remove access to “${categoryNames.get(grant.category_id) ?? "category"}”`}
                         variant="danger"
                         onClick={() =>
                           void removeCategoryGrant(grant.category_id)

@@ -180,7 +180,7 @@ export function CategoriesModalLegacy({
                 {item.name}
               </span>
               <IconButton
-                label={`Rename ${item.name}`}
+                label={`Rename “${item.name}”`}
                 onClick={() => setGroupToRename(item)}
               >
                 <FiMoreHorizontal />
@@ -557,7 +557,7 @@ export function StatusSettingsModal({
                       />
                       <IconButton
                         type="submit"
-                        label={`Save ${item.name}`}
+                        label={`Save “${item.name}”`}
                         disabled={
                           settingActionPending || !editingStatusName.trim()
                         }
@@ -566,7 +566,7 @@ export function StatusSettingsModal({
                       </IconButton>
                       <IconButton
                         type="button"
-                        label={`Cancel editing ${item.name}`}
+                        label={`Cancel editing “${item.name}”`}
                         disabled={settingActionPending}
                         onClick={() => {
                           setEditingStatusId(null);
@@ -606,19 +606,19 @@ export function StatusSettingsModal({
                         </button>
                         <div className="flex flex-wrap items-center gap-2">
                           <IconButton
-                            label={`Move ${item.name} up`}
+                            label={`Move “${item.name}” up`}
                             onClick={() => void moveStatus(item.id, -1)}
                           >
                             <FiChevronDown className="rotate-180" />
                           </IconButton>
                           <IconButton
-                            label={`Move ${item.name} down`}
+                            label={`Move “${item.name}” down`}
                             onClick={() => void moveStatus(item.id, 1)}
                           >
                             <FiChevronDown />
                           </IconButton>
                           <IconButton
-                            label={`Edit ${item.name}`}
+                            label={`Edit “${item.name}”`}
                             disabled={settingActionPending}
                             onClick={() => {
                               setEditingStatusId(item.id);
@@ -628,7 +628,7 @@ export function StatusSettingsModal({
                             <FiEdit2 />
                           </IconButton>
                           <IconButton
-                            label={`Delete ${item.name}`}
+                            label={`Delete “${item.name}”`}
                             variant="danger"
                             onClick={() => setStatusToDelete(item)}
                           >

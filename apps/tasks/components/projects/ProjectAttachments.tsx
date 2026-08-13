@@ -339,7 +339,7 @@ export function ProjectAttachments({
               </div>
               <IconButton
                 type="button"
-                label={`Remove ${item.name}`}
+                label={`Remove “${item.name}”`}
                 variant="danger"
                 disabled={disabled || saving}
                 onClick={() => void remove(item)}
@@ -448,7 +448,7 @@ export function ProjectAttachments({
               )}
               <IconButton
                 type="button"
-                label={`Remove ${item.name}`}
+                label={`Remove “${item.name}”`}
                 variant="danger"
                 disabled={disabled || saving}
                 onClick={() => void remove(item)}

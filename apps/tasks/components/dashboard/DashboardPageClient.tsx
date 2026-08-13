@@ -3,12 +3,14 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
 import Link from "next/link";
 import {
+  AnimatedCollapse,
   Avatar,
   Button,
   Card,
@@ -21,6 +23,7 @@ import {
   FiArrowRight,
   FiCalendar,
   FiCheckCircle,
+  FiChevronDown,
   FiChevronLeft,
   FiChevronRight,
   FiClock,
@@ -158,6 +161,8 @@ function SectionCard({
   tone?: "blue" | "gold" | "green" | "neutral" | "violet";
   title: string;
 }) {
+  const [collapsed, setCollapsed] = useState(false);
+  const contentId = useId();
   const toneStyles = {
     blue: "bg-blue-500/10 text-blue-700 dark:bg-blue-400/15 dark:text-blue-200",
     gold: "bg-amber-500/12 text-amber-700 dark:bg-amber-400/15 dark:text-amber-200",
@@ -173,16 +178,39 @@ function SectionCard({
       size="none"
       className="overflow-hidden bg-white/90 shadow-[0_12px_35px_rgba(0,0,0,0.045)] dark:bg-white/[0.055] dark:shadow-none"
     >
-      <div className="flex items-center gap-3 border-b border-black/[0.07] px-4 py-3.5 dark:border-white/10">
+      <div
+        className={`flex items-center gap-3 px-4 py-3.5 ${
+          collapsed
+            ? ""
+            : "border-b border-black/[0.07] dark:border-white/10"
+        }`}
+      >
         <span
           className={`flex h-8 w-8 items-center justify-center rounded-xl ${toneStyles[tone]}`}
         >
           {icon}
         </span>
         <h2 className="text-base font-semibold">{title}</h2>
-        {action && <span className="ml-auto">{action}</span>}
+        <span className="ml-auto flex items-center gap-2">
+          {action}
+          <IconButton
+            label={`${collapsed ? "Expand" : "Collapse"} “${title}”`}
+            size="sm"
+            aria-controls={contentId}
+            aria-expanded={!collapsed}
+            onClick={() => setCollapsed((current) => !current)}
+          >
+            <FiChevronDown
+              className={`transition-transform duration-200 motion-reduce:transition-none ${
+                collapsed ? "-rotate-90" : ""
+              }`}
+            />
+          </IconButton>
+        </span>
       </div>
-      {children}
+      <AnimatedCollapse id={contentId} open={!collapsed}>
+        {children}
+      </AnimatedCollapse>
     </Card>
   );
 }
@@ -210,7 +238,7 @@ function WidgetPagination({
         Showing {start}–{end} of {total}
       </p>
       <IconButton
-        label={`Previous page of ${label}`}
+        label={`Previous page of “${label}”`}
         size="sm"
         disabled={page === 0}
         onClick={() => onPageChange(page - 1)}
@@ -218,7 +246,7 @@ function WidgetPagination({
         <FiChevronLeft />
       </IconButton>
       <IconButton
-        label={`Next page of ${label}`}
+        label={`Next page of “${label}”`}
         size="sm"
         disabled={page >= pageCount - 1}
         onClick={() => onPageChange(page + 1)}
@@ -503,309 +531,305 @@ export function DashboardPageClient({
               ))}
             </div>
 
-            <div className="grid gap-6 xl:grid-cols-2 xl:items-start">
-              <div className="contents">
-                {!data.accessPreview && (
-                  <div
-                    id="saved-drafts"
-                    className="order-4 min-w-0 scroll-mt-20"
-                  >
-                    <SectionCard
-                      title="Drafts"
-                      icon={<FiFileText />}
-                      tone="violet"
+            <div className="gap-6 xl:columns-2">
+              <div className="mb-6 break-inside-avoid">
+                <SectionCard
+                  title="Assigned to me"
+                  icon={<FiCheckCircle />}
+                  tone="blue"
+                  action={
+                    <Link
+                      href={viewAllAssigned}
+                      className="text-xs font-semibold hover:underline"
                     >
-                      {drafts.length > 0 ? (
-                        <ul className="divide-y divide-black/10 dark:divide-white/10">
-                          {drafts
-                            .slice(
-                              visibleDraftPage * widgetPageSize,
-                              (visibleDraftPage + 1) * widgetPageSize,
-                            )
-                            .map((item) => (
-                              <li
-                                key={item.id}
-                                className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center"
-                              >
-                                <span className="min-w-0 flex-1">
-                                  <span className="block truncate text-sm font-semibold">
-                                    {item.draft.title.trim() || "Untitled task"}
-                                  </span>
-                                  <span className="mt-1 block text-xs text-black/50 dark:text-white/50">
-                                    Saved{" "}
-                                    {new Date(item.updatedAt).toLocaleString()}
-                                  </span>
-                                </span>
-                                <span className="flex items-center gap-2">
-                                  <Button
-                                    size="sm"
-                                    variant="secondary"
-                                    leftIcon={<FiEdit2 />}
-                                    onClick={() => setSelectedDraft(item)}
-                                  >
-                                    Continue
-                                  </Button>
-                                  <IconButton
-                                    label={`Delete ${item.draft.title || "untitled draft"}`}
-                                    size="sm"
-                                    onClick={() => setDraftPendingDelete(item)}
-                                  >
-                                    <FiTrash2 />
-                                  </IconButton>
-                                </span>
-                              </li>
-                            ))}
-                        </ul>
-                      ) : (
-                        <EmptyState
-                          variant="plain"
-                          message="No saved drafts right now."
-                        />
-                      )}
-                      <WidgetPagination
-                        label="drafts"
-                        page={visibleDraftPage}
-                        total={drafts.length}
-                        onPageChange={setDraftPage}
-                      />
-                    </SectionCard>
-                  </div>
-                )}
-
-                <div className="order-1 min-w-0">
-                  <SectionCard
-                    title="Assigned to me"
-                    icon={<FiCheckCircle />}
-                    tone="blue"
-                    action={
-                      <Link
-                        href={viewAllAssigned}
-                        className="text-xs font-semibold hover:underline"
-                      >
-                        View all
-                      </Link>
-                    }
-                  >
-                    <DashboardTaskList
-                      data={data}
-                      tasks={assignedToMe.slice(
-                        visibleAssignedPage * widgetPageSize,
-                        (visibleAssignedPage + 1) * widgetPageSize,
-                      )}
-                      empty="Nothing assigned to you right now."
-                    />
-                    <WidgetPagination
-                      label="assigned tasks"
-                      page={visibleAssignedPage}
-                      total={assignedToMe.length}
-                      onPageChange={setAssignedPage}
-                    />
-                  </SectionCard>
-                </div>
-
-                {!data.accessPreview && (
-                  <div className="order-3 min-w-0">
-                    <SectionCard
-                      title="Favorite projects"
-                      icon={<FiStar />}
-                      tone="gold"
-                      action={
-                        <Link
-                          href="/projects"
-                          className="text-xs font-semibold hover:underline"
-                        >
-                          View all
-                        </Link>
-                      }
-                    >
-                      {favoriteProjects.length ? (
-                        <ul className="divide-y divide-black/10 dark:divide-white/10">
-                          {favoriteProjects
-                            .slice(
-                              visibleFavoriteProjectPage * widgetPageSize,
-                              (visibleFavoriteProjectPage + 1) * widgetPageSize,
-                            )
-                            .map((project) => (
-                              <li key={project.id}>
-                                <Link
-                                  href={`/board?project=${encodeURIComponent(project.name)}`}
-                                  className="group flex items-center gap-3 px-4 py-4 transition hover:bg-black/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-black/30 dark:hover:bg-white/[0.035] dark:focus-visible:ring-white/40"
-                                >
-                                  <FiStar
-                                    className="shrink-0 text-amber-600 dark:text-amber-300"
-                                    fill="currentColor"
-                                  />
-                                  <span className="min-w-0 flex-1">
-                                    <span className="block truncate text-sm font-semibold group-hover:underline">
-                                      {project.name}
-                                    </span>
-                                    {project.description && (
-                                      <span className="mt-1 block truncate text-xs text-black/55 dark:text-white/55">
-                                        {project.description}
-                                      </span>
-                                    )}
-                                  </span>
-                                  <FiArrowRight className="shrink-0 text-black/35 transition-transform group-hover:translate-x-0.5 dark:text-white/35" />
-                                </Link>
-                              </li>
-                            ))}
-                        </ul>
-                      ) : (
-                        <EmptyState
-                          variant="plain"
-                          message="Favorite a project for quick access here."
-                        />
-                      )}
-                      <WidgetPagination
-                        label="favorite projects"
-                        page={visibleFavoriteProjectPage}
-                        total={favoriteProjects.length}
-                        onPageChange={setFavoriteProjectPage}
-                      />
-                    </SectionCard>
-                  </div>
-                )}
+                      View all
+                    </Link>
+                  }
+                >
+                  <DashboardTaskList
+                    data={data}
+                    tasks={assignedToMe.slice(
+                      visibleAssignedPage * widgetPageSize,
+                      (visibleAssignedPage + 1) * widgetPageSize,
+                    )}
+                    empty="Nothing assigned to you right now."
+                  />
+                  <WidgetPagination
+                    label="assigned tasks"
+                    page={visibleAssignedPage}
+                    total={assignedToMe.length}
+                    onPageChange={setAssignedPage}
+                  />
+                </SectionCard>
               </div>
 
-              <div className="contents">
-                <div className="order-2 min-w-0">
+              {!data.accessPreview && (
+                <div className="mb-6 break-inside-avoid">
                   <SectionCard
-                    title="Upcoming deadlines"
-                    icon={<FiCalendar />}
+                    title="Favorite projects"
+                    icon={<FiStar />}
                     tone="gold"
-                  >
-                    <DashboardTaskList
-                      data={data}
-                      tasks={upcoming.slice(
-                        visibleUpcomingPage * widgetPageSize,
-                        (visibleUpcomingPage + 1) * widgetPageSize,
-                      )}
-                      empty="No deadlines coming up in the next 14 days."
-                    />
-                    <WidgetPagination
-                      label="upcoming deadlines"
-                      page={visibleUpcomingPage}
-                      total={upcoming.length}
-                      onPageChange={setUpcomingPage}
-                    />
-                  </SectionCard>
-                </div>
-                <div className="order-5 min-w-0">
-                  <SectionCard
-                    title="Reported by me"
-                    icon={<FiSend />}
-                    tone="violet"
                     action={
                       <Link
-                        href={withAccessPreview(
-                          `/board?view=list&reporter=${encodeURIComponent(subjectId)}`,
-                          data.accessPreview,
-                        )}
+                        href="/projects"
                         className="text-xs font-semibold hover:underline"
                       >
                         View all
                       </Link>
                     }
                   >
-                    <DashboardTaskList
-                      data={data}
-                      tasks={reportedByMe.slice(
-                        visibleReportedPage * widgetPageSize,
-                        (visibleReportedPage + 1) * widgetPageSize,
-                      )}
-                      empty="You haven't reported any active tasks."
-                    />
-                    <WidgetPagination
-                      label="reported tasks"
-                      page={visibleReportedPage}
-                      total={reportedByMe.length}
-                      onPageChange={setReportedPage}
-                    />
-                  </SectionCard>
-                </div>
-                <div className="order-6 min-w-0">
-                  <SectionCard
-                    title="Recent status changes"
-                    icon={<FiClock />}
-                    tone="green"
-                    action={
-                      <Link
-                        href={withAccessPreview(
-                          "/activity?events=moved",
-                          data.accessPreview,
-                        )}
-                        className="text-xs font-semibold hover:underline"
-                      >
-                        All activity
-                      </Link>
-                    }
-                  >
-                    {recentActivity.length ? (
+                    {favoriteProjects.length ? (
                       <ul className="divide-y divide-black/10 dark:divide-white/10">
-                        {recentActivity
+                        {favoriteProjects
                           .slice(
-                            visibleActivityPage * widgetPageSize,
-                            (visibleActivityPage + 1) * widgetPageSize,
+                            visibleFavoriteProjectPage * widgetPageSize,
+                            (visibleFavoriteProjectPage + 1) * widgetPageSize,
                           )
-                          .map((item) => {
-                            const task = tasks.get(item.task_id);
-                            const actor = item.actor_id
-                              ? profiles.get(item.actor_id)
-                              : undefined;
-                            const change = statusChangeDescription(
-                              item,
-                              data.statuses,
-                            );
-                            return (
-                              <li key={item.id} className="px-4 py-4">
-                                <Link
-                                  href={withAccessPreview(
-                                    task ? taskPath(task) : "/activity",
-                                    data.accessPreview,
-                                  )}
-                                  className="group block rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/40"
-                                >
-                                  <span className="flex min-w-0 flex-wrap items-center gap-2">
-                                    <span className="min-w-0 text-sm font-semibold group-hover:underline">
-                                      {task?.title ?? "Task"}
+                          .map((project) => (
+                            <li key={project.id}>
+                              <Link
+                                href={`/board?project=${encodeURIComponent(project.name)}`}
+                                className="group flex items-center gap-3 px-4 py-4 transition hover:bg-black/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-black/30 dark:hover:bg-white/[0.035] dark:focus-visible:ring-white/40"
+                              >
+                                <FiStar
+                                  className="shrink-0 text-amber-600 dark:text-amber-300"
+                                  fill="currentColor"
+                                />
+                                <span className="min-w-0 flex-1">
+                                  <span className="block truncate text-sm font-semibold group-hover:underline">
+                                    {project.name}
+                                  </span>
+                                  {project.description && (
+                                    <span className="mt-1 block truncate text-xs text-black/55 dark:text-white/55">
+                                      {project.description}
                                     </span>
-                                    {task && <TaskKeyBadge task={task} />}
-                                  </span>
-                                  <span className="mt-2 flex flex-wrap items-center gap-2">
-                                    {change.from && (
-                                      <StatusBadge status={change.from} />
-                                    )}
-                                    <FiArrowRight
-                                      className="text-black/35 dark:text-white/35"
-                                      aria-label="moved to"
-                                    />
-                                    <StatusBadge status={change.to} />
-                                  </span>
-                                  <span className="mt-2 block text-xs text-black/50 dark:text-white/50">
-                                    {profileName(actor)} ·{" "}
-                                    {dateTimeFormatter.format(
-                                      new Date(item.created_at),
-                                    )}
-                                  </span>
-                                </Link>
-                              </li>
-                            );
-                          })}
+                                  )}
+                                </span>
+                                <FiArrowRight className="shrink-0 text-black/35 transition-transform group-hover:translate-x-0.5 dark:text-white/35" />
+                              </Link>
+                            </li>
+                          ))}
                       </ul>
                     ) : (
                       <EmptyState
                         variant="plain"
-                        message="No recent status changes on your tasks."
+                        message="Favorite a project for quick access here."
                       />
                     )}
                     <WidgetPagination
-                      label="recent status changes"
-                      page={visibleActivityPage}
-                      total={recentActivity.length}
-                      onPageChange={setActivityPage}
+                      label="favorite projects"
+                      page={visibleFavoriteProjectPage}
+                      total={favoriteProjects.length}
+                      onPageChange={setFavoriteProjectPage}
                     />
                   </SectionCard>
                 </div>
+              )}
+
+              {!data.accessPreview && (
+                <div
+                  id="saved-drafts"
+                  className="mb-6 break-inside-avoid scroll-mt-20"
+                >
+                  <SectionCard
+                    title="Drafts"
+                    icon={<FiFileText />}
+                    tone="violet"
+                  >
+                    {drafts.length > 0 ? (
+                      <ul className="divide-y divide-black/10 dark:divide-white/10">
+                        {drafts
+                          .slice(
+                            visibleDraftPage * widgetPageSize,
+                            (visibleDraftPage + 1) * widgetPageSize,
+                          )
+                          .map((item) => (
+                            <li
+                              key={item.id}
+                              className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center"
+                            >
+                              <span className="min-w-0 flex-1">
+                                <span className="block truncate text-sm font-semibold">
+                                  {item.draft.title.trim() || "Untitled task"}
+                                </span>
+                                <span className="mt-1 block text-xs text-black/50 dark:text-white/50">
+                                  Saved{" "}
+                                  {new Date(item.updatedAt).toLocaleString()}
+                                </span>
+                              </span>
+                              <span className="flex items-center gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  leftIcon={<FiEdit2 />}
+                                  onClick={() => setSelectedDraft(item)}
+                                >
+                                  Continue
+                                </Button>
+                                <IconButton
+                                  label={`Delete “${item.draft.title || "untitled draft"}”`}
+                                  size="sm"
+                                  onClick={() => setDraftPendingDelete(item)}
+                                >
+                                  <FiTrash2 />
+                                </IconButton>
+                              </span>
+                            </li>
+                          ))}
+                      </ul>
+                    ) : (
+                      <EmptyState
+                        variant="plain"
+                        message="No saved drafts right now."
+                      />
+                    )}
+                    <WidgetPagination
+                      label="drafts"
+                      page={visibleDraftPage}
+                      total={drafts.length}
+                      onPageChange={setDraftPage}
+                    />
+                  </SectionCard>
+                </div>
+              )}
+
+              <div className="mb-6 break-inside-avoid xl:[break-before:column]">
+                <SectionCard
+                  title="Upcoming deadlines"
+                  icon={<FiCalendar />}
+                  tone="gold"
+                >
+                  <DashboardTaskList
+                    data={data}
+                    tasks={upcoming.slice(
+                      visibleUpcomingPage * widgetPageSize,
+                      (visibleUpcomingPage + 1) * widgetPageSize,
+                    )}
+                    empty="No deadlines coming up in the next 14 days."
+                  />
+                  <WidgetPagination
+                    label="upcoming deadlines"
+                    page={visibleUpcomingPage}
+                    total={upcoming.length}
+                    onPageChange={setUpcomingPage}
+                  />
+                </SectionCard>
+              </div>
+              <div className="mb-6 break-inside-avoid">
+                <SectionCard
+                  title="Reported by me"
+                  icon={<FiSend />}
+                  tone="violet"
+                  action={
+                    <Link
+                      href={withAccessPreview(
+                        `/board?view=list&reporter=${encodeURIComponent(subjectId)}`,
+                        data.accessPreview,
+                      )}
+                      className="text-xs font-semibold hover:underline"
+                    >
+                      View all
+                    </Link>
+                  }
+                >
+                  <DashboardTaskList
+                    data={data}
+                    tasks={reportedByMe.slice(
+                      visibleReportedPage * widgetPageSize,
+                      (visibleReportedPage + 1) * widgetPageSize,
+                    )}
+                    empty="You haven't reported any active tasks."
+                  />
+                  <WidgetPagination
+                    label="reported tasks"
+                    page={visibleReportedPage}
+                    total={reportedByMe.length}
+                    onPageChange={setReportedPage}
+                  />
+                </SectionCard>
+              </div>
+              <div className="mb-6 break-inside-avoid">
+                <SectionCard
+                  title="Recent status changes"
+                  icon={<FiClock />}
+                  tone="green"
+                  action={
+                    <Link
+                      href={withAccessPreview(
+                        "/activity?events=moved",
+                        data.accessPreview,
+                      )}
+                      className="text-xs font-semibold hover:underline"
+                    >
+                      All activity
+                    </Link>
+                  }
+                >
+                  {recentActivity.length ? (
+                    <ul className="divide-y divide-black/10 dark:divide-white/10">
+                      {recentActivity
+                        .slice(
+                          visibleActivityPage * widgetPageSize,
+                          (visibleActivityPage + 1) * widgetPageSize,
+                        )
+                        .map((item) => {
+                          const task = tasks.get(item.task_id);
+                          const actor = item.actor_id
+                            ? profiles.get(item.actor_id)
+                            : undefined;
+                          const change = statusChangeDescription(
+                            item,
+                            data.statuses,
+                          );
+                          return (
+                            <li key={item.id} className="px-4 py-4">
+                              <Link
+                                href={withAccessPreview(
+                                  task ? taskPath(task) : "/activity",
+                                  data.accessPreview,
+                                )}
+                                className="group block rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/40"
+                              >
+                                <span className="flex min-w-0 flex-wrap items-center gap-2">
+                                  <span className="min-w-0 text-sm font-semibold group-hover:underline">
+                                    {task?.title ?? "Task"}
+                                  </span>
+                                  {task && <TaskKeyBadge task={task} />}
+                                </span>
+                                <span className="mt-2 flex flex-wrap items-center gap-2">
+                                  {change.from && (
+                                    <StatusBadge status={change.from} />
+                                  )}
+                                  <FiArrowRight
+                                    className="text-black/35 dark:text-white/35"
+                                    aria-label="moved to"
+                                  />
+                                  <StatusBadge status={change.to} />
+                                </span>
+                                <span className="mt-2 block text-xs text-black/50 dark:text-white/50">
+                                  {profileName(actor)} ·{" "}
+                                  {dateTimeFormatter.format(
+                                    new Date(item.created_at),
+                                  )}
+                                </span>
+                              </Link>
+                            </li>
+                          );
+                        })}
+                    </ul>
+                  ) : (
+                    <EmptyState
+                      variant="plain"
+                      message="No recent status changes on your tasks."
+                    />
+                  )}
+                  <WidgetPagination
+                    label="recent status changes"
+                    page={visibleActivityPage}
+                    total={recentActivity.length}
+                    onPageChange={setActivityPage}
+                  />
+                </SectionCard>
               </div>
             </div>
           </div>

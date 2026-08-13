@@ -767,13 +767,13 @@ export function CategoriesModal({
                         </span>
                       )}
                       <IconButton
-                        label={`Edit ${category.name}`}
+                        label={`Edit “${category.name}”`}
                         onClick={() => beginEdit(category)}
                       >
                         <FiEdit2 />
                       </IconButton>
                       <IconButton
-                        label={`${category.archived_at ? "Restore" : "Archive"} ${category.name}`}
+                        label={`${category.archived_at ? "Restore" : "Archive"} “${category.name}”`}
                         onClick={() => void toggleArchived(category)}
                       >
                         {category.archived_at ? <FiRotateCcw /> : <FiArchive />}

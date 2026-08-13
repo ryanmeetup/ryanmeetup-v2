@@ -1030,7 +1030,7 @@ export function AccessPageClient({
                             </td>
                             <td className="px-4 py-3 text-right">
                               <IconButton
-                                label={`Manage access groups for ${profile.full_name}`}
+                                label={`Manage access groups for “${profile.full_name}”`}
                                 onClick={() => editProfileAccess(profile)}
                               >
                                 <FiShield />
@@ -1065,7 +1065,7 @@ export function AccessPageClient({
                                 </Tooltip>
                               ) : (
                                 <IconButton
-                                  label={`Remove ${profile.full_name}`}
+                                  label={`Remove “${profile.full_name}”`}
                                   variant="danger"
                                   onClick={() => setProfileToRemove(profile)}
                                 >

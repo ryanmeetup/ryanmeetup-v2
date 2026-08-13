@@ -772,7 +772,7 @@ export function TaskDetails({
                       {item.title}
                     </span>
                     <IconButton
-                      label={`Delete ${item.title}`}
+                      label={`Delete “${item.title}”`}
                       variant="danger"
                       onClick={() => void removeSubtask(item)}
                     >
@@ -918,7 +918,7 @@ export function TaskDetails({
                   </a>
                 </Tooltip>
                 <IconButton
-                  label={`Remove ${item.name}`}
+                  label={`Remove “${item.name}”`}
                   variant="danger"
                   onClick={() => void removeAttachment(item)}
                 >
