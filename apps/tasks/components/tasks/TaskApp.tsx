@@ -1185,15 +1185,15 @@ export function TaskApp({
         }`}
       >
         <div className="mb-3 flex items-start justify-between gap-3">
-          <h3 className="min-w-0 font-semibold leading-snug text-black dark:text-white">
-            <TaskKeyBadge task={task} className="mr-2 align-middle" />
-            {task.title}
-          </h3>
+          <TaskKeyBadge task={task} />
           <span className="flex shrink-0 items-center gap-1.5">
             <TaskPriorityBadge priority={task.priority} size="compact" />
             <FiMoreHorizontal className="text-black/30 transition group-hover:text-black/70 dark:text-white/30 dark:group-hover:text-white/70" />
           </span>
         </div>
+        <h3 className="font-semibold leading-snug text-black dark:text-white">
+          {task.title}
+        </h3>
         {task.description && (
           <FormattedText
             text={task.description}

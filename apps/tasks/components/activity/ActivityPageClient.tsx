@@ -559,11 +559,11 @@ export function ActivityPageClient({
               >
                 <table className="w-full min-w-[760px] table-fixed text-left text-sm">
                   <colgroup>
-                    <col className="w-[20%]" />
-                    <col className="w-[22%]" />
-                    <col className="w-[21%]" />
-                    <col className="w-[23%]" />
-                    <col className="w-[14%]" />
+                    <col className="w-[20%] xl:w-[18%]" />
+                    <col className="w-[22%] xl:w-[18%]" />
+                    <col className="w-[21%] xl:w-[19%]" />
+                    <col className="w-[23%] xl:w-[30%]" />
+                    <col className="w-[14%] xl:w-[15%]" />
                   </colgroup>
                   <thead className="border-b border-black/10 bg-black/[0.025] text-[10px] uppercase tracking-[0.16em] text-black/50 dark:border-white/10 dark:bg-white/[0.025] dark:text-white/50">
                     <tr>

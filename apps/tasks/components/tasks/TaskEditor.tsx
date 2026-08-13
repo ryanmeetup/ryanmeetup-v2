@@ -92,9 +92,9 @@ export function TaskEditor({
       setIsOpen={setTaskOpen}
       title={
         editing ? (
-          <span>
-            <TaskKeyBadge task={editing} className="mr-2 align-middle" />
-            Edit Task
+          <span className="inline-flex flex-wrap items-center gap-2">
+            <span>Edit Task</span>
+            <TaskKeyBadge task={editing} />
           </span>
         ) : (
           "A new thing to do"
