@@ -1,14 +1,10 @@
 import type {
-  CategoryAttachment,
-  Profile,
-  ProjectAttachment,
-  ProjectLink,
-} from "@/lib/types";
+  ResourceAttachment,
+  ResourceLink,
+} from "@/lib/resource-types";
+import type { Profile } from "@/lib/workspace-types";
 
-export type ResourceAttachmentDraft = (
-  | ProjectAttachment
-  | CategoryAttachment
-) & { file?: File };
+export type ResourceAttachmentDraft = ResourceAttachment & { file?: File };
 
 export type ArchiveFilter = "active" | "archived" | "all";
 
@@ -33,7 +29,7 @@ export function filterAndSortResources<
 export function resourceSearchText(resource: {
   name: string;
   description: string | null;
-  links?: ProjectLink[] | null;
+  links?: ResourceLink[] | null;
 }) {
   const links = (resource.links ?? [])
     .map((link) => `${link.label} ${link.url}`)

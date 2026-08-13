@@ -4,6 +4,7 @@ import {
   filterAndSortResources,
   resourceSearchText,
   sameIds,
+  uploadResourceAttachments,
 } from "@/lib/resource-management";
 
 const resources = [
@@ -42,5 +43,22 @@ describe("resource management", () => {
         links: [{ label: "Brief", url: "https://example.com" }],
       }),
     ).toContain("launch big event brief https://example.com");
+  });
+
+  it("counts failed attachment requests and continues the batch", async () => {
+    const originalFetch = global.fetch;
+    let calls = 0;
+    global.fetch = (async () => {
+      calls += 1;
+      if (calls === 1) throw new Error("offline");
+      return new Response(null, { status: calls === 2 ? 500 : 200 });
+    }) as typeof fetch;
+    try {
+      const attachment = { id: "1", project_id: "project", kind: "note" as const, name: "note", body: "body", url: "", file_path: null, mime_type: null, size_bytes: null, created_by: "user", created_at: "" };
+      await expect(uploadResourceAttachments({ attachments: [attachment, { ...attachment, id: "2" }, { ...attachment, id: "3" }], resourceId: "project", resourceKind: "project" })).resolves.toBe(2);
+      expect(calls).toBe(3);
+    } finally {
+      global.fetch = originalFetch;
+    }
   });
 });

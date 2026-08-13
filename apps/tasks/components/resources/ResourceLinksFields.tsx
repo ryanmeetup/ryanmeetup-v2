@@ -5,7 +5,7 @@ import { Button, DisclosureCard, IconButton, Input } from "@ryanmeetup/ui";
 import { ensureHttpUrlScheme } from "@ryanmeetup/utils";
 import { FiPlus, FiTrash2 } from "react-icons/fi";
 import { CountBadge } from "@/components/global";
-import type { ProjectLink } from "@/lib/types";
+import type { ResourceLink } from "@/lib/resource-types";
 
 export function ResourceLinksFields({
   links,
@@ -13,12 +13,12 @@ export function ResourceLinksFields({
   disabled,
   namePrefix,
 }: {
-  links: ProjectLink[];
-  setLinks: Dispatch<SetStateAction<ProjectLink[]>>;
+  links: ResourceLink[];
+  setLinks: Dispatch<SetStateAction<ResourceLink[]>>;
   disabled: boolean;
   namePrefix: string;
 }) {
-  function update(index: number, field: keyof ProjectLink, value: string) {
+  function update(index: number, field: keyof ResourceLink, value: string) {
     setLinks((current) =>
       current.map((link, linkIndex) =>
         linkIndex === index ? { ...link, [field]: value } : link,

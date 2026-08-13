@@ -1,11 +1,11 @@
 import { FiExternalLink } from "react-icons/fi";
-import type { ProjectLink } from "@/lib/types";
+import type { ResourceLink } from "@/lib/resource-types";
 
 export function ResourceLinks({
   links,
   className = "",
 }: {
-  links: ProjectLink[];
+  links: ResourceLink[];
   className?: string;
 }) {
   if (links.length === 0) return null;
