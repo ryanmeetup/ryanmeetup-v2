@@ -597,7 +597,6 @@ export function CategoriesModal({
           embedded && onCreate && !readOnly ? (
             <Button
               type="button"
-              variant="action"
               size="sm"
               className="w-full sm:w-auto"
               leftIcon={<FiPlus aria-hidden />}

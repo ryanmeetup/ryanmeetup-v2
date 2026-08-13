@@ -1,23 +1,30 @@
 "use client";
 
-import { useEffect, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { useSearchFilter } from "@ryanmeetup/hooks";
+import { normalizeHttpUrl } from "@ryanmeetup/utils";
+import { Button, IconButton, Input, Modal, Textarea } from "@ryanmeetup/ui";
 import {
-  Button,
-  DisclosureCard,
-  IconButton,
-  Input,
-  Modal,
-  Textarea,
-} from "@ryanmeetup/ui";
-import { FiPlus, FiTrash2 } from "react-icons/fi";
+  FiBriefcase,
+  FiEdit2,
+  FiInstagram,
+  FiLoader,
+  FiMail,
+  FiPhone,
+  FiPlus,
+  FiSearch,
+  FiTrash2,
+} from "react-icons/fi";
 import type {
   Contact,
   ContactDraft,
   ContactDraftPerson,
 } from "@/lib/contact-types";
+import { CountBadge } from "@/components/global";
 
 const blankPerson = (): ContactDraftPerson => ({
   full_name: "",
+  title: null,
   emails: [],
   phone: null,
   instagram_handle: null,
@@ -56,6 +63,12 @@ export function ContactEditor({
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState(contact?.image_url ?? null);
   const [imageError, setImageError] = useState("");
+  const [activePersonIndex, setActivePersonIndex] = useState<number | null>(
+    null,
+  );
+  const [personBeforeEdit, setPersonBeforeEdit] =
+    useState<ContactDraftPerson | null>(null);
+  const [removePersonOnCancel, setRemovePersonOnCancel] = useState(false);
   useEffect(
     () => () => {
       if (imagePreview?.startsWith("blob:")) URL.revokeObjectURL(imagePreview);
@@ -88,31 +101,93 @@ export function ContactEditor({
       ),
     }));
   const valid =
+    !imageError &&
     Boolean(draft.displayName.trim()) &&
     draft.people.every((person) => person.full_name.trim());
+  const indexedPeople = useMemo(
+    () => draft.people.map((person, index) => ({ person, index })),
+    [draft.people],
+  );
+  const {
+    query: peopleQuery,
+    setQuery: setPeopleQuery,
+    filtered: visiblePeople,
+    isPending: peopleSearchPending,
+  } = useSearchFilter({
+    data: indexedPeople,
+    queryParam: "contactPerson",
+    buildHaystack: ({ person }) =>
+      [
+        person.full_name,
+        person.title,
+        person.emails[0],
+        person.phone,
+        person.instagram_handle,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase(),
+  });
+  const filteredPeople =
+    draft.people.length >= 8 ? visiblePeople : indexedPeople;
+  const displayedPeople = filteredPeople;
+  const activePerson =
+    activePersonIndex === null ? null : draft.people[activePersonIndex];
+
+  function removePerson(index: number) {
+    setDraft((current) => ({
+      ...current,
+      people: current.people.filter((_, personIndex) => personIndex !== index),
+    }));
+    setActivePersonIndex((current) => {
+      if (current === null || current === index) return null;
+      return current > index ? current - 1 : current;
+    });
+    if (activePersonIndex === index) setPersonBeforeEdit(null);
+  }
+
+  function cancelPersonEdit() {
+    if (activePersonIndex === null) return;
+
+    if (!removePersonOnCancel && personBeforeEdit) {
+      updatePerson(activePersonIndex, personBeforeEdit);
+      setActivePersonIndex(null);
+    } else {
+      removePerson(activePersonIndex);
+    }
+    setPersonBeforeEdit(null);
+    setRemovePersonOnCancel(false);
+  }
 
   return (
     <Modal
       open={open}
-      setIsOpen={(next) => !next && onClose()}
-      title={contact ? `Edit ${contact.display_name}` : "Add an organization"}
+      setIsOpen={(next) => !next && !saving && onClose()}
+      title={contact ? `Edit ${contact.display_name}` : "New organization"}
       description="Manage the organization and the people you know there."
       size="xl"
       maxHeight="min(48rem, calc(100dvh - 2rem))"
       hideActions
       footer={
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <Button type="button" variant="secondary" onClick={onClose}>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            disabled={saving}
+            onClick={onClose}
+          >
             Cancel
           </Button>
           <Button
             type="submit"
             form={editorFormId}
+            size="sm"
             loading={saving}
-            loadingText="Saving…"
+            loadingText={contact ? "Saving…" : "Creating…"}
             disabled={!valid || saving}
           >
-            {contact ? "Save organization" : "Add organization"}
+            {contact ? "Save changes" : "Create organization"}
           </Button>
         </div>
       }
@@ -154,6 +229,7 @@ export function ContactEditor({
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
                   className="sr-only"
+                  disabled={saving}
                   onChange={selectImage}
                 />
               </label>
@@ -170,6 +246,8 @@ export function ContactEditor({
                   value={draft.displayName}
                   maxLength={160}
                   placeholder="Brand, venue, company, team, or group"
+                  autoFocus
+                  disabled={saving}
                   onChange={(event) =>
                     setDraft((current) => ({
                       ...current,
@@ -187,6 +265,21 @@ export function ContactEditor({
                   maxLength={2048}
                   placeholder="https://example.com/logo.png"
                   error={Boolean(imageError)}
+                  disabled={saving}
+                  onBlur={() => {
+                    if (!draft.imageUrl.trim()) return;
+                    const normalized = normalizeHttpUrl(draft.imageUrl);
+                    if (!normalized) {
+                      setImageError("Enter a valid HTTP or HTTPS image URL.");
+                      return;
+                    }
+                    setDraft((current) => ({
+                      ...current,
+                      imageUrl: normalized,
+                    }));
+                    setImagePreview(normalized);
+                    setImageError("");
+                  }}
                   onChange={(event) => {
                     setImageFile(null);
                     setDraft((current) => ({
@@ -215,6 +308,7 @@ export function ContactEditor({
                   maxLength={5000}
                   rows={3}
                   placeholder="Add context about the organization or relationship"
+                  disabled={saving}
                   onChange={(event) =>
                     setDraft((current) => ({
                       ...current,
@@ -230,8 +324,8 @@ export function ContactEditor({
         <section className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-sm font-semibold uppercase tracking-[0.18em]">
-                People
+              <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em]">
+                People <CountBadge>{draft.people.length}</CountBadge>
               </h2>
               <p className="mt-1 text-xs text-black/55 dark:text-white/55">
                 Add the individual contacts you know at this organization.
@@ -242,12 +336,17 @@ export function ContactEditor({
               variant="secondary"
               size="sm"
               leftIcon={<FiPlus />}
-              onClick={() =>
+              disabled={activePersonIndex !== null || saving}
+              onClick={() => {
+                setPeopleQuery("");
+                setPersonBeforeEdit(null);
+                setRemovePersonOnCancel(true);
                 setDraft((current) => ({
                   ...current,
                   people: [...current.people, blankPerson()],
-                }))
-              }
+                }));
+                setActivePersonIndex(draft.people.length);
+              }}
             >
               Add person
             </Button>
@@ -258,94 +357,231 @@ export function ContactEditor({
               people whenever you have them.
             </p>
           )}
-          {draft.people.map((person, index) => (
-            <DisclosureCard
-              key={person.id ?? index}
-              className="rounded-xl border border-black/10 bg-black/[0.025] p-4 dark:border-white/10 dark:bg-white/[0.04]"
-              buttonClassName="flex w-full items-center justify-between gap-4 text-left"
-              panelClassName="pt-4"
-              defaultOpen={!person.id}
-              summary={
-                <span className="block min-w-0">
-                  <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-black/55 dark:text-white/55">
-                    Person {index + 1}
-                  </span>
-                  <span className="mt-1 block truncate text-sm font-semibold">
-                    {person.full_name.trim() || "New person"}
-                  </span>
-                </span>
-              }
-              actions={
-                <div
-                  className="mr-8"
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  <IconButton
-                    label={`Remove person ${index + 1}`}
-                    variant="danger"
-                    onClick={() =>
-                      setDraft((current) => ({
-                        ...current,
-                        people: current.people.filter((_, i) => i !== index),
-                      }))
-                    }
-                  >
-                    <FiTrash2 aria-hidden />
-                  </IconButton>
+          {activePerson && activePersonIndex !== null && (
+            <div className="rounded-xl border border-black/10 bg-black/[0.025] p-4 dark:border-white/10 dark:bg-white/[0.04] sm:p-5">
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-black/55 dark:text-white/55">
+                    {activePerson.id ? "Edit person" : "New person"}
+                  </p>
+                  <p className="mt-1 text-sm text-black/60 dark:text-white/60">
+                    Add their name and the best way to reach them.
+                  </p>
                 </div>
-              }
-            >
-              <div className="grid gap-4 lg:grid-cols-3">
+                <IconButton
+                  label={`Remove ${activePerson.full_name.trim() || `person ${activePersonIndex + 1}`}`}
+                  variant="danger"
+                  disabled={saving}
+                  onClick={() => removePerson(activePersonIndex)}
+                >
+                  <FiTrash2 aria-hidden />
+                </IconButton>
+              </div>
+              <div className="grid gap-4 lg:grid-cols-2">
                 <Input
                   label="Name"
-                  name={`person-${index}-name`}
+                  name={`person-${activePersonIndex}-name`}
                   required
-                  value={person.full_name}
+                  autoFocus={!activePerson.id}
+                  disabled={saving}
+                  value={activePerson.full_name}
                   maxLength={160}
                   onChange={(event) =>
-                    updatePerson(index, { full_name: event.target.value })
-                  }
-                />
-                <Input
-                  label="Phone number"
-                  name={`person-${index}-phone`}
-                  value={person.phone ?? ""}
-                  maxLength={40}
-                  inputMode="tel"
-                  onChange={(event) =>
-                    updatePerson(index, { phone: event.target.value })
-                  }
-                />
-                <Input
-                  label="Instagram handle"
-                  name={`person-${index}-instagram`}
-                  value={person.instagram_handle ?? ""}
-                  maxLength={100}
-                  placeholder="@handle"
-                  onChange={(event) =>
-                    updatePerson(index, {
-                      instagram_handle: event.target.value,
+                    updatePerson(activePersonIndex, {
+                      full_name: event.target.value,
                     })
                   }
                 />
-              </div>
-              <div className="mt-4">
                 <Input
                   label="Email address"
-                  name={`person-${index}-email`}
+                  name={`person-${activePersonIndex}-email`}
                   type="email"
-                  value={person.emails[0] ?? ""}
+                  disabled={saving}
+                  value={activePerson.emails[0] ?? ""}
                   maxLength={254}
                   placeholder="name@example.com"
                   onChange={(event) =>
-                    updatePerson(index, {
+                    updatePerson(activePersonIndex, {
                       emails: event.target.value ? [event.target.value] : [],
                     })
                   }
                 />
               </div>
-            </DisclosureCard>
-          ))}
+              <div className="mt-4 grid gap-4 lg:grid-cols-3">
+                <Input
+                  label="Title"
+                  name={`person-${activePersonIndex}-title`}
+                  value={activePerson.title ?? ""}
+                  maxLength={160}
+                  placeholder="Partnerships manager"
+                  disabled={saving}
+                  onChange={(event) =>
+                    updatePerson(activePersonIndex, {
+                      title: event.target.value,
+                    })
+                  }
+                />
+                <Input
+                  label="Phone number"
+                  name={`person-${activePersonIndex}-phone`}
+                  value={activePerson.phone ?? ""}
+                  maxLength={40}
+                  inputMode="tel"
+                  disabled={saving}
+                  onChange={(event) =>
+                    updatePerson(activePersonIndex, {
+                      phone: event.target.value,
+                    })
+                  }
+                />
+                <Input
+                  label="Instagram handle"
+                  name={`person-${activePersonIndex}-instagram`}
+                  value={activePerson.instagram_handle ?? ""}
+                  maxLength={100}
+                  placeholder="@handle"
+                  disabled={saving}
+                  onChange={(event) =>
+                    updatePerson(activePersonIndex, {
+                      instagram_handle: event.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div className="mt-4 flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={saving}
+                  onClick={cancelPersonEdit}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={!activePerson.full_name.trim() || saving}
+                  onClick={() => {
+                    setActivePersonIndex(null);
+                    setPersonBeforeEdit(null);
+                    setRemovePersonOnCancel(false);
+                  }}
+                >
+                  Done
+                </Button>
+              </div>
+            </div>
+          )}
+          {draft.people.length >= 8 && (
+            <div className="relative">
+              <Input
+                label="Search people"
+                name="people-search"
+                hideLabel
+                leadingIcon={<FiSearch aria-hidden />}
+                aria-busy={peopleSearchPending}
+                value={peopleQuery}
+                onChange={(event) => setPeopleQuery(event.target.value)}
+                placeholder="Search people…"
+                inputClassName="pr-10"
+                disabled={saving}
+              />
+              {peopleSearchPending && (
+                <span
+                  role="status"
+                  aria-label="Loading people results"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-black/45 dark:text-white/45"
+                >
+                  <FiLoader className="animate-spin motion-reduce:animate-none" />
+                </span>
+              )}
+            </div>
+          )}
+          <div
+            className="grid grid-cols-1 gap-2 lg:grid-cols-2"
+            aria-busy={peopleSearchPending}
+          >
+            {displayedPeople
+              .filter(({ index }) => index !== activePersonIndex)
+              .map(({ person, index }) => (
+                <div
+                  key={person.id ?? index}
+                  className="rounded-xl border border-black/10 bg-black/[0.025] dark:border-white/10 dark:bg-white/[0.04]"
+                >
+                  <div className="flex min-w-0 items-center gap-3 p-3 sm:p-4">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold">
+                        {person.full_name.trim() || "New person"}
+                      </p>
+                      {person.title && (
+                        <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-black/55 dark:text-white/55">
+                          <FiBriefcase aria-hidden className="shrink-0" />
+                          <span className="truncate">{person.title}</span>
+                        </p>
+                      )}
+                      <div className="mt-1 flex min-w-0 flex-wrap gap-x-4 gap-y-1 text-xs text-black/60 dark:text-white/60">
+                        {person.emails[0] && (
+                          <span className="flex min-w-0 items-center gap-1.5">
+                            <FiMail aria-hidden className="shrink-0" />
+                            <span className="truncate">{person.emails[0]}</span>
+                          </span>
+                        )}
+                        {person.phone && (
+                          <span className="flex min-w-0 items-center gap-1.5">
+                            <FiPhone aria-hidden className="shrink-0" />
+                            <span className="truncate">{person.phone}</span>
+                          </span>
+                        )}
+                        {person.instagram_handle && (
+                          <span className="flex min-w-0 items-center gap-1.5">
+                            <FiInstagram aria-hidden className="shrink-0" />
+                            <span className="truncate">
+                              @{person.instagram_handle.replace(/^@/, "")}
+                            </span>
+                          </span>
+                        )}
+                        {!person.emails[0] &&
+                          !person.phone &&
+                          !person.instagram_handle && (
+                            <span>No contact details</span>
+                          )}
+                      </div>
+                    </div>
+                    <IconButton
+                      label={`Edit ${person.full_name.trim() || `person ${index + 1}`}`}
+                      onClick={() => {
+                        setPersonBeforeEdit({
+                          ...person,
+                          emails: [...person.emails],
+                        });
+                        setRemovePersonOnCancel(false);
+                        setActivePersonIndex(index);
+                      }}
+                      disabled={saving}
+                    >
+                      <FiEdit2 aria-hidden />
+                    </IconButton>
+                    <IconButton
+                      label={`Remove ${person.full_name.trim() || `person ${index + 1}`}`}
+                      variant="danger"
+                      disabled={saving}
+                      onClick={() => removePerson(index)}
+                    >
+                      <FiTrash2 aria-hidden />
+                    </IconButton>
+                  </div>
+                </div>
+              ))}
+          </div>
+          {draft.people.length > 0 &&
+            displayedPeople.filter(({ index }) => index !== activePersonIndex)
+              .length === 0 &&
+            !activePerson && (
+              <p className="rounded-xl border border-dashed border-black/15 px-4 py-6 text-center text-sm text-black/55 dark:border-white/15 dark:text-white/55">
+                No people match that search.
+              </p>
+            )}
         </section>
       </form>
     </Modal>

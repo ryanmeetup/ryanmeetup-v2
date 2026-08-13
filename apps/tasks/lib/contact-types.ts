@@ -7,6 +7,7 @@ export type ContactCategory = {
 export type ContactPerson = {
   id: string;
   full_name: string;
+  title: string | null;
   emails: string[];
   phone: string | null;
   instagram_handle: string | null;
@@ -36,4 +37,4 @@ export type ContactDraft = {
 };
 
 export const CONTACT_COLUMNS =
-  "id,display_name,image_url,notes,created_at,updated_at,contact_people(id,full_name,emails,phone,instagram_handle),contact_category_assignments(contact_categories(id,name,color))";
+  "id,display_name,image_url,notes,created_at,updated_at,contact_people(id,full_name,title,emails,phone,instagram_handle),contact_category_assignments(contact_categories(id,name,color))";

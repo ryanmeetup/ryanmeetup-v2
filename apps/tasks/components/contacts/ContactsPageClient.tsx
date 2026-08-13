@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchFilter } from "@ryanmeetup/hooks";
 import {
   AnimatedCollapse,
@@ -13,6 +13,7 @@ import {
   toast,
 } from "@ryanmeetup/ui";
 import {
+  FiBriefcase,
   FiChevronDown,
   FiEdit2,
   FiInstagram,
@@ -37,6 +38,7 @@ function contactSearchText(contact: Contact) {
     ...contact.categories.map((category) => category.name),
     ...contact.people.flatMap((person) => [
       person.full_name,
+      person.title,
       ...person.emails,
       person.phone,
       person.instagram_handle,
@@ -66,6 +68,22 @@ export function ContactsPageClient({
   const [expandedPeopleIds, setExpandedPeopleIds] = useState<Set<string>>(
     () => new Set(),
   );
+  const [columnCount, setColumnCount] = useState(1);
+
+  useEffect(() => {
+    const medium = window.matchMedia("(min-width: 768px)");
+    const extraLarge = window.matchMedia("(min-width: 1536px)");
+    const updateColumnCount = () =>
+      setColumnCount(extraLarge.matches ? 3 : medium.matches ? 2 : 1);
+
+    updateColumnCount();
+    medium.addEventListener("change", updateColumnCount);
+    extraLarge.addEventListener("change", updateColumnCount);
+    return () => {
+      medium.removeEventListener("change", updateColumnCount);
+      extraLarge.removeEventListener("change", updateColumnCount);
+    };
+  }, []);
 
   function togglePeople(contactId: string) {
     setExpandedPeopleIds((current) => {
@@ -92,6 +110,15 @@ export function ContactsPageClient({
         a.display_name.localeCompare(b.display_name),
       ),
     [searchedContacts],
+  );
+  const contactColumns = useMemo(
+    () =>
+      Array.from({ length: columnCount }, (_, columnIndex) =>
+        sortedContacts.filter(
+          (_, contactIndex) => contactIndex % columnCount === columnIndex,
+        ),
+      ),
+    [columnCount, sortedContacts],
   );
 
   async function saveContact(draft: ContactDraft, imageFile: File | null) {
@@ -130,6 +157,7 @@ export function ContactsPageClient({
               ...person,
               id: person.id ?? crypto.randomUUID(),
               full_name: person.full_name.trim(),
+              title: person.title?.trim() || null,
               emails: person.emails.map((email) => email.trim().toLowerCase()),
               phone: person.phone?.trim() || null,
               instagram_handle:
@@ -209,7 +237,6 @@ export function ContactsPageClient({
           actions={
             <Button
               type="button"
-              variant="action"
               size="sm"
               className="w-full sm:w-auto"
               leftIcon={<FiPlus aria-hidden />}
@@ -276,128 +303,158 @@ export function ContactsPageClient({
                   }
                 />
               ) : (
-                <div className="columns-1 gap-4 md:columns-2 2xl:columns-3">
-                  {sortedContacts.map((contact) => (
-                    <article
-                      key={contact.id}
-                      className="mb-4 inline-block w-full break-inside-avoid rounded-2xl border border-black/10 bg-white/90 p-5 align-top shadow-sm dark:border-white/10 dark:bg-white/[0.055]"
+                <div
+                  className="grid items-start gap-4"
+                  style={{
+                    gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
+                  }}
+                >
+                  {contactColumns.map((column, columnIndex) => (
+                    <div
+                      key={`organization-column-${columnIndex}`}
+                      className="min-w-0 space-y-4"
                     >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="min-w-0">
-                          <div className="flex min-w-0 items-center gap-3">
-                            <span
-                              role="img"
-                              aria-label={`${contact.display_name} image`}
-                              className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-black/10 bg-black/5 bg-cover bg-center text-sm font-semibold text-black/50 dark:border-white/10 dark:bg-white/10 dark:text-white/50"
-                              style={
-                                contact.image_url
-                                  ? {
-                                      backgroundImage: `url(${JSON.stringify(contact.image_url)})`,
-                                    }
-                                  : undefined
-                              }
-                            >
-                              {!contact.image_url &&
-                                contact.display_name.slice(0, 2).toUpperCase()}
-                            </span>
+                      {column.map((contact) => (
+                        <article
+                          key={contact.id}
+                          className="w-full rounded-2xl border border-black/10 bg-white/90 p-5 shadow-sm dark:border-white/10 dark:bg-white/[0.055]"
+                        >
+                          <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0">
-                              <h2 className="truncate text-lg font-semibold">
-                                {contact.display_name}
-                              </h2>
+                              <div className="flex min-w-0 items-center gap-3">
+                                <span
+                                  role="img"
+                                  aria-label={`${contact.display_name} image`}
+                                  className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-black/10 bg-black/5 bg-cover bg-center text-sm font-semibold text-black/50 dark:border-white/10 dark:bg-white/10 dark:text-white/50"
+                                  style={
+                                    contact.image_url
+                                      ? {
+                                          backgroundImage: `url(${JSON.stringify(contact.image_url)})`,
+                                        }
+                                      : undefined
+                                  }
+                                >
+                                  {!contact.image_url &&
+                                    contact.display_name
+                                      .slice(0, 2)
+                                      .toUpperCase()}
+                                </span>
+                                <div className="min-w-0">
+                                  <h2 className="truncate text-lg font-semibold">
+                                    {contact.display_name}
+                                  </h2>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex shrink-0 gap-1">
+                              <IconButton
+                                label={`Edit “${contact.display_name}”`}
+                                onClick={() => setEditing(contact)}
+                              >
+                                <FiEdit2 />
+                              </IconButton>
+                              <IconButton
+                                label={`Delete “${contact.display_name}”`}
+                                onClick={() => setDeleting(contact)}
+                              >
+                                <FiTrash2 />
+                              </IconButton>
                             </div>
                           </div>
-                        </div>
-                        <div className="flex shrink-0 gap-1">
-                          <IconButton
-                            label={`Edit “${contact.display_name}”`}
-                            onClick={() => setEditing(contact)}
-                          >
-                            <FiEdit2 />
-                          </IconButton>
-                          <IconButton
-                            label={`Delete “${contact.display_name}”`}
-                            onClick={() => setDeleting(contact)}
-                          >
-                            <FiTrash2 />
-                          </IconButton>
-                        </div>
-                      </div>
-                      {contact.notes && (
-                        <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-black/65 dark:text-white/65">
-                          {contact.notes}
-                        </p>
-                      )}
-                      <div className="mt-5 border-t border-black/10 dark:border-white/10">
-                        <button
-                          type="button"
-                          aria-expanded={expandedPeopleIds.has(contact.id)}
-                          aria-controls={`organization-people-${contact.id}`}
-                          onClick={() => togglePeople(contact.id)}
-                          className="flex w-full items-center gap-2 rounded-lg py-3 text-xs font-semibold uppercase tracking-[0.18em] text-black/65 transition hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:text-white/65 dark:hover:text-white dark:focus-visible:ring-white/30"
-                        >
-                          <span>People</span>
-                          <span className="rounded-full bg-black/[0.06] px-2 py-0.5 text-[10px] tracking-normal dark:bg-white/10">
-                            {contact.people.length}
-                          </span>
-                          <FiChevronDown
-                            aria-hidden
-                            className={`ml-auto transition-transform duration-200 motion-reduce:transition-none ${expandedPeopleIds.has(contact.id) ? "rotate-180" : ""}`}
-                          />
-                        </button>
-                        <AnimatedCollapse
-                          id={`organization-people-${contact.id}`}
-                          open={expandedPeopleIds.has(contact.id)}
-                        >
-                          <div className="grid divide-y divide-black/10 border-t border-black/10 md:grid-cols-2 md:gap-x-8 md:divide-y-0 dark:divide-white/10 dark:border-white/10">
-                            {contact.people.length === 0 ? (
-                              <p className="py-4 text-sm text-black/50 dark:text-white/50">
-                                No people added yet.
-                              </p>
-                            ) : (
-                              contact.people.map((person) => (
-                                <div key={person.id} className="py-4 last:pb-0">
-                                  <p className="font-semibold">
-                                    {person.full_name}
+                          {contact.notes && (
+                            <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-black/65 dark:text-white/65">
+                              {contact.notes}
+                            </p>
+                          )}
+                          <div className="mt-5 border-t border-black/10 dark:border-white/10">
+                            <button
+                              type="button"
+                              aria-expanded={expandedPeopleIds.has(contact.id)}
+                              aria-controls={`organization-people-${contact.id}`}
+                              onClick={() => togglePeople(contact.id)}
+                              className="flex w-full items-center gap-2 rounded-lg py-3 text-xs font-semibold uppercase tracking-[0.18em] text-black/65 transition hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:text-white/65 dark:hover:text-white dark:focus-visible:ring-white/30"
+                            >
+                              <span>People</span>
+                              <span className="rounded-full bg-black/[0.06] px-2 py-0.5 text-[10px] tracking-normal dark:bg-white/10">
+                                {contact.people.length}
+                              </span>
+                              <FiChevronDown
+                                aria-hidden
+                                className={`ml-auto transition-transform duration-200 motion-reduce:transition-none ${expandedPeopleIds.has(contact.id) ? "rotate-180" : ""}`}
+                              />
+                            </button>
+                            <AnimatedCollapse
+                              id={`organization-people-${contact.id}`}
+                              open={expandedPeopleIds.has(contact.id)}
+                            >
+                              <div className="grid divide-y divide-black/10 border-t border-black/10 md:grid-cols-2 md:gap-x-8 md:divide-y-0 dark:divide-white/10 dark:border-white/10">
+                                {contact.people.length === 0 ? (
+                                  <p className="py-4 text-sm text-black/50 dark:text-white/50">
+                                    No people added yet.
                                   </p>
-                                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-sm text-black/65 dark:text-white/65">
-                                    {person.emails.slice(0, 1).map((email) => (
-                                      <a
-                                        key={email}
-                                        className="inline-flex items-center gap-1.5 hover:text-black dark:hover:text-white"
-                                        href={`mailto:${email}`}
-                                      >
-                                        <FiMail aria-hidden />
-                                        {email}
-                                      </a>
-                                    ))}
-                                    {person.phone && (
-                                      <a
-                                        className="inline-flex items-center gap-1.5 hover:text-black dark:hover:text-white"
-                                        href={`tel:${person.phone}`}
-                                      >
-                                        <FiPhone aria-hidden />
-                                        {person.phone}
-                                      </a>
-                                    )}
-                                    {person.instagram_handle && (
-                                      <a
-                                        className="inline-flex items-center gap-1.5 hover:text-black dark:hover:text-white"
-                                        href={`https://instagram.com/${person.instagram_handle}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                      >
-                                        <FiInstagram aria-hidden />@
-                                        {person.instagram_handle}
-                                      </a>
-                                    )}
-                                  </div>
-                                </div>
-                              ))
-                            )}
+                                ) : (
+                                  contact.people.map((person) => (
+                                    <div
+                                      key={person.id}
+                                      className="py-4 last:pb-0"
+                                    >
+                                      <p className="font-semibold">
+                                        {person.full_name}
+                                      </p>
+                                      {person.title && (
+                                        <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-sm text-black/55 dark:text-white/55">
+                                          <FiBriefcase
+                                            aria-hidden
+                                            className="shrink-0"
+                                          />
+                                          <span className="truncate">
+                                            {person.title}
+                                          </span>
+                                        </p>
+                                      )}
+                                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-sm text-black/65 dark:text-white/65">
+                                        {person.emails
+                                          .slice(0, 1)
+                                          .map((email) => (
+                                            <a
+                                              key={email}
+                                              className="inline-flex items-center gap-1.5 hover:text-black dark:hover:text-white"
+                                              href={`mailto:${email}`}
+                                            >
+                                              <FiMail aria-hidden />
+                                              {email}
+                                            </a>
+                                          ))}
+                                        {person.phone && (
+                                          <a
+                                            className="inline-flex items-center gap-1.5 hover:text-black dark:hover:text-white"
+                                            href={`tel:${person.phone}`}
+                                          >
+                                            <FiPhone aria-hidden />
+                                            {person.phone}
+                                          </a>
+                                        )}
+                                        {person.instagram_handle && (
+                                          <a
+                                            className="inline-flex items-center gap-1.5 hover:text-black dark:hover:text-white"
+                                            href={`https://instagram.com/${person.instagram_handle}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                          >
+                                            <FiInstagram aria-hidden />@
+                                            {person.instagram_handle}
+                                          </a>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            </AnimatedCollapse>
                           </div>
-                        </AnimatedCollapse>
-                      </div>
-                    </article>
+                        </article>
+                      ))}
+                    </div>
                   ))}
                 </div>
               )}

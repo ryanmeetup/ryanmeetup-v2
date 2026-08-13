@@ -14,7 +14,9 @@ const cleanText = (value: unknown, max: number, required = false) => {
 
 const isUuid = (value: unknown): value is string =>
   typeof value === "string" &&
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value,
+  );
 
 export function contactSaveSchema(value: unknown) {
   if (!isObject(value)) return null;
@@ -45,9 +47,7 @@ export function contactSaveSchema(value: unknown) {
   )
     return null;
   const newCategoryNames = [
-    ...new Set(
-      value.newCategoryNames.map((name) => cleanText(name, 80, true)),
-    ),
+    ...new Set(value.newCategoryNames.map((name) => cleanText(name, 80, true))),
   ];
   if (newCategoryNames.some((name) => !name)) return null;
   if (!Array.isArray(value.people) || value.people.length > 100) return null;
@@ -56,18 +56,28 @@ export function contactSaveSchema(value: unknown) {
     if (!isObject(person)) return null;
     if (
       Object.keys(person).some(
-        (key) => !["id", "full_name", "emails", "phone", "instagram_handle"].includes(key),
+        (key) =>
+          ![
+            "id",
+            "full_name",
+            "title",
+            "emails",
+            "phone",
+            "instagram_handle",
+          ].includes(key),
       ) ||
       (person.id !== undefined && !isUuid(person.id))
     )
       return null;
     const fullName = cleanText(person.full_name, 160, true);
+    const title = cleanText(person.title ?? "", 160);
     const phone = cleanText(person.phone ?? "", 40);
     const instagram = cleanText(person.instagram_handle ?? "", 100)?.replace(
       /^@/,
       "",
     );
-    if (!fullName || phone === null || instagram === null) return null;
+    if (!fullName || title === null || phone === null || instagram === null)
+      return null;
     if (!Array.isArray(person.emails) || person.emails.length > 1) return null;
     const emails = [
       ...new Set(person.emails.map((email) => cleanText(email, 254, true))),
@@ -81,6 +91,7 @@ export function contactSaveSchema(value: unknown) {
     people.push({
       id: person.id as string | undefined,
       full_name: fullName,
+      title: title || null,
       emails: emails as string[],
       phone: phone || null,
       instagram_handle: instagram || null,
