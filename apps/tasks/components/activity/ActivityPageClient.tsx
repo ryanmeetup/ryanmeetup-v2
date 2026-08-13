@@ -496,7 +496,9 @@ export function ActivityPageClient({
                             dateTime={item.created_at}
                             className="shrink-0 text-right text-xs text-black/55 dark:text-white/55"
                           >
-                            {dateTimeFormatter.format(new Date(item.created_at))}
+                            {dateTimeFormatter.format(
+                              new Date(item.created_at),
+                            )}
                           </time>
                         </div>
                         <div className="text-sm">
@@ -509,12 +511,15 @@ export function ActivityPageClient({
                                 taskPath(task),
                                 data.accessPreview,
                               )}
-                              className="inline-flex min-w-0 items-center gap-2 rounded font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/40"
+                              className="min-w-0 rounded font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/40"
                             >
-                              <span className="truncate hover:underline">
+                              <TaskKeyBadge
+                                task={task}
+                                className="mr-2 align-middle"
+                              />
+                              <span className="hover:underline">
                                 {task.title}
                               </span>
-                              <TaskKeyBadge task={task} />
                             </Link>
                           ) : (
                             <span className="text-black/45 dark:text-white/45">
@@ -614,13 +619,14 @@ export function ActivityPageClient({
                                   taskPath(task),
                                   data.accessPreview,
                                 )}
-                                className="flex min-w-0 items-center gap-2 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/40"
+                                className="min-w-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/40"
                               >
-                                <span className="min-w-0 truncate hover:underline">
+                                <TaskKeyBadge
+                                  task={task}
+                                  className="mr-2 align-middle"
+                                />
+                                <span className="hover:underline">
                                   {task.title}
-                                </span>
-                                <span className="shrink-0">
-                                  <TaskKeyBadge task={task} />
                                 </span>
                               </Link>
                             ) : (

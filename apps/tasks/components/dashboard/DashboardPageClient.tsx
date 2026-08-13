@@ -114,11 +114,9 @@ function DashboardTaskList({
               className="group grid gap-3 px-4 py-4 transition hover:bg-black/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-black/30 dark:hover:bg-white/[0.035] dark:focus-visible:ring-white/40 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
             >
               <span className="min-w-0">
-                <span className="flex min-w-0 flex-wrap items-center gap-2">
-                  <span className="min-w-0 text-sm font-semibold group-hover:underline">
-                    {task.title}
-                  </span>
-                  <TaskKeyBadge task={task} />
+                <span className="text-sm font-semibold group-hover:underline">
+                  <TaskKeyBadge task={task} className="mr-2 align-middle" />
+                  {task.title}
                 </span>
                 <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
                   <StatusBadge status={statuses.get(task.status_id)} />
@@ -180,9 +178,7 @@ function SectionCard({
     >
       <div
         className={`flex items-center gap-3 px-4 py-3.5 ${
-          collapsed
-            ? ""
-            : "border-b border-black/[0.07] dark:border-white/10"
+          collapsed ? "" : "border-b border-black/[0.07] dark:border-white/10"
         }`}
       >
         <span
@@ -790,11 +786,14 @@ export function DashboardPageClient({
                                 )}
                                 className="group block rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/40"
                               >
-                                <span className="flex min-w-0 flex-wrap items-center gap-2">
-                                  <span className="min-w-0 text-sm font-semibold group-hover:underline">
-                                    {task?.title ?? "Task"}
-                                  </span>
-                                  {task && <TaskKeyBadge task={task} />}
+                                <span className="text-sm font-semibold group-hover:underline">
+                                  {task && (
+                                    <TaskKeyBadge
+                                      task={task}
+                                      className="mr-2 align-middle"
+                                    />
+                                  )}
+                                  {task?.title ?? "Task"}
                                 </span>
                                 <span className="mt-2 flex flex-wrap items-center gap-2">
                                   {change.from && (

@@ -408,11 +408,12 @@ export function TaskSearch({
                         }`}
                       >
                         <span className="min-w-0">
-                          <span className="flex min-w-0 items-center gap-2">
-                            <span className="truncate text-sm font-semibold">
-                              {task.title}
-                            </span>
-                            <TaskKeyBadge task={task} />
+                          <span className="text-sm font-semibold">
+                            <TaskKeyBadge
+                              task={task}
+                              className="mr-2 align-middle"
+                            />
+                            {task.title}
                           </span>
                           <span className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-black/55 dark:text-white/55">
                             {projectName && (

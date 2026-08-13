@@ -6,13 +6,7 @@ import {
   Pagination,
 } from "@ryanmeetup/ui";
 import { FiChevronDown } from "react-icons/fi";
-import type {
-  Category,
-  Profile,
-  Project,
-  Status,
-  Task,
-} from "@/lib/types";
+import type { Category, Profile, Project, Status, Task } from "@/lib/types";
 import { TaskDueDate } from "./TaskDueDate";
 import { TaskKeyBadge } from "./TaskKeyBadge";
 import { TaskPriorityBadge } from "./TaskPriorityBadge";
@@ -115,11 +109,9 @@ export function TaskListView({
                 className="block w-full p-4 text-left transition hover:bg-black/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-black/30 dark:hover:bg-white/[0.025] dark:focus-visible:ring-white/30"
               >
                 <span className="flex items-start justify-between gap-3">
-                  <span className="min-w-0">
-                    <span className="block font-semibold leading-snug">
-                      {task.title}
-                    </span>
-                    <TaskKeyBadge task={task} className="mt-2" />
+                  <span className="min-w-0 font-semibold leading-snug">
+                    <TaskKeyBadge task={task} className="mr-2 align-middle" />
+                    {task.title}
                   </span>
                   <TaskPriorityBadge priority={task.priority} />
                 </span>
@@ -220,8 +212,10 @@ export function TaskListView({
                   className="cursor-pointer text-sm hover:bg-black/[0.025] dark:hover:bg-white/[0.025]"
                 >
                   <td className="px-4 py-4">
-                    <span className="block font-semibold">{task.title}</span>
-                    <TaskKeyBadge task={task} className="mt-1" />
+                    <span className="font-semibold">
+                      <TaskKeyBadge task={task} className="mr-2 align-middle" />
+                      {task.title}
+                    </span>
                   </td>
                   <td>
                     <span className="flex items-center gap-2">
