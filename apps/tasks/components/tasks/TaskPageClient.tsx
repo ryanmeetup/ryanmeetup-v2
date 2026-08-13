@@ -196,9 +196,9 @@ export function TaskPageClient({
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
         setData={setData}
-        contentClassName="mx-auto max-w-6xl space-y-5 p-4 sm:space-y-6 sm:p-6 lg:p-8"
+        contentClassName="mx-4 min-w-0 max-w-6xl space-y-5 py-4 sm:mx-6 sm:space-y-6 sm:py-6 lg:mx-8 lg:py-8 2xl:mx-auto"
       >
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-5">
+          <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-5">
             <div className="min-w-0 flex-1">
               <Breadcrumbs
                 className="mb-2"
@@ -219,7 +219,7 @@ export function TaskPageClient({
                   },
                 ]}
               />
-              <h1 className="text-3xl font-bold leading-tight sm:text-4xl">
+              <h1 className="break-words text-3xl font-bold leading-tight sm:text-4xl">
                 {task.title}
               </h1>
             </div>
@@ -260,9 +260,9 @@ export function TaskPageClient({
             </div>
           </div>
 
-          <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
-            <div className="contents xl:block xl:space-y-6">
-              <Card className="order-1 space-y-5">
+          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] items-start gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+            <div className="contents min-w-0 xl:block xl:space-y-6">
+              <Card className="order-1 min-w-0 space-y-5">
                 <div>
                   <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-black/55 dark:text-white/55">
                     Description
@@ -270,7 +270,7 @@ export function TaskPageClient({
                   {task.description ? (
                     <FormattedText
                       text={task.description}
-                      className="mt-3 text-sm leading-7 text-black/75 dark:text-white/75"
+                      className="mt-3 min-w-0 break-words text-sm leading-7 text-black/75 dark:text-white/75"
                     />
                   ) : (
                     <p className="mt-3 text-sm text-black/50 dark:text-white/50">
@@ -355,12 +355,12 @@ export function TaskPageClient({
               />
             </div>
 
-            <div className="contents xl:sticky xl:top-24 xl:block xl:space-y-6">
-              <Card className="order-2 space-y-5">
+            <div className="contents min-w-0 xl:sticky xl:top-24 xl:block xl:space-y-6">
+              <Card className="order-2 min-w-0 space-y-5">
                 <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-black/55 dark:text-white/55">
                   Task details
                 </h2>
-                <dl className="grid grid-cols-2 gap-x-4 gap-y-4 text-sm sm:gap-x-6">
+                <dl className="grid min-w-0 grid-cols-2 gap-x-4 gap-y-4 text-sm sm:gap-x-6">
                   <div>
                     <dt className="flex items-center gap-1.5 text-black/50 dark:text-white/50">
                       <FiCalendar aria-hidden /> Created
@@ -389,7 +389,7 @@ export function TaskPageClient({
                     <dt className="flex items-center gap-1.5 text-black/50 dark:text-white/50">
                       <FiActivity aria-hidden /> Status
                     </dt>
-                    <dd className="mt-1 flex items-center gap-2 font-semibold">
+                    <dd className="mt-1 flex min-w-0 items-center gap-2 break-words font-semibold">
                       {status && (
                         <i
                           className="h-2.5 w-2.5 rounded-full"
@@ -411,7 +411,7 @@ export function TaskPageClient({
                     <dt className="flex items-center gap-1.5 text-black/50 dark:text-white/50">
                       <FiUser aria-hidden /> Reported by
                     </dt>
-                    <dd className="mt-1 flex items-center gap-2 font-semibold">
+                    <dd className="mt-1 flex min-w-0 items-center gap-2 break-words font-semibold">
                       <Avatar
                         name={reporter?.full_name ?? "Unknown"}
                         src={reporter?.avatar_url}
@@ -424,7 +424,7 @@ export function TaskPageClient({
                     <dt className="flex items-center gap-1.5 text-black/50 dark:text-white/50">
                       <FiUserCheck aria-hidden /> Assignee
                     </dt>
-                    <dd className="mt-1 flex items-center gap-2 font-semibold">
+                    <dd className="mt-1 flex min-w-0 items-center gap-2 break-words font-semibold">
                       <Avatar
                         name={assignee?.full_name ?? "Unassigned"}
                         src={assignee?.avatar_url}
@@ -433,11 +433,11 @@ export function TaskPageClient({
                       {assignee?.full_name ?? "Unassigned"}
                     </dd>
                   </div>
-                  <div className="col-span-2">
+                  <div className="col-span-2 min-w-0">
                     <dt className="flex items-center gap-1.5 text-black/50 dark:text-white/50">
                       <FiFolder aria-hidden /> Project
                     </dt>
-                    <dd className="mt-1 font-semibold">
+                    <dd className="mt-1 break-words font-semibold">
                       {project?.name ?? "No project"}
                     </dd>
                   </div>

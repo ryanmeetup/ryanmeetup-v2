@@ -69,6 +69,7 @@ export function WorkspacePageShell({
             onNewTask={onNewTask}
           />
         </header>
+        <div className="hidden h-16 lg:block" aria-hidden="true" />
         <TaskBanners preview={data.accessPreview} />
         <div className={contentClassName}>{children}</div>
       </main>
