@@ -14,6 +14,7 @@ import {
 import {
   FiActivity,
   FiCalendar,
+  FiCheck,
   FiCheckSquare,
   FiClock,
   FiColumns,
@@ -65,6 +66,8 @@ export function TaskPageClient({
   const [taskMessage, setTaskMessage] = useState("");
   const [taskPendingDelete, setTaskPendingDelete] = useState<Task | null>(null);
   const [taskDeleting, setTaskDeleting] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const copyConfirmationTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
   const conversationTopRef = useRef<HTMLDivElement>(null);
   const [conversationHeight, setConversationHeight] = useState<number>();
   const task =
@@ -74,6 +77,15 @@ export function TaskPageClient({
   useEffect(() => {
     document.title = `${taskKey(task)}: ${task.title} | Ryan Meetup Tasks`;
   }, [task]);
+
+  useEffect(
+    () => () => {
+      if (copyConfirmationTimerRef.current) {
+        clearTimeout(copyConfirmationTimerRef.current);
+      }
+    },
+    [],
+  );
 
   const status = data.statuses.find((item) => item.id === task.status_id);
   const project = data.projects.find((item) => item.id === task.project_id);
@@ -162,6 +174,14 @@ export function TaskPageClient({
       await navigator.clipboard.writeText(
         new URL(taskPath(task!), window.location.origin).toString(),
       );
+      setLinkCopied(true);
+      if (copyConfirmationTimerRef.current) {
+        clearTimeout(copyConfirmationTimerRef.current);
+      }
+      copyConfirmationTimerRef.current = setTimeout(() => {
+        setLinkCopied(false);
+        copyConfirmationTimerRef.current = null;
+      }, 2000);
       toast.success(`${taskKey(task!)} link copied.`);
     } catch {
       toast.error("The task link could not be copied.");
@@ -208,11 +228,26 @@ export function TaskPageClient({
                 type="button"
                 variant="secondary"
                 size="sm"
-                className="w-full sm:w-auto"
-                leftIcon={<FiLink />}
+                className={`transition-none w-full sm:w-auto ${
+                  linkCopied
+                    ? "border-emerald-500/60 bg-emerald-50 text-emerald-700 shadow-sm hover:border-emerald-500/60 hover:bg-emerald-50 dark:border-emerald-400/50 dark:bg-emerald-400/15 dark:text-emerald-300 dark:hover:border-emerald-400/50 dark:hover:bg-emerald-400/15"
+                    : ""
+                }`}
+                leftIcon={
+                  linkCopied ? (
+                    <FiCheck
+                      aria-hidden
+                      className="text-emerald-600 motion-safe:animate-bounce dark:text-emerald-300"
+                    />
+                  ) : (
+                    <FiLink aria-hidden />
+                  )
+                }
                 onClick={copyLink}
               >
-                Copy link
+                <span aria-live="polite">
+                  {linkCopied ? "Copied!" : "Copy link"}
+                </span>
               </Button>
               <Button
                 size="sm"
