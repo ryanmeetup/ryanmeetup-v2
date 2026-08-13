@@ -7,8 +7,8 @@ import {
   ListboxOptions,
   Transition,
 } from "@headlessui/react";
-import { useId } from "react";
-import { FiCheck, FiChevronDown } from "react-icons/fi";
+import { useId, useState } from "react";
+import { FiCheck, FiChevronDown, FiSearch } from "react-icons/fi";
 import { Avatar, type AvatarProps } from "./Avatar";
 import { getFieldLabelClasses } from "./fieldStyles";
 
@@ -27,6 +27,8 @@ export type MultiSelectProps = {
   disabled?: boolean;
   placeholder?: string;
   required?: boolean;
+  searchable?: boolean;
+  searchPlaceholder?: string;
 };
 
 const MultiSelect = ({
@@ -38,11 +40,21 @@ const MultiSelect = ({
   disabled = false,
   placeholder = "Select options",
   required = false,
+  searchable = false,
+  searchPlaceholder = "Search options",
 }: MultiSelectProps) => {
   const buttonId = useId();
+  const searchId = useId();
+  const [query, setQuery] = useState("");
   const selectedOptions = options.filter((option) =>
     value.includes(option.value),
   );
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  const visibleOptions = normalizedQuery
+    ? options.filter((option) =>
+        option.label.toLocaleLowerCase().includes(normalizedQuery),
+      )
+    : options;
   const selectedLabels = selectedOptions.map((option) => option.label);
   const summary =
     selectedLabels.length === 0
@@ -67,6 +79,7 @@ const MultiSelect = ({
       <ListboxButton
         id={buttonId}
         aria-required={required}
+        onClick={() => setQuery("")}
         className="inline-flex w-full items-center justify-between gap-2 rounded-lg border border-black/20 bg-white px-4 py-2.5 text-sm font-semibold text-black shadow-sm transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/20 dark:bg-white/10 dark:text-white dark:hover:bg-white/15 dark:focus-visible:ring-white/30"
       >
         <span className="inline-flex min-w-0 items-center gap-2">
@@ -108,7 +121,29 @@ const MultiSelect = ({
           anchor="bottom start"
           className="z-[60] mt-2 flex max-h-64 w-[var(--button-width)] origin-top flex-col gap-1 overflow-y-auto rounded-xl border border-black/10 bg-white/95 p-1.5 text-black shadow-xl backdrop-blur focus:outline-none dark:border-white/10 dark:bg-[#181818]/95 dark:text-white"
         >
-          {options.map((option) => (
+          {searchable && (
+            <div className="sticky top-0 z-10 bg-white/95 p-1 backdrop-blur dark:bg-[#181818]/95">
+              <label className="sr-only" htmlFor={searchId}>
+                {searchPlaceholder}
+              </label>
+              <div className="flex items-center gap-2 rounded-lg border border-black/15 bg-white px-3 py-2 focus-within:ring-2 focus-within:ring-black/20 dark:border-white/15 dark:bg-white/10 dark:focus-within:ring-white/20">
+                <FiSearch
+                  aria-hidden
+                  className="shrink-0 text-black/40 dark:text-white/40"
+                />
+                <input
+                  id={searchId}
+                  type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  onKeyDown={(event) => event.stopPropagation()}
+                  placeholder={searchPlaceholder}
+                  className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-black/45 dark:placeholder:text-white/45"
+                />
+              </div>
+            </div>
+          )}
+          {visibleOptions.map((option) => (
             <ListboxOption
               key={option.value}
               value={option.value}
@@ -128,6 +163,11 @@ const MultiSelect = ({
               />
             </ListboxOption>
           ))}
+          {visibleOptions.length === 0 && (
+            <p className="px-3 py-4 text-center text-sm text-black/60 dark:text-white/60">
+              No matching options
+            </p>
+          )}
         </ListboxOptions>
       </Transition>
     </Listbox>

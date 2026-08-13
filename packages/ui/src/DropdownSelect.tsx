@@ -12,6 +12,7 @@ import { FiCheck, FiChevronDown } from "react-icons/fi";
 import { Avatar, type AvatarProps } from "./Avatar";
 import { getFieldLabelClasses } from "./fieldStyles";
 import { getFilterControlClasses } from "./filterStyles";
+import { useProximityOptions } from "./useProximityOptions";
 
 export type DropdownSelectOption = {
   avatar?: AvatarProps;
@@ -30,6 +31,7 @@ export type DropdownSelectProps = {
   disabled?: boolean;
   variant?: "compact" | "field";
   active?: boolean;
+  proximityValue?: string;
 };
 
 const DropdownSelect = ({
@@ -42,10 +44,15 @@ const DropdownSelect = ({
   disabled = false,
   variant = "compact",
   active = false,
+  proximityValue,
 }: DropdownSelectProps) => {
   const buttonId = useId();
   const selected = options.find((option) => option.value === value);
   const field = variant === "field";
+  const { orderedOptions, setAnchorElement } = useProximityOptions(
+    options,
+    proximityValue,
+  );
 
   return (
     <Listbox
@@ -100,10 +107,11 @@ const DropdownSelect = ({
         leaveTo="translate-y-1 scale-95 opacity-0"
       >
         <ListboxOptions
+          ref={setAnchorElement}
           anchor={{ to: "bottom start", padding: 16 }}
           className={`z-50 mt-2 flex max-w-[calc(100vw-2rem)] origin-top flex-col gap-1 rounded-xl border border-black/10 bg-white/95 p-1.5 text-black shadow-xl backdrop-blur focus:outline-none dark:border-white/10 dark:bg-[#181818]/95 dark:text-white ${field ? "w-[var(--button-width)]" : "w-56"}`}
         >
-          {options.map((option) => (
+          {orderedOptions.map((option) => (
             <ListboxOption
               key={option.value}
               value={option.value}
