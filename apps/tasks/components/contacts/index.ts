@@ -1,0 +1,2 @@
+export { ContactsPageClient } from "./ContactsPageClient";
+

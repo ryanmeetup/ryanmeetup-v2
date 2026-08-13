@@ -21,6 +21,7 @@ import {
   FiHome,
   FiFileText,
   FiPlus,
+  FiUsers,
   FiStar,
   FiTag,
   FiX,
@@ -79,6 +80,7 @@ export function TasksSidebar({
   const [selectedProject] = useQueryParamState("project");
   const isBoard = pathname === "/board";
   const isNotes = pathname === "/notes";
+  const isContacts = pathname === "/contacts";
   const isTasksRoute = isBoard || pathname.startsWith("/task/");
   const selectedProjectIsFavorite = favoriteProjects.some(
     (project) =>
@@ -174,6 +176,14 @@ export function TasksSidebar({
         >
           <FiFileText />
           Notes
+        </Link>
+        <Link
+          href={withAccessPreview("/contacts", data.accessPreview)}
+          onClick={closeSidebar}
+          className={linkClass(isContacts)}
+        >
+          <FiUsers />
+          Contacts
         </Link>
         <Link
           href={withAccessPreview("/activity", data.accessPreview)}

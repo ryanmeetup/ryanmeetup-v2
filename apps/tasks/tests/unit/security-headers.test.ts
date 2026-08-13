@@ -18,7 +18,7 @@ describe("security headers", () => {
       "connect-src 'self' https://example.supabase.co wss://example.supabase.co",
     );
     expect(policy).toContain(
-      "img-src 'self' data: blob: https://example.supabase.co",
+      "img-src 'self' data: blob: https: https://example.supabase.co",
     );
     expect(policy).toContain("object-src 'none'");
     expect(policy).toContain("frame-ancestors 'none'");

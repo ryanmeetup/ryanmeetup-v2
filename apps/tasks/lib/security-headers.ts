@@ -21,7 +21,7 @@ export function contentSecurityPolicy(nonce: string, supabaseUrl?: string) {
     `script-src 'self' 'nonce-${nonce}'${isDevelopment ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
     "font-src 'self' data:",
-    `img-src 'self' data: blob:${externalOrigins.length ? ` ${externalOrigins[0]}` : ""}`,
+    `img-src 'self' data: blob: https:${externalOrigins.length ? ` ${externalOrigins[0]}` : ""}`,
     `connect-src 'self'${externalOrigins.length ? ` ${externalOrigins.join(" ")}` : ""}`,
     "media-src 'self' blob:",
     "object-src 'none'",
