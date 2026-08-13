@@ -1,0 +1,58 @@
+import {
+  ACCESS_PREVIEW_PARAM,
+  applyAccessPreview,
+  USER_ACCESS_PREVIEW_PARAM,
+} from "@/lib/access-preview";
+import { resolveAccessPreview } from "@/lib/access-preview-server";
+import { demoData } from "@/lib/demo-data";
+import { requireQueryData } from "@/lib/workspace-loader";
+import {
+  isWorkspaceDemo,
+  loadWorkspacePage,
+} from "@/lib/server/workspace-page-loader";
+
+export async function loadChangelogPage(
+  query: Record<string, string | string[] | undefined>,
+) {
+  const demoMode = isWorkspaceDemo();
+  if (demoMode) return { initialData: demoData, demoMode: true } as const;
+
+  const loaded = await loadWorkspacePage([
+    "profiles",
+    "statuses",
+    "categories",
+    "projects",
+  ]);
+  let initialData = loaded.data;
+  const requestedGroupPreview =
+    typeof query[ACCESS_PREVIEW_PARAM] === "string"
+      ? query[ACCESS_PREVIEW_PARAM]
+      : undefined;
+  const requestedUserPreview =
+    typeof query[USER_ACCESS_PREVIEW_PARAM] === "string"
+      ? query[USER_ACCESS_PREVIEW_PARAM]
+      : undefined;
+
+  if (requestedGroupPreview || requestedUserPreview) {
+    const isOwner = requireQueryData(
+      "owner access",
+      await loaded.supabase.rpc("is_app_owner"),
+    );
+    if (isOwner) {
+      const resolvedPreview = await resolveAccessPreview(loaded.supabase, {
+        groupId: requestedGroupPreview,
+        userName: requestedUserPreview,
+        allProjectIds: initialData.projects.map((project) => project.id),
+      });
+      if (resolvedPreview) {
+        initialData = applyAccessPreview(
+          initialData,
+          resolvedPreview.preview,
+          resolvedPreview.projectIds,
+        );
+      }
+    }
+  }
+
+  return { initialData, demoMode: false } as const;
+}

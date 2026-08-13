@@ -12,7 +12,6 @@ import {
   Card,
   ConfirmationDialog,
   EmptyState,
-  Heading,
   IconButton,
 } from "@ryanmeetup/ui";
 import {
@@ -22,12 +21,12 @@ import {
   FiClock,
   FiEdit2,
   FiFileText,
-  FiPlus,
   FiSend,
   FiStar,
   FiTrash2,
 } from "react-icons/fi";
 import { CategoriesModal } from "@/components/categories";
+import { LatestChangelogCard } from "@/components/changelog";
 import { WorkspacePageShell } from "@/components/global";
 import { ProjectsModal } from "@/components/projects";
 import { NewTaskModal, TaskKeyBadge } from "@/components/tasks";
@@ -144,7 +143,7 @@ export function DashboardPageClient({
     [reportedByMe, assignedToMe],
   );
   const recentActivity = data.activity.filter((item) =>
-    relevantTaskIds.has(item.task_id),
+    item.task_id ? relevantTaskIds.has(item.task_id) : false,
   );
   const favoriteProjects = data.projects.filter(
     (project) =>
@@ -200,34 +199,7 @@ export function DashboardPageClient({
           className="pointer-events-none absolute left-1/3 top-80 h-96 w-96 rounded-full bg-blue-300/10 blur-3xl dark:bg-blue-400/[0.05]"
         />
         <div className="relative mx-auto max-w-7xl space-y-6">
-          <div className="overflow-hidden rounded-2xl border border-black/10 bg-white/90 px-5 py-6 text-black shadow-[0_12px_35px_rgba(0,0,0,0.045)] dark:border-white/10 dark:bg-white/[0.055] dark:text-white dark:shadow-none sm:px-7 sm:py-8">
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-black/50 dark:text-white/50">
-                  Your work at a glance
-                </p>
-                <Heading
-                  size="h1"
-                  bold
-                  className="mt-2 max-w-2xl text-4xl sm:text-5xl"
-                >
-                  RMT Dashboard
-                </Heading>
-                <p className="mt-3 max-w-xl text-sm text-black/65 dark:text-white/65">
-                  Deadlines, delegated work, and the latest moves—without the
-                  board spelunking.
-                </p>
-              </div>
-              <Button
-                type="button"
-                leftIcon={<FiPlus />}
-                onClick={() => setNewTaskOpen(true)}
-                className="shrink-0"
-              >
-                New task
-              </Button>
-            </div>
-          </div>
+          <LatestChangelogCard preview={data.accessPreview} />
 
           <div className="grid grid-cols-3 gap-2 sm:gap-4">
             {[
@@ -561,7 +533,9 @@ export function DashboardPageClient({
                         (visibleActivityPage + 1) * widgetPageSize,
                       )
                       .map((item) => {
-                        const task = tasks.get(item.task_id);
+                        const task = item.task_id
+                          ? tasks.get(item.task_id)
+                          : undefined;
                         const actor = item.actor_id
                           ? profiles.get(item.actor_id)
                           : undefined;

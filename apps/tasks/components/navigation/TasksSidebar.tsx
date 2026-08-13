@@ -103,6 +103,12 @@ export function TasksSidebar({
   };
   const linkClass = (active: boolean) =>
     `sidebar-link ${active ? "sidebar-link-active" : ""}`;
+  const newBadgeClass = (active: boolean) =>
+    `ml-auto !border-emerald-500/40 !bg-emerald-500/15 ${
+      active
+        ? "!border-emerald-400 !bg-emerald-400 !text-emerald-950 dark:!border-emerald-600 dark:!bg-emerald-600 dark:!text-white"
+        : "!text-emerald-700 dark:!text-emerald-300"
+    }`;
 
   useEffect(() => {
     if (selectedCategory) setCategoriesExpanded(true);
@@ -176,6 +182,12 @@ export function TasksSidebar({
         >
           <FiFileText />
           Notes
+          <Pill
+            size="sm"
+            className={newBadgeClass(isNotes)}
+          >
+            New
+          </Pill>
         </Link>
         <Link
           href={withAccessPreview("/contacts", data.accessPreview)}
@@ -184,6 +196,12 @@ export function TasksSidebar({
         >
           <FiUsers />
           Contacts
+          <Pill
+            size="sm"
+            className={newBadgeClass(isContacts)}
+          >
+            New
+          </Pill>
         </Link>
         <Link
           href={withAccessPreview("/activity", data.accessPreview)}
