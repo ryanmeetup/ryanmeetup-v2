@@ -14,7 +14,7 @@ import {
   IconButton,
   Input,
   Modal,
-  MultiSelect,
+  TagInput,
   Textarea,
   Tooltip,
   toast,
@@ -29,17 +29,31 @@ import {
   FiRefreshCw,
   FiRotateCcw,
   FiSearch,
+  FiTag,
   FiUsers,
 } from "react-icons/fi";
 import { withAccessPreview } from "@/lib/access-preview";
-import { ManagementCard, ManagementCardTitle } from "@/components/global";
-import type { Category, ProjectLink, WorkspaceData } from "@/lib/types";
-import { LinksFields } from "@/components/projects/LinksFields";
 import {
-  ProjectAttachments,
-  type ProjectAttachmentDraft,
-} from "@/components/projects/ProjectAttachments";
-import { ProjectLinks } from "@/components/projects/ProjectLinks";
+  CountBadge,
+  ManagementCard,
+  ManagementCardTitle,
+  ResourceOwnerSelect,
+} from "@/components/global";
+import type { Category, ProjectLink, WorkspaceData } from "@/lib/types";
+import {
+  ResourceAttachments,
+  ResourceLinks,
+  ResourceLinksFields,
+} from "@/components/resources";
+import { mutate } from "@/lib/mutation-client";
+import {
+  archiveFilter,
+  filterAndSortResources,
+  resourceSearchText,
+  sameIds,
+  uploadResourceAttachments,
+  type ResourceAttachmentDraft,
+} from "@/lib/resource-management";
 
 function randomCategoryColor(exclude?: string) {
   let color: string;
@@ -52,32 +66,42 @@ function randomCategoryColor(exclude?: string) {
 }
 
 export type CategoriesModalProps = {
-  open: boolean;
-  setOpen: (value: boolean) => void;
-  data: WorkspaceData;
-  setData: Dispatch<SetStateAction<WorkspaceData>>;
-  demoMode: boolean;
-  embedded?: boolean;
-  createOnly?: boolean;
-  editCategoryId?: string | null;
-  onCreate?: () => void;
-  onCategoryUpdated?: (category: Category) => void;
-  readOnly?: boolean;
+  modal: {
+    open: boolean;
+    setOpen: (value: boolean) => void;
+  };
+  workspace: {
+    data: WorkspaceData;
+    setData: Dispatch<SetStateAction<WorkspaceData>>;
+    demoMode: boolean;
+  };
+  options?: {
+    embedded?: boolean;
+    createOnly?: boolean;
+    editCategoryId?: string | null;
+    readOnly?: boolean;
+  };
+  events?: {
+    onCreate?: () => void;
+    onCategoryUpdated?: (category: Category) => void;
+  };
 };
 
 export function CategoriesModal({
-  open,
-  setOpen,
-  data,
-  setData,
-  demoMode,
-  embedded = false,
-  createOnly = false,
-  editCategoryId = null,
-  onCreate,
-  onCategoryUpdated,
-  readOnly = false,
+  modal,
+  workspace,
+  options,
+  events,
 }: CategoriesModalProps) {
+  const { open, setOpen } = modal;
+  const { data, setData, demoMode } = workspace;
+  const {
+    embedded = false,
+    createOnly = false,
+    editCategoryId = null,
+    readOnly = false,
+  } = options ?? {};
+  const { onCreate, onCategoryUpdated } = events ?? {};
   const directEditCategory = editCategoryId
     ? (data.categories.find((category) => category.id === editCategoryId) ??
       null)
@@ -86,7 +110,8 @@ export function CategoriesModal({
   const [description, setDescription] = useState("");
   const [color, setColor] = useState(() => randomCategoryColor());
   const [links, setLinks] = useState<ProjectLink[]>([]);
-  const [attachments, setAttachments] = useState<ProjectAttachmentDraft[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
+  const [attachments, setAttachments] = useState<ResourceAttachmentDraft[]>([]);
   const [creating, setCreating] = useState(false);
   const [newOwnerIds, setNewOwnerIds] = useState<string[]>([
     data.currentProfile.id,
@@ -95,10 +120,7 @@ export function CategoriesModal({
     "category-status",
     "active",
   );
-  const categoryStatus: "active" | "archived" | "all" =
-    categoryStatusParam === "archived" || categoryStatusParam === "all"
-      ? categoryStatusParam
-      : "active";
+  const categoryStatus = archiveFilter(categoryStatusParam);
   const [editingId, setEditingId] = useState<string | null>(
     directEditCategory?.id ?? null,
   );
@@ -113,6 +135,9 @@ export function CategoriesModal({
   );
   const [editingLinks, setEditingLinks] = useState<ProjectLink[]>(
     directEditCategory?.links ?? [],
+  );
+  const [editingTags, setEditingTags] = useState<string[]>(
+    directEditCategory?.tags ?? [],
   );
   const [editingOwnerIds, setEditingOwnerIds] = useState<string[]>(
     directEditCategory
@@ -129,43 +154,26 @@ export function CategoriesModal({
     isPending: searchPending,
   } = useSearchFilter({
     data: data.categories,
-    buildHaystack: (category) =>
-      `${category.name} ${category.description ?? ""} ${(category.links ?? []).map((link) => `${link.label} ${link.url}`).join(" ")}`.toLowerCase(),
+    buildHaystack: resourceSearchText,
     queryParam: "category-search",
   });
   const categories = useMemo(
-    () =>
-      [...searchedCategories]
-        .filter(
-          (category) =>
-            categoryStatus === "all" ||
-            (categoryStatus === "archived"
-              ? Boolean(category.archived_at)
-              : !category.archived_at),
-        )
-        .sort((a, b) => a.name.localeCompare(b.name)),
+    () => filterAndSortResources(searchedCategories, categoryStatus),
     [categoryStatus, searchedCategories],
   );
 
   async function request(method: "POST" | "PATCH", body: object) {
-    const response = await fetch("/api/categories", {
+    return mutate<{ category?: Category }>("/api/categories", {
       method,
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    const result = (await response.json()) as {
-      error?: string;
-      category?: Category;
-    };
-    if (!response.ok)
-      throw new Error(result.error ?? "The category could not be updated.");
-    return result;
   }
 
   async function addCategory(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const nextName = name.trim();
     const nextDescription = description.trim();
+    const nextTags = tags;
     if (!nextName || !nextDescription || newOwnerIds.length === 0) {
       toast.error("Add a category name, description, and at least one owner.");
       return;
@@ -178,6 +186,7 @@ export function CategoriesModal({
         description: nextDescription,
         color,
         links,
+        tags: nextTags,
         created_by: data.currentProfile.id,
         archived_at: null,
       };
@@ -188,37 +197,16 @@ export function CategoriesModal({
             description: nextDescription,
             color,
             links,
+            tags: nextTags,
             ownerIds: newOwnerIds,
           })
         ).category!;
       if (!demoMode && attachments.length > 0) {
-        let failedAttachments = 0;
-        for (const attachment of attachments) {
-          try {
-            const body = attachment.file
-              ? (() => {
-                  const formData = new FormData();
-                  formData.set("categoryId", category.id);
-                  formData.set("file", attachment.file);
-                  return formData;
-                })()
-              : JSON.stringify({
-                  categoryId: category.id,
-                  name: attachment.name,
-                  body: attachment.body,
-                });
-            const response = await fetch("/api/category-attachments", {
-              method: "POST",
-              headers: attachment.file
-                ? undefined
-                : { "Content-Type": "application/json" },
-              body,
-            });
-            if (!response.ok) failedAttachments += 1;
-          } catch {
-            failedAttachments += 1;
-          }
-        }
+        const failedAttachments = await uploadResourceAttachments({
+          attachments,
+          resourceId: category.id,
+          resourceKind: "category",
+        });
         if (failedAttachments > 0)
           toast.error(
             `${failedAttachments} ${failedAttachments === 1 ? "attachment" : "attachments"} could not be added. You can retry from Edit category.`,
@@ -238,6 +226,7 @@ export function CategoriesModal({
       setName("");
       setDescription("");
       setLinks([]);
+      setTags([]);
       setAttachments([]);
       setColor(randomCategoryColor(color));
       toast.success(`${category.name} created.`);
@@ -259,6 +248,7 @@ export function CategoriesModal({
     setEditingDescription(category.description ?? "");
     setEditingColor(category.color);
     setEditingLinks(category.links ?? []);
+    setEditingTags(category.tags);
     setEditingOwnerIds(
       data.categoryOwners
         .filter((item) => item.category_id === category.id)
@@ -273,12 +263,11 @@ export function CategoriesModal({
       return;
     }
     const nextDescription = editingDescription.trim() || null;
+    const nextTags = editingTags;
     const currentOwnerIds = data.categoryOwners
       .filter((item) => item.category_id === category.id)
       .map((item) => item.profile_id);
-    const ownersChanged =
-      currentOwnerIds.length !== editingOwnerIds.length ||
-      currentOwnerIds.some((ownerId) => !editingOwnerIds.includes(ownerId));
+    const ownersChanged = !sameIds(currentOwnerIds, editingOwnerIds);
     setSaving(true);
     try {
       if (!demoMode)
@@ -288,6 +277,7 @@ export function CategoriesModal({
           description: nextDescription,
           color: editingColor,
           links: editingLinks,
+          tags: nextTags,
           ...(ownersChanged ? { ownerIds: editingOwnerIds } : {}),
         });
       const updatedCategory: Category = {
@@ -296,6 +286,7 @@ export function CategoriesModal({
         description: nextDescription,
         color: editingColor,
         links: editingLinks,
+        tags: nextTags,
       };
       setData((current) => ({
         ...current,
@@ -339,6 +330,7 @@ export function CategoriesModal({
           description: category.description,
           color: category.color,
           links: category.links,
+          tags: category.tags,
           archived,
         });
       setData((current) => ({
@@ -389,25 +381,17 @@ export function CategoriesModal({
     </div>
   );
 
-  const ownerOptions = data.profiles.map((profile) => ({
-    avatar: { name: profile.full_name, src: profile.avatar_url },
-    label: profile.full_name,
-    value: profile.id,
-  }));
-
   const ownerControl = (
     value: string[],
     onChange: (value: string[]) => void,
     disabled: boolean,
   ) => (
-    <MultiSelect
+    <ResourceOwnerSelect
       label="Category owners"
-      options={ownerOptions}
+      profiles={data.profiles}
       value={value}
       onChange={onChange}
-      placeholder="Select owners"
       disabled={disabled}
-      required
     />
   );
 
@@ -487,20 +471,28 @@ export function CategoriesModal({
                 disabled={creating}
                 required
               />
+              <TagInput
+                label="Tags (optional)"
+                value={tags}
+                onChange={setTags}
+                placeholder="Feature"
+                disabled={creating}
+              />
               {ownerControl(newOwnerIds, setNewOwnerIds, creating)}
-              <LinksFields
+              <ResourceLinksFields
                 links={links}
                 setLinks={setLinks}
                 disabled={creating}
                 namePrefix="category"
               />
-              <ProjectAttachments
-                resourceKind="category"
-                demoMode={demoMode}
-                disabled={creating}
-                currentUserId={data.currentProfile.id}
-                drafts={attachments}
-                onDraftsChange={setAttachments}
+              <ResourceAttachments
+                resource={{ kind: "category" }}
+                editor={{
+                  demoMode,
+                  disabled: creating,
+                  currentUserId: data.currentProfile.id,
+                }}
+                draftState={{ drafts: attachments, onChange: setAttachments }}
               />
               <div className="flex justify-end gap-2 border-t border-black/10 pt-4 dark:border-white/10">
                 <Button
@@ -559,20 +551,28 @@ export function CategoriesModal({
               disabled={creating}
               required
             />
+            <TagInput
+              label="Tags (optional)"
+              value={tags}
+              onChange={setTags}
+              placeholder="Feature"
+              disabled={creating}
+            />
             {ownerControl(newOwnerIds, setNewOwnerIds, creating)}
-            <LinksFields
+            <ResourceLinksFields
               links={links}
               setLinks={setLinks}
               disabled={creating}
               namePrefix="category"
             />
-            <ProjectAttachments
-              resourceKind="category"
-              demoMode={demoMode}
-              disabled={creating}
-              currentUserId={data.currentProfile.id}
-              drafts={attachments}
-              onDraftsChange={setAttachments}
+            <ResourceAttachments
+              resource={{ kind: "category" }}
+              editor={{
+                demoMode,
+                disabled: creating,
+                currentUserId: data.currentProfile.id,
+              }}
+              draftState={{ drafts: attachments, onChange: setAttachments }}
             />
           </form>
         ) : (
@@ -638,6 +638,9 @@ export function CategoriesModal({
                 className={`${searchPending ? "pointer-events-none opacity-55" : ""} grid auto-rows-fr items-stretch gap-4 transition-opacity md:grid-cols-2 ${embedded ? "lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3" : ""}`}
               >
                 {categories.map((category) => {
+                  const taskCount = data.taskCategories.filter(
+                    (item) => item.category_id === category.id,
+                  ).length;
                   const owners = data.categoryOwners
                     .filter((item) => item.category_id === category.id)
                     .flatMap((item) => {
@@ -651,7 +654,8 @@ export function CategoriesModal({
                       key={category.id}
                       body={
                         category.description ||
-                        (category.links ?? []).length ? (
+                        (category.links ?? []).length ||
+                        category.tags.length ? (
                           <div className="min-w-0">
                             {category.description && (
                               <p className="text-sm text-black/60 dark:text-white/60">
@@ -659,10 +663,55 @@ export function CategoriesModal({
                               </p>
                             )}
                             {(category.links ?? []).length > 0 && (
-                              <ProjectLinks
-                                links={category.links}
-                                className={`mt-2 ${embedded ? "mb-4" : ""}`}
-                              />
+                              <div className="mt-3">
+                                <p className="mb-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-black/45 dark:text-white/45">
+                                  Useful links
+                                </p>
+                                <ResourceLinks links={category.links} />
+                              </div>
+                            )}
+                            {category.tags.length > 0 && (
+                              <div className="mb-3 mt-3">
+                                <p className="mb-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-black/45 dark:text-white/45">
+                                  Available tags
+                                </p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {category.tags.slice(0, 4).map((tag) => (
+                                    <span
+                                      key={tag}
+                                      className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-semibold text-black/70 dark:text-white/75"
+                                      style={{
+                                        borderColor: `${category.color}55`,
+                                        backgroundColor: `${category.color}18`,
+                                      }}
+                                    >
+                                      <FiTag
+                                        aria-hidden
+                                        className="h-2.5 w-2.5"
+                                      />
+                                      {tag}
+                                    </span>
+                                  ))}
+                                  {category.tags.length > 4 && (
+                                    <Tooltip
+                                      content={category.tags
+                                        .slice(4)
+                                        .join(", ")}
+                                      placement="top"
+                                    >
+                                      <span
+                                        className="inline-flex items-center rounded-md border px-2 py-1 text-[10px] font-semibold text-black/60 dark:text-white/65"
+                                        style={{
+                                          borderColor: `${category.color}55`,
+                                          backgroundColor: `${category.color}18`,
+                                        }}
+                                      >
+                                        +{category.tags.length - 4}
+                                      </span>
+                                    </Tooltip>
+                                  )}
+                                </div>
+                              </div>
                             )}
                           </div>
                         ) : undefined
@@ -758,7 +807,15 @@ export function CategoriesModal({
                               : undefined
                           }
                         >
-                          {category.name}
+                          <span className="inline-flex max-w-full items-center gap-2">
+                            <span className="truncate">{category.name}</span>
+                            <Tooltip
+                              content={`${taskCount} ${taskCount === 1 ? "task" : "tasks"} in this category`}
+                              placement="top"
+                            >
+                              <CountBadge>{taskCount}</CountBadge>
+                            </Tooltip>
+                          </span>
                         </ManagementCardTitle>
                       </div>
                       {category.archived_at && (
@@ -804,14 +861,15 @@ export function CategoriesModal({
             editingName.trim() !== category.name ||
             editingDescription.trim() !== (category.description ?? "") ||
             editingColor !== category.color ||
+            JSON.stringify(editingTags) !== JSON.stringify(category.tags) ||
             JSON.stringify(editingLinks) !==
               JSON.stringify(category.links ?? []) ||
-            editingOwnerIds.slice().sort().join(",") !==
+            !sameIds(
+              editingOwnerIds,
               data.categoryOwners
                 .filter((item) => item.category_id === category.id)
-                .map((item) => item.profile_id)
-                .sort()
-                .join(",");
+                .map((item) => item.profile_id),
+            );
           return (
             <Modal
               open
@@ -888,19 +946,27 @@ export function CategoriesModal({
                   rows={3}
                   disabled={saving}
                 />
-                <LinksFields
+                <TagInput
+                  label="Tags (optional)"
+                  value={editingTags}
+                  onChange={setEditingTags}
+                  placeholder="Feature"
+                  disabled={saving}
+                />
+                <ResourceLinksFields
                   links={editingLinks}
                   setLinks={setEditingLinks}
                   disabled={saving}
                   namePrefix={`category-${category.id}`}
                 />
                 {ownerControl(editingOwnerIds, setEditingOwnerIds, saving)}
-                <ProjectAttachments
-                  resourceKind="category"
-                  categoryId={category.id}
-                  demoMode={demoMode}
-                  disabled={saving}
-                  currentUserId={data.currentProfile.id}
+                <ResourceAttachments
+                  resource={{ kind: "category", id: category.id }}
+                  editor={{
+                    demoMode,
+                    disabled: saving,
+                    currentUserId: data.currentProfile.id,
+                  }}
                 />
               </form>
             </Modal>

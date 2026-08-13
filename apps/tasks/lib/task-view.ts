@@ -1,0 +1,119 @@
+import type { Priority, Task, TaskAssignee, TaskCategory } from "@/lib/types";
+import { localDateValue } from "@/components/tasks/TaskDueDate";
+import { taskPriorities } from "@/lib/task-filter-values";
+
+export function indexTaskCategories(rows: TaskCategory[]) {
+  const result = new Map<string, Set<string>>();
+  rows.forEach((row) => {
+    const ids = result.get(row.task_id) ?? new Set<string>();
+    ids.add(row.category_id);
+    result.set(row.task_id, ids);
+  });
+  return result;
+}
+
+export function indexTaskAssignees(tasks: Task[], rows: TaskAssignee[] = []) {
+  const result = new Map<string, Set<string>>();
+  tasks.forEach((task) => {
+    if (task.assignee_id) result.set(task.id, new Set([task.assignee_id]));
+  });
+  rows.forEach((row) => {
+    const ids = result.get(row.task_id) ?? new Set<string>();
+    ids.add(row.profile_id);
+    result.set(row.task_id, ids);
+  });
+  return result;
+}
+
+type TaskViewFilters = {
+  assignees: string[];
+  excludedAssignees: string[];
+  reporters: string[];
+  excludedReporters: string[];
+  categories: string[];
+  excludedCategories: string[];
+  projects: string[];
+  excludedProjects: string[];
+  statuses: string[];
+  excludedStatuses: string[];
+  priorities: Priority[];
+  excludedPriorities: Priority[];
+  dueWithin: string[];
+  excludedDueWithin: string[];
+};
+
+export function deriveVisibleTasks({
+  categoriesByTask,
+  clock,
+  filters,
+  sort,
+  tasks,
+  view,
+  visibility,
+}: {
+  categoriesByTask: Map<string, Set<string>>;
+  clock: number;
+  filters: TaskViewFilters;
+  sort: string;
+  tasks: Task[];
+  view: "board" | "list";
+  visibility: "active" | "archived";
+}) {
+  const dueWithin = (task: Task, days: string) =>
+    Boolean(task.due_date) &&
+    task.due_date! >= localDateValue(new Date(clock)) &&
+    task.due_date! <=
+      localDateValue(new Date(clock + Number.parseInt(days, 10) * 86_400_000));
+  return tasks
+    .filter(
+      (task) =>
+        (filters.assignees.length === 0 ||
+          filters.assignees.some((id) =>
+            id === "unassigned" ? !task.assignee_id : task.assignee_id === id,
+          )) &&
+        !filters.excludedAssignees.some((id) =>
+          id === "unassigned" ? !task.assignee_id : task.assignee_id === id,
+        ) &&
+        (filters.reporters.length === 0 ||
+          filters.reporters.includes(task.reported_by ?? "")) &&
+        !filters.excludedReporters.includes(task.reported_by ?? "") &&
+        (filters.categories.length === 0 ||
+          filters.categories.some((id) =>
+            categoriesByTask.get(task.id)?.has(id),
+          )) &&
+        !filters.excludedCategories.some((id) =>
+          categoriesByTask.get(task.id)?.has(id),
+        ) &&
+        (filters.projects.length === 0 ||
+          filters.projects.some((id) =>
+            id === "none" ? task.project_id === null : task.project_id === id,
+          )) &&
+        !filters.excludedProjects.some((id) =>
+          id === "none" ? task.project_id === null : task.project_id === id,
+        ) &&
+        (filters.statuses.length === 0 ||
+          filters.statuses.includes(task.status_id)) &&
+        !filters.excludedStatuses.includes(task.status_id) &&
+        (filters.priorities.length === 0 ||
+          filters.priorities.includes(task.priority)) &&
+        !filters.excludedPriorities.includes(task.priority) &&
+        (filters.dueWithin.length === 0 ||
+          filters.dueWithin.some((days) => dueWithin(task, days))) &&
+        !filters.excludedDueWithin.some((days) => dueWithin(task, days)) &&
+        (visibility === "archived"
+          ? Boolean(
+              task.archived_at && new Date(task.archived_at).getTime() <= clock,
+            )
+          : !task.archived_at || new Date(task.archived_at).getTime() > clock),
+    )
+    .sort((a, b) =>
+      view === "board"
+        ? a.board_position - b.board_position
+        : sort === "due"
+          ? (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999")
+          : sort === "priority"
+            ? taskPriorities.indexOf(b.priority) -
+              taskPriorities.indexOf(a.priority)
+            : b.updated_at.localeCompare(a.updated_at),
+    );
+}

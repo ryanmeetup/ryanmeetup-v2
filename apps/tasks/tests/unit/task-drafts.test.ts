@@ -15,6 +15,7 @@ const contextualDraft: TaskDraft = {
   reminder_at: null,
   priority: "medium",
   category_ids: ["engineering"],
+  category_tags: {},
 };
 
 describe("hasDraftAutosaveContent", () => {

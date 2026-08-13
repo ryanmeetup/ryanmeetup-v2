@@ -52,7 +52,7 @@ export default async function ActivityPage({
     if (isOwner) {
       const resolvedPreview = await resolveAccessPreview(supabase, {
         groupId: requestedGroupPreview,
-        userId: requestedUserPreview,
+        userName: requestedUserPreview,
         allProjectIds: initialData.projects.map((project) => project.id),
       });
       if (resolvedPreview) {

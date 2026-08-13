@@ -10,6 +10,7 @@ import {
 } from "react";
 import { toast } from "@ryanmeetup/ui";
 import type { WorkspaceData } from "@/lib/types";
+import type { Task } from "@/lib/types";
 import {
   createTaskMutationService,
   type TaskDraft,
@@ -20,6 +21,8 @@ import {
   type NewTaskDetailsDraft,
 } from "./NewTaskDetails";
 import { persistNewTaskDetails } from "@/lib/new-task-details";
+import { errorMessage } from "@/lib/presentation";
+import { newWorkspaceTaskDraft } from "@/lib/task-draft-factory";
 import {
   deleteTaskDraft,
   draftSavedStatus,
@@ -30,26 +33,6 @@ import {
   type StoredTaskDraft,
 } from "@/lib/task-drafts";
 
-function newDraft(data: WorkspaceData): TaskDraft {
-  return {
-    title: "",
-    description: "",
-    status_id:
-      data.statuses.find((status) => status.is_default)?.id ??
-      data.statuses[0]?.id ??
-      "",
-    project_id: null,
-    assignee_id: null,
-    reported_by: data.currentProfile.id,
-    start_date: null,
-    due_date: null,
-    due_time: null,
-    reminder_at: null,
-    priority: "medium",
-    category_ids: [],
-  };
-}
-
 export function NewTaskModal({
   data,
   demoMode,
@@ -57,6 +40,7 @@ export function NewTaskModal({
   setData,
   setOpen,
   initialDraft,
+  onCreated,
 }: {
   data: WorkspaceData;
   demoMode: boolean;
@@ -64,15 +48,15 @@ export function NewTaskModal({
   setData: Dispatch<SetStateAction<WorkspaceData>>;
   setOpen: (open: boolean) => void;
   initialDraft?: StoredTaskDraft | null;
+  onCreated?: (task: Task) => void | Promise<void>;
 }) {
   const [draft, setDraft] = useState(
-    () => initialDraft?.draft ?? newDraft(data),
+    () => initialDraft?.draft ?? newWorkspaceTaskDraft(data),
   );
-  const [draftId, setDraftId] = useState<string | null>(
-    initialDraft?.id ?? null,
-  );
+  const draftId = useRef<string | null>(initialDraft?.id ?? null);
   const opened = useRef(false);
   const draftTouched = useRef(false);
+  const saveInFlight = useRef(false);
   const [createAnother, setCreateAnother] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -83,29 +67,34 @@ export function NewTaskModal({
   useEffect(() => {
     if (open && !opened.current && initialDraft) {
       setDraft(initialDraft.draft);
-      setDraftId(initialDraft.id);
+      draftId.current = initialDraft.id;
     }
     if (open && !opened.current) draftTouched.current = false;
     opened.current = open;
   }, [initialDraft, open]);
 
   useEffect(() => {
-    if (!open || !draftTouched.current || !hasDraftAutosaveContent(draft))
+    if (
+      !open ||
+      saving ||
+      !draftTouched.current ||
+      !hasDraftAutosaveContent(draft)
+    )
       return;
     const timer = window.setTimeout(() => {
       const saved = saveTaskDraft(
         data.currentProfile.id,
         draft,
-        draftId ?? undefined,
+        draftId.current ?? undefined,
       );
-      setDraftId(saved.id);
+      draftId.current = saved.id;
       toast.success(draftSavedStatus("auto"), {
         id: `task-draft-autosave-${data.currentProfile.id}`,
         duration: 2500,
       });
     }, taskDraftAutosaveDelayMs);
     return () => window.clearTimeout(timer);
-  }, [data.currentProfile.id, draft, draftId, open]);
+  }, [data.currentProfile.id, draft, open, saving]);
 
   function updateDraft(nextDraft: SetStateAction<TaskDraft>) {
     draftTouched.current = true;
@@ -120,9 +109,9 @@ export function NewTaskModal({
     const saved = saveTaskDraft(
       data.currentProfile.id,
       draft,
-      draftId ?? undefined,
+      draftId.current ?? undefined,
     );
-    setDraftId(saved.id);
+    draftId.current = saved.id;
     toast.success(draftSavedStatus("manual"));
     setOpen(false);
   }
@@ -130,7 +119,7 @@ export function NewTaskModal({
   function setModalOpen(nextOpen: boolean) {
     setOpen(nextOpen);
     if (!nextOpen && !saving) {
-      if (!hasDraftContent(draft)) setDraft(newDraft(data));
+      if (!hasDraftContent(draft)) setDraft(newWorkspaceTaskDraft(data));
       setCreateAnother(false);
       setMessage("");
     }
@@ -139,6 +128,7 @@ export function NewTaskModal({
   async function saveTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     event.stopPropagation();
+    if (saveInFlight.current) return;
     const validationMessage = !draft.title.trim()
       ? "A task title is required."
       : !draft.status_id
@@ -154,6 +144,7 @@ export function NewTaskModal({
     }
 
     setMessage("");
+    saveInFlight.current = true;
     setSaving(true);
     try {
       const mutations = createTaskMutationService({
@@ -170,16 +161,20 @@ export function NewTaskModal({
         setData,
       });
       setNewTaskDetails(emptyNewTaskDetails());
-      if (draftId) deleteTaskDraft(data.currentProfile.id, draftId);
+      if (draftId.current) {
+        deleteTaskDraft(data.currentProfile.id, draftId.current);
+        draftId.current = null;
+      }
       toast.success("Task created.");
       if (detailFailures > 0)
         toast.error(
           `${detailFailures} ${detailFailures === 1 ? "task detail" : "task details"} could not be added. Open the task to retry.`,
         );
+      await onCreated?.(saved.task);
       if (createAnother) {
         draftTouched.current = false;
         setDraft({
-          ...newDraft(data),
+          ...newWorkspaceTaskDraft(data),
           status_id: draft.status_id,
           priority: draft.priority,
           project_id: draft.project_id,
@@ -188,43 +183,40 @@ export function NewTaskModal({
         });
       } else {
         setOpen(false);
-        setDraft(newDraft(data));
-        setDraftId(null);
+        setDraft(newWorkspaceTaskDraft(data));
+        draftId.current = null;
         setCreateAnother(false);
         setMessage("");
       }
     } catch (error) {
-      const nextMessage =
-        error instanceof Error ? error.message : "The task could not be saved.";
+      const nextMessage = errorMessage(error, "The task could not be saved.");
       setMessage(nextMessage);
       toast.error(nextMessage);
     } finally {
+      saveInFlight.current = false;
       setSaving(false);
     }
   }
 
   return (
     <TaskEditor
-      taskOpen={open}
-      setTaskOpen={setModalOpen}
-      editing={null}
-      taskDetailsOpen={detailsOpen}
-      setTaskDetailsOpen={setDetailsOpen}
-      createAnother={createAnother}
-      setCreateAnother={setCreateAnother}
-      taskSaving={saving}
-      draft={draft}
-      setDraft={updateDraft}
-      statuses={data.statuses}
-      data={data}
-      setData={setData}
-      demoMode={demoMode}
-      saveTask={saveTask}
-      saveDraft={saveAsDraft}
-      setTaskPendingDelete={() => undefined}
-      taskMessage={message}
-      newTaskDetails={newTaskDetails}
-      setNewTaskDetails={setNewTaskDetails}
+      modal={{ open, setOpen: setModalOpen, detailsOpen, setDetailsOpen }}
+      form={{
+        draft,
+        setDraft: updateDraft,
+        saving,
+        message,
+        onSubmit: saveTask,
+      }}
+      workspace={{ statuses: data.statuses, data, setData, demoMode }}
+      mode={{
+        kind: "create",
+        createAnother,
+        setCreateAnother,
+        details: newTaskDetails,
+        setDetails: setNewTaskDetails,
+        onSaveDraft: saveAsDraft,
+      }}
     />
   );
 }

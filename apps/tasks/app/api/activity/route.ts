@@ -22,7 +22,12 @@ function applyActivityFilters<
     gte: (column: string, value: string) => T;
     or: (filters: string, options?: { referencedTable?: string }) => T;
   },
->(query: T, params: URLSearchParams, previewProjectIds?: string[]) {
+>(
+  query: T,
+  params: URLSearchParams,
+  previewProjectIds?: string[],
+  previewInaccessibleTaskIds: string[] = [],
+) {
   const values = (name: string, legacyName?: string) =>
     (params.get(name) ?? (legacyName ? params.get(legacyName) : null) ?? "")
       .split(",")
@@ -33,6 +38,12 @@ function applyActivityFilters<
       : "project_id.is.null";
     query = query.or(projectFilter, { referencedTable: "tasks" });
   }
+  if (previewInaccessibleTaskIds.length)
+    query = query.not(
+      "tasks.id",
+      "in",
+      `(${previewInaccessibleTaskIds.join(",")})`,
+    );
   const projects = values("projects", "project").filter(
     (value) => value !== "all",
   );
@@ -129,6 +140,7 @@ export async function GET(request: Request) {
   const { requestedPage, pageSize } = parsePagination(params);
   const selection = `${WORKSPACE_COLUMNS.activity},tasks!inner(${WORKSPACE_COLUMNS.tasks})`;
   let previewProjectIds: string[] | undefined;
+  let previewInaccessibleTaskIds: string[] = [];
   const requestedGroupPreview = params.get(ACCESS_PREVIEW_PARAM) ?? undefined;
   const requestedUserPreview =
     params.get(USER_ACCESS_PREVIEW_PARAM) ?? undefined;
@@ -148,17 +160,26 @@ export async function GET(request: Request) {
         );
       const resolved = await resolveAccessPreview(authorization.supabase, {
         groupId: requestedGroupPreview,
-        userId: requestedUserPreview,
+        userName: requestedUserPreview,
         allProjectIds: (projects ?? []).map((project) => project.id),
       });
-      if (resolved) previewProjectIds = resolved.projectIds;
+      if (resolved) {
+        previewProjectIds = resolved.projectIds;
+        previewInaccessibleTaskIds =
+          resolved.preview.inaccessibleTaskIds ?? [];
+      }
     }
   }
 
   let countQuery = authorization.supabase
     .from("task_activity")
     .select(selection, { count: "exact", head: true });
-  countQuery = applyActivityFilters(countQuery, params, previewProjectIds);
+  countQuery = applyActivityFilters(
+    countQuery,
+    params,
+    previewProjectIds,
+    previewInaccessibleTaskIds,
+  );
   const countResult = await countQuery;
   if (countResult.error)
     return databaseFailure(request, "activity.count", countResult.error, {
@@ -173,7 +194,12 @@ export async function GET(request: Request) {
   let itemQuery = authorization.supabase
     .from("task_activity")
     .select(selection);
-  itemQuery = applyActivityFilters(itemQuery, params, previewProjectIds);
+  itemQuery = applyActivityFilters(
+    itemQuery,
+    params,
+    previewProjectIds,
+    previewInaccessibleTaskIds,
+  );
   const result = await itemQuery
     .order("created_at", { ascending: false })
     .order("id", { ascending: false })

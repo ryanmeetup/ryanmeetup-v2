@@ -7,8 +7,8 @@ export function accessPreviewHref(groupId: string) {
   return `/?${ACCESS_PREVIEW_PARAM}=${encodeURIComponent(groupId)}`;
 }
 
-export function userAccessPreviewHref(profileId: string) {
-  return `/?${USER_ACCESS_PREVIEW_PARAM}=${encodeURIComponent(profileId)}`;
+export function userAccessPreviewHref(profileName: string) {
+  return `/?${USER_ACCESS_PREVIEW_PARAM}=${encodeURIComponent(profileName)}`;
 }
 
 export function withAccessPreview(href: string, preview?: AccessPreview) {
@@ -19,7 +19,7 @@ export function withAccessPreview(href: string, preview?: AccessPreview) {
   params.delete(USER_ACCESS_PREVIEW_PARAM);
   params.set(
     preview.kind === "group" ? ACCESS_PREVIEW_PARAM : USER_ACCESS_PREVIEW_PARAM,
-    preview.subjectId,
+    preview.kind === "group" ? preview.subjectId : preview.subjectName,
   );
   return `${path}?${params.toString()}`;
 }
@@ -33,15 +33,21 @@ export function applyAccessPreview(
   const projects = data.projects.filter((project) =>
     visibleProjectIds.has(project.id),
   );
+  const inaccessibleTaskIds = new Set(preview.inaccessibleTaskIds ?? []);
   const tasks = data.tasks.filter(
     (task) =>
-      task.project_id === null || visibleProjectIds.has(task.project_id),
+      (task.project_id === null || visibleProjectIds.has(task.project_id)) &&
+      !inaccessibleTaskIds.has(task.id),
   );
   const visibleTaskIds = new Set(tasks.map((task) => task.id));
 
   return {
     ...data,
     accessPreview: preview,
+    currentProfile:
+      preview.kind === "user" && preview.subjectProfile
+        ? preview.subjectProfile
+        : { ...data.currentProfile, favorite_project_ids: [] },
     projects,
     tasks,
     subtasks: data.subtasks.filter((item) => visibleTaskIds.has(item.task_id)),

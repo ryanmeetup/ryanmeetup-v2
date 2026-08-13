@@ -28,6 +28,7 @@ import { MAX_ATTACHMENT_SIZE } from "@/lib/task-attachments";
 import { attachmentUrlName } from "@/lib/task-attachment-urls";
 import { CountBadge } from "@/components/global";
 import { normalizeHttpUrl } from "@ryanmeetup/utils";
+import { formatFileSize } from "@/lib/presentation";
 
 export type NewTaskDetailsDraft = {
   checklist: { id: string; title: string }[];
@@ -42,12 +43,6 @@ export const emptyNewTaskDetails = (): NewTaskDetailsDraft => ({
   urls: [],
   comment: "",
 });
-
-function formatSize(value: number) {
-  if (value < 1024) return `${value} B`;
-  if (value < 1024 * 1024) return `${Math.round(value / 1024)} KB`;
-  return `${(value / 1024 / 1024).toFixed(1)} MB`;
-}
 
 export function NewTaskDetails({
   value,
@@ -207,7 +202,7 @@ export function NewTaskDetails({
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">{file.name}</p>
               <p className="text-xs text-black/50 dark:text-white/50">
-                {formatSize(file.size)}
+                {formatFileSize(file.size)}
               </p>
             </div>
             <IconButton

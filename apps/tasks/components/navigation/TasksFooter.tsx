@@ -15,7 +15,7 @@ export function TasksFooter() {
     <SiteFooter
       title="RYAN MEETUP"
       subtitle="NO BRYANS ALLOWED"
-      className={`px-4 sm:px-6 lg:px-8 ${hasSidebar ? "lg:ml-64" : ""}`}
+      className={`tasks-footer px-4 sm:px-6 lg:px-8 ${hasSidebar ? "lg:ml-64" : ""}`}
       sections={[
         {
           title: "Built with",

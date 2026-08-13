@@ -9,40 +9,29 @@ import {
   EmptyState,
   FilterPanel,
   Heading,
-  IconButton,
   Pagination,
   Spinner,
   toast,
 } from "@ryanmeetup/ui";
-import { FiArrowRight, FiSidebar } from "react-icons/fi";
+import { FiArrowRight } from "react-icons/fi";
 import { CategoriesModal } from "@/components/categories";
-import { TaskBanners } from "@/components/global";
+import { WorkspacePageShell } from "@/components/global";
 import { filterPanelsExpandedPreferenceKey } from "@/lib/user-preferences";
-import {
-  TaskHeaderActions,
-  TaskHeaderBrand,
-  TaskSearch,
-  TasksSidebar,
-} from "@/components/navigation";
 import { ProjectsModal } from "@/components/projects";
 import { withAccessPreview } from "@/lib/access-preview";
 import { useQueryParamState } from "@ryanmeetup/hooks";
 import { usePagination } from "@/hooks/usePagination";
 import type { TaskActivity, WorkspaceData } from "@/lib/types";
 import { taskPath } from "@/lib/task-key";
-import { prioritizeCurrentProfile } from "@/lib/profile-order";
 import { TaskKeyBadge } from "@/components/tasks/TaskKeyBadge";
 import { ActivityFilterMenu } from "./ActivityFilterMenu";
+import { profileDisplayName, splitCommaSeparated } from "@/lib/presentation";
+import { taskActivityLabel, taskStatusChange } from "@/lib/task-activity";
 
 const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",
   timeStyle: "short",
 });
-
-const splitFilterValues = (value: string) => value.split(",").filter(Boolean);
-
-const profileName = (profile: WorkspaceData["profiles"][number]) =>
-  profile.full_name || "Teammate";
 
 function StatusLabel({
   status,
@@ -66,16 +55,7 @@ function activityDescription(
   statuses: WorkspaceData["statuses"],
 ) {
   if (item.action === "moved task") {
-    const fromStatusId =
-      typeof item.details.from_status_id === "string"
-        ? item.details.from_status_id
-        : null;
-    const toStatusId =
-      typeof item.details.status_id === "string"
-        ? item.details.status_id
-        : null;
-    const fromStatus = statuses.find((status) => status.id === fromStatusId);
-    const toStatus = statuses.find((status) => status.id === toStatusId);
+    const { from: fromStatus, to: toStatus } = taskStatusChange(item, statuses);
 
     if (fromStatus && toStatus) {
       return (
@@ -100,14 +80,7 @@ function activityDescription(
     return "Task moved";
   }
 
-  if (item.action === "created the task") return "Task created";
-  if (item.action === "updated the task") return "Task updated";
-  if (item.action.startsWith("added checklist item"))
-    return item.action.replace("added checklist item", "Checklist item added");
-  if (item.action.startsWith("attached "))
-    return item.action.replace("attached ", "Attachment added: ");
-
-  return item.action.charAt(0).toUpperCase() + item.action.slice(1);
+  return taskActivityLabel(item.action);
 }
 
 export function ActivityPageClient({
@@ -142,6 +115,7 @@ export function ActivityPageClient({
     usePagination();
   const previewKind = data.accessPreview?.kind;
   const previewSubjectId = data.accessPreview?.subjectId;
+  const previewSubjectName = data.accessPreview?.subjectName;
   const tasks = useMemo(
     () => new Map(data.tasks.map((task) => [task.id, task])),
     [data.tasks],
@@ -150,16 +124,12 @@ export function ActivityPageClient({
     () => new Map(data.profiles.map((profile) => [profile.id, profile])),
     [data.profiles],
   );
-  const orderedProfiles = useMemo(
-    () => prioritizeCurrentProfile(data.profiles, data.currentProfile.id),
-    [data.currentProfile.id, data.profiles],
-  );
-  const includedProjectValues = splitFilterValues(projectFilter);
-  const excludedProjectValues = splitFilterValues(excludedProjects);
-  const includedPersonValues = splitFilterValues(personFilter);
-  const excludedPersonValues = splitFilterValues(excludedPeople);
-  const includedEventValues = splitFilterValues(kindFilter);
-  const excludedEventValues = splitFilterValues(excludedEvents);
+  const includedProjectValues = splitCommaSeparated(projectFilter);
+  const excludedProjectValues = splitCommaSeparated(excludedProjects);
+  const includedPersonValues = splitCommaSeparated(personFilter);
+  const excludedPersonValues = splitCommaSeparated(excludedPeople);
+  const includedEventValues = splitCommaSeparated(kindFilter);
+  const excludedEventValues = splitCommaSeparated(excludedEvents);
   const filterCount =
     includedProjectValues.length +
     excludedProjectValues.length +
@@ -187,7 +157,7 @@ export function ActivityPageClient({
 
   useEffect(() => {
     const readableProjects = (value: string) =>
-      splitFilterValues(value)
+      splitCommaSeparated(value)
         .map(
           (item) =>
             data.projects.find(
@@ -196,12 +166,12 @@ export function ActivityPageClient({
         )
         .join(",");
     const readablePeople = (value: string) =>
-      splitFilterValues(value)
+      splitCommaSeparated(value)
         .map((item) => {
           const profile = data.profiles.find(
-            (entry) => entry.id === item || profileName(entry) === item,
+            (entry) => entry.id === item || profileDisplayName(entry) === item,
           );
-          return profile ? profileName(profile) : item;
+          return profile ? profileDisplayName(profile) : item;
         })
         .join(",");
     const nextProjects = readableProjects(projectFilter);
@@ -232,7 +202,7 @@ export function ActivityPageClient({
     const controller = new AbortController();
     const params = new URLSearchParams();
     const projectIds = (value: string) =>
-      splitFilterValues(value)
+      splitCommaSeparated(value)
         .map((item) =>
           item === "none"
             ? item
@@ -242,13 +212,13 @@ export function ActivityPageClient({
         )
         .join(",");
     const personIds = (value: string) =>
-      splitFilterValues(value)
+      splitCommaSeparated(value)
         .map((item) =>
           item === "system"
             ? item
             : (data.profiles.find(
                 (profile) =>
-                  profile.id === item || profileName(profile) === item,
+                  profile.id === item || profileDisplayName(profile) === item,
               )?.id ?? item),
         )
         .join(",");
@@ -263,7 +233,7 @@ export function ActivityPageClient({
     if (previewKind && previewSubjectId) {
       params.set(
         previewKind === "group" ? "viewAsGroup" : "viewAsUser",
-        previewSubjectId,
+        previewKind === "group" ? previewSubjectId : (previewSubjectName ?? ""),
       );
     }
     params.set("page", String(page));
@@ -321,6 +291,7 @@ export function ActivityPageClient({
     personFilter,
     previewKind,
     previewSubjectId,
+    previewSubjectName,
     projectFilter,
     syncPage,
     syncPageSize,
@@ -328,146 +299,227 @@ export function ActivityPageClient({
   ]);
 
   return (
-    <div className="min-h-screen bg-[#f7f7f5] text-black dark:bg-[#101010] dark:text-white">
-      <TasksSidebar
+    <>
+      <WorkspacePageShell
         data={data}
         demoMode={demoMode}
-        open={sidebarOpen}
-        setOpen={setSidebarOpen}
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
         onCreateCategory={() => setCategoryCreateOpen(true)}
         onCreateProject={() => setProjectCreateOpen(true)}
-      />
+        setData={setData}
+        contentClassName="p-4 sm:p-6 lg:p-8"
+      >
+        <div className="space-y-6">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-black/50 dark:text-white/50">
+              Workspace history
+            </p>
+            <Heading size="h1" className="mt-2 text-4xl">
+              Activity
+            </Heading>
+            <p className="mt-2 text-sm text-black/65 dark:text-white/65">
+              The latest task creations, moves, edits, and other workspace
+              happenings.
+            </p>
+          </div>
 
-      <main className="min-w-0 lg:pl-64">
-        <header className="tasks-app-header">
-          <IconButton
-            label="Open navigation"
-            tooltipTriggerClassName="lg:hidden"
-            onClick={() => setSidebarOpen(true)}
+          <FilterPanel
+            count={filterCount}
+            controlsClassName="grid grid-cols-1 overflow-visible min-[360px]:grid-cols-2 [&>button]:min-w-0 [&>button]:w-full [&>button>span]:truncate [&>div]:min-w-0 [&>div>button]:min-w-0 [&>div>button]:w-full [&>div>button>span]:truncate lg:flex lg:overflow-x-auto lg:[&>button]:w-auto lg:[&>div>button]:w-auto"
+            defaultExpanded
+            onClear={clearFilters}
+            preferenceStorageKey={filterPanelsExpandedPreferenceKey}
           >
-            <FiSidebar />
-          </IconButton>
-          <TaskHeaderBrand />
-          <TaskSearch
-            tasks={data.tasks}
-            projects={data.projects}
-            categories={data.categories}
-            statuses={data.statuses}
-            profiles={data.profiles}
-          />
-          <TaskHeaderActions
-            data={data}
-            setData={setData}
-            demoMode={demoMode}
-          />
-        </header>
-        <TaskBanners preview={data.accessPreview} />
+            <ActivityFilterMenu
+              label="Project"
+              includedValues={includedProjectValues}
+              excludedValues={excludedProjectValues}
+              onIncludedChange={(values) =>
+                setFilter(setProjectFilter, values.join(","))
+              }
+              onExcludedChange={(values) =>
+                setFilter(setExcludedProjects, values.join(","))
+              }
+              options={[
+                { label: "No project", value: "none" },
+                ...data.projects.map((project) => ({
+                  label: `${project.name}${project.archived_at ? " (archived)" : ""}`,
+                  value: project.name,
+                })),
+              ]}
+            />
+            <ActivityFilterMenu
+              label="Person"
+              proximityValue={profileDisplayName(data.currentProfile)}
+              includedValues={includedPersonValues}
+              excludedValues={excludedPersonValues}
+              onIncludedChange={(values) =>
+                setFilter(setPersonFilter, values.join(","))
+              }
+              onExcludedChange={(values) =>
+                setFilter(setExcludedPeople, values.join(","))
+              }
+              options={[
+                { label: "System", value: "system" },
+                ...data.profiles.map((profile) => ({
+                  avatar: {
+                    name: profileDisplayName(profile),
+                    src: profile.avatar_url,
+                  },
+                  label: profileDisplayName(profile),
+                  value: profileDisplayName(profile),
+                })),
+              ]}
+            />
+            <ActivityFilterMenu
+              label="Event"
+              includedValues={includedEventValues}
+              excludedValues={excludedEventValues}
+              onIncludedChange={(values) =>
+                setFilter(setKindFilter, values.join(","))
+              }
+              onExcludedChange={(values) =>
+                setFilter(setExcludedEvents, values.join(","))
+              }
+              options={[
+                { label: "Task created", value: "created" },
+                { label: "Task updated", value: "updated" },
+                { label: "Task moved", value: "moved" },
+                { label: "Checklist", value: "checklist" },
+                { label: "Attachment", value: "attachment" },
+              ]}
+            />
+            <DropdownSelect
+              label="When"
+              active={timeFilter !== "all"}
+              value={timeFilter}
+              onChange={(value) => setFilter(setTimeFilter, value)}
+              options={[
+                { label: "Any time", value: "all" },
+                { label: "Past 24 hours", value: "day" },
+                { label: "Past 7 days", value: "week" },
+                { label: "Past 30 days", value: "month" },
+              ]}
+            />
+          </FilterPanel>
 
-        <div className="p-4 sm:p-6 lg:p-8">
-          <div className="space-y-6">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-black/50 dark:text-white/50">
-                Workspace history
-              </p>
-              <Heading size="h1" className="mt-2 text-4xl">
-                Activity
-              </Heading>
-              <p className="mt-2 text-sm text-black/65 dark:text-white/65">
-                The latest task creations, moves, edits, and other workspace
-                happenings.
-              </p>
+          <Card
+            size="none"
+            className={`overflow-hidden transition-opacity ${loading ? "opacity-60" : ""}`}
+          >
+            <div className="md:hidden" aria-busy={loading}>
+              <div className="border-b border-black/10 bg-black/[0.025] px-4 py-3 dark:border-white/10 dark:bg-white/[0.025]">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-black/50 dark:text-white/50">
+                  Activity
+                </p>
+              </div>
+              <div className="divide-y divide-black/10 dark:divide-white/10">
+                {data.activity.map((item) => {
+                  const task = tasks.get(item.task_id);
+                  const profile = item.actor_id
+                    ? profiles.get(item.actor_id)
+                    : undefined;
+                  const project = task?.project_id
+                    ? data.projects.find(
+                        (entry) => entry.id === task.project_id,
+                      )
+                    : undefined;
+
+                  return (
+                    <article key={item.id} className="space-y-3 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="flex min-w-0 items-center gap-2 font-semibold">
+                          <Avatar
+                            name={profile?.full_name ?? "System"}
+                            src={profile?.avatar_url}
+                            size="sm"
+                          />
+                          <span className="truncate">
+                            {profile?.full_name ?? "System"}
+                          </span>
+                        </span>
+                        <time
+                          dateTime={item.created_at}
+                          className="shrink-0 text-right text-xs text-black/55 dark:text-white/55"
+                        >
+                          {dateTimeFormatter.format(new Date(item.created_at))}
+                        </time>
+                      </div>
+                      <div className="text-sm">
+                        {activityDescription(item, data.statuses)}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+                        {task ? (
+                          <Link
+                            href={withAccessPreview(
+                              taskPath(task),
+                              data.accessPreview,
+                            )}
+                            className="min-w-0 rounded font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/40"
+                          >
+                            <TaskKeyBadge
+                              task={task}
+                              className="mr-2 align-middle"
+                            />
+                            <span className="hover:underline">
+                              {task.title}
+                            </span>
+                          </Link>
+                        ) : (
+                          <span className="text-black/45 dark:text-white/45">
+                            Task unavailable
+                          </span>
+                        )}
+                        {project && (
+                          <span className="text-black/60 dark:text-white/60">
+                            {project.name}
+                          </span>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
+                {loading && data.activity.length === 0 && (
+                  <div className="flex items-center justify-center gap-2 px-4 py-12 text-sm text-black/60 dark:text-white/60">
+                    <Spinner size={18} label="Loading activity" />
+                    <span>Loading activity…</span>
+                  </div>
+                )}
+                {!loading && data.activity.length === 0 && (
+                  <EmptyState
+                    variant="plain"
+                    message={
+                      filterCount === 0
+                        ? "No activity yet. The next task update will show up here."
+                        : "No activity matches these filters. Try widening your selection."
+                    }
+                  />
+                )}
+              </div>
             </div>
-
-            <FilterPanel
-              count={filterCount}
-              controlsClassName="grid grid-cols-1 overflow-visible min-[360px]:grid-cols-2 [&>button]:min-w-0 [&>button]:w-full [&>button>span]:truncate [&>div]:min-w-0 [&>div>button]:min-w-0 [&>div>button]:w-full [&>div>button>span]:truncate lg:flex lg:overflow-x-auto lg:[&>button]:w-auto lg:[&>div>button]:w-auto"
-              defaultExpanded
-              onClear={clearFilters}
-              preferenceStorageKey={filterPanelsExpandedPreferenceKey}
+            <div
+              className="hidden overflow-x-auto md:block"
+              aria-busy={loading}
             >
-              <ActivityFilterMenu
-                label="Project"
-                includedValues={includedProjectValues}
-                excludedValues={excludedProjectValues}
-                onIncludedChange={(values) =>
-                  setFilter(setProjectFilter, values.join(","))
-                }
-                onExcludedChange={(values) =>
-                  setFilter(setExcludedProjects, values.join(","))
-                }
-                options={[
-                  { label: "No project", value: "none" },
-                  ...data.projects.map((project) => ({
-                    label: `${project.name}${project.archived_at ? " (archived)" : ""}`,
-                    value: project.name,
-                  })),
-                ]}
-              />
-              <ActivityFilterMenu
-                label="Person"
-                includedValues={includedPersonValues}
-                excludedValues={excludedPersonValues}
-                onIncludedChange={(values) =>
-                  setFilter(setPersonFilter, values.join(","))
-                }
-                onExcludedChange={(values) =>
-                  setFilter(setExcludedPeople, values.join(","))
-                }
-                options={[
-                  { label: "System", value: "system" },
-                  ...orderedProfiles.map((profile) => ({
-                    avatar: {
-                      name: profile.full_name || "Teammate",
-                      src: profile.avatar_url,
-                    },
-                    label: profile.full_name || "Teammate",
-                    value: profileName(profile),
-                  })),
-                ]}
-              />
-              <ActivityFilterMenu
-                label="Event"
-                includedValues={includedEventValues}
-                excludedValues={excludedEventValues}
-                onIncludedChange={(values) =>
-                  setFilter(setKindFilter, values.join(","))
-                }
-                onExcludedChange={(values) =>
-                  setFilter(setExcludedEvents, values.join(","))
-                }
-                options={[
-                  { label: "Task created", value: "created" },
-                  { label: "Task updated", value: "updated" },
-                  { label: "Task moved", value: "moved" },
-                  { label: "Checklist", value: "checklist" },
-                  { label: "Attachment", value: "attachment" },
-                ]}
-              />
-              <DropdownSelect
-                label="When"
-                active={timeFilter !== "all"}
-                value={timeFilter}
-                onChange={(value) => setFilter(setTimeFilter, value)}
-                options={[
-                  { label: "Any time", value: "all" },
-                  { label: "Past 24 hours", value: "day" },
-                  { label: "Past 7 days", value: "week" },
-                  { label: "Past 30 days", value: "month" },
-                ]}
-              />
-            </FilterPanel>
-
-            <Card
-              size="none"
-              className={`overflow-hidden transition-opacity ${loading ? "opacity-60" : ""}`}
-            >
-              <div className="md:hidden" aria-busy={loading}>
-                <div className="border-b border-black/10 bg-black/[0.025] px-4 py-3 dark:border-white/10 dark:bg-white/[0.025]">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-black/50 dark:text-white/50">
-                    Activity
-                  </p>
-                </div>
-                <div className="divide-y divide-black/10 dark:divide-white/10">
+              <table className="w-full min-w-[760px] table-fixed text-left text-sm">
+                <colgroup>
+                  <col className="w-[20%] xl:w-[18%]" />
+                  <col className="w-[22%] xl:w-[18%]" />
+                  <col className="w-[21%] xl:w-[19%]" />
+                  <col className="w-[23%] xl:w-[30%]" />
+                  <col className="w-[14%] xl:w-[15%]" />
+                </colgroup>
+                <thead className="border-b border-black/10 bg-black/[0.025] text-[10px] uppercase tracking-[0.16em] text-black/50 dark:border-white/10 dark:bg-white/[0.025] dark:text-white/50">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">When</th>
+                    <th className="px-4 py-3 font-semibold">Who</th>
+                    <th className="px-4 py-3 font-semibold">What happened</th>
+                    <th className="px-4 py-3 font-semibold">Task</th>
+                    <th className="px-4 py-3 font-semibold">Project</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-black/10 dark:divide-white/10">
                   {data.activity.map((item) => {
                     const task = tasks.get(item.task_id);
                     const profile = item.actor_id
@@ -478,40 +530,41 @@ export function ActivityPageClient({
                           (entry) => entry.id === task.project_id,
                         )
                       : undefined;
-
                     return (
-                      <article key={item.id} className="space-y-3 p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <span className="flex min-w-0 items-center gap-2 font-semibold">
+                      <tr
+                        key={item.id}
+                        className="align-middle hover:bg-black/[0.025] dark:hover:bg-white/[0.025]"
+                      >
+                        <td className="whitespace-nowrap px-4 py-3 text-black/55 dark:text-white/55">
+                          <time dateTime={item.created_at}>
+                            {dateTimeFormatter.format(
+                              new Date(item.created_at),
+                            )}
+                          </time>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3">
+                          <span className="flex items-center gap-2 font-semibold">
                             <Avatar
                               name={profile?.full_name ?? "System"}
                               src={profile?.avatar_url}
                               size="sm"
                             />
-                            <span className="truncate">
-                              {profile?.full_name ?? "System"}
-                            </span>
+                            {profile?.full_name ?? "System"}
                           </span>
-                          <time
-                            dateTime={item.created_at}
-                            className="shrink-0 text-right text-xs text-black/55 dark:text-white/55"
-                          >
-                            {dateTimeFormatter.format(
-                              new Date(item.created_at),
-                            )}
-                          </time>
-                        </div>
-                        <div className="text-sm">
-                          {activityDescription(item, data.statuses)}
-                        </div>
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="truncate">
+                            {activityDescription(item, data.statuses)}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 font-semibold">
                           {task ? (
                             <Link
                               href={withAccessPreview(
                                 taskPath(task),
                                 data.accessPreview,
                               )}
-                              className="min-w-0 rounded font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/40"
+                              className="min-w-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/40"
                             >
                               <TaskKeyBadge
                                 task={task}
@@ -526,184 +579,67 @@ export function ActivityPageClient({
                               Task unavailable
                             </span>
                           )}
-                          {project && (
-                            <span className="text-black/60 dark:text-white/60">
-                              {project.name}
-                            </span>
-                          )}
-                        </div>
-                      </article>
+                        </td>
+                        <td className="px-4 py-3 text-black/65 dark:text-white/65">
+                          {project?.name ?? "—"}
+                        </td>
+                      </tr>
                     );
                   })}
                   {loading && data.activity.length === 0 && (
-                    <div className="flex items-center justify-center gap-2 px-4 py-12 text-sm text-black/60 dark:text-white/60">
-                      <Spinner size={18} label="Loading activity" />
-                      <span>Loading activity…</span>
-                    </div>
+                    <tr>
+                      <td colSpan={5}>
+                        <div className="flex items-center justify-center gap-2 px-4 py-12 text-sm text-black/60 dark:text-white/60">
+                          <Spinner size={18} label="Loading activity" />
+                          <span>Loading activity…</span>
+                        </div>
+                      </td>
+                    </tr>
                   )}
                   {!loading && data.activity.length === 0 && (
-                    <EmptyState
-                      variant="plain"
-                      message={
-                        filterCount === 0
-                          ? "No activity yet. The next task update will show up here."
-                          : "No activity matches these filters. Try widening your selection."
-                      }
-                    />
-                  )}
-                </div>
-              </div>
-              <div
-                className="hidden overflow-x-auto md:block"
-                aria-busy={loading}
-              >
-                <table className="w-full min-w-[760px] table-fixed text-left text-sm">
-                  <colgroup>
-                    <col className="w-[20%] xl:w-[18%]" />
-                    <col className="w-[22%] xl:w-[18%]" />
-                    <col className="w-[21%] xl:w-[19%]" />
-                    <col className="w-[23%] xl:w-[30%]" />
-                    <col className="w-[14%] xl:w-[15%]" />
-                  </colgroup>
-                  <thead className="border-b border-black/10 bg-black/[0.025] text-[10px] uppercase tracking-[0.16em] text-black/50 dark:border-white/10 dark:bg-white/[0.025] dark:text-white/50">
                     <tr>
-                      <th className="px-4 py-3 font-semibold">When</th>
-                      <th className="px-4 py-3 font-semibold">Who</th>
-                      <th className="px-4 py-3 font-semibold">What happened</th>
-                      <th className="px-4 py-3 font-semibold">Task</th>
-                      <th className="px-4 py-3 font-semibold">Project</th>
+                      <td colSpan={5}>
+                        <EmptyState
+                          variant="plain"
+                          message={
+                            filterCount === 0
+                              ? "No activity yet. The next task update will show up here."
+                              : "No activity matches these filters. Try widening your selection."
+                          }
+                        />
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-black/10 dark:divide-white/10">
-                    {data.activity.map((item) => {
-                      const task = tasks.get(item.task_id);
-                      const profile = item.actor_id
-                        ? profiles.get(item.actor_id)
-                        : undefined;
-                      const project = task?.project_id
-                        ? data.projects.find(
-                            (entry) => entry.id === task.project_id,
-                          )
-                        : undefined;
-                      return (
-                        <tr
-                          key={item.id}
-                          className="align-middle hover:bg-black/[0.025] dark:hover:bg-white/[0.025]"
-                        >
-                          <td className="whitespace-nowrap px-4 py-3 text-black/55 dark:text-white/55">
-                            <time dateTime={item.created_at}>
-                              {dateTimeFormatter.format(
-                                new Date(item.created_at),
-                              )}
-                            </time>
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-3">
-                            <span className="flex items-center gap-2 font-semibold">
-                              <Avatar
-                                name={profile?.full_name ?? "System"}
-                                src={profile?.avatar_url}
-                                size="sm"
-                              />
-                              {profile?.full_name ?? "System"}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="truncate">
-                              {activityDescription(item, data.statuses)}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 font-semibold">
-                            {task ? (
-                              <Link
-                                href={withAccessPreview(
-                                  taskPath(task),
-                                  data.accessPreview,
-                                )}
-                                className="min-w-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/40"
-                              >
-                                <TaskKeyBadge
-                                  task={task}
-                                  className="mr-2 align-middle"
-                                />
-                                <span className="hover:underline">
-                                  {task.title}
-                                </span>
-                              </Link>
-                            ) : (
-                              <span className="text-black/45 dark:text-white/45">
-                                Task unavailable
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-black/65 dark:text-white/65">
-                            {project?.name ?? "—"}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    {loading && data.activity.length === 0 && (
-                      <tr>
-                        <td colSpan={5}>
-                          <div className="flex items-center justify-center gap-2 px-4 py-12 text-sm text-black/60 dark:text-white/60">
-                            <Spinner size={18} label="Loading activity" />
-                            <span>Loading activity…</span>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                    {!loading && data.activity.length === 0 && (
-                      <tr>
-                        <td colSpan={5}>
-                          <EmptyState
-                            variant="plain"
-                            message={
-                              filterCount === 0
-                                ? "No activity yet. The next task update will show up here."
-                                : "No activity matches these filters. Try widening your selection."
-                            }
-                          />
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              <Pagination
-                page={data.activityPage?.page ?? page}
-                pageSize={data.activityPage?.pageSize ?? pageSize}
-                totalCount={
-                  data.activityPage?.totalCount ?? data.activity.length
-                }
-                itemLabel="events"
-                disabled={loading}
-                onPageChange={setPage}
-                onPageSizeChange={setPageSize}
-              />
-            </Card>
-          </div>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <Pagination
+              page={data.activityPage?.page ?? page}
+              pageSize={data.activityPage?.pageSize ?? pageSize}
+              totalCount={data.activityPage?.totalCount ?? data.activity.length}
+              itemLabel="events"
+              disabled={loading}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
+          </Card>
         </div>
-      </main>
+      </WorkspacePageShell>
 
       {projectCreateOpen && !data.accessPreview && (
         <ProjectsModal
-          open={projectCreateOpen}
-          setOpen={setProjectCreateOpen}
-          data={data}
-          setData={setData}
-          demoMode={demoMode}
-          createOnly
+          modal={{ open: projectCreateOpen, setOpen: setProjectCreateOpen }}
+          workspace={{ data, setData, demoMode }}
+          options={{ createOnly: true }}
         />
       )}
       {categoryCreateOpen && !data.accessPreview && (
         <CategoriesModal
-          open={categoryCreateOpen}
-          setOpen={setCategoryCreateOpen}
-          data={data}
-          setData={setData}
-          demoMode={demoMode}
-          createOnly
+          modal={{ open: categoryCreateOpen, setOpen: setCategoryCreateOpen }}
+          workspace={{ data, setData, demoMode }}
+          options={{ createOnly: true }}
         />
       )}
-    </div>
+    </>
   );
 }

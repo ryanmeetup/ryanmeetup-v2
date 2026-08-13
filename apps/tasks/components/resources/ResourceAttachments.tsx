@@ -20,41 +20,30 @@ import {
 import { MAX_ATTACHMENT_SIZE } from "@/lib/task-attachments";
 import { CountBadge } from "@/components/global";
 import type { CategoryAttachment, ProjectAttachment } from "@/lib/types";
+import { formatFileSize } from "@/lib/presentation";
+import type { ResourceAttachmentDraft } from "@/lib/resource-management";
 
 type ResourceAttachment = ProjectAttachment | CategoryAttachment;
-export type ProjectAttachmentDraft = ResourceAttachment & { file?: File };
 
-function formatSize(value: number | null) {
-  if (value === null) return "";
-  if (value < 1024) return `${value} B`;
-  if (value < 1024 * 1024) return `${Math.round(value / 1024)} KB`;
-  return `${(value / 1024 / 1024).toFixed(1)} MB`;
-}
-
-export function ProjectAttachments({
-  projectId,
-  categoryId,
-  resourceKind,
-  demoMode,
-  disabled,
-  currentUserId,
-  drafts,
-  onDraftsChange,
+export function ResourceAttachments({
+  resource,
+  editor,
+  draftState,
 }: {
-  projectId?: string;
-  categoryId?: string;
-  resourceKind?: "project" | "category";
-  demoMode: boolean;
-  disabled: boolean;
-  currentUserId: string;
-  drafts?: ProjectAttachmentDraft[];
-  onDraftsChange?: (drafts: ProjectAttachmentDraft[]) => void;
+  resource: { kind: "project" | "category"; id?: string };
+  editor: { demoMode: boolean; disabled: boolean; currentUserId: string };
+  draftState?: {
+    drafts: ResourceAttachmentDraft[];
+    onChange: (drafts: ResourceAttachmentDraft[]) => void;
+  };
 }) {
-  const resource = resourceKind ?? (categoryId ? "category" : "project");
-  const resourceId = categoryId ?? projectId;
-  const idKey = resource === "category" ? "categoryId" : "projectId";
-  const endpoint = `/api/${resource}-attachments`;
-  const [items, setItems] = useState<ProjectAttachmentDraft[]>(drafts ?? []);
+  const { kind, id: resourceId } = resource;
+  const { demoMode, disabled, currentUserId } = editor;
+  const idKey = kind === "category" ? "categoryId" : "projectId";
+  const endpoint = `/api/${kind}-attachments`;
+  const [items, setItems] = useState<ResourceAttachmentDraft[]>(
+    draftState?.drafts ?? [],
+  );
   const [loading, setLoading] = useState(!demoMode && Boolean(resourceId));
   const [saving, setSaving] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
@@ -80,19 +69,19 @@ export function ProjectAttachments({
         if (error instanceof DOMException && error.name === "AbortError")
           return;
         toast.error(
-          `${resource === "project" ? "Project" : "Category"} attachments could not be loaded.`,
+          `${kind === "project" ? "Project" : "Category"} attachments could not be loaded.`,
         );
       })
       .finally(() => setLoading(false));
     return () => controller.abort();
-  }, [demoMode, endpoint, idKey, resource, resourceId]);
+  }, [demoMode, endpoint, idKey, kind, resourceId]);
 
   function updateItems(
-    update: (current: ProjectAttachmentDraft[]) => ProjectAttachmentDraft[],
+    update: (current: ResourceAttachmentDraft[]) => ResourceAttachmentDraft[],
   ) {
     setItems((current) => {
       const next = update(current);
-      onDraftsChange?.(next);
+      draftState?.onChange(next);
       return next;
     });
   }
@@ -106,11 +95,11 @@ export function ProjectAttachments({
     }
     setSaving(true);
     try {
-      let attachment: ProjectAttachmentDraft = {
+      let attachment: ResourceAttachmentDraft = {
         id: crypto.randomUUID(),
-        ...(resource === "category"
-          ? { category_id: categoryId ?? "" }
-          : { project_id: projectId ?? "" }),
+        ...(kind === "category"
+          ? { category_id: resourceId ?? "" }
+          : { project_id: resourceId ?? "" }),
         kind: "note",
         name,
         body,
@@ -161,11 +150,11 @@ export function ProjectAttachments({
         continue;
       }
       try {
-        let attachment: ProjectAttachmentDraft = {
+        let attachment: ResourceAttachmentDraft = {
           id: crypto.randomUUID(),
-          ...(resource === "category"
-            ? { category_id: categoryId ?? "" }
-            : { project_id: projectId ?? "" }),
+          ...(kind === "category"
+            ? { category_id: resourceId ?? "" }
+            : { project_id: resourceId ?? "" }),
           kind: "file",
           name: file.name,
           body: null,
@@ -246,7 +235,7 @@ export function ProjectAttachments({
         iconClassName="h-3.5 w-3.5"
         description={
           <p className="pr-2 text-xs leading-relaxed text-black/55 dark:text-white/55">
-            Keep useful context with the {resource}.
+            Keep useful context with the {kind}.
           </p>
         }
         actions={
@@ -265,9 +254,7 @@ export function ProjectAttachments({
         summary={
           <span className="flex items-center gap-2 text-sm font-semibold">
             Notes
-            {notes.length > 0 && (
-              <CountBadge>{notes.length}</CountBadge>
-            )}
+            {notes.length > 0 && <CountBadge>{notes.length}</CountBadge>}
           </span>
         }
       >
@@ -275,16 +262,16 @@ export function ProjectAttachments({
           <div className="space-y-3 rounded-lg border border-black/10 bg-white/60 p-3 dark:border-white/10 dark:bg-black/10">
             <Input
               label="Note title"
-              name={`${resource}-note-title-${resourceId}`}
+              name={`${kind}-note-title-${resourceId}`}
               value={noteTitle}
               maxLength={200}
               disabled={saving}
               onChange={(event) => setNoteTitle(event.target.value)}
             />
             <Textarea
-              id={`${resource}-note-body-${resourceId}`}
+              id={`${kind}-note-body-${resourceId}`}
               label="Note"
-              name={`${resource}-note-body-${resourceId}`}
+              name={`${kind}-note-body-${resourceId}`}
               value={noteBody}
               maxLength={10000}
               rows={4}
@@ -380,9 +367,7 @@ export function ProjectAttachments({
         summary={
           <span className="flex items-center gap-2 text-sm font-semibold">
             Attachments
-            {files.length > 0 && (
-              <CountBadge>{files.length}</CountBadge>
-            )}
+            {files.length > 0 && <CountBadge>{files.length}</CountBadge>}
           </span>
         }
       >
@@ -391,7 +376,7 @@ export function ProjectAttachments({
           type="file"
           multiple
           accept=".pdf,.txt,image/jpeg,image/png,image/webp"
-          aria-label={`Upload ${resource} attachments`}
+          aria-label={`Upload ${kind} attachments`}
           className="sr-only"
           onChange={(event) => {
             void uploadFiles(Array.from(event.target.files ?? []));
@@ -432,7 +417,7 @@ export function ProjectAttachments({
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold">{item.name}</p>
                 <p className="mt-0.5 text-xs text-black/50 dark:text-white/50">
-                  {formatSize(item.size_bytes) || "File"}
+                  {formatFileSize(item.size_bytes) || "File"}
                 </p>
               </div>
               {item.url !== "#" && (

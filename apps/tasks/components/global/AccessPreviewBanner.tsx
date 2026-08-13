@@ -42,9 +42,9 @@ export function AccessPreviewBanner({ preview }: { preview?: AccessPreview }) {
       }
     >
       <p>
-        Viewing project visibility as <strong>{preview.subjectName}</strong>
-        {preview.kind === "group" ? " access group" : ""}. This is a visibility
-        preview; you are still signed in with your own account permissions.
+        Viewing app visibility as <strong>{preview.subjectName}</strong>
+        {preview.kind === "group" ? " access group" : ""}. The preview is
+        read-only; you are still signed in with your own account.
       </p>
     </Banner>
   );

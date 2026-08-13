@@ -8,6 +8,7 @@ import type {
   WorkspaceData,
 } from "./types";
 import { attachmentUrlName } from "./task-attachment-urls";
+import { mutate } from "./mutation-client";
 
 export async function persistNewTaskDetails({
   taskId,
@@ -85,9 +86,11 @@ export async function persistNewTaskDetails({
   const activity: TaskActivity[] = [];
   for (const [index, item] of draft.checklist.entries()) {
     try {
-      const response = await fetch("/api/task-details", {
+      const result = await mutate<{
+        subtask?: Subtask;
+        activity?: TaskActivity;
+      }>("/api/task-details", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           kind: "subtask",
           taskId,
@@ -95,11 +98,7 @@ export async function persistNewTaskDetails({
           sortOrder: index,
         }),
       });
-      const result = (await response.json()) as {
-        subtask?: Subtask;
-        activity?: TaskActivity;
-      };
-      if (!response.ok || !result.subtask) failures += 1;
+      if (!result.subtask) failures += 1;
       else {
         subtasks.push(result.subtask);
         if (result.activity) activity.push(result.activity);
@@ -110,17 +109,18 @@ export async function persistNewTaskDetails({
   }
   if (draft.comment.trim()) {
     try {
-      const response = await fetch("/api/task-details", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          kind: "comment",
-          taskId,
-          value: draft.comment.trim(),
-        }),
-      });
-      const result = (await response.json()) as { comment?: TaskComment };
-      if (!response.ok || !result.comment) failures += 1;
+      const result = await mutate<{ comment?: TaskComment }>(
+        "/api/task-details",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            kind: "comment",
+            taskId,
+            value: draft.comment.trim(),
+          }),
+        },
+      );
+      if (!result.comment) failures += 1;
       else comments.push(result.comment);
     } catch {
       failures += 1;
@@ -131,15 +131,14 @@ export async function persistNewTaskDetails({
       const formData = new FormData();
       formData.set("taskId", taskId);
       formData.set("file", file);
-      const response = await fetch("/api/task-attachments", {
+      const result = await mutate<{
+        attachment?: TaskAttachment;
+        activity?: TaskActivity;
+      }>("/api/task-attachments", {
         method: "POST",
         body: formData,
       });
-      const result = (await response.json()) as {
-        attachment?: TaskAttachment;
-        activity?: TaskActivity;
-      };
-      if (!response.ok || !result.attachment) failures += 1;
+      if (!result.attachment) failures += 1;
       else {
         attachments.push(result.attachment);
         if (result.activity) activity.push(result.activity);
@@ -150,16 +149,14 @@ export async function persistNewTaskDetails({
   }
   for (const item of draft.urls) {
     try {
-      const response = await fetch("/api/task-attachments", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId, url: item.url }),
-      });
-      const result = (await response.json()) as {
+      const result = await mutate<{
         attachment?: TaskAttachment;
         activity?: TaskActivity;
-      };
-      if (!response.ok || !result.attachment) failures += 1;
+      }>("/api/task-attachments", {
+        method: "POST",
+        body: JSON.stringify({ taskId, url: item.url }),
+      });
+      if (!result.attachment) failures += 1;
       else {
         attachments.push(result.attachment);
         if (result.activity) activity.push(result.activity);

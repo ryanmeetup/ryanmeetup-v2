@@ -1,7 +1,7 @@
 import { FiExternalLink } from "react-icons/fi";
 import type { ProjectLink } from "@/lib/types";
 
-export function ProjectLinks({
+export function ResourceLinks({
   links,
   className = "",
 }: {
@@ -12,7 +12,7 @@ export function ProjectLinks({
 
   return (
     <nav
-      aria-label="Project links"
+      aria-label="Resource links"
       className={`flex flex-wrap gap-2 ${className}`}
     >
       {links.map((link) => (

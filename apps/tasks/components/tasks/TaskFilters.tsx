@@ -1,66 +1,79 @@
 import { DropdownSelect, FilterPanel } from "@ryanmeetup/ui";
 import type { Category, Priority, Profile, Project, Status } from "@/lib/types";
-import { prioritizeCurrentProfile } from "@/lib/profile-order";
 import { filterPanelsExpandedPreferenceKey } from "@/lib/user-preferences";
 import { CategoryFilterMenu } from "./CategoryFilterMenu";
 import { InclusionFilterMenu } from "./InclusionFilterMenu";
+import { profileDisplayName } from "@/lib/presentation";
 
 const priorities: Priority[] = ["low", "medium", "high", "urgent"];
-const profileName = (profile: Profile) => profile.full_name || "Teammate";
 
-export function TaskFilters({
-  categories,
-  clearFilters,
-  currentProfileId,
-  filterCount,
-  excludedCategoryIds,
-  filterSelections,
-  includedCategoryIds,
-  onExcludedCategoriesChange,
-  onFilterSelectionChange,
-  onIncludedCategoriesChange,
-  onVisibilityChange,
-  profiles,
-  projects,
-  statuses,
-  visibility,
-}: {
+export type TaskFilterKey =
+  | "assignee"
+  | "reporter"
+  | "project"
+  | "status"
+  | "priority"
+  | "dueWithin";
+
+type InclusionSelection = { included: string[]; excluded: string[] };
+
+export type TaskFilterOptions = {
   categories: Category[];
-  clearFilters: () => void;
   currentProfileId: string;
-  filterCount: number;
-  excludedCategoryIds: string[];
-  filterSelections: Record<string, { included: string[]; excluded: string[] }>;
-  includedCategoryIds: string[];
-  onExcludedCategoriesChange: (value: string[]) => void;
-  onFilterSelectionChange: (
-    filter: string,
-    kind: "included" | "excluded",
-    values: string[],
-  ) => void;
-  onIncludedCategoriesChange: (value: string[]) => void;
-  onVisibilityChange: (value: string) => void;
   profiles: Profile[];
   projects: Project[];
   statuses: Status[];
+};
+
+export type TaskFilterController = {
+  count: number;
   visibility: string;
+  categories: InclusionSelection;
+  selections: Record<TaskFilterKey, InclusionSelection>;
+  clear: () => void;
+  setVisibility: (value: string) => void;
+  setCategories: (kind: "included" | "excluded", values: string[]) => void;
+  setSelection: (
+    filter: TaskFilterKey,
+    kind: "included" | "excluded",
+    values: string[],
+  ) => void;
+};
+
+export function TaskFilters({
+  options,
+  controller,
+}: {
+  options: TaskFilterOptions;
+  controller: TaskFilterController;
 }) {
-  const orderedProfiles = prioritizeCurrentProfile(profiles, currentProfileId);
+  const { categories, currentProfileId, profiles, projects, statuses } =
+    options;
+  const {
+    count,
+    visibility,
+    categories: categorySelection,
+    selections,
+    clear,
+    setVisibility,
+    setCategories,
+    setSelection,
+  } = controller;
 
   return (
     <FilterPanel
-      count={filterCount}
+      count={count}
       className="mb-6"
       controlsClassName="grid grid-cols-1 overflow-visible min-[360px]:grid-cols-2 [&>button]:min-w-0 [&>button]:w-full [&>button>span]:truncate [&>div]:min-w-0 [&>div>button]:min-w-0 [&>div>button]:w-full [&>div>button>span]:truncate lg:flex lg:overflow-x-auto lg:[&>button]:w-auto lg:[&>div>button]:w-auto"
       defaultExpanded
-      onClear={clearFilters}
+      onClear={clear}
       preferenceStorageKey={filterPanelsExpandedPreferenceKey}
     >
       <DropdownSelect
         label="Visibility"
         active={visibility === "archived"}
         value={visibility === "archived" ? "Archived tasks" : "Active tasks"}
-        onChange={onVisibilityChange}
+        onChange={setVisibility}
         options={[
           { label: "Active tasks", value: "active" },
           { label: "Archived tasks", value: "archived" },
@@ -68,52 +81,54 @@ export function TaskFilters({
       />
       <InclusionFilterMenu
         label="Assignee"
+        proximityValue={currentProfileId}
         anyLabel="Anyone"
         options={[
           { label: "Unassigned", value: "unassigned" },
-          ...orderedProfiles.map((profile) => ({
+          ...profiles.map((profile) => ({
             avatar: {
-              name: profileName(profile),
+              name: profileDisplayName(profile),
               src: profile.avatar_url,
             },
-            label: profileName(profile),
+            label: profileDisplayName(profile),
             value: profile.id,
           })),
         ]}
-        includedValues={filterSelections.assignee.included}
-        excludedValues={filterSelections.assignee.excluded}
+        includedValues={selections.assignee.included}
+        excludedValues={selections.assignee.excluded}
         onIncludedChange={(values) =>
-          onFilterSelectionChange("assignee", "included", values)
+          setSelection("assignee", "included", values)
         }
         onExcludedChange={(values) =>
-          onFilterSelectionChange("assignee", "excluded", values)
+          setSelection("assignee", "excluded", values)
         }
       />
       <CategoryFilterMenu
         categories={categories}
-        includedIds={includedCategoryIds}
-        excludedIds={excludedCategoryIds}
-        onIncludedChange={onIncludedCategoriesChange}
-        onExcludedChange={onExcludedCategoriesChange}
+        includedIds={categorySelection.included}
+        excludedIds={categorySelection.excluded}
+        onIncludedChange={(values) => setCategories("included", values)}
+        onExcludedChange={(values) => setCategories("excluded", values)}
       />
       <InclusionFilterMenu
         label="Reported by"
+        proximityValue={currentProfileId}
         anyLabel="Anyone"
-        options={orderedProfiles.map((profile) => ({
+        options={profiles.map((profile) => ({
           avatar: {
-            name: profileName(profile),
+            name: profileDisplayName(profile),
             src: profile.avatar_url,
           },
-          label: profileName(profile),
+          label: profileDisplayName(profile),
           value: profile.id,
         }))}
-        includedValues={filterSelections.reporter.included}
-        excludedValues={filterSelections.reporter.excluded}
+        includedValues={selections.reporter.included}
+        excludedValues={selections.reporter.excluded}
         onIncludedChange={(values) =>
-          onFilterSelectionChange("reporter", "included", values)
+          setSelection("reporter", "included", values)
         }
         onExcludedChange={(values) =>
-          onFilterSelectionChange("reporter", "excluded", values)
+          setSelection("reporter", "excluded", values)
         }
       />
       <InclusionFilterMenu
@@ -126,26 +141,26 @@ export function TaskFilters({
             value: item.id,
           })),
         ]}
-        includedValues={filterSelections.project.included}
-        excludedValues={filterSelections.project.excluded}
+        includedValues={selections.project.included}
+        excludedValues={selections.project.excluded}
         onIncludedChange={(values) =>
-          onFilterSelectionChange("project", "included", values)
+          setSelection("project", "included", values)
         }
         onExcludedChange={(values) =>
-          onFilterSelectionChange("project", "excluded", values)
+          setSelection("project", "excluded", values)
         }
       />
       <InclusionFilterMenu
         label="Status"
         anyLabel="All statuses"
         options={statuses.map((item) => ({ label: item.name, value: item.id }))}
-        includedValues={filterSelections.status.included}
-        excludedValues={filterSelections.status.excluded}
+        includedValues={selections.status.included}
+        excludedValues={selections.status.excluded}
         onIncludedChange={(values) =>
-          onFilterSelectionChange("status", "included", values)
+          setSelection("status", "included", values)
         }
         onExcludedChange={(values) =>
-          onFilterSelectionChange("status", "excluded", values)
+          setSelection("status", "excluded", values)
         }
       />
       <InclusionFilterMenu
@@ -155,13 +170,13 @@ export function TaskFilters({
           label: item[0].toUpperCase() + item.slice(1),
           value: item,
         }))}
-        includedValues={filterSelections.priority.included}
-        excludedValues={filterSelections.priority.excluded}
+        includedValues={selections.priority.included}
+        excludedValues={selections.priority.excluded}
         onIncludedChange={(values) =>
-          onFilterSelectionChange("priority", "included", values)
+          setSelection("priority", "included", values)
         }
         onExcludedChange={(values) =>
-          onFilterSelectionChange("priority", "excluded", values)
+          setSelection("priority", "excluded", values)
         }
       />
       <InclusionFilterMenu
@@ -172,13 +187,13 @@ export function TaskFilters({
           { label: "Next 14 days", value: "14" },
           { label: "Next 30 days", value: "30" },
         ]}
-        includedValues={filterSelections.dueWithin.included}
-        excludedValues={filterSelections.dueWithin.excluded}
+        includedValues={selections.dueWithin.included}
+        excludedValues={selections.dueWithin.excluded}
         onIncludedChange={(values) =>
-          onFilterSelectionChange("dueWithin", "included", values)
+          setSelection("dueWithin", "included", values)
         }
         onExcludedChange={(values) =>
-          onFilterSelectionChange("dueWithin", "excluded", values)
+          setSelection("dueWithin", "excluded", values)
         }
       />
     </FilterPanel>

@@ -6,16 +6,19 @@ import { Avatar, IconButton, Tooltip } from "@ryanmeetup/ui";
 import { FiLogOut } from "react-icons/fi";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/types";
+import { profileDisplayName } from "@/lib/presentation";
 
 export function HeaderProfileControls({
   demoMode,
   profile,
+  previewing = false,
 }: {
   demoMode: boolean;
   profile: Profile;
+  previewing?: boolean;
 }) {
   const router = useRouter();
-  const name = profile.full_name || "Teammate";
+  const name = profileDisplayName(profile);
   const summary = (
     <>
       <Avatar name={name} src={profile.avatar_url} />
@@ -33,7 +36,7 @@ export function HeaderProfileControls({
 
   return (
     <div className="flex shrink-0 items-center gap-1 border-l border-black/10 pl-1.5 dark:border-white/10 sm:gap-2 sm:pl-3">
-      {demoMode ? (
+      {demoMode || previewing ? (
         <div className="flex min-w-0 items-center gap-2">{summary}</div>
       ) : (
         <Tooltip content="View profile">

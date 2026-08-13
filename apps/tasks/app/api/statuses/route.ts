@@ -20,6 +20,7 @@ export async function POST(request: Request) {
   const { data, error } = await context.admin
     .rpc("create_status", {
       status_name: parsed.data.name,
+      status_description: parsed.data.description,
       status_color: parsed.data.color,
     })
     .single();

@@ -1,33 +1,12 @@
 import { Avatar, Button, Heading, Pill, Tooltip } from "@ryanmeetup/ui";
 import { FiEdit2, FiGrid, FiList, FiUsers } from "react-icons/fi";
 import type { Category, Profile, Project } from "@/lib/types";
-import { ProjectLinks } from "@/components/projects";
+import { ResourceLinks } from "@/components/resources";
 
-export function TaskWorkspaceHeader({
-  assignee,
-  isMyTasks,
-  myTasksName,
-  onEditProject,
-  onEditCategory,
-  onSetAssignee,
-  onSetView,
-  previewing,
-  projectOwners,
-  scopeDescription,
-  selectedCategory,
-  selectedProject,
-  taskCount,
-  view,
-  viewTitle,
-  viewingAsGroup,
-}: {
+export type TaskWorkspaceHeaderScope = {
   assignee: string;
   isMyTasks: boolean;
   myTasksName: string;
-  onEditProject: () => void;
-  onEditCategory: () => void;
-  onSetAssignee: (value: string) => void;
-  onSetView: (value: "board" | "list") => void;
   previewing: boolean;
   projectOwners: Profile[];
   scopeDescription: string | null | undefined;
@@ -37,7 +16,37 @@ export function TaskWorkspaceHeader({
   view: "board" | "list";
   viewTitle: string;
   viewingAsGroup: boolean;
+};
+
+export type TaskWorkspaceHeaderControls = {
+  onEditProject: () => void;
+  onEditCategory: () => void;
+  onSetAssignee: (value: string) => void;
+  onSetView: (value: "board" | "list") => void;
+};
+
+export function TaskWorkspaceHeader({
+  scope,
+  controls,
+}: {
+  scope: TaskWorkspaceHeaderScope;
+  controls: TaskWorkspaceHeaderControls;
 }) {
+  const {
+    assignee,
+    isMyTasks,
+    myTasksName,
+    previewing,
+    projectOwners,
+    scopeDescription,
+    selectedCategory,
+    selectedProject,
+    taskCount,
+    view,
+    viewTitle,
+    viewingAsGroup,
+  } = scope;
+  const { onEditProject, onEditCategory, onSetAssignee, onSetView } = controls;
   return (
     <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
       <div>
@@ -115,7 +124,7 @@ export function TaskWorkspaceHeader({
                 <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-black/45 dark:text-white/45">
                   Useful links
                 </p>
-                <ProjectLinks links={selectedProject.links} />
+                <ResourceLinks links={selectedProject.links} />
               </div>
             )}
           </div>
@@ -125,7 +134,7 @@ export function TaskWorkspaceHeader({
             <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-black/45 dark:text-white/45">
               Useful links
             </p>
-            <ProjectLinks links={selectedCategory.links ?? []} />
+            <ResourceLinks links={selectedCategory.links ?? []} />
           </div>
         )}
       </div>

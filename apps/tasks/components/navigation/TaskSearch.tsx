@@ -32,6 +32,7 @@ import {
   ACCESS_PREVIEW_PARAM,
   USER_ACCESS_PREVIEW_PARAM,
 } from "@/lib/access-preview";
+import { profileDisplayName } from "@/lib/presentation";
 
 const RESULT_LIMIT = 25;
 const DEBOUNCE_MS = 200;
@@ -244,7 +245,7 @@ export function TaskSearch({
       : firstCategory
         ? filteredBoardPath("category", firstCategory.name)
         : firstProfile
-          ? filteredBoardPath("assignee", firstProfile.full_name || "Teammate")
+          ? filteredBoardPath("assignee", profileDisplayName(firstProfile))
           : firstStatus
             ? filteredBoardPath("status", firstStatus.name)
             : null;
@@ -438,12 +439,12 @@ export function TaskSearch({
                             {assignee && (
                               <span className="inline-flex min-w-0 items-center gap-1.5">
                                 <Avatar
-                                  name={assignee.full_name || "Teammate"}
+                                  name={profileDisplayName(assignee)}
                                   src={assignee.avatar_url}
                                   size="sm"
                                 />
                                 <span className="truncate">
-                                  {assignee.full_name || "Teammate"}
+                                  {profileDisplayName(assignee)}
                                 </span>
                               </span>
                             )}
@@ -556,17 +557,17 @@ export function TaskSearch({
                       key={profile.id}
                       href={filteredBoardPath(
                         "assignee",
-                        profile.full_name || "Teammate",
+                        profileDisplayName(profile),
                       )}
                       className="flex items-center gap-3 border-b border-black/5 px-4 py-3 text-sm hover:bg-black/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-black/30 dark:border-white/5 dark:hover:bg-white/[0.04] dark:focus-visible:ring-white/40"
                     >
                       <Avatar
-                        name={profile.full_name || "Teammate"}
+                        name={profileDisplayName(profile)}
                         src={profile.avatar_url}
                         size="sm"
                       />
                       <span className="truncate font-semibold">
-                        {profile.full_name || "Teammate"}
+                        {profileDisplayName(profile)}
                       </span>
                     </Link>
                   ))}

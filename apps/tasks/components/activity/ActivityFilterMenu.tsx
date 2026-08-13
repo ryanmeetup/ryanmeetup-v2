@@ -5,6 +5,7 @@ import {
   Avatar,
   getFilterControlClasses,
   type AvatarProps,
+  useProximityOptions,
 } from "@ryanmeetup/ui";
 import { FiCheck, FiChevronDown, FiMinus, FiPlus } from "react-icons/fi";
 
@@ -21,6 +22,7 @@ export function ActivityFilterMenu({
   onExcludedChange,
   onIncludedChange,
   options,
+  proximityValue,
 }: {
   excludedValues: string[];
   includedValues: string[];
@@ -28,7 +30,12 @@ export function ActivityFilterMenu({
   onExcludedChange: (values: string[]) => void;
   onIncludedChange: (values: string[]) => void;
   options: ActivityFilterOption[];
+  proximityValue?: string;
 }) {
+  const { orderedOptions, setAnchorElement } = useProximityOptions(
+    options,
+    proximityValue,
+  );
   const included = new Set(includedValues);
   const excluded = new Set(excludedValues);
   const active = included.size > 0 || excluded.size > 0;
@@ -73,6 +80,7 @@ export function ActivityFilterMenu({
         />
       </PopoverButton>
       <PopoverPanel
+        ref={setAnchorElement}
         anchor={{ to: "bottom start", padding: 16 }}
         className="z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-black/10 bg-white/95 p-2 text-black shadow-xl backdrop-blur dark:border-white/10 dark:bg-[#181818]/95 dark:text-white"
       >
@@ -82,7 +90,7 @@ export function ActivityFilterMenu({
           <span className="w-16 text-center">Exclude</span>
         </div>
         <div className="max-h-64 overflow-y-auto">
-          {options.map((option) => (
+          {orderedOptions.map((option) => (
             <div
               key={option.value}
               className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-black/5 dark:hover:bg-white/10"

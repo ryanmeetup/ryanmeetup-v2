@@ -37,11 +37,14 @@ const color = (value: unknown) =>
 export const colorSchema = color;
 
 export function statusCreateSchema(value: unknown) {
-  const body = objectWithKeys(value, ["name", "color"]);
+  const body = objectWithKeys(value, ["name", "description", "color"]);
   if (!body) return null;
   const name = text(body.name, 80);
+  const description = optionalText(body.description, 240);
   const validColor = color(body.color);
-  return name && validColor ? { name, color: validColor } : null;
+  return name && description !== null && validColor
+    ? { name, description: description || null, color: validColor }
+    : null;
 }
 
 export function statusPatchSchema(value: unknown) {
@@ -91,6 +94,7 @@ export function categorySchema(value: unknown, requireId = false) {
     "description",
     "color",
     "links",
+    "tags",
     "ownerIds",
     "archived",
   ]);
@@ -100,6 +104,14 @@ export function categorySchema(value: unknown, requireId = false) {
   const description = optionalText(body.description, 500);
   const validColor = color(body.color);
   const links = projectLinks(body.links ?? []);
+  const rawTags = body.tags ?? [];
+  const tags = Array.isArray(rawTags)
+    ? [
+        ...new Set(
+          rawTags.map((tag) => text(tag, 40)).filter(Boolean),
+        ),
+      ]
+    : null;
   const archived = body.archived;
   const ownerIds =
     body.ownerIds === undefined ? undefined : uuidList(body.ownerIds);
@@ -110,6 +122,8 @@ export function categorySchema(value: unknown, requireId = false) {
     (!requireId && !description) ||
     !validColor ||
     !links ||
+    !tags ||
+    tags.length > 20 ||
     ownerIds === null ||
     (!requireId && (!ownerIds || ownerIds.length === 0)) ||
     (ownerIds !== undefined && ownerIds.length === 0) ||
@@ -122,6 +136,7 @@ export function categorySchema(value: unknown, requireId = false) {
     description: description || null,
     color: validColor,
     links,
+    tags,
     ownerIds,
     archived: archived as boolean | undefined,
   };
@@ -261,6 +276,7 @@ type TaskInput = Pick<
   | "due_time"
   | "reminder_at"
   | "priority"
+  | "category_tags"
 >;
 const priorities: Priority[] = ["low", "medium", "high", "urgent"];
 
@@ -278,6 +294,7 @@ export function taskSaveSchema(value: unknown) {
   const statusId = uuid(task.status_id);
   const reportedBy = uuid(task.reported_by);
   const categoryIds = uuidList(body.categoryIds);
+  const categoryTags = task.category_tags ?? {};
   const id = body.id === undefined ? null : uuid(body.id);
   if (
     !title ||
@@ -285,12 +302,21 @@ export function taskSaveSchema(value: unknown) {
     !reportedBy ||
     (body.id !== undefined && !id) ||
     !priorities.includes(task.priority as Priority) ||
-    !categoryIds?.length
+    !categoryIds?.length ||
+    !categoryTags ||
+    typeof categoryTags !== "object" ||
+    Array.isArray(categoryTags)
   )
     return null;
   return {
     id,
-    task: { ...task, title, status_id: statusId, reported_by: reportedBy },
+    task: {
+      ...task,
+      title,
+      status_id: statusId,
+      reported_by: reportedBy,
+      category_tags: categoryTags,
+    },
     categoryIds,
   };
 }

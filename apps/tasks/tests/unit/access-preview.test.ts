@@ -3,6 +3,7 @@ import { applyAccessPreview, withAccessPreview } from "@/lib/access-preview";
 import type { WorkspaceData } from "@/lib/types";
 
 const baseData = {
+  currentProfile: { favorite_project_ids: ["hidden"] },
   projects: [{ id: "visible" }, { id: "hidden" }],
   tasks: [
     { id: "visible-task", project_id: "visible" },
@@ -18,7 +19,10 @@ const baseData = {
   attachments: [{ task_id: "hidden-task" }],
   taskAssignees: [{ task_id: "visible-task" }],
   taskLabels: [{ task_id: "hidden-task" }],
-  taskCategories: [{ task_id: "visible-task" }],
+  taskCategories: [
+    { task_id: "visible-task", category_id: "general" },
+    { task_id: "hidden-task", category_id: "restricted" },
+  ],
   projectOwners: [
     { project_id: "visible" },
     { project_id: "hidden" },
@@ -49,6 +53,56 @@ describe("access preview", () => {
         subjectId: "user 1",
         subjectName: "User One",
       }),
-    ).toBe("/?search=launch&viewAsUser=user+1");
+    ).toBe("/?search=launch&viewAsUser=User+One");
+  });
+
+  it("uses the viewed user's favorites instead of the owner's favorites", () => {
+    const result = applyAccessPreview(
+      baseData,
+      {
+        kind: "user",
+        subjectId: "user-1",
+        subjectName: "User One",
+        subjectProfile: {
+          id: "user-1",
+          full_name: "User One",
+          avatar_url: null,
+          onboarding_completed: true,
+          task_details_open_by_default: false,
+          favorite_project_ids: ["visible"],
+          app_role: "member",
+        },
+      },
+      ["visible"],
+    );
+
+    expect(result.currentProfile.favorite_project_ids).toEqual(["visible"]);
+    expect(result.currentProfile.id).toBe("user-1");
+  });
+
+  it("does not carry personal favorites into a group preview", () => {
+    const result = applyAccessPreview(
+      baseData,
+      { kind: "group", subjectId: "group-1", subjectName: "Reviewers" },
+      ["visible"],
+    );
+
+    expect(result.currentProfile.favorite_project_ids).toEqual([]);
+  });
+
+  it("removes tasks blocked by category access as well as project access", () => {
+    const result = applyAccessPreview(
+      baseData,
+      {
+        kind: "user",
+        subjectId: "user-1",
+        subjectName: "User One",
+        inaccessibleTaskIds: ["visible-task"],
+      },
+      ["visible"],
+    );
+
+    expect(result.tasks.map(({ id }) => id)).toEqual(["shared-task"]);
+    expect(result.taskCategories).toHaveLength(0);
   });
 });

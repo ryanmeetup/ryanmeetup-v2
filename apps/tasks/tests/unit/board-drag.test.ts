@@ -1,0 +1,13 @@
+import { describe, expect, it } from "vitest";
+import { boardDragScrollSpeed } from "@/lib/board-drag";
+
+describe("board drag scrolling", () => {
+  it("scrolls toward nearby viewport edges", () => {
+    expect(boardDragScrollSpeed(0, 0, 1000)).toBeLessThan(0);
+    expect(boardDragScrollSpeed(1000, 0, 1000)).toBeGreaterThan(0);
+  });
+
+  it("does not scroll away from the edges", () => {
+    expect(boardDragScrollSpeed(500, 0, 1000)).toBe(0);
+  });
+});

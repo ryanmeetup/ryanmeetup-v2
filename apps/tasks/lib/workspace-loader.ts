@@ -65,13 +65,14 @@ export const WORKSPACE_COLUMNS = {
     "id,full_name,avatar_url,onboarding_completed,task_details_open_by_default,app_role",
   currentProfile:
     "id,full_name,avatar_url,onboarding_completed,task_details_open_by_default,favorite_project_ids,app_role",
-  statuses: "id,name,color,sort_order,order_revision,is_default,is_completed",
-  categories: "id,name,description,color,links,created_by,archived_at",
+  statuses:
+    "id,name,description,color,sort_order,order_revision,is_default,is_completed",
+  categories: "id,name,description,color,links,tags,created_by,archived_at",
   projects: "id,name,description,links,created_by,archived_at,created_at",
   projectOwners: "project_id,profile_id",
   categoryOwners: "category_id,profile_id",
   tasks:
-    "id,task_number,title,description,status_id,project_id,assignee_id,created_by,reported_by,start_date,due_date,due_time,reminder_at,priority,board_position,completed_at,archived_at,created_at,updated_at",
+    "id,task_number,title,description,status_id,project_id,assignee_id,created_by,reported_by,start_date,due_date,due_time,reminder_at,priority,category_tags,board_position,completed_at,archived_at,created_at,updated_at",
   subtasks: "id,task_id,title,is_completed,sort_order,created_by,created_at",
   comments: "id,task_id,body,created_by,created_at,edited_at",
   activity: "id,task_id,actor_id,action,details,created_at",

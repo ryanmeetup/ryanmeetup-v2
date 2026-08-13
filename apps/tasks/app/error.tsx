@@ -10,7 +10,10 @@ export default function ErrorPage({
   reset: () => void;
 }) {
   return (
-    <main className="grid min-h-[60vh] place-items-center px-4 py-12 text-black dark:text-white">
+    <main
+      data-workspace-error
+      className="grid min-h-screen place-items-center px-4 py-12 text-black dark:text-white"
+    >
       <div className="w-full max-w-xl space-y-5">
         <Heading size="h1">We couldn’t load your workspace</Heading>
         <ErrorCallout>

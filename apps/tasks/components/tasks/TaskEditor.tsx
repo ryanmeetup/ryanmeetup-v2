@@ -9,6 +9,7 @@ import {
   IconButton,
   Input,
   Modal,
+  MultiSelect,
   Pill,
   RichTextarea,
   toast,
@@ -22,58 +23,65 @@ import {
 import type { Priority, Status, Task, WorkspaceData } from "@/lib/types";
 import type { TaskDraft } from "@/lib/task-mutations";
 import { taskKey, taskPath } from "@/lib/task-key";
+import { profileDisplayName } from "@/lib/presentation";
 import { TaskDetails } from "./TaskDetails";
 import { TaskKeyBadge } from "./TaskKeyBadge";
 import { NewTaskDetails, type NewTaskDetailsDraft } from "./NewTaskDetails";
 
 const priorities: Priority[] = ["low", "medium", "high", "urgent"];
 
-function profileName(profile: { full_name: string }) {
-  return profile.full_name || "Teammate";
-}
-export function TaskEditor({
-  taskOpen,
-  setTaskOpen,
-  editing,
-  taskDetailsOpen,
-  setTaskDetailsOpen,
-  createAnother,
-  setCreateAnother,
-  taskSaving,
-  draft,
-  setDraft,
-  statuses,
-  data,
-  setData,
-  demoMode,
-  saveTask,
-  saveDraft,
-  setTaskPendingDelete,
-  taskMessage,
-  newTaskDetails,
-  setNewTaskDetails,
-}: {
-  taskOpen: boolean;
-  setTaskOpen: (open: boolean) => void;
-  editing: Task | null;
-  taskDetailsOpen: boolean;
-  setTaskDetailsOpen: (open: boolean) => void;
-  createAnother: boolean;
-  setCreateAnother: (value: boolean) => void;
-  taskSaving: boolean;
+export type TaskEditorModalState = {
+  open: boolean;
+  setOpen: (open: boolean) => void;
+  detailsOpen: boolean;
+  setDetailsOpen: (open: boolean) => void;
+};
+
+export type TaskEditorFormState = {
   draft: TaskDraft;
   setDraft: Dispatch<SetStateAction<TaskDraft>>;
+  saving: boolean;
+  message: string;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void | Promise<void>;
+};
+
+export type TaskEditorWorkspace = {
   statuses: Status[];
   data: WorkspaceData;
   setData: Dispatch<SetStateAction<WorkspaceData>>;
   demoMode: boolean;
-  saveTask: (event: FormEvent<HTMLFormElement>) => void | Promise<void>;
-  saveDraft?: () => void;
-  setTaskPendingDelete: (task: Task | null) => void;
-  taskMessage: string;
-  newTaskDetails: NewTaskDetailsDraft;
-  setNewTaskDetails: Dispatch<SetStateAction<NewTaskDetailsDraft>>;
+};
+
+export type TaskEditorMode =
+  | {
+      kind: "create";
+      createAnother: boolean;
+      setCreateAnother: (value: boolean) => void;
+      details: NewTaskDetailsDraft;
+      setDetails: Dispatch<SetStateAction<NewTaskDetailsDraft>>;
+      onSaveDraft?: () => void;
+    }
+  | {
+      kind: "edit";
+      task: Task;
+      onDelete: (task: Task) => void;
+    };
+
+export function TaskEditor({
+  modal,
+  form,
+  workspace,
+  mode,
+}: {
+  modal: TaskEditorModalState;
+  form: TaskEditorFormState;
+  workspace: TaskEditorWorkspace;
+  mode: TaskEditorMode;
 }) {
+  const { open, setOpen, detailsOpen, setDetailsOpen } = modal;
+  const { draft, setDraft, saving, message, onSubmit } = form;
+  const { statuses, data, setData, demoMode } = workspace;
+  const editing = mode.kind === "edit" ? mode.task : null;
   async function copyTaskLink() {
     if (!editing) return;
     try {
@@ -85,11 +93,32 @@ export function TaskEditor({
       toast.error("The task link could not be copied.");
     }
   }
+  const tagOptions = data.categories
+    .filter((category) => draft.category_ids.includes(category.id))
+    .flatMap((category) =>
+      (category.tags ?? []).map((tag) => ({
+        label: `${category.name} / ${tag}`,
+        value: JSON.stringify([category.id, tag]),
+      })),
+    );
+  const selectedTagValues = Object.entries(draft.category_tags).flatMap(
+    ([categoryId, tags]) =>
+      tags.map((tag) => JSON.stringify([categoryId, tag])),
+  );
+
+  function updateTags(values: string[]) {
+    const categoryTags: Record<string, string[]> = {};
+    for (const value of values) {
+      const [categoryId, tag] = JSON.parse(value) as [string, string];
+      categoryTags[categoryId] = [...(categoryTags[categoryId] ?? []), tag];
+    }
+    setDraft({ ...draft, category_tags: categoryTags });
+  }
 
   return (
     <Modal
-      open={taskOpen}
-      setIsOpen={setTaskOpen}
+      open={open}
+      setIsOpen={setOpen}
       title={
         editing ? (
           <span className="inline-flex flex-wrap items-center gap-2">
@@ -101,7 +130,7 @@ export function TaskEditor({
         )
       }
       hideActions
-      size={taskDetailsOpen ? "2xl" : "lg"}
+      size={detailsOpen ? "2xl" : "lg"}
       panelClassName="transition-[max-width] duration-300 ease-out motion-reduce:transition-none"
       footer={
         <div className="grid w-full gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
@@ -127,20 +156,22 @@ export function TaskEditor({
                 label="Delete task"
                 variant="danger"
                 size="md"
-                onClick={() => setTaskPendingDelete(editing)}
+                onClick={() => mode.kind === "edit" && mode.onDelete(editing)}
               >
                 <FiTrash2 />
               </IconButton>
             </div>
           )}
-          {!editing && (
+          {mode.kind === "create" && (
             <div className="flex flex-wrap items-center gap-3">
               <label className="flex w-fit cursor-pointer items-center gap-3 text-sm font-medium text-black/70 dark:text-white/70">
                 <input
                   type="checkbox"
-                  checked={createAnother}
-                  onChange={(event) => setCreateAnother(event.target.checked)}
-                  disabled={taskSaving}
+                  checked={mode.createAnother}
+                  onChange={(event) =>
+                    mode.setCreateAnother(event.target.checked)
+                  }
+                  disabled={saving}
                   className="h-4 w-4 rounded border-black/20 accent-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/20 dark:accent-white dark:focus-visible:ring-white/40"
                 />
                 Create another
@@ -148,13 +179,13 @@ export function TaskEditor({
             </div>
           )}
           <div className="flex flex-wrap items-center justify-end gap-2 sm:col-start-2">
-            {!editing && saveDraft && (
+            {mode.kind === "create" && mode.onSaveDraft && (
               <Button
                 type="button"
                 variant="secondary"
                 size="sm"
-                onClick={saveDraft}
-                disabled={taskSaving}
+                onClick={mode.onSaveDraft}
+                disabled={saving}
               >
                 Save draft
               </Button>
@@ -164,8 +195,8 @@ export function TaskEditor({
               variant="secondary"
               size="sm"
               className="whitespace-nowrap"
-              onClick={() => setTaskOpen(false)}
-              disabled={taskSaving}
+              onClick={() => setOpen(false)}
+              disabled={saving}
             >
               Cancel
             </Button>
@@ -174,7 +205,7 @@ export function TaskEditor({
               form="task-editor-form"
               size="sm"
               className="whitespace-nowrap"
-              loading={taskSaving}
+              loading={saving}
               loadingText="Saving..."
             >
               {editing ? "Save changes" : "Create task"}
@@ -186,11 +217,11 @@ export function TaskEditor({
       <form
         id="task-editor-form"
         className="min-w-0 space-y-5"
-        onSubmit={saveTask}
+        onSubmit={onSubmit}
       >
         <div
           className={
-            taskDetailsOpen
+            detailsOpen
               ? "grid items-start transition-[grid-template-columns,gap] duration-300 ease-out motion-reduce:transition-none lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-8"
               : "grid items-start transition-[grid-template-columns,gap] duration-300 ease-out motion-reduce:transition-none lg:grid-cols-[minmax(0,1fr)_0fr] lg:gap-0"
           }
@@ -284,6 +315,16 @@ export function TaskEditor({
                                       (id) => id !== item.id,
                                     )
                                   : [...draft.category_ids, item.id],
+                                category_tags: selected
+                                  ? Object.fromEntries(
+                                      Object.entries(
+                                        draft.category_tags,
+                                      ).filter(
+                                        ([categoryId]) =>
+                                          categoryId !== item.id,
+                                      ),
+                                    )
+                                  : draft.category_tags,
                               })
                             }
                           />
@@ -320,6 +361,7 @@ export function TaskEditor({
               <DropdownSelect
                 variant="field"
                 label="Assignee"
+                proximityValue={data.currentProfile.id}
                 value={draft.assignee_id ?? ""}
                 onChange={(value) =>
                   setDraft({ ...draft, assignee_id: value || null })
@@ -328,10 +370,10 @@ export function TaskEditor({
                   { label: "Unassigned", value: "" },
                   ...data.profiles.map((item) => ({
                     avatar: {
-                      name: profileName(item),
+                      name: profileDisplayName(item),
                       src: item.avatar_url,
                     },
-                    label: profileName(item),
+                    label: profileDisplayName(item),
                     value: item.id,
                   })),
                 ]}
@@ -339,15 +381,16 @@ export function TaskEditor({
               <DropdownSelect
                 variant="field"
                 label="Reported by"
+                proximityValue={data.currentProfile.id}
                 required
                 value={draft.reported_by}
                 onChange={(value) => setDraft({ ...draft, reported_by: value })}
                 options={data.profiles.map((item) => ({
                   avatar: {
-                    name: profileName(item),
+                    name: profileDisplayName(item),
                     src: item.avatar_url,
                   },
-                  label: profileName(item),
+                  label: profileDisplayName(item),
                   value: item.id,
                 }))}
               />
@@ -364,6 +407,20 @@ export function TaskEditor({
                   }
                 />
               </label>
+              <MultiSelect
+                label="Tags"
+                options={tagOptions}
+                value={selectedTagValues}
+                onChange={updateTags}
+                searchable
+                searchPlaceholder="Search tags"
+                disabled={tagOptions.length === 0}
+                placeholder={
+                  draft.category_ids.length === 0
+                    ? "Select a category first"
+                    : "No tags for selected categories"
+                }
+              />
               <label className="date-field opacity-60">
                 <span className="items-center">
                   Reminder
@@ -383,13 +440,13 @@ export function TaskEditor({
                 />
               </label>
             </div>
-            {!taskDetailsOpen && (
+            {!detailsOpen && (
               <button
                 type="button"
                 aria-expanded="false"
                 aria-controls="task-secondary-details"
                 className="group flex w-full items-center gap-4 rounded-xl border border-black/15 bg-black/[0.025] p-4 text-left transition hover:border-black/30 hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:border-white/15 dark:bg-white/[0.035] dark:hover:border-white/30 dark:hover:bg-white/[0.07] dark:focus-visible:ring-white/30"
-                onClick={() => setTaskDetailsOpen(true)}
+                onClick={() => setDetailsOpen(true)}
               >
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-semibold">
@@ -408,7 +465,7 @@ export function TaskEditor({
           </div>
           <AnimatedCollapse
             id="task-secondary-details"
-            open={taskDetailsOpen}
+            open={detailsOpen}
             className="min-w-0"
             contentClassName="min-w-0 lg:border-l lg:border-black/10 lg:pl-8 lg:dark:border-white/10"
           >
@@ -428,31 +485,28 @@ export function TaskEditor({
                 rightIcon={<FiChevronDown className="rotate-180" />}
                 aria-expanded="true"
                 aria-controls="task-secondary-details"
-                onClick={() => setTaskDetailsOpen(false)}
+                onClick={() => setDetailsOpen(false)}
               >
                 Hide details
               </Button>
             </div>
-            {editing ? (
+            {mode.kind === "edit" ? (
               <TaskDetails
-                key={editing.id}
-                active={taskOpen}
-                className="!border-t-0 !pt-0"
-                task={editing}
-                data={data}
-                setData={setData}
-                demoMode={demoMode}
+                key={mode.task.id}
+                task={mode.task}
+                workspace={{ data, setData, demoMode }}
+                display={{ active: open, className: "!border-t-0 !pt-0" }}
               />
             ) : (
               <NewTaskDetails
-                value={newTaskDetails}
-                onChange={setNewTaskDetails}
-                disabled={taskSaving}
+                value={mode.details}
+                onChange={mode.setDetails}
+                disabled={saving}
               />
             )}
           </AnimatedCollapse>
         </div>
-        <ErrorCallout>{taskMessage}</ErrorCallout>
+        <ErrorCallout>{message}</ErrorCallout>
       </form>
     </Modal>
   );

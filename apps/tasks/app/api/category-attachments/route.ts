@@ -1,2 +1,2 @@
 export const runtime = "nodejs";
-export { GET, POST, DELETE } from "../project-attachments/route";
+export { DELETE, GET, POST } from "@/lib/server/resource-attachments-route";

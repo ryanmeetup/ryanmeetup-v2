@@ -10,60 +10,62 @@ import type { Category, Profile, Project, Status, Task } from "@/lib/types";
 import { TaskDueDate } from "./TaskDueDate";
 import { TaskKeyBadge } from "./TaskKeyBadge";
 import { TaskPriorityBadge } from "./TaskPriorityBadge";
+import { TaskCategoryBadge } from "./TaskCategoryBadge";
+import { profileDisplayName } from "@/lib/presentation";
 
-const profileName = (profile: Profile) => profile.full_name || "Teammate";
-
-function CategoryBadge({ category }: { category: Category }) {
-  return (
-    <span
-      className="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/70 dark:text-white/75"
-      style={{
-        borderColor: `${category.color}66`,
-        backgroundColor: `${category.color}22`,
-      }}
-    >
-      {category.name}
-    </span>
-  );
-}
-
-export function TaskListView({
-  assigneesByTask,
-  categories,
-  categoriesByTask,
-  loading,
-  onOpenTask,
-  onPageChange,
-  onPageSizeChange,
-  onSortChange,
-  onToggleSort,
-  page,
-  pageSize,
-  profiles,
-  projects,
-  sort,
-  statuses,
-  tasks,
-  totalCount,
-}: {
+export type TaskListData = {
   assigneesByTask: Map<string, Set<string>>;
   categories: Map<string, Category>;
   categoriesByTask: Map<string, Set<string>>;
-  loading: boolean;
-  onOpenTask: (task: Task) => void;
-  onPageChange: (page: number) => void;
-  onPageSizeChange: (pageSize: number) => void;
-  onSortChange: (sort: string) => void;
-  onToggleSort: () => void;
-  page: number;
-  pageSize: number;
   profiles: Map<string, Profile>;
   projects: Map<string, Project>;
-  sort: string;
   statuses: Status[];
   tasks: Task[];
+};
+
+export type TaskListPagination = {
+  page: number;
+  pageSize: number;
   totalCount: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
+};
+
+export type TaskListSorting = {
+  value: string;
+  onChange: (sort: string) => void;
+  onToggle: () => void;
+};
+
+export function TaskListView({
+  data,
+  pagination,
+  sorting,
+  loading,
+  onOpenTask,
+}: {
+  data: TaskListData;
+  pagination: TaskListPagination;
+  sorting: TaskListSorting;
+  loading: boolean;
+  onOpenTask: (task: Task) => void;
 }) {
+  const {
+    assigneesByTask,
+    categories,
+    categoriesByTask,
+    profiles,
+    projects,
+    statuses,
+    tasks,
+  } = data;
+  const { page, pageSize, totalCount, onPageChange, onPageSizeChange } =
+    pagination;
+  const {
+    value: sort,
+    onChange: onSortChange,
+    onToggle: onToggleSort,
+  } = sorting;
   return (
     <Card
       size="none"
@@ -133,14 +135,16 @@ export function TaskListView({
                         {taskPeople.slice(0, 3).map((person) => (
                           <Avatar
                             key={person.id}
-                            name={profileName(person)}
+                            name={profileDisplayName(person)}
                             size="sm"
                             src={person.avatar_url}
                           />
                         ))}
                       </span>
                       <span className="truncate">
-                        {taskPeople.map(profileName).join(", ")}
+                        {taskPeople
+                          .map((person) => profileDisplayName(person))
+                          .join(", ")}
                       </span>
                     </span>
                   )}
@@ -156,7 +160,11 @@ export function TaskListView({
                 {taskCategories.length > 0 && (
                   <span className="mt-3 flex flex-wrap gap-1.5">
                     {taskCategories.map((category) => (
-                      <CategoryBadge key={category.id} category={category} />
+                      <TaskCategoryBadge
+                        key={category.id}
+                        category={category}
+                        tags={task.category_tags?.[category.id]}
+                      />
                     ))}
                   </span>
                 )}
@@ -230,9 +238,10 @@ export function TaskListView({
                     {taskCategories.length > 0 ? (
                       <span className="flex flex-wrap gap-1.5 py-2 pr-3">
                         {taskCategories.map((category) => (
-                          <CategoryBadge
+                          <TaskCategoryBadge
                             key={category.id}
                             category={category}
+                            tags={task.category_tags?.[category.id]}
                           />
                         ))}
                       </span>
@@ -248,13 +257,15 @@ export function TaskListView({
                           {taskPeople.slice(0, 3).map((person) => (
                             <Avatar
                               key={person.id}
-                              name={profileName(person)}
+                              name={profileDisplayName(person)}
                               size="sm"
                               src={person.avatar_url}
                             />
                           ))}
                         </span>
-                        {taskPeople.map(profileName).join(", ")}
+                        {taskPeople
+                          .map((person) => profileDisplayName(person))
+                          .join(", ")}
                       </span>
                     ) : (
                       "Unassigned"

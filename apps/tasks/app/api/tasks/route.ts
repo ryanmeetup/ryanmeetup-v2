@@ -58,6 +58,7 @@ export async function GET(request: Request): Promise<NextResponse> {
   );
   const dateValue = (date: Date) => date.toISOString().slice(0, 10);
   let previewProjectIds: string[] | undefined;
+  let previewInaccessibleTaskIds: string[] = [];
   const requestedGroupPreview = params.get(ACCESS_PREVIEW_PARAM) ?? undefined;
   const requestedUserPreview =
     params.get(USER_ACCESS_PREVIEW_PARAM) ?? undefined;
@@ -69,10 +70,14 @@ export async function GET(request: Request): Promise<NextResponse> {
         .select("id");
       const resolved = await resolveAccessPreview(supabase, {
         groupId: requestedGroupPreview,
-        userId: requestedUserPreview,
+        userName: requestedUserPreview,
         allProjectIds: (previewProjects ?? []).map((project) => project.id),
       });
-      if (resolved) previewProjectIds = resolved.projectIds;
+      if (resolved) {
+        previewProjectIds = resolved.projectIds;
+        previewInaccessibleTaskIds =
+          resolved.preview.inaccessibleTaskIds ?? [];
+      }
     }
   }
   const [includedRows, excludedRows] = await Promise.all([
@@ -138,6 +143,12 @@ export async function GET(request: Request): Promise<NextResponse> {
         : "project_id.is.null",
     );
   }
+  if (previewInaccessibleTaskIds.length)
+    query = query.not(
+      "id",
+      "in",
+      `(${previewInaccessibleTaskIds.join(",")})`,
+    );
 
   const exactFilters = [
     ["status", "excludeStatuses", "status_id"],
@@ -238,6 +249,12 @@ export async function GET(request: Request): Promise<NextResponse> {
           : "project_id.is.null",
       );
     }
+    if (previewInaccessibleTaskIds.length)
+      corrected = corrected.not(
+        "id",
+        "in",
+        `(${previewInaccessibleTaskIds.join(",")})`,
+      );
     for (const [includeParam, excludeParam, column] of exactFilters) {
       const included = (params.get(includeParam) ?? "")
         .split(",")

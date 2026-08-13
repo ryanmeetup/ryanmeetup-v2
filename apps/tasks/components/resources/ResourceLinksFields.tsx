@@ -7,7 +7,7 @@ import { FiPlus, FiTrash2 } from "react-icons/fi";
 import { CountBadge } from "@/components/global";
 import type { ProjectLink } from "@/lib/types";
 
-export function LinksFields({
+export function ResourceLinksFields({
   links,
   setLinks,
   disabled,
@@ -57,9 +57,7 @@ export function LinksFields({
       summary={
         <span className="flex items-center gap-2 text-sm font-semibold">
           Useful links
-          {links.length > 0 && (
-            <CountBadge>{links.length}</CountBadge>
-          )}
+          {links.length > 0 && <CountBadge>{links.length}</CountBadge>}
         </span>
       }
     >

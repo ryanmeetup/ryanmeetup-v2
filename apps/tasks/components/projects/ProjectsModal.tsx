@@ -14,7 +14,6 @@ import {
   IconButton,
   Input,
   Modal,
-  MultiSelect,
   Textarea,
   Tooltip,
   toast,
@@ -32,56 +31,79 @@ import {
 } from "react-icons/fi";
 import { useQueryParamState, useSearchFilter } from "@ryanmeetup/hooks";
 import { withAccessPreview } from "@/lib/access-preview";
-import { ManagementCard, ManagementCardTitle } from "@/components/global";
+import {
+  ManagementCard,
+  ManagementCardTitle,
+  ResourceOwnerSelect,
+} from "@/components/global";
 import type { Project, ProjectLink, WorkspaceData } from "@/lib/types";
-import { ProjectLinks } from "./ProjectLinks";
-import { ProjectAttachments } from "./ProjectAttachments";
-import type { ProjectAttachmentDraft } from "./ProjectAttachments";
-import { LinksFields } from "./LinksFields";
+import {
+  ResourceAttachments,
+  ResourceLinks,
+  ResourceLinksFields,
+} from "@/components/resources";
+import { mutate } from "@/lib/mutation-client";
+import {
+  archiveFilter,
+  filterAndSortResources,
+  resourceSearchText,
+  sameIds,
+  uploadResourceAttachments,
+  type ResourceAttachmentDraft,
+} from "@/lib/resource-management";
+
+export type ProjectsModalProps = {
+  modal: {
+    open: boolean;
+    setOpen: (open: boolean) => void;
+  };
+  workspace: {
+    data: WorkspaceData;
+    setData: Dispatch<SetStateAction<WorkspaceData>>;
+    demoMode: boolean;
+  };
+  options?: {
+    embedded?: boolean;
+    createOnly?: boolean;
+    editProjectId?: string | null;
+    readOnly?: boolean;
+    showOwnerNames?: boolean;
+  };
+  events?: {
+    onCreate?: () => void;
+    onProjectUpdated?: (project: Project) => void;
+  };
+};
 
 export function ProjectsModal({
-  open,
-  setOpen,
-  data,
-  setData,
-  demoMode,
-  embedded = false,
-  createOnly = false,
-  editProjectId = null,
-  readOnly = false,
-  showOwnerNames = false,
-  onCreate,
-  onProjectUpdated,
-}: {
-  open: boolean;
-  setOpen: (open: boolean) => void;
-  data: WorkspaceData;
-  setData: Dispatch<SetStateAction<WorkspaceData>>;
-  demoMode: boolean;
-  embedded?: boolean;
-  createOnly?: boolean;
-  editProjectId?: string | null;
-  readOnly?: boolean;
-  showOwnerNames?: boolean;
-  onCreate?: () => void;
-  onProjectUpdated?: (project: Project) => void;
-}) {
+  modal,
+  workspace,
+  options,
+  events,
+}: ProjectsModalProps) {
+  const { open, setOpen } = modal;
+  const { data, setData, demoMode } = workspace;
+  const {
+    embedded = false,
+    createOnly = false,
+    editProjectId = null,
+    readOnly = false,
+    showOwnerNames = false,
+  } = options ?? {};
+  const { onCreate, onProjectUpdated } = events ?? {};
   const directEditProject = editProjectId
     ? (data.projects.find((project) => project.id === editProjectId) ?? null)
     : null;
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [links, setLinks] = useState<ProjectLink[]>([]);
-  const [attachments, setAttachments] = useState<ProjectAttachmentDraft[]>([]);
+  const [attachments, setAttachments] = useState<ResourceAttachmentDraft[]>([]);
   const [creating, setCreating] = useState(false);
   const [projectStatusParam, setProjectStatus] = useQueryParamState(
     "project-status",
     "active",
   );
-  const projectStatus: "active" | "archived" | "all" =
-    projectStatusParam === "archived" || projectStatusParam === "all"
-      ? projectStatusParam
-      : "active";
+  const projectStatus = archiveFilter(projectStatusParam);
   const [editingProjectId, setEditingProjectId] = useState<string | null>(
     directEditProject?.id ?? null,
   );
@@ -113,8 +135,7 @@ export function ProjectsModal({
     isPending: searchPending,
   } = useSearchFilter({
     data: data.projects,
-    buildHaystack: (project) =>
-      `${project.name} ${project.description ?? ""} ${(project.links ?? []).map((link) => `${link.label} ${link.url}`).join(" ")}`.toLowerCase(),
+    buildHaystack: resourceSearchText,
     queryParam: "project-search",
   });
 
@@ -122,18 +143,10 @@ export function ProjectsModal({
     body: Record<string, unknown>,
     method: "POST" | "PATCH",
   ) {
-    const response = await fetch("/api/projects", {
+    return mutate<{ project?: Project }>("/api/projects", {
       method,
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    const result = (await response.json()) as {
-      error?: string;
-      project?: Project;
-    };
-    if (!response.ok)
-      throw new Error(result.error ?? "The project could not be updated.");
-    return result;
   }
 
   async function addProject(event: FormEvent<HTMLFormElement>) {
@@ -168,33 +181,11 @@ export function ProjectsModal({
           )
         ).project!;
       if (!demoMode && attachments.length > 0) {
-        let failedAttachments = 0;
-        for (const attachment of attachments) {
-          try {
-            const body = attachment.file
-              ? (() => {
-                  const formData = new FormData();
-                  formData.set("projectId", project.id);
-                  formData.set("file", attachment.file);
-                  return formData;
-                })()
-              : JSON.stringify({
-                  projectId: project.id,
-                  name: attachment.name,
-                  body: attachment.body,
-                });
-            const response = await fetch("/api/project-attachments", {
-              method: "POST",
-              headers: attachment.file
-                ? undefined
-                : { "Content-Type": "application/json" },
-              body,
-            });
-            if (!response.ok) failedAttachments += 1;
-          } catch {
-            failedAttachments += 1;
-          }
-        }
+        const failedAttachments = await uploadResourceAttachments({
+          attachments,
+          resourceId: project.id,
+          resourceKind: "project",
+        });
         if (failedAttachments > 0)
           toast.error(
             `${failedAttachments} ${failedAttachments === 1 ? "attachment" : "attachments"} could not be added. You can retry from Edit project.`,
@@ -238,9 +229,7 @@ export function ProjectsModal({
     const currentOwnerIds = data.projectOwners
       .filter((item) => item.project_id === project.id)
       .map((item) => item.profile_id);
-    const ownersChanged =
-      currentOwnerIds.length !== editingOwnerIds.length ||
-      currentOwnerIds.some((ownerId) => !editingOwnerIds.includes(ownerId));
+    const ownersChanged = !sameIds(currentOwnerIds, editingOwnerIds);
     setRenaming(true);
     try {
       if (!demoMode)
@@ -384,27 +373,8 @@ export function ProjectsModal({
   }
 
   const projects = useMemo(
-    () =>
-      [...searchedProjects]
-        .filter((project) => {
-          const matchesStatus =
-            projectStatus === "all" ||
-            (projectStatus === "archived"
-              ? Boolean(project.archived_at)
-              : !project.archived_at);
-          return matchesStatus;
-        })
-        .sort((a, b) => a.name.localeCompare(b.name)),
+    () => filterAndSortResources(searchedProjects, projectStatus),
     [projectStatus, searchedProjects],
-  );
-  const ownerOptions = useMemo(
-    () =>
-      data.profiles.map((profile) => ({
-        avatar: { name: profile.full_name, src: profile.avatar_url },
-        label: profile.full_name,
-        value: profile.id,
-      })),
-    [data.profiles],
   );
   const createProjectFields = (
     <>
@@ -428,27 +398,27 @@ export function ProjectsModal({
         disabled={creating}
         required
       />
-      <MultiSelect
+      <ResourceOwnerSelect
         label="Project owners"
-        options={ownerOptions}
+        profiles={data.profiles}
         value={newOwnerIds}
         onChange={setNewOwnerIds}
-        placeholder="Select owners"
         disabled={creating}
-        required
       />
-      <LinksFields
+      <ResourceLinksFields
         links={links}
         setLinks={setLinks}
         disabled={creating}
         namePrefix="project"
       />
-      <ProjectAttachments
-        demoMode={demoMode}
-        disabled={creating}
-        currentUserId={data.currentProfile.id}
-        drafts={attachments}
-        onDraftsChange={setAttachments}
+      <ResourceAttachments
+        resource={{ kind: "project" }}
+        editor={{
+          demoMode,
+          disabled: creating,
+          currentUserId: data.currentProfile.id,
+        }}
+        draftState={{ drafts: attachments, onChange: setAttachments }}
       />
     </>
   );
@@ -639,7 +609,7 @@ export function ProjectsModal({
                               </p>
                             )}
                             {(project.links ?? []).length > 0 && (
-                              <ProjectLinks
+                              <ResourceLinks
                                 links={project.links}
                                 className={`mt-2 ${embedded ? "mb-4" : ""}`}
                               />
@@ -810,8 +780,7 @@ export function ProjectsModal({
             editingDescription.trim() !== (project.description ?? "") ||
             JSON.stringify(editingLinks) !==
               JSON.stringify(project.links ?? []) ||
-            savedOwnerIds.length !== editingOwnerIds.length ||
-            savedOwnerIds.some((ownerId) => !editingOwnerIds.includes(ownerId));
+            !sameIds(savedOwnerIds, editingOwnerIds);
           return (
             <Modal
               open
@@ -881,26 +850,26 @@ export function ProjectsModal({
                   rows={3}
                   required
                 />
-                <LinksFields
+                <ResourceLinksFields
                   links={editingLinks}
                   setLinks={setEditingLinks}
                   disabled={renaming}
                   namePrefix={`project-${project.id}`}
                 />
-                <ProjectAttachments
-                  projectId={project.id}
-                  demoMode={demoMode}
-                  disabled={renaming}
-                  currentUserId={data.currentProfile.id}
+                <ResourceAttachments
+                  resource={{ kind: "project", id: project.id }}
+                  editor={{
+                    demoMode,
+                    disabled: renaming,
+                    currentUserId: data.currentProfile.id,
+                  }}
                 />
-                <MultiSelect
+                <ResourceOwnerSelect
                   label="Project owners"
-                  options={ownerOptions}
+                  profiles={data.profiles}
                   value={editingOwnerIds}
                   onChange={setEditingOwnerIds}
-                  placeholder="Select owners"
                   disabled={renaming}
-                  required
                 />
               </form>
             </Modal>

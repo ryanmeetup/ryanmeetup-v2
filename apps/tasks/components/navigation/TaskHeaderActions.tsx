@@ -23,11 +23,13 @@ import {
   FiUser,
 } from "react-icons/fi";
 import type { WorkspaceData } from "@/lib/types";
-import { ThemeToggle, useTheme } from "@/components/global";
+import { ThemeToggle } from "@/components/global/ThemeToggle";
+import { useTheme } from "@/components/global/ThemeProvider";
 import { StatusSettingsModal } from "@/components/tasks/TaskAdministration";
 import { HeaderProfileControls } from "./HeaderProfileControls";
 import { NewTaskModal } from "@/components/tasks/NewTaskModal";
 import { createClient } from "@/lib/supabase/client";
+import { profileDisplayName } from "@/lib/presentation";
 
 export function TaskHeaderActions({
   data,
@@ -47,7 +49,7 @@ export function TaskHeaderActions({
   const isPreviewing = Boolean(data.accessPreview);
   const isOwner =
     !isPreviewing && (demoMode || data.currentProfile.app_role === "owner");
-  const profileName = data.currentProfile.full_name || "Teammate";
+  const profileName = profileDisplayName(data.currentProfile);
   return (
     <>
       <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-3">
@@ -113,9 +115,11 @@ export function TaskHeaderActions({
                     role="group"
                     aria-labelledby="mobile-account-menu-account"
                   >
-                    <DropdownMenuItem onClick={() => router.push("/profile")}>
-                      <FiUser aria-hidden /> View profile
-                    </DropdownMenuItem>
+                    {!isPreviewing && (
+                      <DropdownMenuItem onClick={() => router.push("/profile")}>
+                        <FiUser aria-hidden /> View profile
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem
                       onClick={async () => {
                         await createClient().auth.signOut();
@@ -236,6 +240,7 @@ export function TaskHeaderActions({
           <HeaderProfileControls
             profile={data.currentProfile}
             demoMode={demoMode}
+            previewing={isPreviewing}
           />
         </span>
       </div>

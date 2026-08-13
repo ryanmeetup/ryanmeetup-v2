@@ -66,6 +66,7 @@ export async function PATCH(request: Request) {
       description: parsed.data.description,
       color: parsed.data.color,
       links: parsed.data.links,
+      tags: parsed.data.tags,
       ...(parsed.data.archived !== undefined
         ? {
             archived_at: parsed.data.archived ? new Date().toISOString() : null,

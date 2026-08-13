@@ -38,6 +38,10 @@ export function readTaskDrafts(profileId: string): StoredTaskDraft[] {
           typeof item.updatedAt === "string" &&
           typeof item.draft === "object",
       )
+      .map((item) => ({
+        ...item,
+        draft: { ...item.draft, category_tags: item.draft.category_tags ?? {} },
+      }))
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   } catch {
     return [];

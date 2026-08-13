@@ -13,6 +13,8 @@ import {
 } from "@ryanmeetup/ui";
 import { FiLock, FiSave } from "react-icons/fi";
 import type { Profile } from "@/lib/types";
+import { mutate } from "@/lib/mutation-client";
+import { errorMessage as getErrorMessage } from "@/lib/presentation";
 import { displayNameError, normalizeDisplayName } from "@/lib/display-name";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -132,21 +134,14 @@ export function ProfileForm({
           });
         if (uploadError) throw uploadError;
       }
-      const response = await fetch("/api/profile", {
+      const result = await mutate<{ profile: Profile }>("/api/profile", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           displayName: normalizedName,
           avatarPath,
           taskDetailsOpenByDefault,
         }),
       });
-      const result = (await response.json()) as {
-        error?: string;
-        profile?: Profile;
-      };
-      if (!response.ok || !result.profile)
-        throw new Error(result.error ?? "Your profile could not be saved.");
       setDisplayName(result.profile.full_name || "");
       setSavedDisplayName(result.profile.full_name || "");
       setAvatarFile(null);
@@ -158,10 +153,10 @@ export function ProfileForm({
       }
       setMessage("Profile saved.");
     } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Your profile could not be saved.";
+      const errorMessage = getErrorMessage(
+        error,
+        "Your profile could not be saved.",
+      );
       setMessage(errorMessage);
       setHasError(true);
       toast.error(errorMessage);
@@ -177,26 +172,19 @@ export function ProfileForm({
     setMessage("");
     setHasError(false);
     try {
-      const response = await fetch("/api/profile", {
+      await mutate<{ profile: Profile }>("/api/profile", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           displayName: savedDisplayName,
           taskDetailsOpenByDefault: nextValue,
         }),
       });
-      const result = (await response.json()) as {
-        error?: string;
-        profile?: Profile;
-      };
-      if (!response.ok || !result.profile)
-        throw new Error(result.error ?? "Your preference could not be saved.");
     } catch (error) {
       setTaskDetailsOpenByDefault(previousValue);
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Your preference could not be saved.";
+      const errorMessage = getErrorMessage(
+        error,
+        "Your preference could not be saved.",
+      );
       setMessage(errorMessage);
       setHasError(true);
       toast.error(errorMessage);

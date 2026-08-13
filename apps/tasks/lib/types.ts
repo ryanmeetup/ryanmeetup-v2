@@ -13,6 +13,7 @@ export type Profile = {
 export type Status = {
   id: string;
   name: string;
+  description: string | null;
   color: string;
   sort_order: number;
   order_revision: number;
@@ -26,6 +27,7 @@ export type Category = {
   description: string | null;
   color: string;
   links: ProjectLink[];
+  tags: string[];
   created_by: string;
   archived_at: string | null;
 };
@@ -78,11 +80,24 @@ export type Task = {
   due_time: string | null;
   reminder_at: string | null;
   priority: Priority;
+  category_tags?: Record<string, string[]>;
   board_position: number;
   completed_at: string | null;
   archived_at: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type Note = {
+  id: string;
+  title: string | null;
+  body: string;
+  category_id: string | null;
+  created_by: string;
+  converted_task_id: string | null;
+  created_at: string;
+  updated_at: string;
+  archived_at: string | null;
 };
 
 export type Subtask = {
@@ -142,6 +157,9 @@ export type AccessPreview = {
   kind: "group" | "user";
   subjectId: string;
   subjectName: string;
+  subjectProfile?: Profile;
+  accessibleCategoryIds?: string[];
+  inaccessibleTaskIds?: string[];
 };
 
 export type WorkspaceData = {

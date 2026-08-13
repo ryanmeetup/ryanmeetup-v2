@@ -9,7 +9,6 @@ import {
   Card,
   ConfirmationDialog,
   FormattedText,
-  IconButton,
   toast,
 } from "@ryanmeetup/ui";
 import {
@@ -22,17 +21,10 @@ import {
   FiFlag,
   FiFolder,
   FiLink,
-  FiSidebar,
   FiUser,
   FiUserCheck,
 } from "react-icons/fi";
-import { TaskBanners } from "@/components/global";
-import {
-  TaskHeaderActions,
-  TaskHeaderBrand,
-  TaskSearch,
-  TasksSidebar,
-} from "@/components/navigation";
+import { WorkspacePageShell } from "@/components/global";
 import { useWorkspaceData } from "@/hooks/useWorkspaceData";
 import { withAccessPreview } from "@/lib/access-preview";
 import {
@@ -40,12 +32,13 @@ import {
   type TaskDraft,
 } from "@/lib/task-mutations";
 import { taskKey, taskPath } from "@/lib/task-key";
+import { errorMessage } from "@/lib/presentation";
+import { taskDraftFromTask } from "@/lib/task-draft-factory";
 import type { Task, WorkspaceData } from "@/lib/types";
 import { TaskDetails } from "./TaskDetails";
 import { TaskDueDate } from "./TaskDueDate";
 import { TaskEditor } from "./TaskEditor";
 import { TaskPriorityBadge } from "./TaskPriorityBadge";
-import { emptyNewTaskDetails } from "./NewTaskDetails";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", { dateStyle: "medium" });
 
@@ -91,20 +84,10 @@ export function TaskPageClient({
       .map((item) => item.category_id),
   );
   const categories = data.categories.filter((item) => categoryIds.has(item.id));
-  const makeDraft = (): TaskDraft => ({
-    title: task.title,
-    description: task.description,
-    status_id: task.status_id,
-    project_id: task.project_id,
-    category_ids: [...categoryIds],
-    assignee_id: task.assignee_id,
-    reported_by: task.reported_by,
-    start_date: task.start_date,
-    due_date: task.due_date,
-    due_time: task.due_time,
-    reminder_at: task.reminder_at,
-    priority: task.priority,
-  });
+  const tags = categories.flatMap((category) =>
+    (task.category_tags?.[category.id] ?? []).map((tag) => ({ category, tag })),
+  );
+  const makeDraft = () => taskDraftFromTask(task, categoryIds);
   const [draft, setDraft] = useState<TaskDraft>(makeDraft);
 
   useEffect(() => {
@@ -148,8 +131,7 @@ export function TaskPageClient({
       setTaskOpen(false);
       toast.success("Task updated.");
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "The task could not be saved.";
+      const message = errorMessage(error, "The task could not be saved.");
       setTaskMessage(message);
       toast.error(message);
     } finally {
@@ -186,42 +168,15 @@ export function TaskPageClient({
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f7f5] text-black dark:bg-[#101010] dark:text-white">
-      <TasksSidebar
+    <>
+      <WorkspacePageShell
         data={data}
         demoMode={demoMode}
-        open={sidebarOpen}
-        setOpen={setSidebarOpen}
-        onCreateCategory={() => undefined}
-        onCreateProject={() => undefined}
-      />
-
-      <main className="min-w-0 lg:pl-64">
-        <header className="tasks-app-header">
-          <IconButton
-            label="Open navigation"
-            tooltipTriggerClassName="lg:hidden"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <FiSidebar />
-          </IconButton>
-          <TaskHeaderBrand />
-          <TaskSearch
-            tasks={data.tasks}
-            projects={data.projects}
-            categories={data.categories}
-            statuses={data.statuses}
-            profiles={data.profiles}
-          />
-          <TaskHeaderActions
-            data={data}
-            setData={setData}
-            demoMode={demoMode}
-          />
-        </header>
-        <TaskBanners preview={data.accessPreview} />
-
-        <div className="mx-auto max-w-6xl space-y-5 p-4 sm:space-y-6 sm:p-6 lg:p-8">
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+        setData={setData}
+        contentClassName="mx-auto max-w-6xl space-y-5 p-4 sm:space-y-6 sm:p-6 lg:p-8"
+      >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-5">
             <div className="min-w-0 flex-1">
               <Breadcrumbs
@@ -288,42 +243,79 @@ export function TaskPageClient({
                   )}
                 </div>
                 {categories.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {categories.map((category) => (
-                      <span
-                        key={category.id}
-                        className="inline-flex items-center gap-2 rounded-full border border-black/25 bg-black px-3 py-2 text-xs font-semibold text-white dark:border-white/30 dark:bg-white dark:text-black"
-                      >
-                        <i
-                          className="h-2.5 w-2.5 rounded-full"
-                          style={{ backgroundColor: category.color }}
-                        />
-                        {category.name}
-                      </span>
-                    ))}
+                  <div>
+                    <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-black/45 dark:text-white/45">
+                      Categories
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {categories.map((category) => (
+                        <span
+                          key={category.id}
+                          className="inline-flex items-center gap-2 rounded-full border px-2.5 py-1.5 text-xs font-semibold text-black/75 dark:text-white/80"
+                          style={{
+                            borderColor: `${category.color}99`,
+                            backgroundColor: `${category.color}12`,
+                          }}
+                        >
+                          <i
+                            className="h-2 w-2 rounded-full"
+                            style={{ backgroundColor: category.color }}
+                          />
+                          {category.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {tags.length > 0 && (
+                  <div>
+                    <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-black/45 dark:text-white/45">
+                      Tags
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {tags.map(({ category, tag }) => (
+                        <span
+                          key={`${category.id}-${tag}`}
+                          title={category.name}
+                          aria-label={`${category.name} / ${tag}`}
+                          className="inline-flex items-center gap-2 rounded-full border px-2.5 py-1.5 text-xs font-medium text-black/70 dark:text-white/75"
+                          style={{
+                            borderColor: `${category.color}99`,
+                            backgroundColor: `${category.color}12`,
+                          }}
+                        >
+                          <i
+                            aria-hidden
+                            className="h-2 w-2 shrink-0 rounded-full"
+                            style={{ backgroundColor: category.color }}
+                          />
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 )}
               </Card>
 
               <TaskDetails
-                active
-                pageLayout
-                section="work"
-                className="order-3"
-                data={data}
-                demoMode={demoMode}
-                setData={setData}
                 task={task}
+                workspace={{ data, demoMode, setData }}
+                display={{
+                  active: true,
+                  pageLayout: true,
+                  section: "work",
+                  className: "order-3",
+                }}
               />
               <TaskDetails
-                active
-                pageLayout
-                section="comment"
-                className="order-4"
-                data={data}
-                demoMode={demoMode}
-                setData={setData}
                 task={task}
+                workspace={{ data, demoMode, setData }}
+                display={{
+                  active: true,
+                  pageLayout: true,
+                  section: "comment",
+                  className: "order-4",
+                }}
               />
             </div>
 
@@ -426,41 +418,36 @@ export function TaskPageClient({
                 }
               >
                 <TaskDetails
-                  active
-                  pageLayout
-                  section="activity"
-                  conversationHeight={conversationHeight}
-                  data={data}
-                  demoMode={demoMode}
-                  setData={setData}
                   task={task}
+                  workspace={{ data, demoMode, setData }}
+                  display={{
+                    active: true,
+                    pageLayout: true,
+                    section: "activity",
+                    conversationHeight,
+                  }}
                 />
               </div>
             </div>
           </div>
-        </div>
-      </main>
+      </WorkspacePageShell>
 
       <TaskEditor
-        taskOpen={taskOpen}
-        setTaskOpen={setTaskOpen}
-        editing={task}
-        taskDetailsOpen={taskDetailsOpen}
-        setTaskDetailsOpen={setTaskDetailsOpen}
-        createAnother={false}
-        setCreateAnother={() => undefined}
-        taskSaving={taskSaving}
-        draft={draft}
-        setDraft={setDraft}
-        statuses={data.statuses}
-        data={data}
-        setData={setData}
-        demoMode={demoMode}
-        saveTask={saveTask}
-        setTaskPendingDelete={setTaskPendingDelete}
-        taskMessage={taskMessage}
-        newTaskDetails={emptyNewTaskDetails()}
-        setNewTaskDetails={() => undefined}
+        modal={{
+          open: taskOpen,
+          setOpen: setTaskOpen,
+          detailsOpen: taskDetailsOpen,
+          setDetailsOpen: setTaskDetailsOpen,
+        }}
+        form={{
+          draft,
+          setDraft,
+          saving: taskSaving,
+          message: taskMessage,
+          onSubmit: saveTask,
+        }}
+        workspace={{ statuses: data.statuses, data, setData, demoMode }}
+        mode={{ kind: "edit", task, onDelete: setTaskPendingDelete }}
       />
       <ConfirmationDialog
         open={Boolean(taskPendingDelete)}
@@ -475,6 +462,6 @@ export function TaskPageClient({
         destructive
         onConfirm={() => void deleteTask()}
       />
-    </div>
+    </>
   );
 }

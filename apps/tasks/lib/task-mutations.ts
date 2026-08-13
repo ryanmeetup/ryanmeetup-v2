@@ -21,7 +21,7 @@ export type TaskDraft = Pick<
   | "due_time"
   | "reminder_at"
   | "priority"
-> & { category_ids: string[] };
+> & { category_ids: string[]; category_tags: Record<string, string[]> };
 
 type MutationContext = {
   demoMode: boolean;
