@@ -2,7 +2,7 @@
 
 import type { FormEvent } from "react";
 import { Button, ConfirmationDialog, Input, Modal } from "@ryanmeetup/ui";
-import type { Profile } from "@/lib/types";
+import type { Profile } from "@/lib/workspace-types";
 
 export function InviteTeammateModal({
   email,
@@ -61,7 +61,7 @@ export function InviteTeammateModal({
         onSubmit={onSubmit}
       >
         <Input
-          label="Name"
+          label="Name (optional)"
           name="invite-name"
           value={name}
           onChange={(event) => onNameChange(event.target.value)}

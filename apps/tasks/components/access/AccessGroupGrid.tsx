@@ -4,7 +4,7 @@ import { FiEdit2, FiEye, FiFolder, FiUsers } from "react-icons/fi";
 import { accessGroupSlug } from "@/lib/access-groups";
 import { accessPreviewHref } from "@/lib/access-preview";
 import type { AccessGroup, GroupGrant, GroupMember } from "@/lib/access-types";
-import type { Profile } from "@/lib/types";
+import type { Profile } from "@/lib/workspace-types";
 import { AccessGroupKindBadge } from "./AccessGroupKindBadge";
 
 export function AccessGroupGrid({
@@ -99,7 +99,7 @@ export function AccessGroupGrid({
                 </div>
               </div>
               <Button.Link
-                href={accessPreviewHref(group.id)}
+                href={accessPreviewHref(group.name)}
                 variant="secondary"
                 size="sm"
                 leftIcon={<FiEye />}

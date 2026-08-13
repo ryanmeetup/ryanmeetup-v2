@@ -27,13 +27,6 @@ export type GroupGrant = {
   granted_by: string;
 };
 
-export type CategoryGrant = {
-  category_id: string;
-  group_id: string;
-  granted_by: string;
-  created_at: string;
-};
-
 export type UserAccessMetadata = {
   profileId: string;
   email: string | null;

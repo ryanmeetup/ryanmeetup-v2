@@ -201,9 +201,10 @@ Example:
 10. Project creation atomically grants viewer access to every eligible group of
     the creator and fails if no such group grant can be established.
 11. Category access never replaces project access. If any access groups are
-    assigned to a category, a user must belong to one of those groups to access
-    tasks in that category. Tasks in several restricted categories require
-    access to every restricted category.
+    assigned to an explicitly restricted category, a user must belong to one
+    of those groups to access the category or its tasks. A restricted category
+    with no selected groups remains closed to everyone below R Suite. Tasks in
+    several restricted categories require access to every restricted category.
 
 ## Projectless tasks
 

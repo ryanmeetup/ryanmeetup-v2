@@ -89,6 +89,7 @@ export function CreateAccessGroupModal({
         />
         <DropdownSelect
           label="Group type"
+          required
           variant="field"
           value={kind}
           onChange={(value) => setKind(value as "tier" | "team")}
@@ -138,7 +139,7 @@ export function CreateAccessGroupModal({
         />
         <Textarea
           id="access-group-description"
-          label="Description"
+          label="Description (optional)"
           name="access-group-description"
           value={description}
           onChange={(event) => setDescription(event.target.value)}

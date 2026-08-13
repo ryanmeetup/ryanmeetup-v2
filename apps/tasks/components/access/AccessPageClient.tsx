@@ -14,16 +14,21 @@ import {
   toast,
 } from "@ryanmeetup/ui";
 import { FiEye, FiPlus, FiShield, FiTrash2 } from "react-icons/fi";
-import { accessMutation } from "@/lib/access-mutations";
+import { useAccessManagement } from "@/hooks/useAccessManagement";
+import {
+  indexGrantsByGroup,
+  indexGroupsByProfile,
+  indexMembersByGroup,
+} from "@/lib/access-selectors";
 import { mutate } from "@/lib/mutation-client";
 import { errorMessage } from "@/lib/presentation";
 import { userAccessPreviewHref } from "@/lib/access-preview";
 import { usePagination } from "@/hooks/usePagination";
-import type { Profile, Project, WorkspaceData } from "@/lib/types";
+import type { Profile, WorkspaceData } from "@/lib/workspace-types";
+import type { Project } from "@/lib/resource-types";
 import { CategoriesModal } from "@/components/categories";
 import { WorkspacePageShell } from "@/components/global";
 import { ProjectsModal } from "@/components/projects";
-import type { Permission } from "./GrantEditor";
 import { InviteTeammateModal, RemoveTeammateDialog } from "./TeamDialogs";
 import { ProfileAccessModal } from "./ProfileAccessModal";
 import { CreateAccessGroupModal } from "./CreateAccessGroupModal";
@@ -36,6 +41,7 @@ import {
 import { AccessGroupGrid } from "./AccessGroupGrid";
 import type {
   AccessGroup,
+  AccessPermission,
   GroupGrant,
   GroupMember,
   UserAccessMetadata,
@@ -72,9 +78,12 @@ export function AccessPageClient({
     Record<string, string>
   >({});
   const [profiles, setProfiles] = useState(initialProfiles);
-  const [groups, setGroups] = useState(initialGroups);
-  const [members, setMembers] = useState(initialMembers);
-  const [groupGrants, setGroupGrants] = useState(initialGroupGrants);
+  const access = useAccessManagement({
+    initialGroups,
+    initialMembers,
+    initialGrants: initialGroupGrants,
+  });
+  const { groups, members, grants: groupGrants, setMembers } = access;
   const [teamMetadata, setTeamMetadata] = useState(userMetadata);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -108,25 +117,20 @@ export function AccessPageClient({
       new Map(teamMetadata.map((metadata) => [metadata.profileId, metadata])),
     [teamMetadata],
   );
-  const groupsByProfile = useMemo(() => {
-    const groupsById = new Map(groups.map((group) => [group.id, group]));
-    const result = new Map<string, AccessGroup[]>();
-    for (const member of members) {
-      const group = groupsById.get(member.group_id);
-      if (!group) continue;
-      const profileGroups = result.get(member.profile_id) ?? [];
-      profileGroups.push(group);
-      result.set(member.profile_id, profileGroups);
-    }
-    for (const profileGroups of result.values())
-      profileGroups.sort((a, b) => a.name.localeCompare(b.name));
-    return result;
-  }, [groups, members]);
+  const groupsByProfile = useMemo(
+    () => indexGroupsByProfile(groups, members),
+    [groups, members],
+  );
+  const membersByGroup = useMemo(() => indexMembersByGroup(members), [members]);
+  const grantsByGroup = useMemo(
+    () => indexGrantsByGroup(groupGrants),
+    [groupGrants],
+  );
   const editingMembers = editingGroup
-    ? members.filter((item) => item.group_id === editingGroup.id)
+    ? (membersByGroup.get(editingGroup.id) ?? [])
     : [];
   const editingGrants = editingGroup
-    ? groupGrants.filter((item) => item.group_id === editingGroup.id)
+    ? (grantsByGroup.get(editingGroup.id) ?? [])
     : [];
 
   useEffect(() => {
@@ -137,19 +141,15 @@ export function AccessPageClient({
     event.preventDefault();
     if (!name.trim() || !color) return;
     setSaving(true);
-    const { group: data } = await accessMutation<{ group: AccessGroup }>({
-      action: "group.create",
+    const data = await access.createGroup({
       name: name.trim(),
       description: description.trim() || null,
       color,
       kind: groupKind,
-      hierarchyRank: groupKind === "tier" ? Number(hierarchyRank) : null,
-      grantsGlobalContent: groupKind === "tier" && grantsGlobalContent,
+      hierarchy_rank: groupKind === "tier" ? Number(hierarchyRank) : null,
+      grants_global_content: groupKind === "tier" && grantsGlobalContent,
     });
     setSaving(false);
-    setGroups((current) =>
-      [...current, data].sort((a, b) => a.name.localeCompare(b.name)),
-    );
     setName("");
     setDescription("");
     setColor("");
@@ -164,77 +164,38 @@ export function AccessPageClient({
     event.preventDefault();
     if (!editingGroup || !editingName.trim()) return;
     setSaving(true);
-    const { group: updated } = await accessMutation<{ group: AccessGroup }>({
-      action: "group.update",
-      id: editingGroup.id,
+    await access.updateGroup(editingGroup.id, {
       name: editingName.trim(),
       description: editingDescription.trim() || null,
       color: editingGroup.color,
       kind: editingGroup.kind,
-      hierarchyRank: editingGroup.hierarchy_rank,
-      grantsGlobalContent: editingGroup.grants_global_content,
+      hierarchy_rank: editingGroup.hierarchy_rank,
+      grants_global_content: editingGroup.grants_global_content,
     });
     setSaving(false);
-    setGroups((current) =>
-      current.map((group) => (group.id === updated.id ? updated : group)),
-    );
     setEditingGroup(null);
   }
   async function addMember(groupId: string, profileId: string) {
     if (!profileId) return;
-    const { member: row } = await accessMutation<{ member: GroupMember }>({
-      action: "member.set",
-      groupId,
-      profileId,
-    });
-    setMembers((current) => [
-      ...current.filter(
-        (item) => item.profile_id !== profileId || item.group_id !== groupId,
-      ),
-      row,
-    ]);
+    await access.setMember(groupId, profileId);
   }
   async function removeMember(groupId: string, profileId: string) {
-    await accessMutation({ action: "member.delete", groupId, profileId });
-    setMembers((current) =>
-      current.filter(
-        (item) => item.group_id !== groupId || item.profile_id !== profileId,
-      ),
-    );
+    await access.removeMember(groupId, profileId);
   }
   async function setGroupGrant(
     groupId: string,
     projectId: string,
-    permission: Permission,
+    permission: AccessPermission,
   ) {
     if (!projectId) return;
-    const { grant: row } = await accessMutation<{ grant: GroupGrant }>({
-      action: "grant.set",
-      groupId,
-      projectId,
-      permission,
-    });
-    setGroupGrants((current) => [
-      ...current.filter(
-        (item) => item.group_id !== groupId || item.project_id !== projectId,
-      ),
-      row,
-    ]);
+    await access.setGrant(groupId, projectId, permission);
   }
   async function removeGroupGrant(groupId: string, projectId: string) {
-    await accessMutation({ action: "grant.delete", groupId, projectId });
-    setGroupGrants((current) =>
-      current.filter(
-        (item) => item.group_id !== groupId || item.project_id !== projectId,
-      ),
-    );
+    await access.removeGrant(groupId, projectId);
   }
   async function confirmDeleteGroup() {
     if (!deleteGroup) return;
-    await accessMutation({ action: "group.delete", id: deleteGroup.id });
-    setGroups((current) =>
-      current.filter((item) => item.id !== deleteGroup.id),
-    );
+    await access.deleteGroup(deleteGroup.id);
     setDeleteGroup(null);
     setEditingGroup(null);
   }
@@ -367,17 +328,7 @@ export function AccessPageClient({
     setAccessPending(true);
     try {
       if (currentTierId !== selectedTierId) {
-        const { member: tierMembership } = await accessMutation<{
-          member: GroupMember;
-        }>({ action: "tier.set", groupId: selectedTierId, profileId });
-        setMembers((current) => [
-          ...current.filter(
-            (member) =>
-              member.profile_id !== profileId ||
-              !tierGroups.some((group) => group.id === member.group_id),
-          ),
-          tierMembership,
-        ]);
+        await access.setMember(selectedTierId, profileId, true);
       }
       for (const groupId of groupIdsToAdd) {
         await addMember(groupId, profileId);

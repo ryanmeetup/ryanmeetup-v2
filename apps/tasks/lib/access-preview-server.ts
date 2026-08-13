@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { AccessPreview } from "./types";
+import type { AccessPreview } from "./workspace-types";
 import { requireQueryData, requireQueryResult } from "./workspace-loader";
 
 async function resolveCategoryAccess(
@@ -60,12 +60,17 @@ export async function resolveAccessPreview(
   },
 ): Promise<{ preview: AccessPreview; projectIds: string[] } | null> {
   if (options.groupId) {
+    const groupLookup = supabase
+      .from("access_groups")
+      .select("id, name, kind, hierarchy_rank, grants_global_content");
+    const groupRequest =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        options.groupId,
+      )
+        ? groupLookup.eq("id", options.groupId)
+        : groupLookup.eq("name", options.groupId);
     const [groupResult, groupsResult] = await Promise.all([
-      supabase
-        .from("access_groups")
-        .select("id, name, kind, hierarchy_rank, grants_global_content")
-        .eq("id", options.groupId)
-        .maybeSingle(),
+      groupRequest.maybeSingle(),
       supabase.from("access_groups").select("id, kind, hierarchy_rank"),
     ]);
     const group = requireQueryResult("preview access group", groupResult);

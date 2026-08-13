@@ -10,8 +10,10 @@ import {
   Textarea,
 } from "@ryanmeetup/ui";
 import { FiTrash2 } from "react-icons/fi";
-import type { Profile, Project } from "@/lib/types";
-import { GrantEditor, type Permission } from "./GrantEditor";
+import type { Profile } from "@/lib/workspace-types";
+import type { Project } from "@/lib/resource-types";
+import type { AccessPermission } from "@/lib/access-types";
+import { GrantEditor } from "./GrantEditor";
 
 type EditableGroup = { id: string; name: string };
 
@@ -39,11 +41,11 @@ export function EditAccessGroupModal({
 }: {
   currentUserId: string;
   description: string;
-  grants: { project_id: string; permission: Permission }[];
+  grants: { project_id: string; permission: AccessPermission }[];
   group: EditableGroup | null;
   members: { profile_id: string }[];
   name: string;
-  onAddGrant: (projectId: string, permission: Permission) => void;
+  onAddGrant: (projectId: string, permission: AccessPermission) => void;
   onAddMember: (profileId: string) => void;
   onDelete: () => void;
   onRemoveGrant: (projectId: string) => void;
@@ -81,7 +83,7 @@ export function EditAccessGroupModal({
             />
             <Textarea
               id="edit-access-group-description"
-              label="Description"
+              label="Description (optional)"
               name="edit-access-group-description"
               value={description}
               onChange={(event) => setDescription(event.target.value)}

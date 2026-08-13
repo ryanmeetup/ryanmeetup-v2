@@ -2,10 +2,8 @@
 
 import { useState } from "react";
 import { Button, DropdownSelect } from "@ryanmeetup/ui";
-import type { Project } from "@/lib/types";
+import type { Project } from "@/lib/resource-types";
 import type { AccessPermission } from "@/lib/access-types";
-
-export type Permission = AccessPermission;
 
 export function GrantEditor({
   label,
@@ -17,12 +15,12 @@ export function GrantEditor({
 }: {
   label: string;
   projects: Project[];
-  grants: { id: string; permission: Permission }[];
+  grants: { id: string; permission: AccessPermission }[];
   names: Map<string, string>;
-  onAdd: (projectId: string, permission: Permission) => void;
+  onAdd: (projectId: string, permission: AccessPermission) => void;
   onRemove: (projectId: string) => void;
 }) {
-  const [permission, setPermission] = useState<Permission>("viewer");
+  const [permission, setPermission] = useState<AccessPermission>("viewer");
   const [projectId, setProjectId] = useState("");
   return (
     <div>
@@ -30,6 +28,7 @@ export function GrantEditor({
       <div className="mt-2 grid gap-2 sm:grid-cols-[minmax(0,1fr)_12rem]">
         <DropdownSelect
           label="Project"
+          required
           variant="field"
           value={projectId}
           onChange={(nextProjectId) => {
@@ -47,9 +46,10 @@ export function GrantEditor({
         />
         <DropdownSelect
           label="Permission"
+          required
           variant="field"
           value={permission}
-          onChange={(value) => setPermission(value as Permission)}
+          onChange={(value) => setPermission(value as AccessPermission)}
           options={[
             { label: "Viewer", value: "viewer" },
             { label: "Editor", value: "editor" },

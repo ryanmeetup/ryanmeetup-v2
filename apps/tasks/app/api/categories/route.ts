@@ -8,12 +8,27 @@ import {
   readJson,
 } from "@/lib/privileged-api";
 
+async function categoryManagerContext() {
+  const context = await privilegedContext();
+  if ("response" in context) return context;
+  const { data, error } = await context.supabase.rpc("can_manage_categories");
+  if (error || !data) return { response: apiError(403, "FORBIDDEN", "You do not have permission to manage categories.") };
+  return context;
+}
+
 export async function POST(request: Request) {
   const parsed = await readJson(request, (value) => categorySchema(value));
   if ("response" in parsed) return parsed.response;
-  const context = await privilegedContext({ owner: true });
+  const context = await categoryManagerContext();
   if ("response" in context) return context.response;
-  const { ownerIds, ...categoryInput } = parsed.data;
+  const { ownerIds, accessMode, accessGroupIds, ...categoryInput } = parsed.data;
+  const { data: isOwner } = await context.supabase.rpc("is_app_owner");
+  if ((accessMode !== undefined || accessGroupIds !== undefined) && !isOwner)
+    return apiError(
+      403,
+      "FORBIDDEN",
+      "Only app owners may configure category access.",
+    );
   const { data, error } = await context.admin
     .from("work_groups")
     .insert({ ...categoryInput, created_by: context.user.id })
@@ -24,6 +39,22 @@ export async function POST(request: Request) {
       error: "The category could not be created. Try again.",
       conflictError: "A category with that name or color already exists.",
     });
+  }
+  if (isOwner && accessMode) {
+    const { error: accessError } = await context.supabase.rpc(
+      "set_category_access",
+      {
+        requested_category_id: data.id,
+        requested_access_mode: accessMode,
+        requested_group_ids: accessGroupIds ?? [],
+      },
+    );
+    if (accessError) {
+      await context.admin.from("work_groups").delete().eq("id", data.id);
+      return databaseFailure(request, "category-access.create", accessError, {
+        error: "The category access settings could not be saved.",
+      });
+    }
   }
   const { error: ownersError } = await context.admin
     .from("category_owners")
@@ -57,7 +88,7 @@ export async function PATCH(request: Request) {
     categorySchema(value, true),
   );
   if ("response" in parsed) return parsed.response;
-  const context = await privilegedContext({ owner: true });
+  const context = await categoryManagerContext();
   if ("response" in context) return context.response;
   const { error } = await context.admin
     .from("work_groups")

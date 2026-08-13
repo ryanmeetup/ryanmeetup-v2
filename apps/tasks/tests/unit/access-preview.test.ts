@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { applyAccessPreview, withAccessPreview } from "@/lib/access-preview";
-import type { WorkspaceData } from "@/lib/types";
+import {
+  accessPreviewHref,
+  applyAccessPreview,
+  withAccessPreview,
+} from "@/lib/access-preview";
+import type { WorkspaceData } from "@/lib/workspace-types";
 
 const baseData = {
   currentProfile: { favorite_project_ids: ["hidden"] },
@@ -30,6 +34,12 @@ const baseData = {
 } as unknown as WorkspaceData;
 
 describe("access preview", () => {
+  it("uses readable group names in preview links", () => {
+    expect(accessPreviewHref("Project Leads")).toBe(
+      "/?viewAsGroup=Project%20Leads",
+    );
+  });
+
   it("filters every task relation to the preview's visible projects", () => {
     const result = applyAccessPreview(
       baseData,
@@ -54,6 +64,16 @@ describe("access preview", () => {
         subjectName: "User One",
       }),
     ).toBe("/?search=launch&viewAsUser=User+One");
+  });
+
+  it("keeps group preview navigation readable", () => {
+    expect(
+      withAccessPreview("/board?view=list", {
+        kind: "group",
+        subjectId: "group-1",
+        subjectName: "Project Leads",
+      }),
+    ).toBe("/board?view=list&viewAsGroup=Project+Leads");
   });
 
   it("uses the viewed user's favorites instead of the owner's favorites", () => {
