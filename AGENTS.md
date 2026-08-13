@@ -212,6 +212,11 @@ Rules:
   names, slugs, or descriptive enum values over database IDs; resolve those
   values to internal IDs at the data boundary. Use an ID only when no reliable
   readable identifier exists or when the parameter is intentionally internal.
+- Generate public links with readable query values from the outset; do not rely
+  on a client-side normalization effect to replace an ID after navigation.
+  When practical, continue accepting legacy ID values and replace them with the
+  readable form so existing bookmarks remain useful. Internal API request query
+  strings may use IDs when they are not browser navigation or shareable state.
 - In current Next.js route pages, dynamic APIs such as `searchParams` may be
   promises. Type and `await` them before reading their properties.
 - Keep data fetching and secrets server-side. Only expose intentionally public
@@ -223,6 +228,17 @@ Rules:
   concrete reason next to the suppression.
 
 ## Forms and Feedback
+
+- Every editable form field must communicate whether it is required or
+  optional. Required fields must use the shared component's `required` prop (or
+  native `required` semantics) so the visible required marker, ARIA state, and
+  browser behavior agree. Optional fields must include `(optional)` in the
+  visible label. Apply this convention to create and edit forms, not search,
+  filter, display-only, disabled, or action controls.
+- A field with a default value is still required when the user must submit one
+  of its allowed values. Keep UI required state aligned with client validation,
+  API schemas, and database constraints; never mark a field optional when the
+  save path rejects an empty value.
 
 - For user-entered web URLs, accept bare domains and paths such as
   `example.com/resource`; use the shared `ensureHttpUrlScheme` or
