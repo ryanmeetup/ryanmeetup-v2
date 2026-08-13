@@ -290,6 +290,23 @@ Rules:
 
 Validate in proportion to the change, from the affected workspace.
 
+## Commits and Changelog
+
+- Break completed work into several small, reviewable commits instead of one
+  catch-all commit. Group files that implement the same behavior or concern,
+  and keep unrelated features, fixes, refactors, tests, and documentation in
+  separate commits.
+- Use Conventional Commits for every commit message, including an appropriate
+  scope when it clarifies ownership, for example `feat(tasks): add activity
+  filters` or `fix(ui): keep breadcrumb labels readable`.
+- Keep each commit internally coherent: include directly related tests and
+  documentation with the behavior they cover, and avoid splitting a change in
+  a way that leaves an intermediate commit knowingly broken.
+- When user-visible Tasks behavior changes, review the current release entry in
+  `apps/tasks/lib/changelog.ts` and update it when the change is meaningful to
+  users. Do not add implementation-only details or duplicate existing release
+  notes.
+
 ### Supabase database changes
 
 The linked Supabase project is the source of truth. Do not retain chronological

@@ -167,6 +167,24 @@ rather than failing through an API call.
 - Use the Inter variable font and established Tasks surfaces; Cooper remains
   reserved for intentional Ryan display moments inherited from the shared
   brand system.
+- Resource create/edit dialogs use the shared `Modal` as a scroll-bounded
+  shell. Use a concise `New {resource}` or `Edit {resource name}` title, keep
+  explanatory copy in `description`, place the fields in a real form with a
+  stable ID, and connect footer submit buttons with the `form` attribute. Keep
+  Cancel before the primary create/save action, expose the mutation through the
+  button's loading state, disable dismissal and editable controls while the
+  mutation is pending, and autofocus the primary field when the dialog opens.
+  Let `Modal` own the fixed header, scrolling body, scroll affordance, and
+  fixed footer instead of recreating those regions inside feature code.
+- Editors for collections nested inside a resource dialog use one active
+  editor above the compact collection rows. Adding or editing an item replaces
+  that active editor rather than expanding multiple forms throughout the list.
+  Keep the fields needed for routine entry visible; when secondary fields make
+  an editor genuinely dense, place only those fields behind `AnimatedCollapse`.
+  Return completed items to summary rows and use shared `IconButton` controls
+  for row editing and removal. Show a collection count; add the standard
+  debounced search treatment when the collection is large enough to need
+  filtering.
 - On management cards and other compact resource rows, use the shared
   `IconButton` for edit, archive, restore, delete, favorite, and similar
   secondary actions, matching the Projects and Work Groups screens. Give every
@@ -189,6 +207,11 @@ rather than failing through an API call.
   deliberately for the content rather than relying on native `details` styling.
 - Reuse `@ryanmeetup/ui` fields, dialogs, menus, filters, feedback, toast, and
   loading primitives before adding Tasks-local equivalents.
+- Every breadcrumb in the Tasks app must give each route a meaningful icon.
+  The final breadcrumb represents the current page and must render as plain
+  text with `aria-current="page"`, never as a link back to the page already
+  being viewed. Use the shared `Breadcrumbs` component so this behavior stays
+  consistent.
 - Preserve the light/dark theme bootstrap and CSP nonce. New inline scripts are
   exceptional and must be compatible with the nonce-based policy.
 - The app is private and must remain `noindex` through metadata, `robots.ts`,
