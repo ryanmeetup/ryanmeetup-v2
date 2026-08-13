@@ -12,7 +12,7 @@ import {
   toast,
 } from "@ryanmeetup/ui";
 import { FiLock, FiSave } from "react-icons/fi";
-import type { Profile } from "@/lib/types";
+import type { Profile } from "@/lib/workspace-types";
 import { mutate } from "@/lib/mutation-client";
 import { errorMessage as getErrorMessage } from "@/lib/presentation";
 import { displayNameError, normalizeDisplayName } from "@/lib/display-name";
@@ -21,19 +21,10 @@ import {
   filterPanelsExpandedPreferenceKey,
   paginationPageSizePreferenceKey,
 } from "@/lib/user-preferences";
+import { ProfileAvatarField } from "./ProfileAvatarField";
 
 const avatarTypes = ["image/jpeg", "image/png", "image/webp"];
 const maxAvatarSize = 5 * 1024 * 1024;
-
-function initials(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-}
 
 export function ProfileForm({
   profile,
@@ -71,9 +62,7 @@ export function ProfileForm({
       10,
     );
     if ([10, 25, 50, 100].includes(saved))
-      queueMicrotask(() =>
-        setPaginationPageSize(saved as 10 | 25 | 50 | 100),
-      );
+      queueMicrotask(() => setPaginationPageSize(saved as 10 | 25 | 50 | 100));
     const savedFilterPreference = localStorage.getItem(
       filterPanelsExpandedPreferenceKey,
     );
@@ -195,10 +184,7 @@ export function ProfileForm({
 
   function changeFilterPanelsPreference(nextValue: boolean) {
     setFilterPanelsExpanded(nextValue);
-    localStorage.setItem(
-      filterPanelsExpandedPreferenceKey,
-      String(nextValue),
-    );
+    localStorage.setItem(filterPanelsExpandedPreferenceKey, String(nextValue));
   }
 
   function changePaginationPageSize(nextValue: 10 | 25 | 50 | 100) {
@@ -208,42 +194,12 @@ export function ProfileForm({
 
   return (
     <form className="space-y-5" onSubmit={save}>
-      <div className="flex items-center gap-4">
-        <div
-          role="img"
-          aria-label={
-            avatarPreview ? "Profile photo preview" : "Profile initials"
-          }
-          className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border border-black/10 bg-black/5 bg-cover bg-center text-xl font-semibold text-black/70 dark:border-white/10 dark:bg-white/10 dark:text-white/70"
-          style={
-            avatarPreview
-              ? { backgroundImage: `url(${JSON.stringify(avatarPreview)})` }
-              : undefined
-          }
-        >
-          {!avatarPreview && initials(displayName || profile.full_name)}
-        </div>
-        <div>
-          <label
-            htmlFor="profile-avatar"
-            className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-black/20 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-black transition hover:border-black/40 hover:bg-black/5 focus-within:ring-2 focus-within:ring-black/30 dark:border-white/20 dark:bg-white/5 dark:text-white dark:hover:border-white/40 dark:hover:bg-white/10 dark:focus-within:ring-white/30"
-          >
-            {avatarPreview ? "Change photo" : "Upload photo"}
-            <input
-              id="profile-avatar"
-              name="profile-avatar"
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="sr-only"
-              disabled={saving}
-              onChange={selectAvatar}
-            />
-          </label>
-          <p className="mt-2 text-xs text-black/55 dark:text-white/55">
-            Optional · JPG, PNG, or WebP · 5 MB maximum
-          </p>
-        </div>
-      </div>
+      <ProfileAvatarField
+        preview={avatarPreview}
+        fallbackName={displayName || profile.full_name || ""}
+        disabled={saving}
+        onChange={selectAvatar}
+      />
       <Input
         label="Display name"
         name="display-name"

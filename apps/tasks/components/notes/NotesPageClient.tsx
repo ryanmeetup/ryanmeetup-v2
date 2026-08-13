@@ -1,215 +1,22 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import {
-  Avatar,
   Button,
   ConfirmationDialog,
   DropdownSelect,
-  IconButton,
-  Input,
   Textarea,
   toast,
 } from "@ryanmeetup/ui";
-import {
-  FiArchive,
-  FiCheck,
-  FiClock,
-  FiFileText,
-  FiPlus,
-  FiRotateCcw,
-  FiTrash2,
-} from "react-icons/fi";
+import { FiFileText, FiPlus } from "react-icons/fi";
 import { WorkspacePageShell } from "@/components/global";
 import { NewTaskModal } from "@/components/tasks";
-import { TaskCategoryBadge } from "@/components/tasks/TaskCategoryBadge";
-import {
-  noteAutosaveDelayMs,
-  noteTaskDescription,
-  noteTitle,
-} from "@/lib/notes";
-import type { Note, Task, WorkspaceData } from "@/lib/types";
-import type { StoredTaskDraft } from "@/lib/task-drafts";
-import { taskPath } from "@/lib/task-key";
-
-type SaveState = "idle" | "saving" | "saved" | "error";
-
-async function responseJson<T>(response: Response) {
-  const result = (await response.json()) as T & { error?: string };
-  if (!response.ok) throw new Error(result.error ?? "Something went wrong.");
-  return result;
-}
-
-function NoteCard({
-  note,
-  profiles,
-  demoMode,
-  onChange,
-  onConvert,
-  onDelete,
-  convertedTask,
-  categories,
-}: {
-  note: Note;
-  profiles: WorkspaceData["profiles"];
-  demoMode: boolean;
-  onChange: (note: Note) => void;
-  onConvert: (note: Note) => void;
-  onDelete: (note: Note) => void;
-  convertedTask?: Task;
-  categories: WorkspaceData["categories"];
-}) {
-  const [title, setTitle] = useState(note.title ?? "");
-  const [body, setBody] = useState(note.body);
-  const [saveState, setSaveState] = useState<SaveState>("idle");
-  const changed = useRef(false);
-  const author = profiles.find((profile) => profile.id === note.created_by);
-  const category = categories.find((item) => item.id === note.category_id);
-
-  useEffect(() => {
-    if (!changed.current || !body.trim() || note.archived_at) return;
-    setSaveState("saving");
-    const timer = window.setTimeout(async () => {
-      try {
-        const updated = demoMode
-          ? {
-              ...note,
-              title: title.trim() || null,
-              body: body.trim(),
-              updated_at: new Date().toISOString(),
-            }
-          : (
-              await responseJson<{ note: Note }>(
-                await fetch("/api/notes", {
-                  method: "PATCH",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ id: note.id, title, body }),
-                }),
-              )
-            ).note;
-        changed.current = false;
-        onChange(updated);
-        setSaveState("saved");
-      } catch (error) {
-        setSaveState("error");
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : "The note could not be saved.",
-        );
-      }
-    }, noteAutosaveDelayMs);
-    return () => window.clearTimeout(timer);
-  }, [body, demoMode, note, onChange, title]);
-
-  return (
-    <article className="rounded-2xl border border-black/10 bg-black/[0.015] p-4 dark:border-white/10 dark:bg-white/[0.025] sm:p-5">
-      <div className="flex items-start gap-3">
-        <span className="mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-black/5 text-black/55 dark:bg-white/10 dark:text-white/60">
-          <FiFileText aria-hidden />
-        </span>
-        <div className="min-w-0 flex-1 space-y-3">
-          <Input
-            label="Note title"
-            name={`note-title-${note.id}`}
-            hideLabel
-            placeholder="Optional title"
-            value={title}
-            maxLength={200}
-            disabled={Boolean(note.archived_at)}
-            onChange={(event) => {
-              changed.current = true;
-              setTitle(event.target.value);
-            }}
-          />
-          <Textarea
-            id={`note-body-${note.id}`}
-            label="Note text"
-            name={`note-body-${note.id}`}
-            hideLabel
-            value={body}
-            rows={4}
-            maxLength={10000}
-            disabled={Boolean(note.archived_at)}
-            onChange={(event) => {
-              changed.current = true;
-              setBody(event.target.value);
-            }}
-          />
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-black/50 dark:text-white/50">
-            <span className="inline-flex items-center gap-2 font-medium text-black/65 dark:text-white/65">
-              <Avatar
-                name={author?.full_name ?? "Unknown teammate"}
-                src={author?.avatar_url}
-                size="sm"
-              />
-              {author?.full_name ?? "Unknown teammate"}
-            </span>
-            {category && <TaskCategoryBadge category={category} />}
-            <time
-              dateTime={note.updated_at}
-              className="inline-flex items-center gap-1.5"
-            >
-              <FiClock className="shrink-0" aria-hidden />
-              Updated {new Date(note.updated_at).toLocaleString()}
-            </time>
-            <span className="ml-auto" role="status">
-              {saveState === "saving" && "Saving…"}
-              {saveState === "saved" && "Saved"}
-              {saveState === "error" && "Not saved"}
-            </span>
-          </div>
-        </div>
-      </div>
-      <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-black/10 pt-3 dark:border-white/10">
-        {note.converted_task_id ? (
-          <Button.Link
-            href={convertedTask ? taskPath(convertedTask) : "/board"}
-            size="sm"
-            variant="secondary"
-            leftIcon={<FiCheck />}
-          >
-            View task
-          </Button.Link>
-        ) : !note.archived_at ? (
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            onClick={() =>
-              onConvert({ ...note, title: title.trim() || null, body })
-            }
-          >
-            Convert to task
-          </Button>
-        ) : null}
-        <IconButton
-          label={
-            note.archived_at
-              ? `Restore “${noteTitle(note)}”`
-              : `Archive “${noteTitle(note)}”`
-          }
-          onClick={() =>
-            void onChange({
-              ...note,
-              archived_at: note.archived_at ? null : new Date().toISOString(),
-            })
-          }
-        >
-          {note.archived_at ? <FiRotateCcw /> : <FiArchive />}
-        </IconButton>
-        <IconButton
-          label={`Delete “${noteTitle(note)}”`}
-          variant="danger"
-          onClick={() => onDelete(note)}
-        >
-          <FiTrash2 />
-        </IconButton>
-      </div>
-    </article>
-  );
-}
-
+import { filterNotes, linkNoteToTask, noteConversionDraft } from "@/lib/notes";
+import type { Note } from "@/lib/resource-types";
+import type { Task } from "@/lib/task-types";
+import type { WorkspaceData } from "@/lib/workspace-types";
+import { mutate } from "@/lib/mutation-client";
+import { NoteCard } from "./NoteCard";
 export function NotesPageClient({
   initialData,
   initialNotes,
@@ -246,13 +53,10 @@ export function NotesPageClient({
             archived_at: null,
           }
         : (
-            await responseJson<{ note: Note }>(
-              await fetch("/api/notes", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ body, categoryId }),
-              }),
-            )
+            await mutate<{ note: Note }>("/api/notes", {
+              method: "POST",
+              body: JSON.stringify({ body, categoryId }),
+            })
           ).note;
       setNotes((current) => [note, ...current]);
       setBody("");
@@ -274,16 +78,13 @@ export function NotesPageClient({
     );
     if (demoMode || previous?.archived_at === next.archived_at) return;
     try {
-      const result = await responseJson<{ note: Note }>(
-        await fetch("/api/notes", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id: next.id,
-            archived: Boolean(next.archived_at),
-          }),
+      const result = await mutate<{ note: Note }>("/api/notes", {
+        method: "PATCH",
+        body: JSON.stringify({
+          id: next.id,
+          archived: Boolean(next.archived_at),
         }),
-      );
+      });
       setNotes((current) =>
         current.map((item) => (item.id === next.id ? result.note : item)),
       );
@@ -305,13 +106,10 @@ export function NotesPageClient({
     if (!deleteTarget) return;
     try {
       if (!demoMode)
-        await responseJson(
-          await fetch("/api/notes", {
-            method: "DELETE",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id: deleteTarget.id }),
-          }),
-        );
+        await mutate("/api/notes", {
+          method: "DELETE",
+          body: JSON.stringify({ id: deleteTarget.id }),
+        });
       setNotes((current) =>
         current.filter((note) => note.id !== deleteTarget.id),
       );
@@ -326,59 +124,24 @@ export function NotesPageClient({
     }
   }
 
-  const activeNotes = notes.filter(
-    (note) => Boolean(note.archived_at) === showArchived,
-  );
-  const conversionDraft: StoredTaskDraft | null = convertTarget
-    ? {
-        id: `note-${convertTarget.id}`,
-        updatedAt: new Date().toISOString(),
-        draft: {
-          title: noteTitle(convertTarget),
-          description: noteTaskDescription(convertTarget),
-          status_id:
-            data.statuses.find(
-              (status) => status.name.toLowerCase() === "backlog",
-            )?.id ??
-            data.statuses.find((status) => status.is_default)?.id ??
-            data.statuses[0]?.id ??
-            "",
-          project_id: null,
-          assignee_id: null,
-          reported_by: data.currentProfile.id,
-          start_date: null,
-          due_date: null,
-          due_time: null,
-          reminder_at: null,
-          priority: "medium",
-          category_ids: convertTarget.category_id
-            ? [convertTarget.category_id]
-            : [],
-          category_tags: {},
-        },
-      }
+  const activeNotes = filterNotes(notes, showArchived);
+  const conversionDraft = convertTarget
+    ? noteConversionDraft(convertTarget, data.statuses, data.currentProfile.id)
     : null;
 
   async function markConverted(task: Task) {
     if (!convertTarget) return;
     try {
       const updated = demoMode
-        ? {
-            ...convertTarget,
-            converted_task_id: task.id,
-            updated_at: new Date().toISOString(),
-          }
+        ? linkNoteToTask(convertTarget, task)
         : (
-            await responseJson<{ note: Note }>(
-              await fetch("/api/notes", {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  id: convertTarget.id,
-                  convertedTaskId: task.id,
-                }),
+            await mutate<{ note: Note }>("/api/notes", {
+              method: "PATCH",
+              body: JSON.stringify({
+                id: convertTarget.id,
+                convertedTaskId: task.id,
               }),
-            )
+            })
           ).note;
       setNotes((current) =>
         current.map((note) => (note.id === updated.id ? updated : note)),
@@ -419,6 +182,7 @@ export function NotesPageClient({
             <Textarea
               id="quick-note"
               label="Quick note"
+              required
               name="quick-note"
               value={body}
               rows={4}
@@ -428,7 +192,7 @@ export function NotesPageClient({
             />
             <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <DropdownSelect
-                label="Category"
+                label="Category (optional)"
                 value={categoryId}
                 onChange={setCategoryId}
                 options={[

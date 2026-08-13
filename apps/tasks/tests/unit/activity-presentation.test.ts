@@ -1,0 +1,56 @@
+import { describe, expect, it } from "vitest";
+import {
+  describeActivity,
+  groupActivityByDate,
+} from "@/lib/activity-presentation";
+import type { TaskActivity } from "@/lib/activity-types";
+import type { Status } from "@/lib/task-types";
+
+const activity = (
+  id: string,
+  created_at: string,
+  details: Record<string, unknown> = {},
+): TaskActivity =>
+  ({
+    id,
+    task_id: "task",
+    actor_id: null,
+    action: "moved task",
+    details,
+    created_at,
+  }) as TaskActivity;
+
+describe("activity presentation", () => {
+  it("describes moves with resolved statuses and falls back safely", () => {
+    const statuses = [
+      { id: "todo", name: "To do" },
+      { id: "done", name: "Done" },
+    ] as Status[];
+    expect(
+      describeActivity(
+        activity("1", "2026-08-13T12:00:00Z", {
+          from_status_id: "todo",
+          status_id: "done",
+        }),
+        statuses,
+      ),
+    ).toMatchObject({
+      kind: "status",
+      from: { id: "todo" },
+      to: { id: "done" },
+    });
+    expect(
+      describeActivity(activity("2", "2026-08-13T12:00:00Z"), statuses),
+    ).toEqual({ kind: "text", label: "Task moved" });
+  });
+
+  it("groups rows on calendar dates in the requested timezone", () => {
+    const rows = [
+      { item: activity("1", "2026-08-14T01:00:00Z") },
+      { item: activity("2", "2026-08-13T20:00:00Z") },
+    ] as never[];
+    const groups = groupActivityByDate(rows, "en-US", "America/New_York");
+    expect(groups).toHaveLength(1);
+    expect(groups[0]?.rows).toHaveLength(2);
+  });
+});

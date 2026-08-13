@@ -22,12 +22,10 @@ import {
   FiSun,
   FiUser,
 } from "react-icons/fi";
-import type { WorkspaceData } from "@/lib/types";
-import { ThemeToggle } from "@/components/global/ThemeToggle";
-import { useTheme } from "@/components/global/ThemeProvider";
-import { StatusSettingsModal } from "@/components/tasks/TaskAdministration";
+import type { WorkspaceData } from "@/lib/workspace-types";
+import { ThemeToggle, useTheme } from "@/components/global";
+import { NewTaskModal, StatusSettingsModal } from "@/components/tasks";
 import { HeaderProfileControls } from "./HeaderProfileControls";
-import { NewTaskModal } from "@/components/tasks/NewTaskModal";
 import { createClient } from "@/lib/supabase/client";
 import { profileDisplayName } from "@/lib/presentation";
 

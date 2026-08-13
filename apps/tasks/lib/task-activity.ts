@@ -1,4 +1,5 @@
-import type { Status, TaskActivity } from "@/lib/types";
+import type { Status } from "@/lib/task-types";
+import type { TaskActivity } from "@/lib/activity-types";
 
 export function taskStatusChange(item: TaskActivity, statuses: Status[]) {
   const fromId =

@@ -26,7 +26,7 @@ import {
   FiX,
 } from "react-icons/fi";
 import { useEffect } from "react";
-import type { WorkspaceData } from "@/lib/types";
+import type { WorkspaceData } from "@/lib/workspace-types";
 import { useSidebarSections } from "@/hooks/useSidebarSections";
 import { withAccessPreview } from "@/lib/access-preview";
 
@@ -48,6 +48,8 @@ export function TasksSidebar({
   const isOwner =
     !data.accessPreview &&
     (demoMode || data.currentProfile.app_role === "owner");
+  const canManageCategories =
+    !data.accessPreview && (demoMode || data.canManageCategories);
   const activeProjects = data.projects.filter(
     (project) => !project.archived_at,
   );
@@ -192,7 +194,7 @@ export function TasksSidebar({
           </Pill>
         </div>
       </nav>
-      {isOwner && (
+      {(isOwner || canManageCategories) && (
         <section className="mt-4 border-y border-black/10 py-3 dark:border-white/10">
           <DropdownMenu>
             <DropdownMenuButton
@@ -204,22 +206,24 @@ export function TasksSidebar({
               <FiChevronDown className="ml-auto" aria-hidden />
             </DropdownMenuButton>
             <DropdownMenuItems align="start" className="w-56">
-              <DropdownMenuItem
-                onClick={() => {
-                  closeSidebar();
-                  onCreateProject();
-                }}
-              >
-                <FiFolder aria-hidden /> New project
-              </DropdownMenuItem>
-              <DropdownMenuItem
+              {isOwner && (
+                <DropdownMenuItem
+                  onClick={() => {
+                    closeSidebar();
+                    onCreateProject();
+                  }}
+                >
+                  <FiFolder aria-hidden /> New project
+                </DropdownMenuItem>
+              )}
+              {canManageCategories && <DropdownMenuItem
                 onClick={() => {
                   closeSidebar();
                   onCreateCategory();
                 }}
               >
                 <FiTag aria-hidden /> New category
-              </DropdownMenuItem>
+              </DropdownMenuItem>}
             </DropdownMenuItems>
           </DropdownMenu>
         </section>
@@ -290,14 +294,12 @@ export function TasksSidebar({
               />
               Categories
             </button>
-            {isOwner && (
-              <Link
-                href={withAccessPreview("/categories", data.accessPreview)}
-                className="text-[10px] font-semibold text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white"
-              >
-                Manage
-              </Link>
-            )}
+            <Link
+              href={withAccessPreview("/categories", data.accessPreview)}
+              className="text-[10px] font-semibold text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white"
+            >
+              {canManageCategories ? "Manage" : "View all"}
+            </Link>
           </div>
           <AnimatedCollapse
             animate={sectionsLoaded}

@@ -3,7 +3,8 @@ import { authorize } from "@/lib/server/auth";
 import { databaseFailure } from "@/lib/server/api-response";
 import { derivePagination, parsePagination } from "@/lib/pagination";
 import { WORKSPACE_COLUMNS } from "@/lib/workspace-loader";
-import type { Task, TaskActivity } from "@/lib/types";
+import type { Task } from "@/lib/task-types";
+import type { TaskActivity } from "@/lib/activity-types";
 import {
   ACCESS_PREVIEW_PARAM,
   USER_ACCESS_PREVIEW_PARAM,

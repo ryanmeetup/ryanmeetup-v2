@@ -1,2 +1,1 @@
-export * from "./ActivityPageClient";
-export * from "./ActivityFilterMenu";
+export { ActivityPageClient } from "./ActivityPageClient";

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Avatar, IconButton, Tooltip } from "@ryanmeetup/ui";
 import { FiLogOut } from "react-icons/fi";
 import { createClient } from "@/lib/supabase/client";
-import type { Profile } from "@/lib/types";
+import type { Profile } from "@/lib/workspace-types";
 import { profileDisplayName } from "@/lib/presentation";
 
 export function HeaderProfileControls({

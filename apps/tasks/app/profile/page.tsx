@@ -6,7 +6,7 @@ import {
   loadWorkspacePage,
 } from "@/lib/server/workspace-page-loader";
 import { WorkspaceLoadError } from "@/lib/workspace-loader";
-import type { WorkspaceData } from "@/lib/types";
+import type { WorkspaceData } from "@/lib/workspace-types";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -45,6 +45,7 @@ export default async function ProfilePage() {
 
     data = {
       currentProfile: profile,
+      canManageCategories: profile.app_role === "owner",
       profiles: [profile],
       statuses: [],
       categories: [],

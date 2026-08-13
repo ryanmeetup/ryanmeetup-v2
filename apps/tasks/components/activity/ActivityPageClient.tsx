@@ -21,12 +21,17 @@ import { ProjectsModal } from "@/components/projects";
 import { withAccessPreview } from "@/lib/access-preview";
 import { useQueryParamState } from "@ryanmeetup/hooks";
 import { usePagination } from "@/hooks/usePagination";
-import type { TaskActivity, WorkspaceData } from "@/lib/types";
+import type { TaskActivity } from "@/lib/activity-types";
+import type { WorkspaceData } from "@/lib/workspace-types";
 import { taskPath } from "@/lib/task-key";
-import { TaskKeyBadge } from "@/components/tasks/TaskKeyBadge";
+import { TaskKeyBadge } from "@/components/tasks";
 import { ActivityFilterMenu } from "./ActivityFilterMenu";
 import { profileDisplayName, splitCommaSeparated } from "@/lib/presentation";
-import { taskActivityLabel, taskStatusChange } from "@/lib/task-activity";
+import {
+  describeActivity,
+  resolveActivityRows,
+} from "@/lib/activity-presentation";
+import { activityFilterCount, buildActivityQuery } from "@/lib/activity-query";
 
 const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",
@@ -54,8 +59,9 @@ function activityDescription(
   item: TaskActivity,
   statuses: WorkspaceData["statuses"],
 ) {
-  if (item.action === "moved task") {
-    const { from: fromStatus, to: toStatus } = taskStatusChange(item, statuses);
+  const description = describeActivity(item, statuses);
+  if (description.kind === "status") {
+    const { from: fromStatus, to: toStatus } = description;
 
     if (fromStatus && toStatus) {
       return (
@@ -80,7 +86,7 @@ function activityDescription(
     return "Task moved";
   }
 
-  return taskActivityLabel(item.action);
+  return description.label;
 }
 
 export function ActivityPageClient({
@@ -116,13 +122,19 @@ export function ActivityPageClient({
   const previewKind = data.accessPreview?.kind;
   const previewSubjectId = data.accessPreview?.subjectId;
   const previewSubjectName = data.accessPreview?.subjectName;
-  const tasks = useMemo(
-    () => new Map(data.tasks.map((task) => [task.id, task])),
-    [data.tasks],
+  const activityRows = useMemo(
+    () =>
+      resolveActivityRows(data.activity, {
+        tasks: data.tasks,
+        profiles: data.profiles,
+        projects: data.projects,
+        statuses: data.statuses,
+      }),
+    [data],
   );
-  const profiles = useMemo(
-    () => new Map(data.profiles.map((profile) => [profile.id, profile])),
-    [data.profiles],
+  const rowsById = useMemo(
+    () => new Map(activityRows.map((row) => [row.item.id, row])),
+    [activityRows],
   );
   const includedProjectValues = splitCommaSeparated(projectFilter);
   const excludedProjectValues = splitCommaSeparated(excludedProjects);
@@ -130,14 +142,27 @@ export function ActivityPageClient({
   const excludedPersonValues = splitCommaSeparated(excludedPeople);
   const includedEventValues = splitCommaSeparated(kindFilter);
   const excludedEventValues = splitCommaSeparated(excludedEvents);
-  const filterCount =
-    includedProjectValues.length +
-    excludedProjectValues.length +
-    includedPersonValues.length +
-    excludedPersonValues.length +
-    includedEventValues.length +
-    excludedEventValues.length +
-    (timeFilter === "all" ? 0 : 1);
+  const filters = useMemo(
+    () => ({
+      projects: projectFilter,
+      excludeProjects: excludedProjects,
+      people: personFilter,
+      excludePeople: excludedPeople,
+      events: kindFilter,
+      excludeEvents: excludedEvents,
+      when: timeFilter,
+    }),
+    [
+      excludedEvents,
+      excludedPeople,
+      excludedProjects,
+      kindFilter,
+      personFilter,
+      projectFilter,
+      timeFilter,
+    ],
+  );
+  const filterCount = activityFilterCount(filters);
 
   function setFilter(setter: (value: string) => void, value: string) {
     setter(value);
@@ -200,36 +225,7 @@ export function ActivityPageClient({
   useEffect(() => {
     if (demoMode) return;
     const controller = new AbortController();
-    const params = new URLSearchParams();
-    const projectIds = (value: string) =>
-      splitCommaSeparated(value)
-        .map((item) =>
-          item === "none"
-            ? item
-            : (data.projects.find(
-                (project) => project.id === item || project.name === item,
-              )?.id ?? item),
-        )
-        .join(",");
-    const personIds = (value: string) =>
-      splitCommaSeparated(value)
-        .map((item) =>
-          item === "system"
-            ? item
-            : (data.profiles.find(
-                (profile) =>
-                  profile.id === item || profileDisplayName(profile) === item,
-              )?.id ?? item),
-        )
-        .join(",");
-    if (projectFilter) params.set("projects", projectIds(projectFilter));
-    if (excludedProjects)
-      params.set("excludeProjects", projectIds(excludedProjects));
-    if (personFilter) params.set("people", personIds(personFilter));
-    if (excludedPeople) params.set("excludePeople", personIds(excludedPeople));
-    if (kindFilter) params.set("events", kindFilter);
-    if (excludedEvents) params.set("excludeEvents", excludedEvents);
-    if (timeFilter !== "all") params.set("when", timeFilter);
+    const params = buildActivityQuery(filters, data.projects, data.profiles);
     if (previewKind && previewSubjectId) {
       params.set(
         previewKind === "group" ? "viewAsGroup" : "viewAsUser",
@@ -280,6 +276,7 @@ export function ActivityPageClient({
     return () => controller.abort();
   }, [
     demoMode,
+    filters,
     data.profiles,
     data.projects,
     excludedEvents,
@@ -416,15 +413,11 @@ export function ActivityPageClient({
               </div>
               <div className="divide-y divide-black/10 dark:divide-white/10">
                 {data.activity.map((item) => {
-                  const task = tasks.get(item.task_id);
-                  const profile = item.actor_id
-                    ? profiles.get(item.actor_id)
-                    : undefined;
-                  const project = task?.project_id
-                    ? data.projects.find(
-                        (entry) => entry.id === task.project_id,
-                      )
-                    : undefined;
+                  const {
+                    task,
+                    actor: profile,
+                    project,
+                  } = rowsById.get(item.id)!;
 
                   return (
                     <article key={item.id} className="space-y-3 p-4">
@@ -521,15 +514,11 @@ export function ActivityPageClient({
                 </thead>
                 <tbody className="divide-y divide-black/10 dark:divide-white/10">
                   {data.activity.map((item) => {
-                    const task = tasks.get(item.task_id);
-                    const profile = item.actor_id
-                      ? profiles.get(item.actor_id)
-                      : undefined;
-                    const project = task?.project_id
-                      ? data.projects.find(
-                          (entry) => entry.id === task.project_id,
-                        )
-                      : undefined;
+                    const {
+                      task,
+                      actor: profile,
+                      project,
+                    } = rowsById.get(item.id)!;
                     return (
                       <tr
                         key={item.id}
