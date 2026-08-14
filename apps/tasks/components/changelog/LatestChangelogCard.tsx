@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import Link from "next/link";
 import { AnimatedCollapse, IconButton, Pill } from "@ryanmeetup/ui";
 import {
@@ -28,13 +28,24 @@ export function LatestChangelogCard({ preview }: { preview?: AccessPreview }) {
   const contentId = useId();
   const actionsId = useId();
 
+  useEffect(() => {
+    const desktopQuery = window.matchMedia("(min-width: 1024px)");
+    const keepDesktopExpanded = (event: MediaQueryListEvent) => {
+      if (event.matches) setCollapsed(false);
+    };
+
+    desktopQuery.addEventListener("change", keepDesktopExpanded);
+    return () =>
+      desktopQuery.removeEventListener("change", keepDesktopExpanded);
+  }, []);
+
   return (
     <article className="relative overflow-hidden rounded-2xl border border-emerald-500/25 bg-emerald-50/80 p-5 shadow-sm dark:border-emerald-300/20 dark:bg-emerald-400/[0.08] sm:p-6">
       <div
         aria-hidden
         className="pointer-events-none absolute -right-12 -top-16 h-44 w-44 rounded-full bg-emerald-400/10 blur-3xl dark:bg-emerald-300/[0.06]"
       />
-      <div className="relative grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3 sm:gap-5 lg:grid-cols-[auto_minmax(0,1fr)_auto]">
+      <div className="relative grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 sm:gap-5">
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-emerald-500/15 bg-emerald-500/15 text-xl text-emerald-700 shadow-sm dark:border-emerald-300/10 dark:bg-emerald-300/15 dark:text-emerald-200">
           <FiZap aria-hidden />
         </span>
@@ -48,17 +59,6 @@ export function LatestChangelogCard({ preview }: { preview?: AccessPreview }) {
             >
               {latestChangelogRelease.version}
             </Pill>
-            <IconButton
-              label={`${collapsed ? "Expand" : "Collapse"} changelog`}
-              size="sm"
-              aria-controls={`${contentId} ${actionsId}`}
-              aria-expanded={!collapsed}
-              onClick={() => setCollapsed((current) => !current)}
-            >
-              <FiChevronDown
-                className={`transition-transform duration-200 motion-reduce:transition-none ${collapsed ? "-rotate-90" : ""}`}
-              />
-            </IconButton>
           </h2>
           <AnimatedCollapse id={contentId} open={!collapsed}>
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -85,10 +85,23 @@ export function LatestChangelogCard({ preview }: { preview?: AccessPreview }) {
           </AnimatedCollapse>
         </div>
 
+        <IconButton
+          label={`${collapsed ? "Expand" : "Collapse"} changelog`}
+          size="sm"
+          className="lg:hidden"
+          aria-controls={`${contentId} ${actionsId}`}
+          aria-expanded={!collapsed}
+          onClick={() => setCollapsed((current) => !current)}
+        >
+          <FiChevronDown
+            className={`transition-transform duration-200 motion-reduce:transition-none ${collapsed ? "-rotate-90" : ""}`}
+          />
+        </IconButton>
+
         <AnimatedCollapse
           id={actionsId}
           open={!collapsed}
-          className="col-start-2 lg:col-start-auto lg:self-center"
+          className="col-start-2 col-end-4 lg:col-start-auto lg:col-end-auto lg:self-center"
         >
           <div className="flex shrink-0 flex-col gap-2 sm:flex-row lg:flex-col lg:items-stretch">
             <Link
@@ -107,7 +120,7 @@ export function LatestChangelogCard({ preview }: { preview?: AccessPreview }) {
             </Link>
             <Link
               href={withAccessPreview("/changelog", preview)}
-              className="inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-black/55 transition hover:bg-black/5 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:text-white/55 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:ring-white/40"
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-600/25 bg-white/60 px-4 py-2 text-xs font-semibold text-emerald-800 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-600/40 hover:bg-white hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/50 motion-reduce:transform-none dark:border-emerald-200/20 dark:bg-white/[0.06] dark:text-emerald-100 dark:hover:bg-white/10"
             >
               <FiClock aria-hidden />
               All releases

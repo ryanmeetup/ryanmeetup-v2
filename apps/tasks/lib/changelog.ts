@@ -7,7 +7,7 @@ export type ChangelogItem = {
 };
 
 export type ChangelogRelease = {
-  version: `v${number}`;
+  version: `RMT v${number}`;
   slug: string;
   author: string;
   date: string;
@@ -20,12 +20,12 @@ export type ChangelogRelease = {
 
 export const changelog: ChangelogRelease[] = [
   {
-    version: "v4",
+    version: "RMT v4",
     slug: "v4-workspace-grows-up",
     author: "Ryan Le",
     date: "2026-08-13",
     dateLabel: "August 12–13, 2026",
-    title: "The workspace grows up",
+    title: "Dashboard, notes, contacts, and responsive management",
     summary:
       "A more polished, responsive workspace with better management tools, quick notes, contacts, and clearer access controls.",
     overview: [
@@ -86,12 +86,12 @@ export const changelog: ChangelogRelease[] = [
     ],
   },
   {
-    version: "v3",
+    version: "RMT v3",
     slug: "v3-faster-workflows",
     author: "Ryan Le",
     date: "2026-08-09",
     dateLabel: "August 9, 2026",
-    title: "A faster way to run the work",
+    title: "Dashboard, search, drafts, and richer task workflows",
     summary:
       "The app gained a real dashboard, richer activity and filtering, saved drafts, global search, and stable task links.",
     overview: [
@@ -146,12 +146,12 @@ export const changelog: ChangelogRelease[] = [
     ],
   },
   {
-    version: "v2",
+    version: "RMT v2",
     slug: "v2-team-tool",
     author: "Ryan Le",
     date: "2026-08-05",
     dateLabel: "August 3–5, 2026",
-    title: "From prototype to team tool",
+    title: "Onboarding, access controls, and workflow hardening",
     summary:
       "The initial workspace became a safer team product with onboarding, access controls, stronger workflows, and hardened foundations.",
     overview: [
@@ -200,12 +200,12 @@ export const changelog: ChangelogRelease[] = [
     ],
   },
   {
-    version: "v1",
+    version: "RMT v1",
     slug: "v1-first-working-workspace",
     author: "Ryan Le",
     date: "2026-08-02",
     dateLabel: "August 1–2, 2026",
-    title: "The first working workspace",
+    title: "Task board, projects, profiles, and shared UI",
     summary:
       "The first development push established the task board and the core building blocks needed to organize Ryan Meetup work.",
     overview: [
