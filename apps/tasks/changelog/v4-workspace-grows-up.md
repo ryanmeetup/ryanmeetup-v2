@@ -29,6 +29,10 @@ Star frequently visited projects and reach them directly from the dashboard and 
 
 ## Improved
 
+### Safer task edits
+
+Changing one task field now keeps its existing schedule and all other untouched details intact.
+
 ### A more useful dashboard
 
 A responsive masonry layout brings assigned work, drafts, deadlines, favorites, and activity into clearer groups.

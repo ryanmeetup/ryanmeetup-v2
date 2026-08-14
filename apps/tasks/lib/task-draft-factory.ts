@@ -65,9 +65,5 @@ export function editTaskDraft(
   task: Task,
   categoryIds: Iterable<string>,
 ): TaskDraft {
-  return {
-    ...taskDraftFromTask(task, categoryIds),
-    start_date: null,
-    due_time: null,
-  };
+  return taskDraftFromTask(task, categoryIds);
 }
