@@ -12,6 +12,7 @@ import {
   isWorkspaceDemo,
   loadWorkspacePage,
 } from "@/lib/server/workspace-page-loader";
+import { latestChangelogRelease } from "@/lib/server/changelog";
 
 export const metadata: Metadata = {
   title: { absolute: "Dashboard | Ryan Meetup Tasks" },
@@ -32,7 +33,14 @@ export default async function DashboardPage({
       ? query[USER_ACCESS_PREVIEW_PARAM]
       : undefined;
   const demoMode = isWorkspaceDemo();
-  if (demoMode) return <DashboardPageClient initialData={demoData} demoMode />;
+  if (demoMode)
+    return (
+      <DashboardPageClient
+        initialData={demoData}
+        demoMode
+        latestChangelogRelease={latestChangelogRelease}
+      />
+    );
 
   const loaded = await loadWorkspacePage([
     "profiles",
@@ -97,5 +105,11 @@ export default async function DashboardPage({
     }
   }
 
-  return <DashboardPageClient initialData={initialData} demoMode={false} />;
+  return (
+    <DashboardPageClient
+      initialData={initialData}
+      demoMode={false}
+      latestChangelogRelease={latestChangelogRelease}
+    />
+  );
 }

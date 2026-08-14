@@ -3,57 +3,32 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Breadcrumbs, Card, Heading, Pill } from "@ryanmeetup/ui";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   FiArrowLeft,
   FiArrowRight,
   FiBookOpen,
   FiCalendar,
   FiCheck,
-  FiLayers,
-  FiPlus,
-  FiRefreshCw,
   FiUser,
   FiZap,
 } from "react-icons/fi";
 import { WorkspacePageShell } from "@/components/global";
 import { withAccessPreview } from "@/lib/access-preview";
-import {
-  changelog,
-  changelogReleasePath,
-  type ChangelogCategory,
-  type ChangelogRelease,
-} from "@/lib/changelog";
+import { changelogReleasePath, type ChangelogRelease } from "@/lib/changelog";
 import type { WorkspaceData } from "@/lib/workspace-types";
-
-const categoryPresentation: Record<
-  ChangelogCategory,
-  { icon: typeof FiPlus; className: string }
-> = {
-  New: {
-    icon: FiPlus,
-    className:
-      "border-emerald-500/25 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200",
-  },
-  Improved: {
-    icon: FiRefreshCw,
-    className:
-      "border-blue-500/25 bg-blue-500/10 text-blue-800 dark:text-blue-200",
-  },
-  Foundation: {
-    icon: FiLayers,
-    className:
-      "border-violet-500/25 bg-violet-500/10 text-violet-800 dark:text-violet-200",
-  },
-};
 
 export function ChangelogEntryPageClient({
   initialData,
   demoMode,
   release,
+  changelog,
 }: {
   initialData: WorkspaceData;
   demoMode: boolean;
   release: ChangelogRelease;
+  changelog: ChangelogRelease[];
 }) {
   const [data, setData] = useState(initialData);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -158,36 +133,36 @@ export function ChangelogEntryPageClient({
           <h2 id="details-heading" className="sr-only">
             Release details
           </h2>
-          <Card
-            size="none"
-            className="overflow-hidden bg-white/90 dark:bg-white/[0.055]"
-          >
-            <ul className="divide-y divide-black/10 dark:divide-white/10">
-              {release.items.map((item) => {
-                const presentation = categoryPresentation[item.category];
-                const Icon = presentation.icon;
-                return (
-                  <li
-                    key={`${item.category}-${item.title}`}
-                    className="p-5 sm:p-6"
-                  >
-                    <div>
-                      <span
-                        className={`inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${presentation.className}`}
-                      >
-                        <Icon aria-hidden /> {item.category}
-                      </span>
-                      <span className="mt-3 block text-base font-semibold">
-                        {item.title}
-                      </span>
-                      <span className="mt-1 block text-sm leading-6 text-black/60 dark:text-white/60">
-                        {item.description}
-                      </span>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+          <Card size="none" className="bg-white/90 dark:bg-white/[0.055]">
+            <div className="p-5 sm:p-6">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  h2: ({ children }) => (
+                    <h2 className="mb-4 mt-8 w-fit rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-800 first:mt-0 dark:text-emerald-200">
+                      {children}
+                    </h2>
+                  ),
+                  h3: ({ children }) => (
+                    <h3 className="mt-5 text-base font-semibold first:mt-0">
+                      {children}
+                    </h3>
+                  ),
+                  p: ({ children }) => (
+                    <p className="mt-1 text-sm leading-6 text-black/60 dark:text-white/60">
+                      {children}
+                    </p>
+                  ),
+                  ul: ({ children }) => (
+                    <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-black/70 dark:text-white/70">
+                      {children}
+                    </ul>
+                  ),
+                }}
+              >
+                {release.content}
+              </ReactMarkdown>
+            </div>
           </Card>
         </section>
 

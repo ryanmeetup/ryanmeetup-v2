@@ -14,6 +14,9 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: monorepoRoot,
   },
+  outputFileTracingIncludes: {
+    "/*": ["./changelog/**/*.md"],
+  },
   transpilePackages: [
     "@ryanmeetup/brand",
     "@ryanmeetup/hooks",

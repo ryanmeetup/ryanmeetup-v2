@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Button,
@@ -31,6 +26,7 @@ import { WorkspacePageShell } from "@/components/global";
 import { ProjectsModal } from "@/components/projects";
 import { NewTaskModal, TaskKeyBadge } from "@/components/tasks";
 import { withAccessPreview } from "@/lib/access-preview";
+import type { ChangelogRelease } from "@/lib/changelog";
 import {
   deleteTaskDraft,
   readTaskDrafts,
@@ -61,9 +57,11 @@ const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
 export function DashboardPageClient({
   initialData,
   demoMode,
+  latestChangelogRelease,
 }: {
   initialData: WorkspaceData;
   demoMode: boolean;
+  latestChangelogRelease: ChangelogRelease;
 }) {
   const [data, setData] = useState(initialData);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -199,7 +197,10 @@ export function DashboardPageClient({
           className="pointer-events-none absolute left-1/3 top-80 h-96 w-96 rounded-full bg-blue-300/10 blur-3xl dark:bg-blue-400/[0.05]"
         />
         <div className="relative mx-auto max-w-7xl space-y-6">
-          <LatestChangelogCard preview={data.accessPreview} />
+          <LatestChangelogCard
+            preview={data.accessPreview}
+            release={latestChangelogRelease}
+          />
 
           <div className="grid grid-cols-3 gap-2 sm:gap-4">
             {[

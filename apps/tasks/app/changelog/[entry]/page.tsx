@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ChangelogEntryPageClient } from "@/components/changelog";
-import { findChangelogRelease } from "@/lib/changelog";
+import { changelog, findChangelogRelease } from "@/lib/server/changelog";
 import { loadChangelogPage } from "@/lib/server/changelog-page-loader";
 
 export async function generateMetadata({
@@ -30,14 +30,13 @@ export default async function ChangelogEntryPage({
   const release = findChangelogRelease((await params).entry);
   if (!release) notFound();
 
-  const { initialData, demoMode } = await loadChangelogPage(
-    await searchParams,
-  );
+  const { initialData, demoMode } = await loadChangelogPage(await searchParams);
   return (
     <ChangelogEntryPageClient
       initialData={initialData}
       demoMode={demoMode}
       release={release}
+      changelog={changelog}
     />
   );
 }

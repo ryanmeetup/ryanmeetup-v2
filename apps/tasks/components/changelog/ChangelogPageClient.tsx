@@ -13,15 +13,17 @@ import {
 } from "react-icons/fi";
 import { WorkspacePageShell } from "@/components/global";
 import { withAccessPreview } from "@/lib/access-preview";
-import { changelog, changelogReleasePath } from "@/lib/changelog";
+import { changelogReleasePath, type ChangelogRelease } from "@/lib/changelog";
 import type { WorkspaceData } from "@/lib/workspace-types";
 
 export function ChangelogPageClient({
   initialData,
   demoMode,
+  changelog,
 }: {
   initialData: WorkspaceData;
   demoMode: boolean;
+  changelog: ChangelogRelease[];
 }) {
   const [data, setData] = useState(initialData);
   const [sidebarOpen, setSidebarOpen] = useState(false);

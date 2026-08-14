@@ -13,7 +13,7 @@ import {
   FiZap,
 } from "react-icons/fi";
 import { withAccessPreview } from "@/lib/access-preview";
-import { changelogReleasePath, latestChangelogRelease } from "@/lib/changelog";
+import { changelogReleasePath, type ChangelogRelease } from "@/lib/changelog";
 import type { AccessPreview } from "@/lib/workspace-types";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
@@ -23,7 +23,13 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
   timeZone: "UTC",
 });
 
-export function LatestChangelogCard({ preview }: { preview?: AccessPreview }) {
+export function LatestChangelogCard({
+  preview,
+  release,
+}: {
+  preview?: AccessPreview;
+  release: ChangelogRelease;
+}) {
   const [collapsed, setCollapsed] = useState(false);
   const contentId = useId();
   const actionsId = useId();
@@ -52,12 +58,12 @@ export function LatestChangelogCard({ preview }: { preview?: AccessPreview }) {
 
         <div className="min-w-0">
           <h2 className="flex flex-wrap items-center gap-2 text-lg font-semibold">
-            {latestChangelogRelease.title}
+            {release.title}
             <Pill
               size="sm"
               className="!border-emerald-500/30 !bg-emerald-500/10 !px-2 !py-0.5 !text-[9px] !tracking-[0.18em] !text-emerald-800 dark:!text-emerald-200"
             >
-              {latestChangelogRelease.version}
+              {release.version}
             </Pill>
           </h2>
           <AnimatedCollapse id={contentId} open={!collapsed}>
@@ -67,20 +73,18 @@ export function LatestChangelogCard({ preview }: { preview?: AccessPreview }) {
                   aria-hidden
                   className="text-black/35 dark:text-white/35"
                 />
-                {dateFormatter.format(
-                  new Date(`${latestChangelogRelease.date}T12:00:00Z`),
-                )}
+                {dateFormatter.format(new Date(`${release.date}T12:00:00Z`))}
               </span>
               <span className="inline-flex items-center gap-1.5 text-xs font-medium text-black/55 dark:text-white/55">
                 <FiUser
                   aria-hidden
                   className="text-black/35 dark:text-white/35"
                 />
-                {latestChangelogRelease.author}
+                {release.author}
               </span>
             </div>
             <p className="mt-2 max-w-4xl text-sm leading-6 text-black/65 dark:text-white/65">
-              {latestChangelogRelease.summary}
+              {release.summary}
             </p>
           </AnimatedCollapse>
         </div>
@@ -101,18 +105,15 @@ export function LatestChangelogCard({ preview }: { preview?: AccessPreview }) {
         <AnimatedCollapse
           id={actionsId}
           open={!collapsed}
-          className="col-start-2 col-end-4 lg:col-start-auto lg:col-end-auto lg:self-center"
+          className="col-start-2 col-end-4 lg:col-start-3 lg:col-end-4 lg:row-start-1 lg:self-center"
         >
           <div className="flex shrink-0 flex-col gap-2 sm:flex-row lg:flex-col lg:items-stretch">
             <Link
-              href={withAccessPreview(
-                changelogReleasePath(latestChangelogRelease),
-                preview,
-              )}
+              href={withAccessPreview(changelogReleasePath(release), preview)}
               className="group inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-600/25 bg-emerald-600 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/50 motion-reduce:transform-none dark:border-emerald-200/20 dark:bg-emerald-200 dark:text-emerald-950 dark:hover:bg-emerald-100"
             >
               <FiBookOpen aria-hidden />
-              Read {latestChangelogRelease.version}
+              Read {release.version}
               <FiArrowRight
                 className="transition-transform group-hover:translate-x-0.5 motion-reduce:transform-none"
                 aria-hidden

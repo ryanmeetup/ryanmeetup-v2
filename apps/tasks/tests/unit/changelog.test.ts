@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   changelog,
-  changelogReleasePath,
   findChangelogRelease,
   latestChangelogRelease,
-} from "@/lib/changelog";
+} from "@/lib/server/changelog";
+import { changelogReleasePath } from "@/lib/changelog";
 
 describe("changelog", () => {
   it("keeps the approved versions in newest-first order", () => {
@@ -18,6 +18,7 @@ describe("changelog", () => {
     expect(changelog.every((release) => release.author === "Ryan Le")).toBe(
       true,
     );
+    expect(changelog.every((release) => release.content.length > 0)).toBe(true);
   });
 
   it("builds and resolves stable release paths", () => {
