@@ -46,12 +46,12 @@ export function LatestChangelogCard({
   }, []);
 
   return (
-    <article className="relative overflow-hidden rounded-2xl border border-emerald-500/25 bg-emerald-50/80 p-5 shadow-sm dark:border-emerald-300/20 dark:bg-emerald-400/[0.08] sm:p-6">
+    <article className="relative overflow-hidden rounded-2xl border border-emerald-500/25 bg-emerald-50/80 px-5 pb-4 pt-5 shadow-sm dark:border-emerald-300/20 dark:bg-emerald-400/[0.08] sm:px-6 sm:pb-5 sm:pt-6">
       <div
         aria-hidden
         className="pointer-events-none absolute -right-12 -top-16 h-44 w-44 rounded-full bg-emerald-400/10 blur-3xl dark:bg-emerald-300/[0.06]"
       />
-      <div className="relative grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 sm:gap-5">
+      <div className="relative grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 sm:gap-5 lg:gap-y-0">
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-emerald-500/15 bg-emerald-500/15 text-xl text-emerald-700 shadow-sm dark:border-emerald-300/10 dark:bg-emerald-300/15 dark:text-emerald-200">
           <FiZap aria-hidden />
         </span>
