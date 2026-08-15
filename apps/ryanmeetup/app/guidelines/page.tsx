@@ -2,7 +2,7 @@
 import { createRedirectPage } from "@/utils/redirect";
 
 const { metadata, RedirectPage } = createRedirectPage({
-  url: "https://docs.google.com/document/d/1gN7WzS0-iwa7EQZJ36fWMqykKLzYrsighjlpJBjn1NA/edit?usp=sharing",
+  url: "https://docs.google.com/document/d/1P6fcP5mrHKMhzQ5lckbxo94JMEoHIogvLKhZ3wks8Z8/edit?tab=t.0#heading=h.l91gr6ixwskv",
   metadata: {
     title: "Ryan Meetup - Guidelines",
     description: "Guidelines for starting your own chapter of the Ryan Meetup.",
