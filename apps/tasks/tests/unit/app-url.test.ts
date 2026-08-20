@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  isAllowedTasksRequestOrigin,
   productionTasksAppOrigin,
   tasksAppOrigin,
   tasksAppUrl,
@@ -32,6 +33,26 @@ describe("Tasks app canonical URLs", () => {
     expect(tasksAppUrl("/profile", "http://127.0.0.1:3100/login")).toBe(
       "http://127.0.0.1:3100/profile",
     );
+  });
+
+  it("allows local mutations even when generated links use production", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("TASKS_APP_URL", productionTasksAppOrigin);
+
+    expect(isAllowedTasksRequestOrigin("http://localhost:3000")).toBe(true);
+    expect(isAllowedTasksRequestOrigin("http://127.0.0.1:3100")).toBe(true);
+    expect(tasksAppOrigin()).toBe(productionTasksAppOrigin);
+  });
+
+  it("restricts production mutations to canonical and allowlisted origins", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("TASKS_APP_URL", productionTasksAppOrigin);
+    vi.stubEnv("TASKS_ALLOWED_ORIGINS", "https://tasks-preview.example.com");
+
+    expect(isAllowedTasksRequestOrigin(productionTasksAppOrigin)).toBe(true);
+    expect(isAllowedTasksRequestOrigin("https://tasks-preview.example.com")).toBe(true);
+    expect(isAllowedTasksRequestOrigin("https://attacker.example")).toBe(false);
+    expect(isAllowedTasksRequestOrigin("http://localhost:3000")).toBe(false);
   });
 
   it("accepts an allowlisted preview request origin", () => {

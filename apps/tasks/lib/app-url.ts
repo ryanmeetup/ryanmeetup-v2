@@ -55,6 +55,22 @@ function requestOrigin(request?: Request | string) {
     : null;
 }
 
+export function isAllowedTasksRequestOrigin(value: string | null) {
+  const origin = normalizeOrigin(value ?? undefined);
+  if (!origin) return false;
+
+  const hostname = new URL(origin).hostname;
+  const isDevelopmentLoopback =
+    process.env.NODE_ENV !== "production" &&
+    (hostname === "localhost" || hostname === "127.0.0.1");
+
+  return (
+    isDevelopmentLoopback ||
+    origin === configuredOrigin() ||
+    allowedRequestOrigins().has(origin)
+  );
+}
+
 export function tasksAppOrigin(request?: Request | string) {
   const origin = configuredOrigin() ?? requestOrigin(request);
   if (origin) return origin;

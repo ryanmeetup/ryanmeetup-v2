@@ -1,4 +1,4 @@
-import { tasksAppOrigin } from "@/lib/app-url";
+import { isAllowedTasksRequestOrigin } from "@/lib/app-url";
 import { apiError } from "./api-response";
 import type { NextResponse } from "next/server";
 
@@ -14,14 +14,14 @@ export async function readJson<T>(
   request: Request,
   schema: ApiSchema<T>,
 ): Promise<ParsedJson<T>> {
-  let allowedOrigin: string | null = null;
+  const origin = request.headers.get("origin");
+  let originAllowed = false;
   try {
-    allowedOrigin = tasksAppOrigin(request);
+    originAllowed = isAllowedTasksRequestOrigin(origin);
   } catch {
     // Invalid application URL configuration is handled as a rejected origin.
   }
-  const origin = request.headers.get("origin");
-  if (!origin || !allowedOrigin || origin !== allowedOrigin) {
+  if (!originAllowed) {
     return {
       response: apiError(
         403,
