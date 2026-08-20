@@ -5,11 +5,11 @@ import { useMemo, useState, type FormEvent } from "react";
 import {
   Button,
   Card,
+  DropdownSelect,
   EmptyState,
   Input,
   Modal,
   Pill,
-  Select,
   Textarea,
   toast,
 } from "@ryanmeetup/ui";
@@ -263,13 +263,13 @@ export function CalendarPageClient({
                   <Button size="xs" variant="secondary" aria-label="Next month" onClick={() => setMonth(moveMonth(month, 1))}><FiArrowRight /></Button>
                 </div>
                 <div className="flex items-end gap-2">
-                  <Select label="Show" name="calendar-source" variant="compact" value={source} onChange={setSource} options={[
+                  <DropdownSelect label="Show" value={source} onChange={setSource} options={[
                     { label: "Everything", value: "all" },
                     { label: "Deadlines", value: "task" },
                     { label: "Time away", value: "away" },
                     { label: "Important dates", value: "important" },
                   ]} />
-                  <Button size="xs" variant="ghost" onClick={() => setMonth(initialMonth)}>Today</Button>
+                  <Button size="sm" variant="secondary" leftIcon={<FiCalendar />} onClick={() => setMonth(initialMonth)}>Today</Button>
                 </div>
               </div>
               <div className="hidden overflow-hidden rounded-xl border border-black/10 dark:border-white/10 md:block">
@@ -328,13 +328,13 @@ export function CalendarPageClient({
       >
         {draft && <div className="space-y-5">
           {!canEdit && <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm">This was logged by {profileDisplayName(profiles.get(editingEvent?.created_by ?? ""))}. Only that Ryan, the teammate who is away, or an app owner can change it.</div>}
-          {draft.kind === "away" && (canEdit ? <Select label="Who will be away?" name="calendar-away-profile" value={draft.profileId} onChange={(value) => updateDraft("profileId", value)} options={data.profiles.filter((profile) => profile.onboarding_completed).map((profile) => ({ label: profileDisplayName(profile), value: profile.id }))} /> : <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-black/60 dark:text-white/60">Who will be away?</p><p className="mt-2 text-sm">{profileDisplayName(profiles.get(draft.profileId))}</p></div>)}
+          {draft.kind === "away" && (canEdit ? <DropdownSelect variant="field" required label="Who will be away?" value={draft.profileId} onChange={(value) => updateDraft("profileId", value)} options={data.profiles.filter((profile) => profile.onboarding_completed).map((profile) => ({ label: profileDisplayName(profile), value: profile.id }))} /> : <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-black/60 dark:text-white/60">Who will be away?</p><p className="mt-2 text-sm">{profileDisplayName(profiles.get(draft.profileId))}</p></div>)}
           <Input label="Title" name="calendar-title" required value={draft.title} disabled={!canEdit || saving} placeholder={draft.kind === "away" ? "Out of office" : "What is happening?"} onChange={(event) => updateDraft("title", event.target.value)} />
           <Textarea id="calendar-description" label="Details" name="calendar-description" value={draft.description} disabled={!canEdit || saving} rows={3} placeholder="Add the context other Ryans will need." onChange={(event) => updateDraft("description", event.target.value)} />
           <div className="grid gap-4 sm:grid-cols-2"><Input type="date" label="Start date" name="calendar-start-date" required value={draft.startDate} disabled={!canEdit || saving} onChange={(event) => updateDraft("startDate", event.target.value)} /><Input type="date" label="End date" name="calendar-end-date" required min={draft.startDate} value={draft.endDate} disabled={!canEdit || saving} onChange={(event) => updateDraft("endDate", event.target.value)} /></div>
           <label className="flex items-center gap-3 text-sm font-medium"><input type="checkbox" checked={draft.allDay} disabled={!canEdit || saving} onChange={(event) => updateDraft("allDay", event.target.checked)} className="h-4 w-4 rounded border-black/30 accent-black dark:border-white/30 dark:accent-white" />All day</label>
           {!draft.allDay && <div className="grid gap-4 sm:grid-cols-2"><Input type="time" label="Start time" name="calendar-start-time" required value={draft.startTime} disabled={!canEdit || saving} onChange={(event) => updateDraft("startTime", event.target.value)} /><Input type="time" label="End time" name="calendar-end-time" required value={draft.endTime} disabled={!canEdit || saving} onChange={(event) => updateDraft("endTime", event.target.value)} /></div>}
-          {draft.kind === "important" && <Select label="Visibility" name="calendar-visibility" value={draft.projectId ? `project:${draft.projectId}` : draft.categoryId ? `category:${draft.categoryId}` : "workspace"} onChange={(value) => { const [kind, id] = value.split(":"); updateDraft("projectId", kind === "project" ? id : ""); updateDraft("categoryId", kind === "category" ? id : ""); }} options={[{ label: "Everyone in the workspace", value: "workspace" }, ...data.projects.filter((project) => !project.archived_at).map((project) => ({ label: `Project · ${project.name}`, value: `project:${project.id}` })), ...data.categories.filter((category) => !category.archived_at).map((category) => ({ label: `Category · ${category.name}`, value: `category:${category.id}` }))]} />}
+          {draft.kind === "important" && <DropdownSelect variant="field" label="Visibility" value={draft.projectId ? `project:${draft.projectId}` : draft.categoryId ? `category:${draft.categoryId}` : "workspace"} onChange={(value) => { const [kind, id] = value.split(":"); updateDraft("projectId", kind === "project" ? id : ""); updateDraft("categoryId", kind === "category" ? id : ""); }} options={[{ label: "Everyone in the workspace", value: "workspace" }, ...data.projects.filter((project) => !project.archived_at).map((project) => ({ label: `Project · ${project.name}`, value: `project:${project.id}`, group: { label: "Projects" } })), ...data.categories.filter((category) => !category.archived_at).map((category) => ({ label: `Category · ${category.name}`, value: `category:${category.id}`, color: category.color, group: { label: "Categories" } }))]} />}
         </div>}
       </Modal>
     </>
