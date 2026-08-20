@@ -10,7 +10,15 @@ export type InputProps = Omit<
 > & {
   label: string;
   name: string;
-  type?: "text" | "email" | "password" | "url" | "number";
+  type?:
+    | "text"
+    | "email"
+    | "password"
+    | "url"
+    | "number"
+    | "date"
+    | "time"
+    | "datetime-local";
   onChange: ChangeEventHandler<HTMLInputElement>;
   ignoreColorMode?: boolean;
   leadingIcon?: ReactNode;

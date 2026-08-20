@@ -1,0 +1,1 @@
+export { CalendarPageClient } from "./CalendarPageClient";

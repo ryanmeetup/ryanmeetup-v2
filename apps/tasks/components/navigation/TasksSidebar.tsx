@@ -114,6 +114,7 @@ export function TasksSidebar({
   const isBoard = pathname === "/board";
   const isNotes = pathname === "/notes";
   const isContacts = pathname === "/contacts";
+  const isCalendar = pathname === "/calendar";
   const isTasksRoute = isBoard || pathname.startsWith("/task/");
   const selectedProjectIsFavorite = favoriteProjects.some(
     (project) =>
@@ -238,16 +239,17 @@ export function TasksSidebar({
           <FiClock />
           Activity
         </Link>
-        <div
-          className="sidebar-link cursor-default opacity-50"
-          aria-label="Calendar, coming soon"
+        <Link
+          href={withAccessPreview("/calendar", data.accessPreview)}
+          onClick={closeSidebar}
+          className={linkClass(isCalendar)}
         >
           <FiCalendar />
           Calendar
-          <Pill size="sm" className="ml-auto">
-            Soon
+          <Pill size="sm" className={newBadgeClass(isCalendar)}>
+            New
           </Pill>
-        </div>
+        </Link>
       </nav>
       {(isOwner || canManageCategories) && (
         <section className="mt-4 border-y border-black/10 py-3 dark:border-white/10">
