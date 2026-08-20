@@ -6,6 +6,8 @@ import {
 } from "@/lib/task-attachments";
 import {
   attachmentResource,
+  parseAttachmentReorder,
+  parseNoteAttachmentUpdate,
   parseNoteAttachment,
   resourceFromDeletePath,
   validateAttachmentFile,
@@ -20,6 +22,8 @@ import {
   attachmentColumns,
   deleteAttachment,
   insertAttachment,
+  updateAttachmentOrder,
+  updateAttachmentNote,
 } from "@/lib/server/resource-attachment-persistence";
 import { recordWorkspaceActivity } from "@/lib/privileged-api";
 
@@ -36,13 +40,14 @@ type AttachmentRow = {
   size_bytes: number | null;
   created_by: string;
   created_at: string;
+  sort_order: number;
 };
 
 async function recordAttachmentActivity(
   supabase: Parameters<typeof canEditProject>[0],
   user: Parameters<typeof recordWorkspaceActivity>[0],
   resource: { kind: "project" | "category"; id: string },
-  action: "add" | "delete",
+  action: "add" | "delete" | "update",
   attachmentName: string,
 ) {
   const parent = await supabase
@@ -95,7 +100,7 @@ export async function GET(request: Request) {
     .from(resource.table)
     .select(attachmentColumns(resource.foreignKey))
     .eq(resource.foreignKey, resource.id)
-    .order("created_at");
+    .order("sort_order");
   if (error)
     return databaseFailure(request, "resource-attachment.list", error, {
       error: "Attachments could not be loaded.",
@@ -251,6 +256,39 @@ export async function POST(request: Request) {
   return NextResponse.json({
     attachment: { ...attachment, url: signed.data.signedUrl },
   });
+}
+
+export async function PATCH(request: Request) {
+  const authorization = await authorize();
+  if ("response" in authorization) return authorization.response;
+  const { supabase } = authorization;
+  const body = await request.json();
+  const parsed = body && typeof body === "object" && ("name" in body || "body" in body)
+    ? parseNoteAttachmentUpdate(body)
+    : parseAttachmentReorder(body);
+  if ("error" in parsed)
+    return NextResponse.json({ error: parsed.error }, { status: parsed.status });
+  const { resource, id } = parsed;
+  if (
+    !(resource.kind === "category"
+      ? await canEditCategory(supabase)
+      : await canEditProject(supabase, resource.id))
+  )
+    return NextResponse.json(
+      { error: `You cannot edit this ${resource.kind}.` },
+      { status: 403 },
+    );
+  const noteUpdate = "name" in parsed;
+  const { data, error } = noteUpdate
+    ? await updateAttachmentNote(supabase, resource, id, { name: parsed.name, body: parsed.body })
+    : await updateAttachmentOrder(supabase, resource, id, parsed.sortOrder);
+  if (error)
+    return databaseFailure(request, noteUpdate ? "resource-attachment.note-update" : "resource-attachment.reorder", error, {
+      error: noteUpdate ? "The note could not be updated." : "The attachment could not be reordered.",
+    });
+  if (noteUpdate && !(await recordAttachmentActivity(supabase, authorization.user, resource, "update", parsed.name)))
+    return NextResponse.json({ error: "The note was updated, but its activity could not be recorded." }, { status: 500 });
+  return NextResponse.json({ attachment: data });
 }
 
 export async function DELETE(request: Request) {

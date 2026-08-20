@@ -26,7 +26,11 @@ export function ExpandableResourceEditor({
           : "grid items-start transition-[grid-template-columns,gap] duration-300 ease-out motion-reduce:transition-none lg:grid-cols-[minmax(0,1fr)_0fr] lg:gap-0"
       }
     >
-      <div className="min-w-0 space-y-4">
+      <div
+        className={`min-w-0 space-y-4 ${
+          expanded ? "lg:sticky lg:top-6" : ""
+        }`}
+      >
         {primary}
         {!expanded && (
           <button

@@ -62,6 +62,36 @@ export function validateAttachmentFile(file: unknown) {
   return { file };
 }
 
+export function parseAttachmentReorder(input: unknown) {
+  if (!input || typeof input !== "object")
+    return { error: "An attachment and position are required.", status: 400 } as const;
+  const body = input as Record<string, unknown>;
+  const resource = attachmentResource(body.categoryId, body.projectId);
+  if ("error" in resource) return resource;
+  const id = typeof body.id === "string" ? body.id.trim() : "";
+  const sortOrder =
+    typeof body.sortOrder === "number" && Number.isFinite(body.sortOrder)
+      ? body.sortOrder
+      : null;
+  if (!id || sortOrder === null)
+    return { error: "An attachment and position are required.", status: 400 } as const;
+  return { resource, id, sortOrder };
+}
+
+export function parseNoteAttachmentUpdate(input: unknown) {
+  if (!input || typeof input !== "object")
+    return { error: "A note and its changes are required.", status: 400 } as const;
+  const body = input as Record<string, unknown>;
+  const resource = attachmentResource(body.categoryId, body.projectId);
+  if ("error" in resource) return resource;
+  const id = typeof body.id === "string" ? body.id.trim() : "";
+  const name = typeof body.name === "string" ? body.name.trim() : "";
+  const note = typeof body.body === "string" ? body.body.trim() : "";
+  if (!id || !name || name.length > 200 || !note || note.length > 10000)
+    return { error: "Add a title and note.", status: 400 } as const;
+  return { resource, id, name, body: note };
+}
+
 export function resourceFromDeletePath(pathname: string, parentId: unknown) {
   return pathname.includes("category-attachments")
     ? attachmentResource(parentId, undefined)

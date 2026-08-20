@@ -30,6 +30,7 @@ export type ResourceFieldsProps = {
     demoMode: boolean;
     currentUserId: string;
     profiles: Profile[];
+    onSupportingMutation?: () => void;
   };
   copy: {
     nameLabel: string;
@@ -53,7 +54,7 @@ export function ResourceFields({ resource, values, changes, editor, copy, sectio
     </>}
     {section !== "primary" && <>
       <ResourceLinksFields links={values.links} setLinks={changes.setLinks} disabled={editor.disabled} namePrefix={prefix} />
-      <ResourceAttachments resource={resource} editor={{ demoMode: editor.demoMode, disabled: editor.disabled, currentUserId: editor.currentUserId }} {...(values.attachments && changes.setAttachments ? { draftState: { drafts: values.attachments, onChange: changes.setAttachments } } : {})} />
+      <ResourceAttachments resource={resource} editor={{ demoMode: editor.demoMode, disabled: editor.disabled, currentUserId: editor.currentUserId }} onMutation={editor.onSupportingMutation} {...(values.attachments && changes.setAttachments ? { draftState: { drafts: values.attachments, onChange: changes.setAttachments } } : {})} />
       {secondarySlot}
     </>}
   </>;

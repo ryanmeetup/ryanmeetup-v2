@@ -1,5 +1,7 @@
 export { ResourceAttachments } from "./ResourceAttachments";
+export { ResourceAttachmentsPreview } from "./ResourceAttachmentsPreview";
 export { ResourceLinks } from "./ResourceLinks";
+export { useResourceAttachments } from "./useResourceAttachments";
 export { ResourceLinksFields } from "./ResourceLinksFields";
 export { ExpandableResourceEditor } from "./ExpandableResourceEditor";
 export { ResourceFields } from "./ResourceFields";

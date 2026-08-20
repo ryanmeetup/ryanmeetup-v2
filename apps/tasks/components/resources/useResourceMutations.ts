@@ -7,7 +7,7 @@ import { uploadResourceAttachments, type ResourceAttachmentDraft } from "@/lib/r
 type ResourceByKind = { category: Category; project: Project };
 
 export function useResourceMutations<K extends keyof ResourceByKind>(kind: K) {
-  async function save(method: "POST" | "PATCH", body: Record<string, unknown>) {
+  async function save(method: "POST" | "PATCH" | "DELETE", body: Record<string, unknown>) {
     return mutate<{ [P in K]?: ResourceByKind[K] }>(`/api/${kind === "category" ? "categories" : "projects"}`, {
       method,
       body: JSON.stringify(body),

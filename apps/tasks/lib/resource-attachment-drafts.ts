@@ -27,6 +27,37 @@ export function removeAttachmentDraft(
   return drafts.filter((draft) => draft.id !== id);
 }
 
+export function moveAttachmentDraft(
+  drafts: ResourceAttachmentDraft[],
+  id: string,
+  targetId: string | undefined,
+  edge: "before" | "after",
+) {
+  const moving = drafts.find((draft) => draft.id === id);
+  if (!moving || moving.id === targetId)
+    return { drafts, sortOrder: moving?.sort_order ?? 0 };
+  const siblings = drafts
+    .filter((draft) => draft.kind === moving.kind && draft.id !== id)
+    .sort((a, b) => a.sort_order - b.sort_order);
+  const index = targetId
+    ? siblings.findIndex((draft) => draft.id === targetId)
+    : -1;
+  let sortOrder = (siblings.at(-1)?.sort_order ?? 0) + 1024;
+  if (index >= 0 && edge === "before") {
+    sortOrder = siblings[index - 1]
+      ? (siblings[index - 1].sort_order + siblings[index].sort_order) / 2
+      : siblings[index].sort_order - 1024;
+  } else if (index >= 0) {
+    sortOrder = siblings[index + 1]
+      ? (siblings[index].sort_order + siblings[index + 1].sort_order) / 2
+      : siblings[index].sort_order + 1024;
+  }
+  const next = drafts.map((draft) =>
+    draft.id === id ? { ...draft, sort_order: sortOrder } : draft,
+  );
+  return { drafts: next, sortOrder };
+}
+
 export function createNoteDraft({
   kind,
   resourceId = "",
@@ -54,6 +85,7 @@ export function createNoteDraft({
     size_bytes: null,
     created_by: currentUserId,
     created_at: new Date().toISOString(),
+    sort_order: Date.now(),
   };
 }
 
@@ -84,6 +116,7 @@ export function createFileDraft({
     size_bytes: file.size,
     created_by: currentUserId,
     created_at: new Date().toISOString(),
+    sort_order: Date.now(),
     ...(retainFile ? { file } : {}),
   };
 }

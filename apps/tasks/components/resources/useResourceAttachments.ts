@@ -9,6 +9,7 @@ import {
   appendAttachmentDraft,
   createFileDraft,
   createNoteDraft,
+  moveAttachmentDraft,
   partitionAttachmentDrafts,
   removeAttachmentDraft,
   type ResourceKind,
@@ -20,6 +21,7 @@ export function useResourceAttachments({
   demoMode,
   currentUserId,
   draftState,
+  onMutation,
 }: {
   kind: ResourceKind;
   resourceId?: string;
@@ -29,6 +31,7 @@ export function useResourceAttachments({
     drafts: ResourceAttachmentDraft[];
     onChange: (drafts: ResourceAttachmentDraft[]) => void;
   };
+  onMutation?: () => void;
 }) {
   const idKey = kind === "category" ? "categoryId" : "projectId";
   const endpoint = `/api/${kind}-attachments`;
@@ -87,6 +90,7 @@ export function useResourceAttachments({
         attachment = result.attachment;
       }
       updateItems((current) => appendAttachmentDraft(current, attachment));
+      onMutation?.();
       toast.success("Note attached.");
     } finally {
       setSaving(false);
@@ -120,6 +124,7 @@ export function useResourceAttachments({
           attachment = result.attachment;
         }
         updateItems((current) => appendAttachmentDraft(current, attachment));
+        onMutation?.();
         uploaded += 1;
       } catch (error) {
         toast.error(error instanceof Error ? `${file.name}: ${error.message}` : `${file.name} could not be uploaded.`);
@@ -131,16 +136,74 @@ export function useResourceAttachments({
 
   async function remove(item: ResourceAttachmentDraft) {
     updateItems((current) => removeAttachmentDraft(current, item.id));
-    if (demoMode || !resourceId) return;
+    if (demoMode || !resourceId) {
+      onMutation?.();
+      return;
+    }
     try {
       const response = await fetch(`${endpoint}?id=${encodeURIComponent(item.id)}`, { method: "DELETE" });
       const result = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(result.error);
+      onMutation?.();
     } catch (error) {
       updateItems((current) => appendAttachmentDraft(current, item));
       toast.error(error instanceof Error ? error.message : "The attachment could not be removed.");
     }
   }
 
-  return { ...partitionAttachmentDrafts(items), loading, saving, addNote, uploadFiles, remove };
+  async function move(
+    item: ResourceAttachmentDraft,
+    targetId: string | undefined,
+    edge: "before" | "after",
+  ) {
+    const previous = items;
+    const { drafts, sortOrder } = moveAttachmentDraft(items, item.id, targetId, edge);
+    updateItems(() => drafts);
+    if (demoMode || !resourceId) {
+      onMutation?.();
+      return;
+    }
+    try {
+      const response = await fetch(endpoint, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [idKey]: resourceId, id: item.id, sortOrder }),
+      });
+      const result = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(result.error);
+      onMutation?.();
+    } catch (error) {
+      updateItems(() => previous);
+      toast.error(error instanceof Error ? error.message : "The attachment could not be reordered.");
+    }
+  }
+
+  async function updateNote(item: ResourceAttachmentDraft, name: string, body: string) {
+    if (!name.trim() || !body.trim()) throw new Error("Add a title and some text for the note.");
+    const previous = items;
+    const updated = { ...item, name: name.trim(), body: body.trim() };
+    setSaving(true);
+    updateItems((current) => current.map((candidate) => candidate.id === item.id ? updated : candidate));
+    try {
+      if (!demoMode && resourceId) {
+        const response = await fetch(endpoint, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ [idKey]: resourceId, id: item.id, name: updated.name, body: updated.body }),
+        });
+        const result = (await response.json()) as { attachment?: ResourceAttachment; error?: string };
+        if (!response.ok || !result.attachment) throw new Error(result.error ?? "The note could not be updated.");
+        updateItems((current) => current.map((candidate) => candidate.id === item.id ? result.attachment! : candidate));
+      }
+      onMutation?.();
+      toast.success("Note updated.");
+    } catch (error) {
+      updateItems(() => previous);
+      throw error;
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return { ...partitionAttachmentDrafts(items), loading, saving, addNote, updateNote, uploadFiles, remove, move };
 }

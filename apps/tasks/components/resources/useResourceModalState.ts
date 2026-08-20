@@ -4,9 +4,12 @@ import { useState } from "react";
 import type { ResourceLink } from "@/lib/resource-types";
 import type { ResourceAttachmentDraft } from "@/lib/resource-management";
 
-export function useResourceModalState(currentUserId: string) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+export function useResourceModalState(
+  currentUserId: string,
+  initial?: { name?: string; description?: string },
+) {
+  const [name, setName] = useState(initial?.name ?? "");
+  const [description, setDescription] = useState(initial?.description ?? "");
   const [links, setLinks] = useState<ResourceLink[]>([]);
   const [attachments, setAttachments] = useState<ResourceAttachmentDraft[]>([]);
   const [ownerIds, setOwnerIds] = useState<string[]>([currentUserId]);
@@ -14,8 +17,8 @@ export function useResourceModalState(currentUserId: string) {
   const [detailsOpen, setDetailsOpen] = useState(false);
 
   function reset() {
-    setName("");
-    setDescription("");
+    setName(initial?.name ?? "");
+    setDescription(initial?.description ?? "");
     setLinks([]);
     setAttachments([]);
     setOwnerIds([currentUserId]);

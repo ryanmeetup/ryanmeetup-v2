@@ -40,6 +40,7 @@ export type ProjectAttachment = {
   size_bytes: number | null;
   created_by: string;
   created_at: string;
+  sort_order: number;
 };
 
 export type CategoryAttachment = Omit<ProjectAttachment, "project_id"> & {
@@ -55,9 +56,19 @@ export type Note = {
   category_id: string | null;
   created_by: string;
   converted_task_id: string | null;
+  converted_project_id: string | null;
   created_at: string;
   updated_at: string;
   archived_at: string | null;
+};
+
+export type NoteComment = {
+  id: string;
+  note_id: string;
+  body: string;
+  created_by: string;
+  created_at: string;
+  edited_at: string | null;
 };
 
 export type ProjectOwner = { project_id: string; profile_id: string };
