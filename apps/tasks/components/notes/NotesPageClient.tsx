@@ -4,20 +4,18 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryParamState } from "@ryanmeetup/hooks";
 import {
-  AnimatedCollapse,
   Button,
   ConfirmationDialog,
   DropdownSelect,
-  IconButton,
+  FilterChip,
   Modal,
   Textarea,
   toast,
 } from "@ryanmeetup/ui";
-import { FiChevronDown, FiFileText, FiPlus } from "react-icons/fi";
+import { FiFileText, FiPlus } from "react-icons/fi";
 import { CountBadge, WorkspacePageShell } from "@/components/global";
 import { NewTaskModal } from "@/components/tasks";
 import { ProjectsModal } from "@/components/projects";
-import { useCollapsedNoteCategories } from "@/hooks/useCollapsedNoteCategories";
 import {
   filterNotes,
   groupNotesByCategory,
@@ -48,14 +46,16 @@ export function NotesPageClient({
   const [notes, setNotes] = useState(initialNotes);
   const [comments, setComments] = useState(initialComments);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { collapsedCategoryIds, toggleCategorySection } =
-    useCollapsedNoteCategories();
   const [body, setBody] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [creating, setCreating] = useState(false);
   const [noteStatusParam, setNoteStatus] = useQueryParamState(
     "note-status",
     "active",
+  );
+  const [noteCategoryParam, setNoteCategory] = useQueryParamState(
+    "note-category",
+    "all",
   );
   const showArchived = archiveFilter(noteStatusParam) === "archived";
   const [deleteTarget, setDeleteTarget] = useState<Note | null>(null);
@@ -160,6 +160,15 @@ export function NotesPageClient({
 
   const activeNotes = filterNotes(notes, showArchived);
   const noteGroups = groupNotesByCategory(activeNotes, data.categories);
+  const selectedGroup = noteGroups.find((group) => {
+    if (!group.category) return noteCategoryParam === "uncategorized";
+    return (
+      group.category.name === noteCategoryParam ||
+      group.category.id === noteCategoryParam
+    );
+  });
+  const visibleNotes =
+    noteCategoryParam === "all" ? activeNotes : (selectedGroup?.notes ?? []);
   const conversionDraft = convertTarget
     ? noteConversionDraft(convertTarget, data.statuses, data.currentProfile.id)
     : null;
@@ -298,89 +307,122 @@ export function NotesPageClient({
           </section>
 
           <section className="mt-6 border-t border-black/10 pt-5 dark:border-white/10">
-            <div className="mb-5 flex items-center gap-4">
+            <div className="mb-4 flex items-center gap-4">
               <h2 className="text-sm font-semibold uppercase tracking-[0.18em]">
                 {showArchived ? "Archived notes" : "Recent notes"}
               </h2>
             </div>
 
             {activeNotes.length ? (
-              <div className="divide-y divide-black/10 dark:divide-white/10">
-                {noteGroups.map((group, index) => {
-                  const groupId = group.category?.id ?? "uncategorized";
-                  const groupName = group.category?.name ?? "Uncategorized";
-                  const collapsed = collapsedCategoryIds?.has(groupId) ?? false;
-                  return (
-                    <div
-                      key={groupId}
-                      className={index === 0 ? "pb-8" : "py-8"}
+              <div>
+                <div
+                  className="-mx-1 mb-5 flex gap-2 overflow-x-auto px-1 pb-1"
+                  aria-label="Filter notes by category"
+                >
+                  <FilterChip
+                    active={noteCategoryParam === "all"}
+                    className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap"
+                    onClick={() => setNoteCategory("all")}
+                  >
+                    All
+                    <CountBadge
+                      className={
+                        noteCategoryParam === "all"
+                          ? "bg-white/20 text-white dark:bg-black/15 dark:text-black"
+                          : undefined
+                      }
                     >
-                      <div className="flex items-center gap-2 px-1">
+                      {activeNotes.length}
+                    </CountBadge>
+                  </FilterChip>
+                  {noteGroups.map((group) => {
+                    const value = group.category?.name ?? "uncategorized";
+                    const label = group.category?.name ?? "Uncategorized";
+                    const active =
+                      noteCategoryParam === value ||
+                      noteCategoryParam === group.category?.id;
+                    return (
+                      <FilterChip
+                        key={group.category?.id ?? "uncategorized"}
+                        active={active}
+                        className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap"
+                        onClick={() => setNoteCategory(value)}
+                      >
                         <i
-                          className="h-2.5 w-2.5 shrink-0 rounded-full"
+                          className="h-2 w-2 shrink-0 rounded-full ring-1 ring-black/10 dark:ring-white/15"
                           style={{
                             backgroundColor: group.category?.color ?? "#8a8a8a",
                           }}
                         />
-                        <h3 className="shrink-0 whitespace-nowrap text-xs font-bold uppercase tracking-[0.16em]">
-                          {groupName}
-                        </h3>
-                        <CountBadge>{group.notes.length}</CountBadge>
-                        <IconButton
-                          label={`${collapsed ? "Expand" : "Collapse"} “${groupName}”`}
-                          tooltipTriggerClassName="ml-auto"
-                          aria-expanded={!collapsed}
-                          aria-controls={`note-category-${groupId}`}
-                          onClick={() => toggleCategorySection(groupId)}
+                        {label}
+                        <CountBadge
+                          className={
+                            active
+                              ? "bg-white/20 text-white dark:bg-black/15 dark:text-black"
+                              : undefined
+                          }
                         >
-                          <FiChevronDown
-                            className={`transition-transform ${collapsed ? "-rotate-90" : ""}`}
-                          />
-                        </IconButton>
-                      </div>
-                      <AnimatedCollapse
-                        id={`note-category-${groupId}`}
-                        open={!collapsed}
-                        className="mt-3"
-                      >
-                        <div className="grid items-start gap-4 xl:grid-cols-3">
-                          {group.notes.map((note) => (
-                            <NoteCard
-                              key={note.id}
-                              note={note}
-                              profiles={data.profiles}
-                              demoMode={demoMode}
-                              canConvertToProject={canConvertToProject}
-                              onChange={(next) => void updateNote(next)}
-                              onConvert={setConvertTarget}
-                              onConvertToProject={setConvertProjectTarget}
-                              onDelete={setDeleteTarget}
-                              convertedTask={data.tasks.find(
-                                (task) => task.id === note.converted_task_id,
-                              )}
-                              convertedProject={data.projects.find(
-                                (project) =>
-                                  project.id === note.converted_project_id,
-                              )}
-                              comments={comments.filter(
-                                (comment) => comment.note_id === note.id,
-                              )}
-                              currentProfileId={data.currentProfile.id}
-                              onCommentsChange={(next) =>
-                                setComments((current) => [
-                                  ...current.filter(
-                                    (comment) => comment.note_id !== note.id,
-                                  ),
-                                  ...next,
-                                ])
-                              }
-                            />
-                          ))}
-                        </div>
-                      </AnimatedCollapse>
-                    </div>
-                  );
-                })}
+                          {group.notes.length}
+                        </CountBadge>
+                      </FilterChip>
+                    );
+                  })}
+                </div>
+
+                {visibleNotes.length ? (
+                  <div className="grid items-start gap-4 xl:grid-cols-3">
+                    {visibleNotes.map((note) => (
+                      <NoteCard
+                        key={note.id}
+                        note={note}
+                        category={
+                          data.categories.find(
+                            (category) => category.id === note.category_id,
+                          ) ?? null
+                        }
+                        profiles={data.profiles}
+                        demoMode={demoMode}
+                        canConvertToProject={canConvertToProject}
+                        onChange={(next) => void updateNote(next)}
+                        onConvert={setConvertTarget}
+                        onConvertToProject={setConvertProjectTarget}
+                        onDelete={setDeleteTarget}
+                        convertedTask={data.tasks.find(
+                          (task) => task.id === note.converted_task_id,
+                        )}
+                        convertedProject={data.projects.find(
+                          (project) => project.id === note.converted_project_id,
+                        )}
+                        comments={comments.filter(
+                          (comment) => comment.note_id === note.id,
+                        )}
+                        currentProfileId={data.currentProfile.id}
+                        onCommentsChange={(next) =>
+                          setComments((current) => [
+                            ...current.filter(
+                              (comment) => comment.note_id !== note.id,
+                            ),
+                            ...next,
+                          ])
+                        }
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-black/15 px-6 py-10 text-center dark:border-white/15">
+                    <FiFileText className="mx-auto text-2xl text-black/35 dark:text-white/35" />
+                    <p className="mt-3 font-semibold">
+                      No notes in this category
+                    </p>
+                    <button
+                      type="button"
+                      className="mt-2 text-sm font-semibold text-black/60 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:text-white/60 dark:focus-visible:ring-white/30"
+                      onClick={() => setNoteCategory("all")}
+                    >
+                      View all notes
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="rounded-2xl border border-dashed border-black/15 px-6 py-12 text-center dark:border-white/15">

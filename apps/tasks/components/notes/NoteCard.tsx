@@ -24,7 +24,12 @@ import {
 } from "react-icons/fi";
 import { noteTitle } from "@/lib/notes";
 import { taskPath } from "@/lib/task-key";
-import type { Note, NoteComment, Project } from "@/lib/resource-types";
+import type {
+  Category,
+  Note,
+  NoteComment,
+  Project,
+} from "@/lib/resource-types";
 import type { Task } from "@/lib/task-types";
 import type { WorkspaceData } from "@/lib/workspace-types";
 import { useNoteDraft } from "./useNoteDraft";
@@ -32,6 +37,7 @@ import { NoteComments } from "./NoteComments";
 
 export function NoteCard({
   note,
+  category,
   profiles,
   demoMode,
   canConvertToProject,
@@ -46,6 +52,7 @@ export function NoteCard({
   onCommentsChange,
 }: {
   note: Note;
+  category: Category | null;
   profiles: WorkspaceData["profiles"];
   demoMode: boolean;
   canConvertToProject: boolean;
@@ -71,6 +78,15 @@ export function NoteCard({
           <FiFileText aria-hidden />
         </span>
         <div className="min-w-0 flex-1 space-y-3">
+          <span className="inline-flex max-w-full items-center gap-2 rounded-full border border-black/10 bg-white/70 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-black/65 dark:border-white/10 dark:bg-white/5 dark:text-white/65">
+            <i
+              className="h-2 w-2 shrink-0 rounded-full ring-1 ring-black/10 dark:ring-white/15"
+              style={{ backgroundColor: category?.color ?? "#8a8a8a" }}
+            />
+            <span className="truncate">
+              {category?.name ?? "Uncategorized"}
+            </span>
+          </span>
           <Input
             label="Note title"
             name={`note-title-${note.id}`}
