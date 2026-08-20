@@ -36,5 +36,5 @@ export function useProximityOptions<T extends { value: string }>(
       : [proximityOption, ...remainingOptions];
   }, [opensUpward, options, proximityValue]);
 
-  return { orderedOptions, setAnchorElement };
+  return { opensUpward, orderedOptions, setAnchorElement };
 }

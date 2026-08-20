@@ -1,6 +1,5 @@
 import type { ButtonHTMLAttributes } from "react";
-import { FiX } from "react-icons/fi";
-import { Button } from "./Button";
+import { FiRotateCcw } from "react-icons/fi";
 
 export type ClearFiltersButtonProps = Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,
@@ -15,16 +14,17 @@ const ClearFiltersButton = ({
   type = "button",
   ...props
 }: ClearFiltersButtonProps) => (
-  <Button
+  <button
     {...props}
     type={type}
-    variant="ghost"
-    size="sm"
-    leftIcon={<FiX aria-hidden />}
-    className={`shrink-0 ${className ?? ""}`}
+    className={`group/clear inline-flex shrink-0 items-center gap-1.5 rounded-sm px-1 py-2 text-xs font-medium text-black/60 underline decoration-black/20 underline-offset-4 transition hover:text-black hover:decoration-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 disabled:cursor-not-allowed disabled:opacity-50 dark:text-white/60 dark:decoration-white/20 dark:hover:text-white dark:hover:decoration-white/60 dark:focus-visible:ring-white/30 ${className ?? ""}`}
   >
-    {label}
-  </Button>
+    <FiRotateCcw
+      aria-hidden
+      className="transition-transform duration-300 group-hover/clear:-rotate-45 motion-reduce:transition-none"
+    />
+    <span>{label}</span>
+  </button>
 );
 
 export { ClearFiltersButton };

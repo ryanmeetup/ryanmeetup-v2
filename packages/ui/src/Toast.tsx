@@ -1,6 +1,11 @@
 "use client";
 
-import { Toaster, toast } from "react-hot-toast";
+import type { ReactNode } from "react";
+import {
+  Toaster,
+  toast as hotToast,
+  type ToastOptions,
+} from "react-hot-toast";
 
 export type ToastHostProps = {
   duration?: number;
@@ -31,5 +36,45 @@ function ToastHost({ duration = 4000 }: ToastHostProps) {
     />
   );
 }
+
+function LinkedToastMessage({
+  children,
+  href,
+  linkLabel,
+}: {
+  children: ReactNode;
+  href: string;
+  linkLabel: ReactNode;
+}) {
+  return (
+    <span>
+      {children}{" "}
+      <a
+        className="underline decoration-current/50 underline-offset-2 hover:decoration-current focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+        href={href}
+      >
+        {linkLabel}
+      </a>
+    </span>
+  );
+}
+
+const toast = Object.assign(hotToast, {
+  successWithLink(
+    message: ReactNode,
+    {
+      href,
+      linkLabel,
+      ...options
+    }: ToastOptions & { href: string; linkLabel: ReactNode },
+  ) {
+    return hotToast.success(
+      <LinkedToastMessage href={href} linkLabel={linkLabel}>
+        {message}
+      </LinkedToastMessage>,
+      options,
+    );
+  },
+});
 
 export { ToastHost, toast };

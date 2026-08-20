@@ -7,13 +7,17 @@ import {
   ListboxOptions,
   Transition,
 } from "@headlessui/react";
-import { useId, useState } from "react";
+import { Fragment, useId, useState } from "react";
 import { FiCheck, FiChevronDown, FiSearch } from "react-icons/fi";
 import { Avatar, type AvatarProps } from "./Avatar";
 import { getFieldLabelClasses } from "./fieldStyles";
 
 export type MultiSelectOption = {
   avatar?: AvatarProps;
+  group?: {
+    color?: string;
+    label: string;
+  };
   label: string;
   value: string;
 };
@@ -40,7 +44,7 @@ const MultiSelect = ({
   disabled = false,
   placeholder = "Select options",
   required = false,
-  searchable = false,
+  searchable = true,
   searchPlaceholder = "Search options",
 }: MultiSelectProps) => {
   const buttonId = useId();
@@ -52,7 +56,9 @@ const MultiSelect = ({
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const visibleOptions = normalizedQuery
     ? options.filter((option) =>
-        option.label.toLocaleLowerCase().includes(normalizedQuery),
+        [option.label, option.group?.label].some((text) =>
+          text?.toLocaleLowerCase().includes(normalizedQuery),
+        ),
       )
     : options;
   const selectedLabels = selectedOptions.map((option) => option.label);
@@ -119,7 +125,7 @@ const MultiSelect = ({
       >
         <ListboxOptions
           anchor="bottom start"
-          className="z-[60] mt-2 flex max-h-64 w-[var(--button-width)] origin-top flex-col gap-1 overflow-y-auto rounded-xl border border-black/10 bg-white/95 p-1.5 text-black shadow-xl backdrop-blur focus:outline-none dark:border-white/10 dark:bg-[#181818]/95 dark:text-white"
+          className="z-[60] mt-2 flex max-h-80 w-[var(--button-width)] origin-top flex-col gap-1 overflow-y-auto rounded-xl border border-black/10 bg-white/95 p-1.5 text-black shadow-xl backdrop-blur focus:outline-none dark:border-white/10 dark:bg-[#181818]/95 dark:text-white"
         >
           {searchable && (
             <div className="sticky top-0 z-10 bg-white/95 p-1 backdrop-blur dark:bg-[#181818]/95">
@@ -143,26 +149,45 @@ const MultiSelect = ({
               </div>
             </div>
           )}
-          {visibleOptions.map((option) => (
-            <ListboxOption
-              key={option.value}
-              value={option.value}
-              className="group flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm transition focus:outline-none data-focus:bg-black/5 data-selected:bg-black/5 data-selected:font-semibold dark:data-focus:bg-white/10 dark:data-selected:bg-white/10"
-            >
-              {option.avatar && (
-                <Avatar
-                  {...option.avatar}
-                  size="md"
-                  className={`-my-1 ${option.avatar.className ?? ""}`}
-                />
-              )}
-              <span className="min-w-0 flex-1 truncate">{option.label}</span>
-              <FiCheck
-                aria-hidden
-                className="shrink-0 opacity-0 group-data-selected:opacity-100"
-              />
-            </ListboxOption>
-          ))}
+          {visibleOptions.map((option, index) => {
+            const showGroup =
+              option.group &&
+              option.group.label !== visibleOptions[index - 1]?.group?.label;
+
+            return (
+              <Fragment key={option.value}>
+                {showGroup && (
+                  <div className="mb-1 flex items-center gap-2 border-b border-black/10 px-3 pb-2 pt-2 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-black/55 first:pt-1 dark:border-white/10 dark:text-white/55">
+                    {option.group?.color && (
+                      <i
+                        aria-hidden
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: option.group.color }}
+                      />
+                    )}
+                    <span className="truncate">{option.group?.label}</span>
+                  </div>
+                )}
+                <ListboxOption
+                  value={option.value}
+                  className="group flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm transition focus:outline-none data-focus:bg-black/5 data-selected:bg-black/5 data-selected:font-semibold dark:data-focus:bg-white/10 dark:data-selected:bg-white/10"
+                >
+                  {option.avatar && (
+                    <Avatar
+                      {...option.avatar}
+                      size="md"
+                      className={`-my-1 ${option.avatar.className ?? ""}`}
+                    />
+                  )}
+                  <span className="min-w-0 flex-1 truncate">{option.label}</span>
+                  <FiCheck
+                    aria-hidden
+                    className="shrink-0 opacity-0 group-data-selected:opacity-100"
+                  />
+                </ListboxOption>
+              </Fragment>
+            );
+          })}
           {visibleOptions.length === 0 && (
             <p className="px-3 py-4 text-center text-sm text-black/60 dark:text-white/60">
               No matching options

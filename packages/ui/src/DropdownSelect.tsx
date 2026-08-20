@@ -7,8 +7,8 @@ import {
   ListboxOptions,
   Transition,
 } from "@headlessui/react";
-import { useId } from "react";
-import { FiCheck, FiChevronDown } from "react-icons/fi";
+import { Fragment, useId, useState, type ReactNode } from "react";
+import { FiCheck, FiChevronDown, FiSearch } from "react-icons/fi";
 import { Avatar, type AvatarProps } from "./Avatar";
 import { getFieldLabelClasses } from "./fieldStyles";
 import { getFilterControlClasses } from "./filterStyles";
@@ -16,6 +16,10 @@ import { useProximityOptions } from "./useProximityOptions";
 
 export type DropdownSelectOption = {
   avatar?: AvatarProps;
+  group?: {
+    icon?: ReactNode;
+    label: string;
+  };
   label: string;
   value: string;
   color?: string;
@@ -32,6 +36,9 @@ export type DropdownSelectProps = {
   variant?: "compact" | "field";
   active?: boolean;
   proximityValue?: string;
+  proximityGroup?: string;
+  searchPlaceholder?: string;
+  stackLabelOnMobile?: boolean;
 };
 
 const DropdownSelect = ({
@@ -45,14 +52,88 @@ const DropdownSelect = ({
   variant = "compact",
   active = false,
   proximityValue,
+  proximityGroup,
+  searchPlaceholder = `Search ${label.toLocaleLowerCase()}`,
+  stackLabelOnMobile = false,
 }: DropdownSelectProps) => {
   const buttonId = useId();
+  const searchId = useId();
+  const [query, setQuery] = useState("");
   const selected = options.find((option) => option.value === value);
   const field = variant === "field";
-  const { orderedOptions, setAnchorElement } = useProximityOptions(
+  const { opensUpward, orderedOptions, setAnchorElement } = useProximityOptions(
     options,
     proximityValue,
   );
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  const visibleOptions = normalizedQuery
+    ? orderedOptions.filter((option) =>
+        [option.label, option.group?.label].some((text) =>
+          text?.toLocaleLowerCase().includes(normalizedQuery),
+        ),
+      )
+    : orderedOptions;
+  const proximityOption = normalizedQuery
+    ? undefined
+    : visibleOptions.find((option) => option.value === proximityValue);
+  const proximityGroupOptions = normalizedQuery
+    ? []
+    : visibleOptions.filter((option) => option.group?.label === proximityGroup);
+  const pinnedValues = new Set([
+    ...(proximityOption ? [proximityOption.value] : []),
+    ...proximityGroupOptions.map((option) => option.value),
+  ]);
+  const scrollableOptions = visibleOptions.filter(
+    (option) => !pinnedValues.has(option.value),
+  );
+  const renderOption = (option: DropdownSelectOption, pinned = false) => (
+    <ListboxOption
+      key={option.value}
+      value={option.value}
+      className={`group flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm transition focus:outline-none data-focus:bg-black/5 data-selected:bg-black/5 data-selected:font-semibold dark:data-focus:bg-white/10 dark:data-selected:bg-white/10 ${pinned ? "shrink-0" : ""}`}
+    >
+      {option.avatar && (
+        <Avatar
+          {...option.avatar}
+          size="md"
+          className={`-my-1 ${option.avatar.className ?? ""}`}
+        />
+      )}
+      {option.color && (
+        <i
+          aria-hidden
+          className="h-2.5 w-2.5 shrink-0 rounded-full"
+          style={{ backgroundColor: option.color }}
+        />
+      )}
+      <span className="min-w-0 flex-1 truncate">{option.label}</span>
+      <FiCheck
+        aria-hidden
+        className="shrink-0 opacity-0 group-data-selected:opacity-100"
+      />
+    </ListboxOption>
+  );
+  const renderOptions = (items: DropdownSelectOption[], pinned = false) =>
+    items.map((option, index) => {
+      const showGroup =
+        option.group && option.group.label !== items[index - 1]?.group?.label;
+
+      return (
+        <Fragment key={option.value}>
+          {showGroup && (
+            <div className="flex items-center gap-2 border-b border-black/10 px-3 pb-2 pt-2 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-black/55 dark:border-white/10 dark:text-white/55">
+              {option.group?.icon}
+              <span className="truncate">{option.group?.label}</span>
+            </div>
+          )}
+          {renderOption(option, pinned)}
+        </Fragment>
+      );
+    });
+
+  const pinnedOptions = proximityOption
+    ? [proximityOption]
+    : proximityGroupOptions;
 
   return (
     <Listbox
@@ -71,10 +152,15 @@ const DropdownSelect = ({
       <ListboxButton
         id={buttonId}
         aria-required={required || undefined}
-        className={`${field ? "inline-flex w-full items-center justify-between gap-2 rounded-lg border border-black/20 bg-white px-4 py-2.5 text-sm font-semibold text-black shadow-sm transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:border-white/20 dark:bg-white/10 dark:text-white dark:hover:bg-white/10 dark:focus-visible:ring-white/30" : `${getFilterControlClasses(active)} shrink-0`} disabled:cursor-not-allowed disabled:opacity-40 ${className ?? ""}`}
+        onClick={() => setQuery("")}
+        className={`${field ? "inline-flex w-full items-center justify-between gap-2 rounded-lg border border-black/20 bg-white px-4 py-2.5 text-sm font-semibold text-black shadow-sm transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:border-white/20 dark:bg-white/10 dark:text-white dark:hover:bg-white/10 dark:focus-visible:ring-white/30" : `${getFilterControlClasses(active)} shrink-0 ${stackLabelOnMobile ? "!grid grid-cols-[7rem_minmax(0,1fr)_auto] justify-stretch gap-3 px-3 py-2.5 text-left lg:!inline-flex lg:w-auto lg:justify-center lg:gap-2 lg:px-3 lg:py-1.5" : ""}`} disabled:cursor-not-allowed disabled:opacity-40 ${className ?? ""}`}
       >
         {!field && (
-          <span className="text-black/50 dark:text-white/50">{label}</span>
+          <span
+            className={`${stackLabelOnMobile ? "text-[10px] font-semibold uppercase tracking-wider text-black/55 dark:text-white/55 lg:text-xs lg:normal-case lg:tracking-normal" : "text-black/50 dark:text-white/50"}`}
+          >
+            {label}
+          </span>
         )}
         <span className="inline-flex min-w-0 items-center gap-2">
           {selected?.avatar && (
@@ -109,35 +195,58 @@ const DropdownSelect = ({
         <ListboxOptions
           ref={setAnchorElement}
           anchor={{ to: "bottom start", padding: 16 }}
-          className={`z-50 mt-2 flex max-w-[calc(100vw-2rem)] origin-top flex-col gap-1 rounded-xl border border-black/10 bg-white/95 p-1.5 text-black shadow-xl backdrop-blur focus:outline-none dark:border-white/10 dark:bg-[#181818]/95 dark:text-white ${field ? "w-[var(--button-width)]" : "w-56"}`}
+          className={`z-50 mt-2 flex max-h-80 max-w-[calc(100vw-2rem)] origin-top flex-col rounded-xl border border-black/10 bg-white/95 p-1.5 text-black shadow-xl backdrop-blur focus:outline-none dark:border-white/10 dark:bg-[#181818]/95 dark:text-white ${field || stackLabelOnMobile ? "w-[var(--button-width)]" : "w-56"} ${!field && stackLabelOnMobile ? "lg:w-56" : ""}`}
         >
-          {orderedOptions.map((option) => (
-            <ListboxOption
-              key={option.value}
-              value={option.value}
-              className="group flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm transition focus:outline-none data-focus:bg-black/5 data-selected:bg-black/5 data-selected:font-semibold dark:data-focus:bg-white/10 dark:data-selected:bg-white/10"
-            >
-              {option.avatar && (
-                <Avatar
-                  {...option.avatar}
-                  size="md"
-                  className={`-my-1 ${option.avatar.className ?? ""}`}
-                />
-              )}
-              {option.color && (
-                <i
-                  aria-hidden
-                  className="h-2.5 w-2.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: option.color }}
-                />
-              )}
-              <span className="min-w-0 flex-1 truncate">{option.label}</span>
-              <FiCheck
+          <div className="shrink-0 bg-white/95 p-1 backdrop-blur dark:bg-[#181818]/95">
+            <label className="sr-only" htmlFor={searchId}>
+              {searchPlaceholder}
+            </label>
+            <div className="flex items-center gap-2 rounded-lg border border-black/15 bg-white px-3 py-2 focus-within:ring-2 focus-within:ring-black/20 dark:border-white/15 dark:bg-white/10 dark:focus-within:ring-white/20">
+              <FiSearch
                 aria-hidden
-                className="shrink-0 opacity-0 group-data-selected:opacity-100"
+                className="shrink-0 text-black/40 dark:text-white/40"
               />
-            </ListboxOption>
-          ))}
+              <input
+                id={searchId}
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={(event) => event.stopPropagation()}
+                placeholder={searchPlaceholder}
+                className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-black/45 dark:placeholder:text-white/45"
+              />
+            </div>
+          </div>
+          {pinnedOptions.length > 0 && !opensUpward && (
+            <div
+              className={
+                proximityOption
+                  ? "m-1 shrink-0 space-y-1 rounded-lg border border-black/10 bg-white/95 p-1 shadow-sm dark:border-white/10 dark:bg-[#181818]/95"
+                  : "shrink-0 space-y-1"
+              }
+            >
+              {renderOptions(pinnedOptions, true)}
+            </div>
+          )}
+          <div className="min-h-0 space-y-1 overflow-y-auto">
+            {renderOptions(scrollableOptions)}
+          </div>
+          {pinnedOptions.length > 0 && opensUpward && (
+            <div
+              className={
+                proximityOption
+                  ? "m-1 shrink-0 space-y-1 rounded-lg border border-black/10 bg-white/95 p-1 shadow-sm dark:border-white/10 dark:bg-[#181818]/95"
+                  : "shrink-0 space-y-1"
+              }
+            >
+              {renderOptions(pinnedOptions, true)}
+            </div>
+          )}
+          {visibleOptions.length === 0 && (
+            <p className="px-3 py-4 text-center text-sm text-black/60 dark:text-white/60">
+              No matching options
+            </p>
+          )}
         </ListboxOptions>
       </Transition>
     </Listbox>

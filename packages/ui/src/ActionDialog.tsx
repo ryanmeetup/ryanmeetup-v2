@@ -31,33 +31,43 @@ const ConfirmationDialog = ({
   buttonSize = "md",
   onConfirm,
 }: ConfirmationDialogProps) => (
-  <Modal open={open} setIsOpen={setOpen} title={title} hideActions size="sm">
+  <Modal
+    open={open}
+    setIsOpen={setOpen}
+    title={title}
+    hideActions
+    size="md"
+    footer={
+      <div className="flex flex-col justify-end gap-2 sm:flex-row">
+        <Button
+          type="button"
+          variant="secondary"
+          size={buttonSize}
+          className="w-full whitespace-nowrap sm:w-auto"
+          disabled={pending}
+          onClick={() => setOpen(false)}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="button"
+          variant={destructive ? "danger" : "primary"}
+          size={buttonSize}
+          className="w-full whitespace-nowrap sm:w-auto"
+          loading={pending}
+          loadingText={pendingLabel ?? `${confirmLabel}...`}
+          onClick={onConfirm}
+        >
+          {confirmLabel}
+        </Button>
+      </div>
+    }
+  >
     {description && (
       <p className="text-sm leading-relaxed text-black/65 dark:text-white/65">
         {description}
       </p>
     )}
-    <div className="mt-6 flex justify-end gap-2">
-      <Button
-        type="button"
-        variant="secondary"
-        size={buttonSize}
-        disabled={pending}
-        onClick={() => setOpen(false)}
-      >
-        Cancel
-      </Button>
-      <Button
-        type="button"
-        variant={destructive ? "danger" : "primary"}
-        size={buttonSize}
-        loading={pending}
-        loadingText={pendingLabel ?? `${confirmLabel}...`}
-        onClick={onConfirm}
-      >
-        {confirmLabel}
-      </Button>
-    </div>
   </Modal>
 );
 
@@ -84,6 +94,7 @@ const PromptDialog = ({
   pending = false,
   onConfirm,
 }: PromptDialogProps) => {
+  const formId = "prompt-dialog-form";
   const [value, setValue] = useState(initialValue);
 
   useEffect(() => {
@@ -97,17 +108,13 @@ const PromptDialog = ({
   }
 
   return (
-    <Modal open={open} setIsOpen={setOpen} title={title} hideActions size="sm">
-      <form className="space-y-5" onSubmit={submit}>
-        <Input
-          label={label}
-          name="dialog-value"
-          value={value}
-          autoFocus
-          required
-          disabled={pending}
-          onChange={(event) => setValue(event.target.value)}
-        />
+    <Modal
+      open={open}
+      setIsOpen={setOpen}
+      title={title}
+      hideActions
+      size="sm"
+      footer={
         <div className="flex justify-end gap-2">
           <Button
             type="button"
@@ -119,12 +126,25 @@ const PromptDialog = ({
           </Button>
           <Button
             type="submit"
+            form={formId}
             loading={pending}
             loadingText={pendingLabel ?? `${confirmLabel}...`}
           >
             {confirmLabel}
           </Button>
         </div>
+      }
+    >
+      <form id={formId} onSubmit={submit}>
+        <Input
+          label={label}
+          name="dialog-value"
+          value={value}
+          autoFocus
+          required
+          disabled={pending}
+          onChange={(event) => setValue(event.target.value)}
+        />
       </form>
     </Modal>
   );
