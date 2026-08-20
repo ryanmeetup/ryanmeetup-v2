@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   Avatar,
   Button,
@@ -25,6 +25,7 @@ import {
   FiTrash2,
   FiUsers,
   FiUserX,
+  FiX,
 } from "react-icons/fi";
 import { WorkspacePageShell } from "@/components/global";
 import {
@@ -44,10 +45,14 @@ import {
   type CalendarEventKind,
   type CalendarItem,
 } from "@/lib/calendar-types";
-import { mutate } from "@/lib/mutation-client";
+import { mutate, parseMutationResponse } from "@/lib/mutation-client";
 import { withAccessPreview } from "@/lib/access-preview";
 import { profileDisplayName } from "@/lib/presentation";
 import type { WorkspaceData } from "@/lib/workspace-types";
+import type {
+  GoogleCalendarConnection,
+  GoogleCalendarEvent,
+} from "@/lib/google-calendar-types";
 
 const monthFormatter = new Intl.DateTimeFormat("en-US", {
   month: "long",
@@ -116,6 +121,18 @@ function Item({ item, onEdit }: { item: CalendarItem; onEdit: () => void }) {
       </span>
     </>
   );
+  if (item.href && item.external)
+    return (
+      <a
+        href={item.href}
+        target="_blank"
+        rel="noreferrer"
+        className={className}
+        style={{ borderColor: item.color }}
+      >
+        {content}
+      </a>
+    );
   if (item.href)
     return (
       <Link href={item.href} className={className} style={{ borderColor: item.color }}>
@@ -162,16 +179,28 @@ function TaskSummary({
 export function CalendarPageClient({
   initialData,
   initialEvents,
+  initialGoogleEvents,
+  googleConnection: initialGoogleConnection,
+  googleConfigured,
+  googleStatus,
   initialMonth,
   demoMode,
 }: {
   initialData: WorkspaceData;
   initialEvents: CalendarEvent[];
+  initialGoogleEvents: GoogleCalendarEvent[];
+  googleConnection: GoogleCalendarConnection;
+  googleConfigured: boolean;
+  googleStatus?: string;
   initialMonth: string;
   demoMode: boolean;
 }) {
   const [data, setData] = useState(initialData);
   const [events, setEvents] = useState(initialEvents);
+  const [googleEvents, setGoogleEvents] = useState(initialGoogleEvents);
+  const [loadedGoogleMonth, setLoadedGoogleMonth] = useState(initialMonth);
+  const [googleConnection, setGoogleConnection] = useState(initialGoogleConnection);
+  const [disconnectingGoogle, setDisconnectingGoogle] = useState(false);
   const [month, setMonth] = useState(initialMonth);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [draft, setDraft] = useState<CalendarEventDraft | null>(null);
@@ -182,13 +211,21 @@ export function CalendarPageClient({
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [source, setSource] = useState("all");
+  const googleLoading = googleConnection.connected && month !== loadedGoogleMonth;
   const { days, monthNumber } = monthBounds(month);
   const today = initialMonth === new Date().toISOString().slice(0, 7)
     ? new Date().toISOString().slice(0, 10)
     : "";
   const allItems = useMemo(
-    () => calendarItems(data.tasks, events, data.projects, data.categories, data.profiles),
-    [data.categories, data.profiles, data.projects, data.tasks, events],
+    () => calendarItems(
+      data.tasks,
+      events,
+      data.projects,
+      data.categories,
+      data.profiles,
+      googleEvents,
+    ),
+    [data.categories, data.profiles, data.projects, data.tasks, events, googleEvents],
   );
   const items = source === "all"
     ? allItems
@@ -317,6 +354,56 @@ export function CalendarPageClient({
     editingEvent.profile_id === data.currentProfile.id ||
     data.currentProfile.app_role === "owner";
 
+  useEffect(() => {
+    const messages: Record<string, { kind: "success" | "error"; text: string }> = {
+      connected: { kind: "success", text: "Google Calendar connected." },
+      invalid: { kind: "error", text: "Google Calendar returned an invalid connection request." },
+      auth: { kind: "error", text: "Sign in again before connecting Google Calendar." },
+      unavailable: { kind: "error", text: "Google Calendar has not been configured for this deployment." },
+      "refresh-token": { kind: "error", text: "Google did not provide ongoing calendar access. Try connecting again." },
+      failed: { kind: "error", text: "Google Calendar could not be connected." },
+    };
+    const message = googleStatus ? messages[googleStatus] : undefined;
+    if (message) toast[message.kind](message.text);
+  }, [googleStatus]);
+
+  useEffect(() => {
+    if (!googleConnection.connected || month === loadedGoogleMonth) return;
+    const controller = new AbortController();
+    fetch(`/api/integrations/google-calendar/events?month=${encodeURIComponent(month)}`, {
+      signal: controller.signal,
+    })
+      .then((response) => parseMutationResponse<{ events: GoogleCalendarEvent[] }>(response))
+      .then((result) => {
+        setGoogleEvents(result.events);
+        setLoadedGoogleMonth(month);
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) {
+          setLoadedGoogleMonth(month);
+          toast.error(error instanceof Error ? error.message : "Google Calendar could not be loaded.");
+        }
+      });
+    return () => controller.abort();
+  }, [googleConnection.connected, loadedGoogleMonth, month]);
+
+  async function disconnectGoogle() {
+    setDisconnectingGoogle(true);
+    try {
+      await mutate<{ disconnected: boolean }>(
+        "/api/integrations/google-calendar/disconnect",
+        { method: "POST", body: "{}" },
+      );
+      setGoogleConnection({ connected: false });
+      setGoogleEvents([]);
+      toast.success("Google Calendar disconnected.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Google Calendar could not be disconnected.");
+    } finally {
+      setDisconnectingGoogle(false);
+    }
+  }
+
   return (
     <>
       <WorkspacePageShell
@@ -359,6 +446,7 @@ export function CalendarPageClient({
                     { label: "Deadlines", value: "task" },
                     { label: "Time away", value: "away" },
                     { label: "Important dates", value: "important" },
+                    ...(googleConnection.connected ? [{ label: "Google Calendar", value: "google" }] : []),
                   ]} />
                   <Button size="sm" variant="secondary" leftIcon={<FiCalendar />} onClick={() => setMonth(initialMonth)}>Today</Button>
                 </div>
@@ -391,16 +479,22 @@ export function CalendarPageClient({
             </section>
             <aside className="space-y-4">
               <Card className="p-4">
-                <div className="flex items-start gap-3"><span className="rounded-lg bg-blue-500/10 p-2 text-blue-600 dark:text-blue-300"><FiCalendar /></span><div><h2 className="font-semibold">Google Calendar</h2><p className="mt-1 text-sm leading-relaxed text-black/65 dark:text-white/65">Bring meetings into this view and publish accessible Ryan dates back to Google Calendar.</p></div></div>
-                <Button className="mt-4 w-full" size="sm" variant="secondary" leftIcon={<FiExternalLink />} disabled>Connect Google Calendar</Button>
-                <p className="mt-2 text-xs text-black/50 dark:text-white/50">Connection setup is the next integration step. No Google data is shared yet.</p>
+                <div className="flex items-start gap-3"><span className="rounded-lg bg-blue-500/10 p-2 text-blue-600 dark:text-blue-300"><FiCalendar /></span><div><h2 className="font-semibold">Google Calendar</h2><p className="mt-1 text-sm leading-relaxed text-black/65 dark:text-white/65">Bring meetings from your primary calendar into this view.</p></div></div>
+                {googleConnection.connected ? <>
+                  <p className="mt-3 truncate text-sm font-medium">{googleConnection.email}</p>
+                  <Button className="mt-4 w-full" size="sm" variant="secondary" leftIcon={<FiX />} loading={disconnectingGoogle} onClick={disconnectGoogle}>Disconnect</Button>
+                  <p className="mt-2 text-xs text-black/50 dark:text-white/50">Meetings from your primary calendar appear only for you. {googleLoading ? "Refreshing this month…" : "Calendar access is read-only."}</p>
+                </> : <>
+                  <Button.Link href="/api/integrations/google-calendar/connect" className="mt-4 w-full" size="sm" variant="secondary" leftIcon={<FiExternalLink />} disabled={!googleConfigured || demoMode}>Connect Google Calendar</Button.Link>
+                  <p className="mt-2 text-xs text-black/50 dark:text-white/50">{googleConfigured ? "Connect your primary calendar with read-only access." : "Add the Google OAuth environment variables to enable this connection."}</p>
+                </>}
               </Card>
               <Card className="p-4">
                 <h2 className="flex items-center gap-2 font-semibold"><FiClock /> Coming up</h2>
                 <div className="mt-3 space-y-2">{agendaDates.slice(0, 6).map((date) => <div key={`upcoming:${date}`} className="space-y-1"><p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-black/50 dark:text-white/50">{dayFormatter.format(new Date(`${date}T00:00:00Z`))}</p>{renderDayItems(date, monthItems.filter((item) => item.start === date), 2)}</div>)}{!monthItems.length && <p className="text-sm text-black/60 dark:text-white/60">Nothing on the books this month.</p>}</div>
               </Card>
               <div className="flex flex-wrap gap-2" aria-label="Calendar legend">
-                <Pill size="sm">Blue · deadlines</Pill><Pill size="sm">Amber · away</Pill><Pill size="sm">Green · important</Pill>
+                <Pill size="sm">Blue · deadlines + Google</Pill><Pill size="sm">Amber · away</Pill><Pill size="sm">Green · important</Pill>
               </div>
             </aside>
           </div>

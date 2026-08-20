@@ -99,6 +99,26 @@ describe("calendar view models", () => {
     expect(items[0].meta).toBe("Ryan Smith · Away");
   });
 
+  it("adds private Google events as external calendar items", () => {
+    const items = calendarItems([], [], [], [], [], [{
+      id: "google-1",
+      title: "Planning call",
+      start: "2026-08-20",
+      end: "2026-08-20",
+      allDay: false,
+      htmlLink: "https://calendar.google.com/calendar/event?eid=example",
+      calendarName: "Ryan's calendar",
+    }]);
+
+    expect(items).toEqual([expect.objectContaining({
+      id: "google:google-1",
+      source: "google",
+      title: "Planning call",
+      external: true,
+      meta: "Ryan's calendar",
+    })]);
+  });
+
   it("builds a six-week Sunday-first month grid", () => {
     const bounds = monthBounds("2026-08");
     expect(bounds.days).toHaveLength(42);

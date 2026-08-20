@@ -1,6 +1,7 @@
 import type { Category, Project } from "./resource-types";
 import type { Task } from "./task-types";
 import type { Profile } from "./workspace-types";
+import type { GoogleCalendarEvent } from "./google-calendar-types";
 
 export type CalendarEventKind = "important" | "away";
 
@@ -50,6 +51,7 @@ export type CalendarItem = {
   task?: Task;
   event?: CalendarEvent;
   meta?: string;
+  external?: boolean;
 };
 
 const datePart = (value: string) => value.slice(0, 10);
@@ -60,6 +62,7 @@ export function calendarItems(
   projects: Project[],
   categories: Category[],
   profiles: Profile[] = [],
+  googleEvents: GoogleCalendarEvent[] = [],
 ): CalendarItem[] {
   const projectMap = new Map(projects.map((project) => [project.id, project]));
   const categoryMap = new Map(
@@ -111,7 +114,19 @@ export function calendarItems(
           : project?.name ?? category?.name ?? "Workspace date",
     };
   });
-  return [...taskItems, ...eventItems].sort((a, b) =>
+  const googleItems = googleEvents.map((event): CalendarItem => ({
+    id: `google:${event.id}`,
+    source: "google",
+    title: event.title,
+    start: event.start,
+    end: event.end,
+    allDay: event.allDay,
+    color: "#4285f4",
+    href: event.htmlLink,
+    external: Boolean(event.htmlLink),
+    meta: event.calendarName ?? "Google Calendar",
+  }));
+  return [...taskItems, ...eventItems, ...googleItems].sort((a, b) =>
     a.start.localeCompare(b.start) || a.title.localeCompare(b.title),
   );
 }

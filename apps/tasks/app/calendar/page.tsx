@@ -10,6 +10,12 @@ import {
   isWorkspaceDemo,
   loadWorkspacePage,
 } from "@/lib/server/workspace-page-loader";
+import {
+  googleCalendarConnection,
+  isGoogleCalendarConfigured,
+  listGoogleCalendarEvents,
+} from "@/lib/server/google-calendar";
+import type { GoogleCalendarEvent } from "@/lib/google-calendar-types";
 
 export const metadata: Metadata = {
   title: { absolute: "Calendar | Ryan Meetup Tasks" },
@@ -48,15 +54,25 @@ const demoEvents: CalendarEvent[] = [
   },
 ];
 
-export default async function CalendarPage() {
+export default async function CalendarPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ google?: string }>;
+}) {
+  const initialMonth = new Date().toISOString().slice(0, 7);
+  const googleStatus = (await searchParams).google;
   const demoMode = isWorkspaceDemo();
   if (demoMode)
     return (
       <CalendarPageClient
         initialData={demoData}
         initialEvents={demoEvents}
+        initialGoogleEvents={[]}
+        googleConnection={{ connected: false }}
+        googleConfigured={false}
+        googleStatus={googleStatus}
         demoMode
-        initialMonth={new Date().toISOString().slice(0, 7)}
+        initialMonth={initialMonth}
       />
     );
   const loaded = await loadWorkspacePage([
@@ -76,12 +92,25 @@ export default async function CalendarPage() {
       .select(CALENDAR_EVENT_COLUMNS)
       .order("starts_at"),
   );
+  const googleConnection = googleCalendarConnection(loaded.user);
+  let googleEvents: GoogleCalendarEvent[] = [];
+  if (googleConnection.connected) {
+    try {
+      googleEvents = await listGoogleCalendarEvents(loaded.user, initialMonth);
+    } catch (error) {
+      console.error("Google Calendar could not be loaded on the calendar page", error);
+    }
+  }
   return (
     <CalendarPageClient
       initialData={loaded.data}
       initialEvents={events}
+      initialGoogleEvents={googleEvents}
+      googleConnection={googleConnection}
+      googleConfigured={isGoogleCalendarConfigured()}
+      googleStatus={googleStatus}
       demoMode={false}
-      initialMonth={new Date().toISOString().slice(0, 7)}
+      initialMonth={initialMonth}
     />
   );
 }
