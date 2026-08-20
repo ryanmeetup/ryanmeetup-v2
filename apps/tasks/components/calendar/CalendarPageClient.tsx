@@ -25,6 +25,7 @@ import {
   FiUserX,
 } from "react-icons/fi";
 import { WorkspacePageShell } from "@/components/global";
+import { TaskKeyBadge } from "@/components/tasks";
 import {
   blankCalendarDraft,
 } from "@/lib/api-schema/calendar";
@@ -398,7 +399,7 @@ export function CalendarPageClient({
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-semibold">{item.title}</p>
-                    {task && <Pill size="sm">RMT-{task.task_number}</Pill>}
+                    {task && <TaskKeyBadge task={task} />}
                   </div>
                   <p className="mt-1 truncate text-xs text-black/60 dark:text-white/60">
                     {[item.meta, status?.name, assignee ? profileDisplayName(assignee) : "Unassigned"].filter(Boolean).join(" · ")}
