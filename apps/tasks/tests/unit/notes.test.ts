@@ -2,13 +2,16 @@ import { describe, expect, it } from "vitest";
 import {
   applyNoteDraft,
   filterNotes,
+  groupNotesByCategory,
+  linkNoteToProject,
   linkNoteToTask,
   noteConversionDraft,
+  noteConversionProjectDraft,
   noteTaskDescription,
   noteTitle,
   paginateNotes,
 } from "@/lib/notes";
-import type { Note } from "@/lib/resource-types";
+import type { Category, Note } from "@/lib/resource-types";
 
 describe("workspace notes", () => {
   it("uses an explicit title when converting a note", () => {
@@ -69,6 +72,36 @@ describe("workspace notes", () => {
     });
   });
 
+  it("builds a project conversion draft from the note's title and body", () => {
+    const titled = { title: "Launch thought", body: "Keep all of this context." };
+    expect(noteConversionProjectDraft(titled)).toEqual({
+      name: "Launch thought",
+      description: "Keep all of this context.",
+    });
+    const untitled = {
+      title: null,
+      body: "Try a community office hour\nAsk the meetup regulars.",
+    };
+    expect(noteConversionProjectDraft(untitled)).toEqual({
+      name: "Try a community office hour",
+      description: "Ask the meetup regulars.",
+    });
+  });
+
+  it("links a note to a converted project without mutating the original", () => {
+    const note = { id: "note", converted_project_id: null } as never;
+    const linked = linkNoteToProject(
+      note,
+      { id: "project" },
+      "2026-08-13T00:00:00Z",
+    );
+    expect(linked).not.toBe(note);
+    expect(linked).toMatchObject({
+      converted_project_id: "project",
+      updated_at: "2026-08-13T00:00:00Z",
+    });
+  });
+
   it("normalizes autosave drafts", () => {
     const note = { title: null, body: "Old", updated_at: "old" } as never;
     expect(applyNoteDraft(note, "  Title ", " Body ", "new")).toMatchObject({
@@ -86,6 +119,7 @@ describe("workspace notes", () => {
       category_id: null,
       created_by: "user",
       converted_task_id: null,
+      converted_project_id: null,
       created_at: "now",
       updated_at: "now",
       archived_at: null,
@@ -99,5 +133,43 @@ describe("workspace notes", () => {
         2,
       ),
     ).toMatchObject({ page: 2, totalCount: 3, notes: [{ id: "4" }] });
+  });
+
+  it("groups notes by category, alphabetically, with uncategorized last", () => {
+    const design = { id: "design", name: "Design" } as Category;
+    const backend = { id: "backend", name: "Backend" } as Category;
+    const uncategorized: Note = {
+      id: "1",
+      title: null,
+      body: "Loose thought",
+      category_id: null,
+      created_by: "user",
+      converted_task_id: null,
+      converted_project_id: null,
+      created_at: "now",
+      updated_at: "now",
+      archived_at: null,
+    };
+    const designNote: Note = {
+      ...uncategorized,
+      id: "2",
+      category_id: "design",
+    };
+    const backendNote: Note = {
+      ...uncategorized,
+      id: "3",
+      category_id: "backend",
+    };
+    const groups = groupNotesByCategory(
+      [uncategorized, designNote, backendNote],
+      [design, backend],
+    );
+    expect(groups.map((group) => group.category?.name ?? "Uncategorized")).toEqual([
+      "Backend",
+      "Design",
+      "Uncategorized",
+    ]);
+    expect(groups[0].notes).toEqual([backendNote]);
+    expect(groups[2].notes).toEqual([uncategorized]);
   });
 });

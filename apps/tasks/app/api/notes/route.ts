@@ -84,6 +84,7 @@ export async function PATCH(request: Request) {
           title?: unknown;
           archived?: unknown;
           convertedTaskId?: unknown;
+          convertedProjectId?: unknown;
         })
       : null,
   );
@@ -119,6 +120,8 @@ export async function PATCH(request: Request) {
     values.archived_at = input.archived ? new Date().toISOString() : null;
   if (typeof input.convertedTaskId === "string")
     values.converted_task_id = input.convertedTaskId;
+  if (typeof input.convertedProjectId === "string")
+    values.converted_project_id = input.convertedProjectId;
   if (Object.keys(values).length === 0)
     return NextResponse.json(
       { error: "No note changes were provided." },
@@ -135,7 +138,7 @@ export async function PATCH(request: Request) {
       error: "The note could not be updated.",
     });
   const action =
-    input.convertedTaskId !== undefined
+    input.convertedTaskId !== undefined || input.convertedProjectId !== undefined
       ? "note.convert"
       : input.archived === true
         ? "note.archive"

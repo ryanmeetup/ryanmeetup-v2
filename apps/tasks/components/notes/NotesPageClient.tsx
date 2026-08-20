@@ -1,21 +1,33 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useQueryParamState } from "@ryanmeetup/hooks";
 import {
+  AnimatedCollapse,
   Button,
   ConfirmationDialog,
   DropdownSelect,
+  IconButton,
   Modal,
   Textarea,
   toast,
 } from "@ryanmeetup/ui";
-import { FiFileText, FiPlus } from "react-icons/fi";
-import { WorkspacePageShell } from "@/components/global";
+import { FiChevronDown, FiFileText, FiPlus } from "react-icons/fi";
+import { CountBadge, WorkspacePageShell } from "@/components/global";
 import { NewTaskModal } from "@/components/tasks";
-import { filterNotes, linkNoteToTask, noteConversionDraft } from "@/lib/notes";
-import type { Note } from "@/lib/resource-types";
+import { ProjectsModal } from "@/components/projects";
+import { useCollapsedNoteCategories } from "@/hooks/useCollapsedNoteCategories";
+import {
+  filterNotes,
+  groupNotesByCategory,
+  linkNoteToProject,
+  noteConversionDraft,
+  noteConversionProjectDraft,
+} from "@/lib/notes";
+import type { Note, NoteComment, Project } from "@/lib/resource-types";
 import type { Task } from "@/lib/task-types";
+import { taskPath } from "@/lib/task-key";
 import type { WorkspaceData } from "@/lib/workspace-types";
 import { mutate } from "@/lib/mutation-client";
 import { archiveFilter } from "@/lib/resource-management";
@@ -23,15 +35,21 @@ import { NoteCard } from "./NoteCard";
 export function NotesPageClient({
   initialData,
   initialNotes,
+  initialComments,
   demoMode,
 }: {
   initialData: WorkspaceData;
   initialNotes: Note[];
+  initialComments: NoteComment[];
   demoMode: boolean;
 }) {
+  const router = useRouter();
   const [data, setData] = useState(initialData);
   const [notes, setNotes] = useState(initialNotes);
+  const [comments, setComments] = useState(initialComments);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { collapsedCategoryIds, toggleCategorySection } =
+    useCollapsedNoteCategories();
   const [body, setBody] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [creating, setCreating] = useState(false);
@@ -42,6 +60,11 @@ export function NotesPageClient({
   const showArchived = archiveFilter(noteStatusParam) === "archived";
   const [deleteTarget, setDeleteTarget] = useState<Note | null>(null);
   const [convertTarget, setConvertTarget] = useState<Note | null>(null);
+  const [convertProjectTarget, setConvertProjectTarget] = useState<Note | null>(
+    null,
+  );
+  const canConvertToProject =
+    demoMode || data.currentProfile.app_role === "owner";
 
   async function createNote() {
     if (!body.trim()) return;
@@ -55,6 +78,7 @@ export function NotesPageClient({
             created_by: data.currentProfile.id,
             category_id: categoryId || null,
             converted_task_id: null,
+            converted_project_id: null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             archived_at: null,
@@ -120,6 +144,9 @@ export function NotesPageClient({
       setNotes((current) =>
         current.filter((note) => note.id !== deleteTarget.id),
       );
+      setComments((current) =>
+        current.filter((comment) => comment.note_id !== deleteTarget.id),
+      );
       setDeleteTarget(null);
       toast.success("Note deleted.");
     } catch (error) {
@@ -132,34 +159,67 @@ export function NotesPageClient({
   }
 
   const activeNotes = filterNotes(notes, showArchived);
+  const noteGroups = groupNotesByCategory(activeNotes, data.categories);
   const conversionDraft = convertTarget
     ? noteConversionDraft(convertTarget, data.statuses, data.currentProfile.id)
     : null;
 
   async function markConverted(task: Task) {
     if (!convertTarget) return;
+    const convertedNote = convertTarget;
+    try {
+      if (!demoMode)
+        await mutate("/api/notes", {
+          method: "DELETE",
+          body: JSON.stringify({ id: convertedNote.id }),
+        });
+      setNotes((current) =>
+        current.filter((note) => note.id !== convertedNote.id),
+      );
+      setComments((current) =>
+        current.filter((comment) => comment.note_id !== convertedNote.id),
+      );
+      toast.success("Note converted to a task and deleted.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? `The task was created, but the note could not be deleted: ${error.message}`
+          : "The task was created, but the note could not be deleted.",
+      );
+    } finally {
+      setConvertTarget(null);
+      router.push(taskPath(task));
+    }
+  }
+
+  const projectConversionDraft = convertProjectTarget
+    ? noteConversionProjectDraft(convertProjectTarget)
+    : null;
+
+  async function markConvertedProject(project: Project) {
+    if (!convertProjectTarget) return;
     try {
       const updated = demoMode
-        ? linkNoteToTask(convertTarget, task)
+        ? linkNoteToProject(convertProjectTarget, project)
         : (
             await mutate<{ note: Note }>("/api/notes", {
               method: "PATCH",
               body: JSON.stringify({
-                id: convertTarget.id,
-                convertedTaskId: task.id,
+                id: convertProjectTarget.id,
+                convertedProjectId: project.id,
               }),
             })
           ).note;
       setNotes((current) =>
         current.map((note) => (note.id === updated.id ? updated : note)),
       );
-      toast.success("Note converted to a task.");
+      toast.success("Note converted to a project.");
     } catch {
       toast.error(
-        "The task was created, but the note could not be linked to it.",
+        "The project was created, but the note could not be linked to it.",
       );
     } finally {
-      setConvertTarget(null);
+      setConvertProjectTarget(null);
     }
   }
 
@@ -245,22 +305,82 @@ export function NotesPageClient({
             </div>
 
             {activeNotes.length ? (
-              <div className="grid items-start gap-4 xl:grid-cols-3">
-                {activeNotes.map((note) => (
-                  <NoteCard
-                    key={note.id}
-                    note={note}
-                    profiles={data.profiles}
-                    categories={data.categories}
-                    demoMode={demoMode}
-                    onChange={(next) => void updateNote(next)}
-                    onConvert={setConvertTarget}
-                    onDelete={setDeleteTarget}
-                    convertedTask={data.tasks.find(
-                      (task) => task.id === note.converted_task_id,
-                    )}
-                  />
-                ))}
+              <div className="divide-y divide-black/10 dark:divide-white/10">
+                {noteGroups.map((group, index) => {
+                  const groupId = group.category?.id ?? "uncategorized";
+                  const groupName = group.category?.name ?? "Uncategorized";
+                  const collapsed = collapsedCategoryIds?.has(groupId) ?? false;
+                  return (
+                    <div
+                      key={groupId}
+                      className={index === 0 ? "pb-8" : "py-8"}
+                    >
+                      <div className="flex items-center gap-2 px-1">
+                        <i
+                          className="h-2.5 w-2.5 shrink-0 rounded-full"
+                          style={{
+                            backgroundColor: group.category?.color ?? "#8a8a8a",
+                          }}
+                        />
+                        <h3 className="shrink-0 whitespace-nowrap text-xs font-bold uppercase tracking-[0.16em]">
+                          {groupName}
+                        </h3>
+                        <CountBadge>{group.notes.length}</CountBadge>
+                        <IconButton
+                          label={`${collapsed ? "Expand" : "Collapse"} “${groupName}”`}
+                          tooltipTriggerClassName="ml-auto"
+                          aria-expanded={!collapsed}
+                          aria-controls={`note-category-${groupId}`}
+                          onClick={() => toggleCategorySection(groupId)}
+                        >
+                          <FiChevronDown
+                            className={`transition-transform ${collapsed ? "-rotate-90" : ""}`}
+                          />
+                        </IconButton>
+                      </div>
+                      <AnimatedCollapse
+                        id={`note-category-${groupId}`}
+                        open={!collapsed}
+                        className="mt-3"
+                      >
+                        <div className="grid items-start gap-4 xl:grid-cols-3">
+                          {group.notes.map((note) => (
+                            <NoteCard
+                              key={note.id}
+                              note={note}
+                              profiles={data.profiles}
+                              demoMode={demoMode}
+                              canConvertToProject={canConvertToProject}
+                              onChange={(next) => void updateNote(next)}
+                              onConvert={setConvertTarget}
+                              onConvertToProject={setConvertProjectTarget}
+                              onDelete={setDeleteTarget}
+                              convertedTask={data.tasks.find(
+                                (task) => task.id === note.converted_task_id,
+                              )}
+                              convertedProject={data.projects.find(
+                                (project) =>
+                                  project.id === note.converted_project_id,
+                              )}
+                              comments={comments.filter(
+                                (comment) => comment.note_id === note.id,
+                              )}
+                              currentProfileId={data.currentProfile.id}
+                              onCommentsChange={(next) =>
+                                setComments((current) => [
+                                  ...current.filter(
+                                    (comment) => comment.note_id !== note.id,
+                                  ),
+                                  ...next,
+                                ])
+                              }
+                            />
+                          ))}
+                        </div>
+                      </AnimatedCollapse>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div className="rounded-2xl border border-dashed border-black/15 px-6 py-12 text-center dark:border-white/15">
@@ -299,6 +419,19 @@ export function NotesPageClient({
           setOpen={(open) => !open && setConvertTarget(null)}
           initialDraft={conversionDraft}
           onCreated={markConverted}
+        />
+      )}
+
+      {convertProjectTarget && projectConversionDraft && (
+        <ProjectsModal
+          key={convertProjectTarget.id}
+          modal={{
+            open: true,
+            setOpen: (open) => !open && setConvertProjectTarget(null),
+          }}
+          workspace={{ data, setData, demoMode }}
+          options={{ createOnly: true, initialDraft: projectConversionDraft }}
+          events={{ onCreated: markConvertedProject }}
         />
       )}
     </>

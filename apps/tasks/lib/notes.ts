@@ -1,9 +1,11 @@
-import type { Note } from "./resource-types";
+import type { Category, Note, Project } from "./resource-types";
 import type { Status, Task } from "./task-types";
 import type { StoredTaskDraft } from "./task-drafts";
 
 export const noteColumns =
-  "id,title,body,category_id,created_by,converted_task_id,created_at,updated_at,archived_at";
+  "id,title,body,category_id,created_by,converted_task_id,converted_project_id,created_at,updated_at,archived_at";
+export const noteCommentColumns =
+  "id,note_id,body,created_by,created_at,edited_at";
 
 export const noteAutosaveDelayMs = 800;
 
@@ -41,6 +43,32 @@ export function noteTaskDescription(note: Pick<Note, "title" | "body">) {
 
 export function filterNotes(notes: Note[], archived: boolean) {
   return notes.filter((note) => Boolean(note.archived_at) === archived);
+}
+
+export type NoteGroup = { category: Category | null; notes: Note[] };
+
+export function groupNotesByCategory(
+  notes: Note[],
+  categories: Category[],
+): NoteGroup[] {
+  const byCategoryId = new Map<string | null, Note[]>();
+  for (const note of notes) {
+    const key = note.category_id;
+    const group = byCategoryId.get(key);
+    if (group) group.push(note);
+    else byCategoryId.set(key, [note]);
+  }
+  const categorized = categories
+    .filter((category) => byCategoryId.has(category.id))
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((category) => ({
+      category,
+      notes: byCategoryId.get(category.id)!,
+    }));
+  const uncategorized = byCategoryId.get(null);
+  return uncategorized
+    ? [...categorized, { category: null, notes: uncategorized }]
+    : categorized;
 }
 
 export function paginateNotes(notes: Note[], page: number, pageSize: number) {
@@ -92,4 +120,16 @@ export function linkNoteToTask(
   updatedAt = new Date().toISOString(),
 ): Note {
   return { ...note, converted_task_id: task.id, updated_at: updatedAt };
+}
+
+export function noteConversionProjectDraft(note: Pick<Note, "title" | "body">) {
+  return { name: noteTitle(note), description: noteTaskDescription(note) };
+}
+
+export function linkNoteToProject(
+  note: Note,
+  project: Pick<Project, "id">,
+  updatedAt = new Date().toISOString(),
+): Note {
+  return { ...note, converted_project_id: project.id, updated_at: updatedAt };
 }

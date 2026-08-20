@@ -3,6 +3,10 @@
 import {
   Avatar,
   Button,
+  DropdownMenu,
+  DropdownMenuButton,
+  DropdownMenuItem,
+  DropdownMenuItems,
   IconButton,
   Input,
   Textarea,
@@ -10,45 +14,56 @@ import {
 } from "@ryanmeetup/ui";
 import {
   FiArchive,
+  FiBriefcase,
   FiCheck,
+  FiChevronDown,
   FiClock,
   FiFileText,
   FiRotateCcw,
   FiTrash2,
 } from "react-icons/fi";
-import { TaskCategoryBadge } from "@/components/tasks";
 import { noteTitle } from "@/lib/notes";
 import { taskPath } from "@/lib/task-key";
-import type { Note } from "@/lib/resource-types";
+import type { Note, NoteComment, Project } from "@/lib/resource-types";
 import type { Task } from "@/lib/task-types";
 import type { WorkspaceData } from "@/lib/workspace-types";
 import { useNoteDraft } from "./useNoteDraft";
+import { NoteComments } from "./NoteComments";
 
 export function NoteCard({
   note,
   profiles,
   demoMode,
+  canConvertToProject,
   onChange,
   onConvert,
+  onConvertToProject,
   onDelete,
   convertedTask,
-  categories,
+  convertedProject,
+  comments,
+  currentProfileId,
+  onCommentsChange,
 }: {
   note: Note;
   profiles: WorkspaceData["profiles"];
   demoMode: boolean;
+  canConvertToProject: boolean;
   onChange: (note: Note) => void;
   onConvert: (note: Note) => void;
+  onConvertToProject: (note: Note) => void;
   onDelete: (note: Note) => void;
   convertedTask?: Task;
-  categories: WorkspaceData["categories"];
+  convertedProject?: Project;
+  comments: NoteComment[];
+  currentProfileId: string;
+  onCommentsChange: (comments: NoteComment[]) => void;
 }) {
   const draft = useNoteDraft(note, demoMode, (updated) => {
     onChange(updated);
     toast.success("Note saved.");
   });
   const author = profiles.find((profile) => profile.id === note.created_by);
-  const category = categories.find((item) => item.id === note.category_id);
   return (
     <article className="rounded-2xl border border-black/10 bg-black/[0.015] p-4 dark:border-white/10 dark:bg-white/[0.025] sm:p-5">
       <div className="flex items-start gap-3">
@@ -86,7 +101,6 @@ export function NoteCard({
               />
               {author?.full_name ?? "Unknown teammate"}
             </span>
-            {category && <TaskCategoryBadge category={category} />}
             <time
               dateTime={note.updated_at}
               className="inline-flex items-center gap-1.5"
@@ -110,6 +124,7 @@ export function NoteCard({
                 ? `Restore “${noteTitle(note)}”`
                 : `Archive “${noteTitle(note)}”`
             }
+            variant="archive"
             onClick={() =>
               void onChange({
                 ...note,
@@ -127,8 +142,8 @@ export function NoteCard({
             <FiTrash2 />
           </IconButton>
         </div>
-        <div className="ml-auto">
-          {note.converted_task_id ? (
+        <div className="ml-auto flex items-center gap-2">
+          {note.converted_task_id && (
             <Button.Link
               href={convertedTask ? taskPath(convertedTask) : "/board"}
               size="sm"
@@ -137,24 +152,84 @@ export function NoteCard({
             >
               View task
             </Button.Link>
-          ) : !note.archived_at ? (
-            <Button
-              type="button"
+          )}
+          {note.converted_project_id && (
+            <Button.Link
+              href={
+                convertedProject
+                  ? `/board?project=${encodeURIComponent(convertedProject.name)}`
+                  : "/projects"
+              }
               size="sm"
               variant="secondary"
-              onClick={() =>
-                onConvert({
-                  ...note,
-                  title: draft.title.trim() || null,
-                  body: draft.body,
-                })
-              }
+              leftIcon={<FiBriefcase />}
             >
-              Convert to task
-            </Button>
-          ) : null}
+              View project
+            </Button.Link>
+          )}
+          {!note.converted_task_id &&
+            !note.converted_project_id &&
+            !note.archived_at &&
+            (canConvertToProject ? (
+              <DropdownMenu>
+                <DropdownMenuButton
+                  unstyled
+                  className="inline-flex items-center gap-2 rounded-lg border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-black transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 dark:focus-visible:ring-white/30"
+                >
+                  Convert
+                  <FiChevronDown aria-hidden />
+                </DropdownMenuButton>
+                <DropdownMenuItems align="end">
+                  <DropdownMenuItem
+                    onClick={() =>
+                      onConvert({
+                        ...note,
+                        title: draft.title.trim() || null,
+                        body: draft.body,
+                      })
+                    }
+                  >
+                    <FiCheck aria-hidden /> Convert to task
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() =>
+                      onConvertToProject({
+                        ...note,
+                        title: draft.title.trim() || null,
+                        body: draft.body,
+                      })
+                    }
+                  >
+                    <FiBriefcase aria-hidden /> Convert to project
+                  </DropdownMenuItem>
+                </DropdownMenuItems>
+              </DropdownMenu>
+            ) : (
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={() =>
+                  onConvert({
+                    ...note,
+                    title: draft.title.trim() || null,
+                    body: draft.body,
+                  })
+                }
+              >
+                Convert to task
+              </Button>
+            ))}
         </div>
       </div>
+      <NoteComments
+        noteId={note.id}
+        comments={comments}
+        currentProfileId={currentProfileId}
+        profiles={profiles}
+        demoMode={demoMode}
+        onChange={onCommentsChange}
+      />
     </article>
   );
 }
