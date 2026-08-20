@@ -601,10 +601,12 @@ export function DashboardPageClient({
       <CategoriesModal
         modal={{ open: categoryCreateOpen, setOpen: setCategoryCreateOpen }}
         workspace={{ data, setData, demoMode }}
+        options={{ createOnly: true }}
       />
       <ProjectsModal
         modal={{ open: projectCreateOpen, setOpen: setProjectCreateOpen }}
         workspace={{ data, setData, demoMode }}
+        options={{ createOnly: true }}
       />
       {!data.accessPreview && (newTaskOpen || selectedDraft) && (
         <NewTaskModal

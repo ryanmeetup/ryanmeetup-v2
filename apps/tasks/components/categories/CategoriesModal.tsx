@@ -117,10 +117,11 @@ export function CategoriesModal({
   const { data, setData, demoMode } = workspace;
   const {
     embedded = false,
-    createOnly = false,
+    createOnly: createOnlyOption,
     editCategoryId = null,
     readOnly = false,
   } = options ?? {};
+  const createOnly = createOnlyOption ?? !embedded;
   const { onCreate, onCategoryUpdated } = events ?? {};
   const resourceMutations = useResourceMutations("category");
   const directEditCategory = editCategoryId
