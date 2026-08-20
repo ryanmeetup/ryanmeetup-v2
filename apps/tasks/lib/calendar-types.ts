@@ -47,6 +47,7 @@ export type CalendarItem = {
   allDay: boolean;
   color: string;
   href?: string;
+  task?: Task;
   event?: CalendarEvent;
   meta?: string;
 };
@@ -80,6 +81,7 @@ export function calendarItems(
         allDay: !task.due_time,
         color: task.priority === "urgent" ? "#dc2626" : "#2563eb",
         href: `/task/RMT-${task.task_number}`,
+        task,
         meta: project?.name ?? "Task deadline",
       },
     ];

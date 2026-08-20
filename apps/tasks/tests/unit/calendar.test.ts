@@ -83,6 +83,7 @@ describe("calendar view models", () => {
     );
     expect(items.map((item) => item.source)).toEqual(["task", "away"]);
     expect(items[0].href).toBe("/task/RMT-12");
+    expect(items[0].task?.title).toBe("Book the venue");
   });
 
   it("includes a multi-day away entry on every date in its range", () => {

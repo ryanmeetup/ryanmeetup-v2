@@ -38,6 +38,7 @@ import {
   type CalendarItem,
 } from "@/lib/calendar-types";
 import { mutate } from "@/lib/mutation-client";
+import { withAccessPreview } from "@/lib/access-preview";
 import { profileDisplayName } from "@/lib/presentation";
 import type { WorkspaceData } from "@/lib/workspace-types";
 
@@ -106,6 +107,31 @@ function Item({ item, onEdit }: { item: CalendarItem; onEdit: () => void }) {
   );
 }
 
+function TaskSummary({
+  date,
+  items,
+  onOpen,
+}: {
+  date: string;
+  items: CalendarItem[];
+  onOpen: (date: string, items: CalendarItem[]) => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="block w-full min-w-0 rounded-md border-l-4 border-blue-600 bg-blue-500/[0.08] px-2 py-1 text-left text-[11px] leading-tight transition hover:bg-blue-500/[0.14] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:border-blue-400 dark:bg-blue-400/10 dark:hover:bg-blue-400/15"
+      onClick={() => onOpen(date, items)}
+    >
+      <span className="block truncate font-semibold">
+        {items.length} {items.length === 1 ? "task" : "tasks"} due
+      </span>
+      <span className="block truncate text-[10px] text-black/55 dark:text-white/55">
+        View the day&apos;s deadlines
+      </span>
+    </button>
+  );
+}
+
 export function CalendarPageClient({
   initialData,
   initialEvents,
@@ -122,6 +148,10 @@ export function CalendarPageClient({
   const [month, setMonth] = useState(initialMonth);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [draft, setDraft] = useState<CalendarEventDraft | null>(null);
+  const [taskSummary, setTaskSummary] = useState<{
+    date: string;
+    items: CalendarItem[];
+  } | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [source, setSource] = useState("all");
@@ -141,6 +171,7 @@ export function CalendarPageClient({
   const monthItems = items.filter(
     (item) => item.start < monthEnd && item.end >= monthStart,
   );
+  const agendaDates = [...new Set(monthItems.map((item) => item.start))].sort();
   const profiles = new Map(data.profiles.map((profile) => [profile.id, profile]));
   const updateDraft = <K extends keyof CalendarEventDraft>(
     key: K,
@@ -156,6 +187,38 @@ export function CalendarPageClient({
 
   function openItem(item: CalendarItem) {
     if (item.event) setDraft(eventDraft(item.event));
+  }
+
+  function renderDayItems(
+    date: string,
+    dateItems: CalendarItem[],
+    limit = 3,
+  ) {
+    const taskItems = dateItems.filter((item) => item.source === "task");
+    const eventItems = dateItems.filter((item) => item.source !== "task");
+    const eventLimit = Math.max(0, limit - (taskItems.length ? 1 : 0));
+    const hiddenCount = Math.max(0, eventItems.length - eventLimit);
+    return (
+      <>
+        {taskItems.length > 0 && (
+          <TaskSummary
+            date={date}
+            items={taskItems}
+            onOpen={(summaryDate, summaryItems) =>
+              setTaskSummary({ date: summaryDate, items: summaryItems })
+            }
+          />
+        )}
+        {eventItems.slice(0, eventLimit).map((item) => (
+          <Item key={item.id} item={item} onEdit={() => openItem(item)} />
+        ))}
+        {hiddenCount > 0 && (
+          <p className="px-1 text-[10px] text-black/55 dark:text-white/55">
+            +{hiddenCount} more
+          </p>
+        )}
+      </>
+    );
   }
 
   async function saveEvent(event: FormEvent) {
@@ -284,17 +347,17 @@ export function CalendarPageClient({
                     return (
                       <div key={date} className={`min-h-28 border-b border-r border-black/10 p-1.5 last:border-r-0 dark:border-white/10 ${inMonth ? "bg-white/60 dark:bg-white/[0.015]" : "bg-black/[0.025] text-black/40 dark:bg-black/10 dark:text-white/35"}`}>
                         <button type="button" onClick={() => openNew("important", date)} aria-label={`Add an item on ${date}`} className={`mb-1 inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold hover:bg-black/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:hover:bg-white/10 dark:focus-visible:ring-white/40 ${date === today ? "bg-black text-white dark:bg-white dark:text-black" : ""}`}>{Number(date.slice(8))}</button>
-                        <div className="space-y-1">{dateItems.slice(0, 3).map((item) => <Item key={item.id} item={item} onEdit={() => openItem(item)} />)}{dateItems.length > 3 && <p className="px-1 text-[10px] text-black/55 dark:text-white/55">+{dateItems.length - 3} more</p>}</div>
+                        <div className="space-y-1">{renderDayItems(date, dateItems)}</div>
                       </div>
                     );
                   })}
                 </div>
               </div>
               <div className="space-y-3 md:hidden">
-                {monthItems.length ? monthItems.map((item) => (
-                  <div key={item.id} className="grid grid-cols-[5rem_minmax(0,1fr)] gap-3">
-                    <p className="pt-2 text-xs font-semibold text-black/60 dark:text-white/60">{dayFormatter.format(new Date(`${item.start}T00:00:00Z`))}</p>
-                    <Item item={item} onEdit={() => openItem(item)} />
+                {agendaDates.length ? agendaDates.map((date) => (
+                  <div key={date} className="grid grid-cols-[5rem_minmax(0,1fr)] gap-3">
+                    <p className="pt-2 text-xs font-semibold text-black/60 dark:text-white/60">{dayFormatter.format(new Date(`${date}T00:00:00Z`))}</p>
+                    <div className="space-y-2">{renderDayItems(date, monthItems.filter((item) => item.start === date), Number.POSITIVE_INFINITY)}</div>
                   </div>
                 )) : <EmptyState message="Nothing scheduled this month. A suspiciously peaceful calendar." />}
               </div>
@@ -307,7 +370,7 @@ export function CalendarPageClient({
               </Card>
               <Card className="p-4">
                 <h2 className="flex items-center gap-2 font-semibold"><FiClock /> Coming up</h2>
-                <div className="mt-3 space-y-2">{monthItems.slice(0, 6).map((item) => <Item key={`upcoming:${item.id}`} item={item} onEdit={() => openItem(item)} />)}{!monthItems.length && <p className="text-sm text-black/60 dark:text-white/60">Nothing on the books this month.</p>}</div>
+                <div className="mt-3 space-y-2">{agendaDates.slice(0, 6).map((date) => <div key={`upcoming:${date}`} className="space-y-1"><p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-black/50 dark:text-white/50">{dayFormatter.format(new Date(`${date}T00:00:00Z`))}</p>{renderDayItems(date, monthItems.filter((item) => item.start === date), 2)}</div>)}{!monthItems.length && <p className="text-sm text-black/60 dark:text-white/60">Nothing on the books this month.</p>}</div>
               </Card>
               <div className="flex flex-wrap gap-2" aria-label="Calendar legend">
                 <Pill size="sm">Blue · deadlines</Pill><Pill size="sm">Amber · away</Pill><Pill size="sm">Green · important</Pill>
@@ -316,6 +379,43 @@ export function CalendarPageClient({
           </div>
         </Modal>
       </WorkspacePageShell>
+
+      <Modal
+        open={Boolean(taskSummary)}
+        setIsOpen={(open) => { if (!open) setTaskSummary(null); }}
+        title={taskSummary ? `Tasks due ${dayFormatter.format(new Date(`${taskSummary.date}T00:00:00Z`))}` : "Tasks due"}
+        description={taskSummary ? `${taskSummary.items.length} upcoming ${taskSummary.items.length === 1 ? "task is" : "tasks are"} due on this day.` : undefined}
+        size="lg"
+      >
+        <div className="space-y-2">
+          {taskSummary?.items.map((item) => {
+            const task = item.task;
+            const status = data.statuses.find((candidate) => candidate.id === task?.status_id);
+            const assignee = data.profiles.find((profile) => profile.id === task?.assignee_id);
+            const href = withAccessPreview(item.href ?? "/board", data.accessPreview);
+            return (
+              <div key={item.id} className="flex items-center gap-3 rounded-xl border border-black/10 bg-black/[0.025] p-3 dark:border-white/10 dark:bg-white/[0.04]">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-semibold">{item.title}</p>
+                    {task && <Pill size="sm">RMT-{task.task_number}</Pill>}
+                  </div>
+                  <p className="mt-1 truncate text-xs text-black/60 dark:text-white/60">
+                    {[item.meta, status?.name, assignee ? profileDisplayName(assignee) : "Unassigned"].filter(Boolean).join(" · ")}
+                  </p>
+                </div>
+                <Link
+                  href={href}
+                  aria-label={`Open ${item.title}`}
+                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-black/15 bg-white text-black transition hover:border-black/30 hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:border-white/15 dark:bg-white/5 dark:text-white dark:hover:border-white/30 dark:hover:bg-white/10 dark:focus-visible:ring-white/40"
+                >
+                  <FiExternalLink aria-hidden />
+                </Link>
+              </div>
+            );
+          })}
+        </div>
+      </Modal>
 
       <Modal
         open={Boolean(draft)}
