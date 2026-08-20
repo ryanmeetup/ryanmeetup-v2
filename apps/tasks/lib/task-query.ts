@@ -1,5 +1,9 @@
 import type { AccessPreview } from "@/lib/workspace-types";
 import type { Priority } from "@/lib/task-types";
+import {
+  categoryTagFilterValue,
+  type CategoryTagFilter,
+} from "@/lib/task-filter-values";
 
 export type TaskQueryFilters = {
   statuses: string[];
@@ -16,6 +20,8 @@ export type TaskQueryFilters = {
   excludedPriorities: Priority[];
   dueWithin: string[];
   excludedDueWithin: string[];
+  tags: CategoryTagFilter[];
+  excludedTags: CategoryTagFilter[];
 };
 
 type TaskQueryOptions = {
@@ -58,6 +64,8 @@ export function buildTaskQueryParams(options: TaskQueryOptions) {
     ["excludePriorities", filters.excludedPriorities],
     ["dueWithin", filters.dueWithin],
     ["excludeDueWithin", filters.excludedDueWithin],
+    ["tags", filters.tags.map(categoryTagFilterValue)],
+    ["excludeTags", filters.excludedTags.map(categoryTagFilterValue)],
   ];
   entries.forEach(([name, values]) => {
     if (values.length) params.set(name, values.join(","));
@@ -87,6 +95,8 @@ export function taskQuerySignature(
     filters.excludedPriorities,
     filters.dueWithin,
     filters.excludedDueWithin,
+    filters.tags.map(categoryTagFilterValue),
+    filters.excludedTags.map(categoryTagFilterValue),
     search,
     sort,
     pageSize,

@@ -66,6 +66,8 @@ export type WorkspaceCollection = Exclude<
   | "accessPreview"
   | "taskPage"
   | "activityPage"
+  | "taskReferences"
+  | "projectTaskCounts"
 >;
 
 export const TASK_PAGE_SIZE = 50;
@@ -84,7 +86,7 @@ export const WORKSPACE_COLUMNS = {
   categoryOwners: "category_id,profile_id",
   tasks: TASK_COLUMNS,
   subtasks: "id,task_id,title,is_completed,sort_order,created_by,created_at",
-  comments: "id,task_id,body,created_by,created_at,edited_at",
+  comments: "id,task_id,parent_id,body,created_by,created_at,edited_at",
   activity: "id,task_id,actor_id,action,details,created_at",
   attachments:
     "id,task_id,name,url,file_path,mime_type,size_bytes,created_by,created_at",

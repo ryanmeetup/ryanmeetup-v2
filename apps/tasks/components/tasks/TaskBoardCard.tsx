@@ -1,6 +1,7 @@
 import { Avatar, FormattedText } from "@ryanmeetup/ui";
+import Link from "next/link";
 import type { DragEvent } from "react";
-import { FiFolder, FiMoreHorizontal, FiUsers } from "react-icons/fi";
+import { FiExternalLink, FiFolder, FiUsers } from "react-icons/fi";
 import type {
   Category,
   Project,
@@ -12,6 +13,7 @@ import type {
   Task,
 } from "@/lib/task-types";
 import { profileDisplayName } from "@/lib/presentation";
+import { taskPath } from "@/lib/task-key";
 import { TaskCategoryBadge } from "./TaskCategoryBadge";
 import { TaskDueDate } from "./TaskDueDate";
 import { TaskKeyBadge } from "./TaskKeyBadge";
@@ -41,12 +43,12 @@ function edgeFromPointer(clientY: number, element: HTMLElement): TaskDropEdge {
 }
 
 function setDragPreview(
-  event: DragEvent<HTMLButtonElement>,
-  source: HTMLButtonElement,
+  event: DragEvent<HTMLDivElement>,
+  source: HTMLDivElement,
 ) {
   const bounds = source.getBoundingClientRect();
   const previewFrame = document.createElement("div");
-  const previewCard = source.cloneNode(true) as HTMLButtonElement;
+  const previewCard = source.cloneNode(true) as HTMLDivElement;
   previewFrame.setAttribute("aria-hidden", "true");
   previewFrame.style.position = "fixed";
   previewFrame.style.top = "-2000px";
@@ -90,7 +92,7 @@ export function TaskBoardCard({
   const completedSubtasks = subtasks.filter((item) => item.is_completed).length;
 
   return (
-    <button
+    <div
       draggable
       onDragStart={(event) => {
         onDragStart(task.id);
@@ -114,8 +116,7 @@ export function TaskBoardCard({
         );
       }}
       onDragEnd={onDragEnd}
-      onClick={() => onOpen(task)}
-      className={`group w-full cursor-grab rounded-xl border border-black/10 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-black/25 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-black/20 active:cursor-grabbing dark:border-white/10 dark:bg-zinc-900 dark:hover:border-white/30 dark:focus-visible:ring-white/30 ${
+      className={`group relative w-full cursor-grab rounded-xl border border-black/10 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-black/25 hover:shadow-md active:cursor-grabbing dark:border-white/10 dark:bg-zinc-900 dark:hover:border-white/30 ${
         dropTarget?.taskId === task.id
           ? dropTarget.edge === "before"
             ? "relative before:absolute before:-top-2 before:right-2 before:left-2 before:h-1 before:rounded-full before:bg-blue-500 before:content-[''] dark:before:bg-blue-400"
@@ -123,11 +124,25 @@ export function TaskBoardCard({
           : ""
       }`}
     >
+      <button
+        type="button"
+        aria-label={`Open ${task.title}`}
+        onClick={() => onOpen(task)}
+        className="absolute inset-0 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-black/20 dark:focus-visible:ring-white/30"
+      />
       <div className="mb-3 flex items-start justify-between gap-3">
         <TaskKeyBadge task={task} />
         <span className="flex shrink-0 items-center gap-1.5">
           <TaskPriorityBadge priority={task.priority} size="compact" />
-          <FiMoreHorizontal className="text-black/30 transition group-hover:text-black/70 dark:text-white/30 dark:group-hover:text-white/70" />
+          <Link
+            href={taskPath(task)}
+            aria-label={`Go to ${task.title} details`}
+            title="Open task details"
+            draggable={false}
+            className="relative z-10 rounded p-0.5 text-black/40 transition hover:text-black focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:text-white/40 dark:hover:text-white dark:focus-visible:ring-white/40"
+          >
+            <FiExternalLink aria-hidden="true" />
+          </Link>
         </span>
       </div>
       <h3 className="font-semibold leading-snug text-black dark:text-white">
@@ -193,6 +208,6 @@ export function TaskBoardCard({
           </span>
         )}
       </div>
-    </button>
+    </div>
   );
 }

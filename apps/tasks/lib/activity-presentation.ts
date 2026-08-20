@@ -1,7 +1,7 @@
 import { profileDisplayName } from "./presentation";
 import { taskActivityLabel, taskStatusChange } from "./task-activity";
 import type { Profile } from "./workspace-types";
-import type { Project } from "./resource-types";
+import type { Category, Project } from "./resource-types";
 import type { Status, Task } from "./task-types";
 import type { TaskActivity } from "./activity-types";
 
@@ -15,6 +15,7 @@ export type ActivityPresentationRow = {
   actorName: string;
   task?: Task;
   project?: Project;
+  category?: Category;
   resourceName?: string;
   resourceHref?: string;
   description: ActivityDescription;
@@ -43,6 +44,7 @@ export function resolveActivityRows(
     tasks: Task[];
     profiles: Profile[];
     projects: Project[];
+    categories: Category[];
     statuses: Status[];
   },
 ): ActivityPresentationRow[] {
@@ -53,9 +55,20 @@ export function resolveActivityRows(
   const projects = new Map(
     data.projects.map((project) => [project.id, project]),
   );
+  const categories = new Map(
+    data.categories.map((category) => [category.id, category]),
+  );
   return activity.map((item) => {
     const task = item.task_id ? tasks.get(item.task_id) : undefined;
     const actor = item.actor_id ? profiles.get(item.actor_id) : undefined;
+    const category = item.action.startsWith("category.")
+      ? (typeof item.details.resource_id === "string"
+          ? categories.get(item.details.resource_id)
+          : undefined) ??
+        data.categories.find(
+          (candidate) => candidate.name === item.details.resource_name,
+        )
+      : undefined;
     return {
       item,
       actor,
@@ -66,6 +79,7 @@ export function resolveActivityRows(
         : item.details.project_id
           ? projects.get(item.details.project_id)
           : undefined,
+      category,
       resourceName: item.details.resource_name,
       resourceHref: item.details.resource_href,
       description: describeActivity(item, data.statuses),

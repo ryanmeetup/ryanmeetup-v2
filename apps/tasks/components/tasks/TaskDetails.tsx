@@ -17,6 +17,7 @@ import type {
   Task,
   TaskAttachment,
   TaskComment,
+  TaskReference,
 } from "@/lib/task-types";
 import type { TaskActivity } from "@/lib/activity-types";
 import type { WorkspaceData } from "@/lib/workspace-types";
@@ -75,6 +76,8 @@ export function TaskDetails({ task, workspace, display }: TaskDetailsProps) {
   } = display;
   const [subtaskTitle, setSubtaskTitle] = useState("");
   const [comment, setComment] = useState("");
+  const [reply, setReply] = useState("");
+  const [replyingTo, setReplyingTo] = useState<TaskComment | null>(null);
   const [editingComment, setEditingComment] = useState<TaskComment | null>(
     null,
   );
@@ -130,10 +133,26 @@ export function TaskDetails({ task, workspace, display }: TaskDetailsProps) {
         comments?: TaskComment[];
         activity?: TaskActivity[];
         attachments?: TaskAttachment[];
+        taskReferences?: TaskReference[];
         activityPage?: { hasMore: boolean };
       };
       if (!response.ok)
         throw new Error(result.error ?? "Task details could not be loaded.");
+      if (page === 0) {
+        const visibleProjectIds = new Set(
+          data.projects.map((project) => project.id),
+        );
+        const inaccessibleTaskIds = new Set(
+          data.accessPreview?.inaccessibleTaskIds ?? [],
+        );
+        const taskReferences = (result.taskReferences ?? []).filter(
+          (reference) =>
+            !inaccessibleTaskIds.has(reference.id) &&
+            (reference.project_id === null ||
+              visibleProjectIds.has(reference.project_id)),
+        );
+        setData((current) => ({ ...current, taskReferences }));
+      }
       setData((current) => ({
         ...current,
         subtasks:
@@ -348,12 +367,14 @@ export function TaskDetails({ task, workspace, display }: TaskDetailsProps) {
       }
   }
 
-  async function addComment() {
-    const body = comment.trim();
+  async function addComment(parent: TaskComment | null = null) {
+    const body = (parent ? reply : comment).trim();
     if (!body) return;
+    setCommentSaving(true);
     const item: TaskComment = {
       id: crypto.randomUUID(),
       task_id: task.id,
+      parent_id: parent?.id ?? null,
       body,
       created_by: data.currentProfile.id,
       created_at: now(),
@@ -363,7 +384,10 @@ export function TaskDetails({ task, workspace, display }: TaskDetailsProps) {
       ...current,
       comments: [...current.comments, item],
     }));
-    setComment("");
+    if (parent) {
+      setReply("");
+      setReplyingTo(null);
+    } else setComment("");
     if (!demoMode)
       try {
         const response = await fetch("/api/task-details", {
@@ -372,6 +396,7 @@ export function TaskDetails({ task, workspace, display }: TaskDetailsProps) {
           body: JSON.stringify({
             kind: "comment",
             taskId: task.id,
+            parentId: parent?.id ?? null,
             value: body,
           }),
         });
@@ -392,13 +417,19 @@ export function TaskDetails({ task, workspace, display }: TaskDetailsProps) {
           ...current,
           comments: current.comments.filter((entry) => entry.id !== item.id),
         }));
-        setComment(body);
+        if (parent) {
+          setReply(body);
+          setReplyingTo(parent);
+        } else setComment(body);
         toast.error(
           error instanceof Error
             ? error.message
             : "The comment could not be added.",
         );
+      } finally {
+        setCommentSaving(false);
       }
+    else setCommentSaving(false);
   }
 
   async function updateComment() {
@@ -475,6 +506,10 @@ export function TaskDetails({ task, workspace, display }: TaskDetailsProps) {
           throw new Error(result.error ?? "The comment could not be deleted.");
       }
       setCommentPendingDelete(null);
+      if (replyingTo?.id === original.id) {
+        setReply("");
+        setReplyingTo(null);
+      }
       toast.success("Comment deleted.");
     } catch (error) {
       setData((current) => ({
@@ -731,15 +766,34 @@ export function TaskDetails({ task, workspace, display }: TaskDetailsProps) {
             onCommentChange={setComment}
             onDelete={setCommentPendingDelete}
             onEdit={(item) => {
+              setReply("");
+              setReplyingTo(null);
               setEditingComment(item);
               setEditingCommentBody(item.body);
             }}
             onEditingBodyChange={setEditingCommentBody}
             onSave={() => void updateComment()}
             onSubmit={() => void addComment()}
+            onCancelReply={() => {
+              setReply("");
+              setReplyingTo(null);
+            }}
+            onReplyChange={setReply}
+            onReplySubmit={() =>
+              replyingTo ? void addComment(replyingTo) : undefined
+            }
+            onStartReply={(item) => {
+              setEditingComment(null);
+              setReply("");
+              setReplyingTo(item);
+            }}
             previewing={Boolean(data.accessPreview)}
             profiles={data.profiles}
+            reply={reply}
+            replyingTo={replyingTo}
             saving={commentSaving}
+            tasks={data.taskReferences ?? data.tasks}
+            accessPreview={data.accessPreview}
           />
         </DetailGroup>
       )}

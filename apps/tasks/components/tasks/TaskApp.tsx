@@ -22,6 +22,9 @@ import { createTaskMutationService } from "@/lib/task-mutations";
 import { taskKey } from "@/lib/task-key";
 import { errorMessage, profileDisplayName } from "@/lib/presentation";
 import {
+  categoryTagFilterValue,
+  parseCategoryTagFilterValue,
+  resolveCategoryTagFilters,
   resolveDueFilterValues,
   resolveEntityFilterIds,
   resolvePriorityFilterValues,
@@ -121,6 +124,10 @@ export function TaskApp({
     setDueWithin,
     excludedDueWithin,
     setExcludedDueWithin,
+    tags,
+    setTags,
+    excludedTags,
+    setExcludedTags,
     visibility,
     setVisibility,
     sort,
@@ -225,6 +232,11 @@ export function TaskApp({
     resolvePriorityFilterValues(excludedPriorities);
   const includedDueValues = resolveDueFilterValues(dueWithin);
   const excludedDueValues = resolveDueFilterValues(excludedDueWithin);
+  const includedTagFilters = resolveCategoryTagFilters(tags, data.categories);
+  const excludedTagFilters = resolveCategoryTagFilters(
+    excludedTags,
+    data.categories,
+  );
   const selectedProject = projects.get(includedProjectIds[0] ?? "") ?? null;
   const selectedProjectOwners = selectedProject
     ? data.projectOwners
@@ -254,6 +266,8 @@ export function TaskApp({
     excludedPriorities: excludedPriorityValues,
     dueWithin: includedDueValues,
     excludedDueWithin: excludedDueValues,
+    tags: includedTagFilters,
+    excludedTags: excludedTagFilters,
   };
   async function loadTaskPage(replace = false) {
     if (demoMode || taskPageLoading) return;
@@ -489,6 +503,8 @@ export function TaskApp({
           excludedPriorities: excludedPriorityValues,
           dueWithin: includedDueValues,
           excludedDueWithin: excludedDueValues,
+          tags: includedTagFilters,
+          excludedTags: excludedTagFilters,
         },
         sort,
         tasks: searchedTasks,
@@ -505,6 +521,7 @@ export function TaskApp({
       excludedProjectIds,
       excludedReporterIds,
       excludedStatusIds,
+      excludedTagFilters,
       includedAssigneeIds,
       includedCategoryIds,
       includedDueValues,
@@ -512,6 +529,7 @@ export function TaskApp({
       includedProjectIds,
       includedReporterIds,
       includedStatusIds,
+      includedTagFilters,
       searchedTasks,
       sort,
       view,
@@ -541,7 +559,7 @@ export function TaskApp({
       priority: selectedPriority ?? "medium",
     },
     afterSave: async () => {
-      if (!demoMode && view === "list") await loadTaskPage(true);
+      if (!demoMode) await loadTaskPage(true);
     },
   });
 
@@ -596,6 +614,8 @@ export function TaskApp({
     excludedCategoryIds.length +
     includedDueValues.length +
     excludedDueValues.length +
+    includedTagFilters.length +
+    excludedTagFilters.length +
     (visibility === "archived" ? 1 : 0);
   return (
     <>
@@ -625,6 +645,7 @@ export function TaskApp({
           <TaskWorkspaceHeader
             scope={{
               assignee,
+              demoMode,
               isMyTasks,
               myTasksName,
               previewing: Boolean(data.accessPreview),
@@ -692,6 +713,10 @@ export function TaskApp({
                   included: includedDueValues,
                   excluded: excludedDueValues,
                 },
+                tag: {
+                  included: includedTagFilters.map(categoryTagFilterValue),
+                  excluded: excludedTagFilters.map(categoryTagFilterValue),
+                },
               },
               clear: clearTaskFilters,
               setVisibility,
@@ -730,6 +755,15 @@ export function TaskApp({
                       data.statuses.find((item) => item.id === value)?.name ??
                       value
                     );
+                  if (filter === "tag") {
+                    const parsed = parseCategoryTagFilterValue(value);
+                    const category = parsed
+                      ? categories.get(parsed.categoryId)
+                      : undefined;
+                    return parsed && category
+                      ? `${category.name}: ${parsed.tag}`
+                      : value;
+                  }
                   return value;
                 });
                 const value = readableValues.length
@@ -749,6 +783,7 @@ export function TaskApp({
                     kind === "included" ? setPriority : setExcludedPriorities,
                   dueWithin:
                     kind === "included" ? setDueWithin : setExcludedDueWithin,
+                  tag: kind === "included" ? setTags : setExcludedTags,
                 };
                 setters[filter](value);
               },

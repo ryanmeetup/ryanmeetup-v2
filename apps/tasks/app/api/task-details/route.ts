@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import { databaseFailure, operationFailed } from "@/lib/server/api-response";
 import { authorize } from "@/lib/server/auth";
-import type {
-  Subtask,
-  TaskComment,
-} from "@/lib/task-types";
+import type { Subtask, TaskComment } from "@/lib/task-types";
 import type { TaskActivity } from "@/lib/activity-types";
 import { TASK_PAGE_SIZE, WORKSPACE_COLUMNS } from "@/lib/workspace-loader";
 
@@ -22,33 +19,41 @@ export async function GET(request: Request) {
   );
   if (!taskId) return failure("A task is required.");
   const from = activityPage * TASK_PAGE_SIZE;
-  const [subtasks, comments, activity, attachments] = await Promise.all([
-    supabase
-      .from("subtasks")
-      .select(WORKSPACE_COLUMNS.subtasks)
-      .eq("task_id", taskId)
-      .order("sort_order"),
-    supabase
-      .from("task_comments")
-      .select(WORKSPACE_COLUMNS.comments)
-      .eq("task_id", taskId)
-      .order("created_at", { ascending: false })
-      .limit(TASK_PAGE_SIZE),
-    supabase
-      .from("task_activity")
-      .select(WORKSPACE_COLUMNS.activity, { count: "exact" })
-      .eq("task_id", taskId)
-      .order("created_at", { ascending: false })
-      .range(from, from + TASK_PAGE_SIZE - 1),
-    supabase
-      .from("task_attachments")
-      .select(WORKSPACE_COLUMNS.attachments)
-      .eq("task_id", taskId)
-      .order("created_at"),
-  ]);
-  const failed = [subtasks, comments, activity, attachments].find(
-    (result) => result.error,
-  );
+  const [subtasks, comments, activity, attachments, taskReferences] =
+    await Promise.all([
+      supabase
+        .from("subtasks")
+        .select(WORKSPACE_COLUMNS.subtasks)
+        .eq("task_id", taskId)
+        .order("sort_order"),
+      supabase
+        .from("task_comments")
+        .select(WORKSPACE_COLUMNS.comments)
+        .eq("task_id", taskId)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("task_activity")
+        .select(WORKSPACE_COLUMNS.activity, { count: "exact" })
+        .eq("task_id", taskId)
+        .order("created_at", { ascending: false })
+        .range(from, from + TASK_PAGE_SIZE - 1),
+      supabase
+        .from("task_attachments")
+        .select(WORKSPACE_COLUMNS.attachments)
+        .eq("task_id", taskId)
+        .order("created_at"),
+      supabase
+        .from("tasks")
+        .select("id,task_number,project_id")
+        .order("task_number"),
+    ]);
+  const failed = [
+    subtasks,
+    comments,
+    activity,
+    attachments,
+    taskReferences,
+  ].find((result) => result.error);
   if (failed?.error)
     return databaseFailure(request, "task-details.load", failed.error, {
       error: "Task details could not be loaded. Try again.",
@@ -77,6 +82,7 @@ export async function GET(request: Request) {
     comments: comments.data ?? [],
     activity: activity.data ?? [],
     attachments: signedAttachments,
+    taskReferences: taskReferences.data ?? [],
     activityPage: {
       page: activityPage,
       hasMore: from + (activity.data?.length ?? 0) < (activity.count ?? 0),
@@ -92,6 +98,7 @@ export async function POST(request: Request) {
     kind?: string;
     id?: string;
     taskId?: string;
+    parentId?: string | null;
     value?: string;
     sortOrder?: number;
   };
@@ -119,6 +126,7 @@ export async function POST(request: Request) {
       .insert({
         id: crypto.randomUUID(),
         task_id: body.taskId,
+        parent_id: body.parentId ?? null,
         body: body.value.trim(),
         created_by: user.id,
       })
@@ -175,7 +183,8 @@ export async function PATCH(request: Request) {
     );
     if (activity.error)
       return databaseFailure(request, "comment.activity", activity.error, {
-        error: "The comment was edited, but its activity could not be recorded.",
+        error:
+          "The comment was edited, but its activity could not be recorded.",
       });
     return NextResponse.json({ comment: data as TaskComment });
   }
@@ -199,7 +208,8 @@ export async function PATCH(request: Request) {
   );
   if (activity.error)
     return databaseFailure(request, "subtask.activity", activity.error, {
-      error: "The checklist was updated, but its activity could not be recorded.",
+      error:
+        "The checklist was updated, but its activity could not be recorded.",
     });
   return NextResponse.json({ subtask: data as Subtask });
 }
@@ -232,7 +242,8 @@ export async function DELETE(request: Request) {
     );
     if (activity.error)
       return databaseFailure(request, "comment.activity", activity.error, {
-        error: "The comment was deleted, but its activity could not be recorded.",
+        error:
+          "The comment was deleted, but its activity could not be recorded.",
       });
     return NextResponse.json({ id: data.id });
   }
@@ -255,7 +266,8 @@ export async function DELETE(request: Request) {
   );
   if (activity.error)
     return databaseFailure(request, "subtask.activity", activity.error, {
-      error: "The checklist item was deleted, but its activity could not be recorded.",
+      error:
+        "The checklist item was deleted, but its activity could not be recorded.",
     });
   return NextResponse.json({ id: data.id });
 }

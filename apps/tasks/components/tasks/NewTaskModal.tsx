@@ -30,6 +30,7 @@ import {
   taskDraftAutosaveDelayMs,
   type StoredTaskDraft,
 } from "@/lib/task-drafts";
+import { taskKey, taskPath } from "@/lib/task-key";
 
 export function NewTaskModal({
   data,
@@ -163,7 +164,10 @@ export function NewTaskModal({
         deleteTaskDraft(data.currentProfile.id, draftId.current);
         draftId.current = null;
       }
-      toast.success("Task created.");
+      toast.successWithLink("Task created:", {
+        href: taskPath(saved.task),
+        linkLabel: taskKey(saved.task),
+      });
       if (detailFailures > 0)
         toast.error(
           `${detailFailures} ${detailFailures === 1 ? "task detail" : "task details"} could not be added. Open the task to retry.`,

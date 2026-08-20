@@ -115,7 +115,7 @@ export function TaskBoardView({
   return (
     <div
       ref={scrollRef}
-      className="-mx-4 flex flex-nowrap items-start gap-4 overflow-x-auto overscroll-x-contain px-4 pb-5 scroll-px-4 sm:mx-0 sm:px-0 sm:scroll-px-0"
+      className="-mx-4 flex flex-nowrap items-start gap-4 overflow-x-auto overscroll-x-contain px-4 pb-5 scroll-px-4 sm:-mx-6 sm:px-6 sm:scroll-px-6 lg:-mx-8 lg:px-8 lg:scroll-px-8"
     >
       {statuses.map((status) => {
         const columnTasks = model.columns.get(status.id) ?? [];

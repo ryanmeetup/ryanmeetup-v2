@@ -32,11 +32,35 @@ describe("activity presentation", () => {
       tasks: [],
       profiles: [],
       projects: [],
+      categories: [],
       statuses: [],
     });
     expect(row).toMatchObject({
       resourceName: "Acme",
       resourceHref: "/contacts",
+    });
+  });
+
+  it("retains the category color for category activity", () => {
+    const item = activity("category", "2026-08-13T12:00:00Z", {
+      resource_id: "operations",
+      resource_name: "Operations",
+      resource_href: "/categories",
+    });
+    item.task_id = null;
+    item.action = "category.update";
+    const [row] = resolveActivityRows([item], {
+      tasks: [],
+      profiles: [],
+      projects: [],
+      categories: [
+        { id: "operations", name: "Operations", color: "#f97316" },
+      ] as never[],
+      statuses: [],
+    });
+    expect(row?.category).toMatchObject({
+      name: "Operations",
+      color: "#f97316",
     });
   });
 

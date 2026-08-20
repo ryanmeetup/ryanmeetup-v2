@@ -17,11 +17,7 @@ import {
 } from "@/lib/access-preview";
 import { resolveAccessPreview } from "@/lib/access-preview-server";
 import { parseTaskKey } from "@/lib/task-key";
-import {
-  deleteTask,
-  moveTask,
-  saveTask,
-} from "@/lib/server/tasks/mutations";
+import { deleteTask, moveTask, saveTask } from "@/lib/server/tasks/mutations";
 import {
   parseTaskListQuery,
   TASK_EXACT_FILTERS,
@@ -49,6 +45,8 @@ export async function GET(request: Request): Promise<NextResponse> {
     excludedDueBoundary,
     rawSearch,
     search,
+    includedTags,
+    excludedTags,
   } = parseTaskListQuery(params);
   let previewProjectIds: string[] | undefined;
   let previewInaccessibleTaskIds: string[] = [];
@@ -68,8 +66,7 @@ export async function GET(request: Request): Promise<NextResponse> {
       });
       if (resolved) {
         previewProjectIds = resolved.projectIds;
-        previewInaccessibleTaskIds =
-          resolved.preview.inaccessibleTaskIds ?? [];
+        previewInaccessibleTaskIds = resolved.preview.inaccessibleTaskIds ?? [];
       }
     }
   }
@@ -100,6 +97,33 @@ export async function GET(request: Request): Promise<NextResponse> {
   const excludedTaskIds = [
     ...new Set((excludedRows.data ?? []).map((row) => row.task_id)),
   ];
+  const tagResults = await Promise.all(
+    [...includedTags, ...excludedTags].map(({ categoryId, tag }) =>
+      supabase
+        .from("tasks")
+        .select("id")
+        .contains("category_tags", { [categoryId]: [tag] }),
+    ),
+  );
+  const tagError = tagResults.find((result) => result.error)?.error;
+  if (tagError)
+    return databaseFailure(request, "tasks.tag-filters", tagError, {
+      error: "Tag filters could not be applied. Try again.",
+    });
+  const includedTagTaskIds = [
+    ...new Set(
+      tagResults
+        .slice(0, includedTags.length)
+        .flatMap((result) => (result.data ?? []).map((row) => row.id)),
+    ),
+  ];
+  const excludedTagTaskIds = [
+    ...new Set(
+      tagResults
+        .slice(includedTags.length)
+        .flatMap((result) => (result.data ?? []).map((row) => row.id)),
+    ),
+  ];
   const searchProjectResult = rawSearch
     ? await supabase
         .from("projects")
@@ -119,10 +143,7 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   let query = supabase
     .from("tasks")
-    .select(
-      TASK_COLUMNS,
-      paginated ? { count: "exact" } : undefined,
-    );
+    .select(TASK_COLUMNS, paginated ? { count: "exact" } : undefined);
   query =
     visibility === "archived"
       ? query.lte("archived_at", boundary)
@@ -135,11 +156,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     );
   }
   if (previewInaccessibleTaskIds.length)
-    query = query.not(
-      "id",
-      "in",
-      `(${previewInaccessibleTaskIds.join(",")})`,
-    );
+    query = query.not("id", "in", `(${previewInaccessibleTaskIds.join(",")})`);
 
   for (const [includeParam, excludeParam, column] of TASK_EXACT_FILTERS) {
     const included = (params.get(includeParam) ?? "")
@@ -171,9 +188,7 @@ export async function GET(request: Request): Promise<NextResponse> {
       query = query.not(column, "in", `(${excludedValues.join(",")})`);
   }
   if (hasDueWithinFilter)
-    query = query
-      .gte("due_date", today)
-      .lte("due_date", dueBoundary);
+    query = query.gte("due_date", today).lte("due_date", dueBoundary);
   if (excludedDueDays)
     query = query.or(
       `due_date.is.null,due_date.lt.${today},due_date.gt.${excludedDueBoundary}`,
@@ -187,6 +202,15 @@ export async function GET(request: Request): Promise<NextResponse> {
     );
   if (excludedTaskIds.length)
     query = query.not("id", "in", `(${excludedTaskIds.join(",")})`);
+  if (includedTags.length)
+    query = query.in(
+      "id",
+      includedTagTaskIds.length
+        ? includedTagTaskIds
+        : ["00000000-0000-0000-0000-000000000000"],
+    );
+  if (excludedTagTaskIds.length)
+    query = query.not("id", "in", `(${excludedTagTaskIds.join(",")})`);
   if (search) {
     const taskNumber = parseTaskKey(search);
     const searchFilters = [
@@ -274,9 +298,7 @@ export async function GET(request: Request): Promise<NextResponse> {
         );
     }
     if (hasDueWithinFilter)
-      corrected = corrected
-        .gte("due_date", today)
-        .lte("due_date", dueBoundary);
+      corrected = corrected.gte("due_date", today).lte("due_date", dueBoundary);
     if (excludedDueDays)
       corrected = corrected.or(
         `due_date.is.null,due_date.lt.${today},due_date.gt.${excludedDueBoundary}`,
@@ -290,6 +312,19 @@ export async function GET(request: Request): Promise<NextResponse> {
       );
     if (excludedTaskIds.length)
       corrected = corrected.not("id", "in", `(${excludedTaskIds.join(",")})`);
+    if (includedTags.length)
+      corrected = corrected.in(
+        "id",
+        includedTagTaskIds.length
+          ? includedTagTaskIds
+          : ["00000000-0000-0000-0000-000000000000"],
+      );
+    if (excludedTagTaskIds.length)
+      corrected = corrected.not(
+        "id",
+        "in",
+        `(${excludedTagTaskIds.join(",")})`,
+      );
     if (search)
       corrected = corrected.or(
         `title.ilike.%${search}%,description.ilike.%${search}%`,
@@ -351,10 +386,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   if ("response" in parsed) return parsed.response;
   const authorization = await authorize();
   if ("response" in authorization) return authorization.response;
-  const { data, error } = await saveTask(
-    authorization.supabase,
-    parsed.data,
-  );
+  const { data, error } = await saveTask(authorization.supabase, parsed.data);
   if (error)
     return databaseFailure(request, "task.save", error, {
       error: "The task could not be saved. Try again.",
@@ -369,10 +401,7 @@ export async function PATCH(request: Request): Promise<NextResponse> {
   if ("response" in parsed) return parsed.response;
   const authorization = await authorize();
   if ("response" in authorization) return authorization.response;
-  const { data, error } = await moveTask(
-    authorization.supabase,
-    parsed.data,
-  );
+  const { data, error } = await moveTask(authorization.supabase, parsed.data);
   if (error)
     return databaseFailure(request, "task.move", error, {
       error: "The task could not be moved. Refresh and try again.",

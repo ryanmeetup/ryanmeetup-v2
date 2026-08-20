@@ -1,10 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { NewTaskDetailsDraft } from "./task-types";
-import type {
-  Subtask,
-  TaskAttachment,
-  TaskComment,
-} from "./task-types";
+import type { Subtask, TaskAttachment, TaskComment } from "./task-types";
 import type { TaskActivity } from "./activity-types";
 import type { WorkspaceData } from "./workspace-types";
 import { attachmentUrlName } from "./task-attachment-urls";
@@ -43,6 +39,7 @@ export async function persistNewTaskDetails({
             {
               id: crypto.randomUUID(),
               task_id: taskId,
+              parent_id: null,
               body: draft.comment.trim(),
               created_by: current.currentProfile.id,
               created_at: createdAt,

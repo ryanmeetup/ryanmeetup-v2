@@ -16,6 +16,7 @@ import type {
   TaskCategory,
   TaskComment,
   TaskLabel,
+  TaskReference,
 } from "./task-types";
 
 export type Profile = {
@@ -39,9 +40,11 @@ export type AccessPreview = {
 
 export type WorkspaceData = {
   tasks: Task[];
+  taskReferences?: TaskReference[];
   statuses: Status[];
   categories: Category[];
   projects: Project[];
+  projectTaskCounts?: Record<string, number>;
   profiles: Profile[];
   currentProfile: Profile;
   canManageCategories: boolean;

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { categorySchema } from "@/lib/api-schemas";
+import { categorySchema, idSchema } from "@/lib/api-schemas";
 import { databaseFailure } from "@/lib/server/api-response";
 import {
   apiError,
@@ -154,5 +154,49 @@ export async function PATCH(request: Request) {
       "AUDIT_FAILED",
       "The category was updated, but its audit record could not be saved.",
     );
+  return NextResponse.json({ ok: true });
+}
+
+export async function DELETE(request: Request) {
+  const parsed = await readJson(request, idSchema);
+  if ("response" in parsed) return parsed.response;
+  const context = await categoryManagerContext();
+  if ("response" in context) return context.response;
+  const categoryResult = await context.admin
+    .from("work_groups")
+    .select("id,name")
+    .eq("id", parsed.data.id)
+    .single();
+  if (categoryResult.error)
+    return apiError(404, "NOT_FOUND", "Category not found.");
+  const { count, error: countError } = await context.admin
+    .from("task_categories")
+    .select("task_id", { count: "exact", head: true })
+    .eq("category_id", parsed.data.id);
+  if (countError)
+    return databaseFailure(request, "category.delete-check", countError, {
+      error: "The category could not be checked for tasks. Try again.",
+    });
+  if (count)
+    return apiError(
+      409,
+      "CONFLICT",
+      "Remove this category from every task before deleting it.",
+    );
+  const { error } = await context.admin
+    .from("work_groups")
+    .delete()
+    .eq("id", parsed.data.id);
+  if (error)
+    return databaseFailure(request, "category.delete", error, {
+      error: "The category could not be deleted. Try again.",
+    });
+  await recordWorkspaceActivity(context.user, {
+    action: "category.delete",
+    targetType: "category",
+    targetId: parsed.data.id,
+    name: categoryResult.data.name,
+    href: "/categories",
+  });
   return NextResponse.json({ ok: true });
 }

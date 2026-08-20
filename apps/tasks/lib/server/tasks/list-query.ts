@@ -1,4 +1,5 @@
 import { parsePagination } from "../../pagination";
+import { parseCategoryTagFilterValue } from "../../task-filter-values";
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -29,6 +30,11 @@ export function parseTaskListQuery(params: URLSearchParams, now = new Date()) {
   const excludedDueDays =
     Math.max(...parseDueDays("excludeDueWithin"), 0) || null;
   const rawSearch = params.get("search")?.trim() ?? "";
+  const parseTags = (name: string) =>
+    (params.get(name) ?? "").split(",").flatMap((value) => {
+      const filter = parseCategoryTagFilterValue(value);
+      return filter && UUID_PATTERN.test(filter.categoryId) ? [filter] : [];
+    });
   const { requestedPage, pageSize } = parsePagination(params);
   return {
     visibility: params.get("visibility") === "archived" ? "archived" : "active",
@@ -51,5 +57,7 @@ export function parseTaskListQuery(params: URLSearchParams, now = new Date()) {
     ),
     rawSearch,
     search: rawSearch.replaceAll(/[%,()]/g, ""),
+    includedTags: parseTags("tags"),
+    excludedTags: parseTags("excludeTags"),
   } as const;
 }

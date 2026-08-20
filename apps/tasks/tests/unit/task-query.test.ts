@@ -20,6 +20,8 @@ const filters: TaskQueryFilters = {
   excludedPriorities: [],
   dueWithin: ["7"],
   excludedDueWithin: [],
+  tags: [{ categoryId: "category", tag: "Launch" }],
+  excludedTags: [],
 };
 
 describe("task query", () => {
@@ -37,6 +39,7 @@ describe("task query", () => {
     expect(params.get("status")).toBe("todo");
     expect(params.get("priority")).toBe("high");
     expect(params.get("search")).toBe("launch");
+    expect(params.get("tags")).toBe("category~Launch");
   });
 
   it("keeps board queries compact", () => {

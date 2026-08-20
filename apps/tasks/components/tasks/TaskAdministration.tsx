@@ -407,6 +407,7 @@ export function StatusSettingsModal({
                           </IconButton>
                           <IconButton
                             label={`Edit “${item.name}”`}
+                            variant="edit"
                             disabled={settingActionPending}
                             onClick={() => {
                               setEditingStatusId(item.id);

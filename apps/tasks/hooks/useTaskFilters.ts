@@ -25,6 +25,7 @@ export function useTaskFilters(setSearch: (value: string) => void) {
   const statuses = useInclusionQueryParams("status", "excludeStatuses");
   const priorities = useInclusionQueryParams("priority", "excludePriorities");
   const dueDates = useInclusionQueryParams("dueWithin", "excludeDueWithin");
+  const tags = useInclusionQueryParams("tags", "excludeTags");
   const [visibilityParam, setVisibility] = useQueryParamState(
     "visibility",
     "active",
@@ -59,6 +60,8 @@ export function useTaskFilters(setSearch: (value: string) => void) {
     priorities.setExcluded("");
     dueDates.setIncluded("all");
     dueDates.setExcluded("");
+    tags.setIncluded("all");
+    tags.setExcluded("");
     setVisibility("active");
     setSort("updated");
   }
@@ -100,5 +103,9 @@ export function useTaskFilters(setSearch: (value: string) => void) {
     setDueWithin: dueDates.setIncluded,
     excludedDueWithin: dueDates.excluded,
     setExcludedDueWithin: dueDates.setExcluded,
+    tags: tags.included,
+    setTags: tags.setIncluded,
+    excludedTags: tags.excluded,
+    setExcludedTags: tags.setExcluded,
   };
 }

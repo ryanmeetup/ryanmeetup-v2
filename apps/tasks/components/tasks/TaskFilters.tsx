@@ -1,17 +1,12 @@
 import { DropdownSelect, FilterPanel } from "@ryanmeetup/ui";
-import type {
-  Category,
-  Project,
-} from "@/lib/resource-types";
-import type {
-  Priority,
-  Status,
-} from "@/lib/task-types";
+import type { Category, Project } from "@/lib/resource-types";
+import type { Priority, Status } from "@/lib/task-types";
 import type { Profile } from "@/lib/workspace-types";
 import { filterPanelsExpandedPreferenceKey } from "@/lib/user-preferences";
 import { CategoryFilterMenu } from "./CategoryFilterMenu";
 import { InclusionFilterMenu } from "./InclusionFilterMenu";
 import { profileDisplayName } from "@/lib/presentation";
+import { categoryTagFilterValue } from "@/lib/task-filter-values";
 
 const priorities: Priority[] = ["low", "medium", "high", "urgent"];
 
@@ -21,7 +16,8 @@ export type TaskFilterKey =
   | "project"
   | "status"
   | "priority"
-  | "dueWithin";
+  | "dueWithin"
+  | "tag";
 
 type InclusionSelection = { included: string[]; excluded: string[] };
 
@@ -72,7 +68,7 @@ export function TaskFilters({
     <FilterPanel
       count={count}
       className="mb-6"
-      controlsClassName="grid grid-cols-1 overflow-visible min-[360px]:grid-cols-2 [&>button]:min-w-0 [&>button]:w-full [&>button>span]:truncate [&>div]:min-w-0 [&>div>button]:min-w-0 [&>div>button]:w-full [&>div>button>span]:truncate lg:flex lg:overflow-x-auto lg:[&>button]:w-auto lg:[&>div>button]:w-auto"
+      controlsClassName="grid grid-cols-1 gap-3 overflow-visible sm:grid-cols-2 lg:flex lg:gap-2 lg:overflow-x-auto"
       defaultExpanded
       onClear={clear}
       preferenceStorageKey={filterPanelsExpandedPreferenceKey}
@@ -82,6 +78,7 @@ export function TaskFilters({
         active={visibility === "archived"}
         value={visibility === "archived" ? "Archived tasks" : "Active tasks"}
         onChange={setVisibility}
+        stackLabelOnMobile
         options={[
           { label: "Active tasks", value: "active" },
           { label: "Archived tasks", value: "archived" },
@@ -110,6 +107,7 @@ export function TaskFilters({
         onExcludedChange={(values) =>
           setSelection("assignee", "excluded", values)
         }
+        stackLabelOnMobile
       />
       <CategoryFilterMenu
         categories={categories}
@@ -117,6 +115,23 @@ export function TaskFilters({
         excludedIds={categorySelection.excluded}
         onIncludedChange={(values) => setCategories("included", values)}
         onExcludedChange={(values) => setCategories("excluded", values)}
+        stackLabelOnMobile
+      />
+      <InclusionFilterMenu
+        label="Tags"
+        anyLabel="All tags"
+        options={categories.flatMap((category) =>
+          category.tags.map((tag) => ({
+            group: { color: category.color, label: category.name },
+            label: tag,
+            value: categoryTagFilterValue({ categoryId: category.id, tag }),
+          })),
+        )}
+        includedValues={selections.tag.included}
+        excludedValues={selections.tag.excluded}
+        onIncludedChange={(values) => setSelection("tag", "included", values)}
+        onExcludedChange={(values) => setSelection("tag", "excluded", values)}
+        stackLabelOnMobile
       />
       <InclusionFilterMenu
         label="Reported by"
@@ -138,6 +153,7 @@ export function TaskFilters({
         onExcludedChange={(values) =>
           setSelection("reporter", "excluded", values)
         }
+        stackLabelOnMobile
       />
       <InclusionFilterMenu
         label="Project"
@@ -157,6 +173,7 @@ export function TaskFilters({
         onExcludedChange={(values) =>
           setSelection("project", "excluded", values)
         }
+        stackLabelOnMobile
       />
       <InclusionFilterMenu
         label="Status"
@@ -170,6 +187,7 @@ export function TaskFilters({
         onExcludedChange={(values) =>
           setSelection("status", "excluded", values)
         }
+        stackLabelOnMobile
       />
       <InclusionFilterMenu
         label="Priority"
@@ -186,6 +204,7 @@ export function TaskFilters({
         onExcludedChange={(values) =>
           setSelection("priority", "excluded", values)
         }
+        stackLabelOnMobile
       />
       <InclusionFilterMenu
         label="Due within"
@@ -203,6 +222,7 @@ export function TaskFilters({
         onExcludedChange={(values) =>
           setSelection("dueWithin", "excluded", values)
         }
+        stackLabelOnMobile
       />
     </FilterPanel>
   );

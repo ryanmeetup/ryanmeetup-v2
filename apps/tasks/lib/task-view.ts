@@ -6,6 +6,7 @@ import type {
 } from "@/lib/task-types";
 import { localDateValue } from "@/lib/task-scheduling";
 import { taskPriorities } from "@/lib/task-filter-values";
+import type { CategoryTagFilter } from "@/lib/task-filter-values";
 
 export function indexTaskCategories(rows: TaskCategory[]) {
   const result = new Map<string, Set<string>>();
@@ -45,6 +46,8 @@ type TaskViewFilters = {
   excludedPriorities: Priority[];
   dueWithin: string[];
   excludedDueWithin: string[];
+  tags: CategoryTagFilter[];
+  excludedTags: CategoryTagFilter[];
 };
 
 export function deriveVisibleTasks({
@@ -105,6 +108,13 @@ export function deriveVisibleTasks({
         (filters.dueWithin.length === 0 ||
           filters.dueWithin.some((days) => dueWithin(task, days))) &&
         !filters.excludedDueWithin.some((days) => dueWithin(task, days)) &&
+        (filters.tags.length === 0 ||
+          filters.tags.some(({ categoryId, tag }) =>
+            task.category_tags?.[categoryId]?.includes(tag),
+          )) &&
+        !filters.excludedTags.some(({ categoryId, tag }) =>
+          task.category_tags?.[categoryId]?.includes(tag),
+        ) &&
         (visibility === "archived"
           ? Boolean(
               task.archived_at && new Date(task.archived_at).getTime() <= clock,

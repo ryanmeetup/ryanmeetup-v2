@@ -5,10 +5,11 @@ import type {
   Project,
 } from "@/lib/resource-types";
 import type { Profile } from "@/lib/workspace-types";
-import { ResourceLinks } from "@/components/resources";
+import { ResourceAttachmentsPreview, ResourceLinks, useResourceAttachments } from "@/components/resources";
 
 export type TaskWorkspaceHeaderScope = {
   assignee: string;
+  demoMode: boolean;
   isMyTasks: boolean;
   myTasksName: string;
   previewing: boolean;
@@ -38,6 +39,7 @@ export function TaskWorkspaceHeader({
 }) {
   const {
     assignee,
+    demoMode,
     isMyTasks,
     myTasksName,
     previewing,
@@ -51,6 +53,18 @@ export function TaskWorkspaceHeader({
     viewingAsGroup,
   } = scope;
   const { onEditProject, onEditCategory, onSetAssignee, onSetView } = controls;
+  const projectAttachments = useResourceAttachments({
+    kind: "project",
+    resourceId: selectedProject?.id,
+    demoMode,
+    currentUserId: "",
+  });
+  const categoryAttachments = useResourceAttachments({
+    kind: "category",
+    resourceId: selectedCategory?.id,
+    demoMode,
+    currentUserId: "",
+  });
   return (
     <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
       <div>
@@ -131,6 +145,14 @@ export function TaskWorkspaceHeader({
                 <ResourceLinks links={selectedProject.links} />
               </div>
             )}
+            {(projectAttachments.notes.length > 0 || projectAttachments.files.length > 0) && (
+              <div className="min-w-0">
+                <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-black/45 dark:text-white/45">
+                  Attachments
+                </p>
+                <ResourceAttachmentsPreview notes={projectAttachments.notes} files={projectAttachments.files} />
+              </div>
+            )}
           </div>
         )}
         {selectedCategory && (selectedCategory.links ?? []).length > 0 && (
@@ -139,6 +161,14 @@ export function TaskWorkspaceHeader({
               Useful links
             </p>
             <ResourceLinks links={selectedCategory.links ?? []} />
+          </div>
+        )}
+        {selectedCategory && (categoryAttachments.notes.length > 0 || categoryAttachments.files.length > 0) && (
+          <div className="mt-3 min-w-0">
+            <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-black/45 dark:text-white/45">
+              Attachments
+            </p>
+            <ResourceAttachmentsPreview notes={categoryAttachments.notes} files={categoryAttachments.files} />
           </div>
         )}
       </div>

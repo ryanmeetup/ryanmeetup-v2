@@ -7,12 +7,14 @@ export function CategoryFilterMenu({
   includedIds,
   onExcludedChange,
   onIncludedChange,
+  stackLabelOnMobile = false,
 }: {
   categories: Category[];
   excludedIds: string[];
   includedIds: string[];
   onExcludedChange: (ids: string[]) => void;
   onIncludedChange: (ids: string[]) => void;
+  stackLabelOnMobile?: boolean;
 }) {
   return (
     <InclusionFilterMenu
@@ -27,6 +29,7 @@ export function CategoryFilterMenu({
       excludedValues={excludedIds}
       onIncludedChange={onIncludedChange}
       onExcludedChange={onExcludedChange}
+      stackLabelOnMobile={stackLabelOnMobile}
     />
   );
 }

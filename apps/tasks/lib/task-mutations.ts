@@ -111,8 +111,19 @@ export function createTaskMutationService(context: MutationContext) {
       });
       return {
         task: result.task,
-        assignees: result.assignees ?? [],
-        categories: result.categories ?? [],
+        // The submitted assignee is the authoritative post-transaction value.
+        // The RPC relation payload can briefly be empty, which otherwise makes
+        // the board render the saved task as unassigned until a full refresh.
+        assignees: taskDraft.assignee_id
+          ? [{ task_id: result.task.id, profile_id: taskDraft.assignee_id }]
+          : [],
+        // The submitted IDs are the authoritative post-transaction category
+        // set. Keeping them here avoids a stale or incomplete RPC relation
+        // payload temporarily removing a task from a category-filtered board.
+        categories: categoryIds.map((category_id) => ({
+          task_id: result.task.id,
+          category_id,
+        })),
       };
     },
 

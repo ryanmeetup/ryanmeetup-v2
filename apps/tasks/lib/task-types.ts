@@ -34,6 +34,8 @@ export type Task = {
   updated_at: string;
 };
 
+export type TaskReference = Pick<Task, "id" | "task_number" | "project_id">;
+
 export type Subtask = {
   id: string;
   task_id: string;
@@ -47,6 +49,7 @@ export type Subtask = {
 export type TaskComment = {
   id: string;
   task_id: string;
+  parent_id: string | null;
   body: string;
   created_by: string;
   created_at: string;

@@ -24,6 +24,7 @@ import {
 } from "@/lib/task-drafts";
 import { errorMessage } from "@/lib/presentation";
 import { persistNewTaskDetails } from "@/lib/new-task-details";
+import { taskKey, taskPath } from "@/lib/task-key";
 
 type MutationService = ReturnType<typeof createTaskMutationService>;
 
@@ -203,7 +204,10 @@ export function useTaskEditorController({
           project_id: draft.project_id,
           assignee_id: draft.assignee_id,
         });
-        toast.success("Task created. Add the next one.");
+        toast.successWithLink("Task created. Add the next one:", {
+          href: taskPath(saved.task),
+          linkLabel: taskKey(saved.task),
+        });
       } else {
         setOpen(false);
         const movedTo =
@@ -212,12 +216,16 @@ export function useTaskEditorController({
             (status) =>
               status.id === draft.status_id && status.id !== editing.status_id,
           );
-        toast.success(
+        toast.successWithLink(
           movedTo
-            ? `Task moved to ${movedTo.name}.`
+            ? `Task moved to ${movedTo.name}:`
             : editing
-              ? "Task updated."
-              : "Task created.",
+              ? "Task updated:"
+              : "Task created:",
+          {
+            href: taskPath(saved.task),
+            linkLabel: taskKey(saved.task),
+          },
         );
       }
       if (detailFailures > 0)

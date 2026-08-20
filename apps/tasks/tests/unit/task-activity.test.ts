@@ -33,10 +33,11 @@ describe("task activity", () => {
       "Attachment added: brief.pdf",
     );
     expect(taskActivityLabel("changed priority")).toBe("Changed priority");
-    expect(taskActivityLabel("organization.create")).toBe(
-      "Organization created",
-    );
+    expect(taskActivityLabel("organization.create")).toBe("Contact created");
     expect(taskActivityLabel("note.archive")).toBe("Note archived");
+    expect(taskActivityLabel("note.comment")).toBe("Comment added to note");
+    expect(taskActivityLabel("project.delete")).toBe("Project deleted");
+    expect(taskActivityLabel("category.delete")).toBe("Category deleted");
     expect(taskActivityLabel("project.attachment.delete")).toBe(
       "Project attachment removed",
     );

@@ -18,6 +18,7 @@ import {
   Input,
   Modal,
   MultiSelect,
+  Pill,
   TagInput,
   Textarea,
   Tooltip,
@@ -34,6 +35,7 @@ import {
   FiRotateCcw,
   FiSearch,
   FiTag,
+  FiTrash2,
   FiUsers,
 } from "react-icons/fi";
 import { withAccessPreview } from "@/lib/access-preview";
@@ -178,6 +180,9 @@ export function CategoriesModal({
       : [],
   );
   const [saving, setSaving] = useState(false);
+  const [supportingDetailsChanged, setSupportingDetailsChanged] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
+  const [deletePending, setDeletePending] = useState(false);
   const {
     query,
     setQuery,
@@ -319,6 +324,7 @@ export function CategoriesModal({
   }, [createOnly, directEditCategory?.id]);
 
   function beginEdit(category: Category) {
+    setSupportingDetailsChanged(false);
     setEditDetailsOpen(false);
     setEditingId(category.id);
     setEditingName(category.name);
@@ -415,6 +421,7 @@ export function CategoriesModal({
       }));
       setSavedAccessGroupIds(editingAccessGroupIds);
       onCategoryUpdated?.(updatedCategory);
+      setSupportingDetailsChanged(false);
       setEditingId(null);
       if (editCategoryId) setOpen(false);
       toast.success(`${nextName} updated.`);
@@ -460,6 +467,30 @@ export function CategoriesModal({
           ? error.message
           : "The category could not be updated.",
       );
+    }
+  }
+
+  async function deleteCategory() {
+    if (!deleteTarget) return;
+    const category = deleteTarget;
+    setDeletePending(true);
+    try {
+      if (!demoMode) await resourceMutations.save("DELETE", { id: category.id });
+      setData((current) => ({
+        ...current,
+        categories: current.categories.filter((item) => item.id !== category.id),
+        categoryOwners: current.categoryOwners.filter(
+          (item) => item.category_id !== category.id,
+        ),
+      }));
+      setDeleteTarget(null);
+      toast.success(`${category.name} deleted.`);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "The category could not be deleted.",
+      );
+    } finally {
+      setDeletePending(false);
     }
   }
 
@@ -586,6 +617,7 @@ export function CategoriesModal({
     <>
       <Modal
         open={open && !editingId}
+        maxHeight="min(42rem, calc(100dvh - 2rem))"
         setIsOpen={setOpen}
         title={createOnly ? "New Category" : "Categories"}
         description={
@@ -746,7 +778,7 @@ export function CategoriesModal({
                 </div>
               )}
               <div
-                className={`${searchPending ? "pointer-events-none opacity-55" : ""} grid auto-rows-fr items-stretch gap-4 transition-opacity md:grid-cols-2 ${embedded ? "lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3" : ""}`}
+                className={`${searchPending ? "pointer-events-none opacity-55" : ""} grid items-stretch gap-4 transition-opacity md:grid-cols-2 ${embedded ? "lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3" : ""}`}
               >
                 {categories.map((category) => {
                   const taskCount = data.taskCategories.filter(
@@ -912,11 +944,7 @@ export function CategoriesModal({
                       />
                       <div className="min-w-0 flex-1 py-1">
                         <ManagementCardTitle
-                          className={
-                            category.archived_at
-                              ? "text-black/45 line-through dark:text-white/45"
-                              : undefined
-                          }
+                          className={category.archived_at ? "text-black/60 dark:text-white/60" : undefined}
                         >
                           <span className="inline-flex max-w-full items-center gap-2">
                             <span className="truncate">{category.name}</span>
@@ -930,20 +958,22 @@ export function CategoriesModal({
                         </ManagementCardTitle>
                       </div>
                       {category.archived_at && (
-                        <span className="mt-1 hidden text-[10px] font-semibold uppercase tracking-widest text-black/45 dark:text-white/45 sm:inline">
+                        <Pill variant="neutral" size="sm" className="shrink-0 !px-2.5 !tracking-[0.16em]">
                           Archived
-                        </span>
+                        </Pill>
                       )}
                       {!readOnly && (
                         <>
                           <IconButton
                             label={`Edit “${category.name}”`}
+                            variant="edit"
                             onClick={() => beginEdit(category)}
                           >
                             <FiEdit2 />
                           </IconButton>
                           <IconButton
                             label={`${category.archived_at ? "Restore" : "Archive"} “${category.name}”`}
+                            variant="archive"
                             onClick={() => void toggleArchived(category)}
                           >
                             {category.archived_at ? (
@@ -952,6 +982,15 @@ export function CategoriesModal({
                               <FiArchive />
                             )}
                           </IconButton>
+                          {taskCount === 0 && (
+                            <IconButton
+                              label={`Delete “${category.name}”`}
+                              variant="danger"
+                              onClick={() => setDeleteTarget(category)}
+                            >
+                              <FiTrash2 />
+                            </IconButton>
+                          )}
                         </>
                       )}
                     </ManagementCard>
@@ -983,6 +1022,7 @@ export function CategoriesModal({
             JSON.stringify(editingTags) !== JSON.stringify(category.tags) ||
             JSON.stringify(editingLinks) !==
               JSON.stringify(category.links ?? []) ||
+            supportingDetailsChanged ||
             editingAccessMode !== category.access_mode ||
             !sameIds(editingAccessGroupIds, savedAccessGroupIds) ||
             !sameIds(
@@ -993,10 +1033,12 @@ export function CategoriesModal({
             );
           return (
             <Modal
+              maxHeight="min(42rem, calc(100dvh - 2rem))"
               open
               setIsOpen={(nextOpen) => {
                 if (!nextOpen && !saving) {
                   setEditDetailsOpen(false);
+                  setSupportingDetailsChanged(false);
                   setEditingId(null);
                   if (editCategoryId) setOpen(false);
                 }
@@ -1011,6 +1053,7 @@ export function CategoriesModal({
                     type="button"
                     variant="secondary"
                     onClick={() => {
+                      setSupportingDetailsChanged(false);
                       setEditingId(null);
                       if (editCategoryId) setOpen(false);
                     }}
@@ -1151,6 +1194,7 @@ export function CategoriesModal({
                     disabled: saving,
                     currentUserId: data.currentProfile.id,
                   }}
+                  onMutation={() => setSupportingDetailsChanged(true)}
                 />
                   </>}
                 />
@@ -1182,6 +1226,17 @@ export function CategoriesModal({
           setConfirmSuiteOnlyCreate(false);
           void addCategory(undefined, true);
         }}
+      />
+      <ConfirmationDialog
+        open={Boolean(deleteTarget)}
+        setOpen={(nextOpen) => !nextOpen && !deletePending && setDeleteTarget(null)}
+        title="Delete this category?"
+        description={`This permanently removes “${deleteTarget?.name ?? "this category"}”. This cannot be undone.`}
+        confirmLabel="Delete category"
+        pendingLabel="Deleting category..."
+        pending={deletePending}
+        destructive
+        onConfirm={() => void deleteCategory()}
       />
     </>
   );

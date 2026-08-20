@@ -77,12 +77,14 @@ type TaskEditorProps =
       controller: TaskEditorController;
       workspace: TaskEditorWorkspace;
       onDelete: (task: Task) => void;
+      showSupplementalDetails?: boolean;
     }
   | {
       modal: TaskEditorModalState;
       form: TaskEditorFormState;
       workspace: TaskEditorWorkspace;
       mode: TaskEditorMode;
+      showSupplementalDetails?: boolean;
     };
 
 export function TaskEditor(props: TaskEditorProps) {
@@ -98,6 +100,8 @@ export function TaskEditor(props: TaskEditorProps) {
   const { draft, setDraft, saving, message, onSubmit } = form;
   const { statuses, data, setData, demoMode } = workspace;
   const editing = mode.kind === "edit" ? mode.task : null;
+  const showSupplementalDetails = props.showSupplementalDetails ?? true;
+  const supplementalDetailsOpen = showSupplementalDetails && detailsOpen;
   async function copyTaskLink() {
     if (!editing) return;
     try {
@@ -113,7 +117,8 @@ export function TaskEditor(props: TaskEditorProps) {
     .filter((category) => draft.category_ids.includes(category.id))
     .flatMap((category) =>
       (category.tags ?? []).map((tag) => ({
-        label: `${category.name} / ${tag}`,
+        group: { color: category.color, label: category.name },
+        label: tag,
         value: JSON.stringify([category.id, tag]),
       })),
     );
@@ -146,7 +151,7 @@ export function TaskEditor(props: TaskEditorProps) {
         )
       }
       hideActions
-      size={detailsOpen ? "2xl" : "lg"}
+      size={supplementalDetailsOpen ? "2xl" : "lg"}
       panelClassName="transition-[max-width] duration-300 ease-out motion-reduce:transition-none"
       footer={
         <div className="grid w-full gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
@@ -237,7 +242,7 @@ export function TaskEditor(props: TaskEditorProps) {
       >
         <div
           className={
-            detailsOpen
+            supplementalDetailsOpen
               ? "grid items-start transition-[grid-template-columns,gap] duration-300 ease-out motion-reduce:transition-none lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-8"
               : "grid items-start transition-[grid-template-columns,gap] duration-300 ease-out motion-reduce:transition-none lg:grid-cols-[minmax(0,1fr)_0fr] lg:gap-0"
           }
@@ -250,6 +255,8 @@ export function TaskEditor(props: TaskEditorProps) {
                 statuses,
                 categories: data.categories,
                 projects: data.projects,
+                favoriteProjectIds:
+                  data.currentProfile.favorite_project_ids ?? [],
                 profiles: data.profiles,
                 currentProfileId: data.currentProfile.id,
               }}
@@ -486,7 +493,7 @@ export function TaskEditor(props: TaskEditorProps) {
                 </div>
               </>
             )}
-            {!detailsOpen && (
+            {showSupplementalDetails && !detailsOpen && (
               <button
                 type="button"
                 aria-expanded="false"
@@ -509,48 +516,50 @@ export function TaskEditor(props: TaskEditorProps) {
               </button>
             )}
           </div>
-          <AnimatedCollapse
-            id="task-secondary-details"
-            open={detailsOpen}
-            className="min-w-0"
-            contentClassName="min-w-0 lg:border-l lg:border-black/10 lg:pl-8 lg:dark:border-white/10"
-          >
-            <div className="mb-5 flex items-center justify-between gap-3 border-b border-black/10 pb-3 dark:border-white/10">
-              <div>
-                <p className="text-sm font-semibold">Task details</p>
-                <p className="text-xs text-black/55 dark:text-white/55">
-                  {editing
-                    ? "Checklist, files, conversation, and history"
-                    : "Checklist, files, and conversation"}
-                </p>
+          {showSupplementalDetails && (
+            <AnimatedCollapse
+              id="task-secondary-details"
+              open={detailsOpen}
+              className="min-w-0"
+              contentClassName="min-w-0 lg:border-l lg:border-black/10 lg:pl-8 lg:dark:border-white/10"
+            >
+              <div className="mb-5 flex items-center justify-between gap-3 border-b border-black/10 pb-3 dark:border-white/10">
+                <div>
+                  <p className="text-sm font-semibold">Task details</p>
+                  <p className="text-xs text-black/55 dark:text-white/55">
+                    {editing
+                      ? "Checklist, files, conversation, and history"
+                      : "Checklist, files, and conversation"}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  rightIcon={<FiChevronDown className="rotate-180" />}
+                  aria-expanded="true"
+                  aria-controls="task-secondary-details"
+                  onClick={() => setDetailsOpen(false)}
+                >
+                  Hide details
+                </Button>
               </div>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                rightIcon={<FiChevronDown className="rotate-180" />}
-                aria-expanded="true"
-                aria-controls="task-secondary-details"
-                onClick={() => setDetailsOpen(false)}
-              >
-                Hide details
-              </Button>
-            </div>
-            {mode.kind === "edit" ? (
-              <TaskDetails
-                key={mode.task.id}
-                task={mode.task}
-                workspace={{ data, setData, demoMode }}
-                display={{ active: open, className: "!border-t-0 !pt-0" }}
-              />
-            ) : (
-              <NewTaskDetails
-                value={mode.details}
-                onChange={mode.setDetails}
-                disabled={saving}
-              />
-            )}
-          </AnimatedCollapse>
+              {mode.kind === "edit" ? (
+                <TaskDetails
+                  key={mode.task.id}
+                  task={mode.task}
+                  workspace={{ data, setData, demoMode }}
+                  display={{ active: open, className: "!border-t-0 !pt-0" }}
+                />
+              ) : (
+                <NewTaskDetails
+                  value={mode.details}
+                  onChange={mode.setDetails}
+                  disabled={saving}
+                />
+              )}
+            </AnimatedCollapse>
+          )}
         </div>
         <ErrorCallout>{message}</ErrorCallout>
       </form>

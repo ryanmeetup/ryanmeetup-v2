@@ -14,7 +14,7 @@ import {
   toast,
 } from "@ryanmeetup/ui";
 import { FiArrowRight } from "react-icons/fi";
-import { CategoriesModal } from "@/components/categories";
+import { CategoriesModal, CategoryLabel } from "@/components/categories";
 import { WorkspacePageShell } from "@/components/global";
 import { filterPanelsExpandedPreferenceKey } from "@/lib/user-preferences";
 import { ProjectsModal } from "@/components/projects";
@@ -128,6 +128,7 @@ export function ActivityPageClient({
         tasks: data.tasks,
         profiles: data.profiles,
         projects: data.projects,
+        categories: data.categories,
         statuses: data.statuses,
       }),
     [data],
@@ -316,8 +317,7 @@ export function ActivityPageClient({
               Activity
             </Heading>
             <p className="mt-2 text-sm text-black/65 dark:text-white/65">
-              The latest task, note, organization, project, and category
-              happenings.
+              The latest task, note, contact, project, and category happenings.
             </p>
           </div>
 
@@ -386,7 +386,7 @@ export function ActivityPageClient({
                 { label: "Checklist", value: "checklist" },
                 { label: "Attachment", value: "attachment" },
                 { label: "Notes", value: "note" },
-                { label: "Organizations", value: "organization" },
+                { label: "Contacts", value: "organization" },
                 { label: "Projects", value: "project" },
                 { label: "Categories", value: "category" },
               ]}
@@ -421,6 +421,7 @@ export function ActivityPageClient({
                     task,
                     actor: profile,
                     project,
+                    category,
                     resourceName,
                     resourceHref,
                   } = rowsById.get(item.id)!;
@@ -458,9 +459,20 @@ export function ActivityPageClient({
                             <span>{task.title}</span>
                           </span>
                         ) : resourceName ? (
-                          <span className="min-w-0 font-semibold">{resourceName}</span>
+                          category ? (
+                            <CategoryLabel
+                              category={category}
+                              className="font-semibold"
+                            />
+                          ) : (
+                            <span className="min-w-0 font-semibold">
+                              {resourceName}
+                            </span>
+                          )
                         ) : (
-                          <span className="text-black/45 dark:text-white/45">Item unavailable</span>
+                          <span className="text-black/45 dark:text-white/45">
+                            Item unavailable
+                          </span>
                         )}
                         {project && (
                           <span className="text-black/60 dark:text-white/60">
@@ -532,6 +544,7 @@ export function ActivityPageClient({
                       task,
                       actor: profile,
                       project,
+                      category,
                       resourceName,
                       resourceHref,
                     } = rowsById.get(item.id)!;
@@ -582,9 +595,15 @@ export function ActivityPageClient({
                               <span>{task.title}</span>
                             </span>
                           ) : resourceName ? (
-                            <span className="min-w-0">{resourceName}</span>
+                            category ? (
+                              <CategoryLabel category={category} />
+                            ) : (
+                              <span className="min-w-0">{resourceName}</span>
+                            )
                           ) : (
-                            <span className="text-black/45 dark:text-white/45">Item unavailable</span>
+                            <span className="text-black/45 dark:text-white/45">
+                              Item unavailable
+                            </span>
                           )}
                         </td>
                         <td className="px-4 py-3 text-black/65 dark:text-white/65">

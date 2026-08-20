@@ -118,7 +118,7 @@ export function TaskPageClient({
   function openEditor() {
     setDraft(makeDraft());
     setTaskMessage("");
-    setTaskDetailsOpen(data.currentProfile.task_details_open_by_default);
+    setTaskDetailsOpen(false);
     setTaskOpen(true);
   }
 
@@ -142,7 +142,10 @@ export function TaskPageClient({
       const saved = await mutations.save(draft, task);
       mutations.applySaved(saved, true);
       setTaskOpen(false);
-      toast.success("Task updated.");
+      toast.successWithLink("Task updated:", {
+        href: taskPath(saved.task),
+        linkLabel: taskKey(saved.task),
+      });
     } catch (error) {
       const message = errorMessage(error, "The task could not be saved.");
       setTaskMessage(message);
@@ -469,6 +472,7 @@ export function TaskPageClient({
       </WorkspacePageShell>
 
       <TaskEditor
+        showSupplementalDetails={false}
         modal={{
           open: taskOpen,
           setOpen: setTaskOpen,
