@@ -2,7 +2,7 @@
 
 Status: Implemented
 Implementation status: Hierarchical tiers plus lateral teams, fail-closed
-Last updated: August 9, 2026
+Last updated: August 20, 2026
 
 ## Implemented model
 
@@ -515,6 +515,16 @@ project's access boundary. This includes:
 Do not send project or task details to a user merely because they were formerly
 an assignee. Authorization must be checked when a notification is generated or
 delivered.
+
+### Calendar events
+
+Task deadlines appear in the calendar only when task RLS returns the source
+task. Standalone important dates may be workspace-wide or scoped to one project
+or category; scoped dates call the canonical project or category access helper
+in every read policy. Time-away entries are visible to onboarded members so the
+team can avoid contacting an unavailable person, and may be changed only by the
+person who logged them or an app owner. Google Calendar sync must apply these
+same checks at delivery time and must not create a broader secondary feed.
 
 ## Migration strategy
 
