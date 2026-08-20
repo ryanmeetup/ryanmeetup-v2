@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState, type FormEvent } from "react";
 import {
+  Avatar,
   Button,
   Card,
   DropdownSelect,
@@ -328,7 +329,7 @@ export function CalendarPageClient({
       >
         {draft && <div className="space-y-5">
           {!canEdit && <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm">This was logged by {profileDisplayName(profiles.get(editingEvent?.created_by ?? ""))}. Only that Ryan, the teammate who is away, or an app owner can change it.</div>}
-          {draft.kind === "away" && (canEdit ? <DropdownSelect variant="field" required label="Who will be away?" value={draft.profileId} onChange={(value) => updateDraft("profileId", value)} options={data.profiles.filter((profile) => profile.onboarding_completed).map((profile) => ({ label: profileDisplayName(profile), value: profile.id }))} /> : <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-black/60 dark:text-white/60">Who will be away?</p><p className="mt-2 text-sm">{profileDisplayName(profiles.get(draft.profileId))}</p></div>)}
+          {draft.kind === "away" && (canEdit ? <DropdownSelect variant="field" required label="Who will be away?" proximityValue={data.currentProfile.id} value={draft.profileId} onChange={(value) => updateDraft("profileId", value)} options={data.profiles.filter((profile) => profile.onboarding_completed).map((profile) => ({ avatar: { name: profileDisplayName(profile), src: profile.avatar_url }, label: profileDisplayName(profile), value: profile.id }))} /> : <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-black/60 dark:text-white/60">Who will be away?</p><p className="mt-2 flex items-center gap-2 text-sm"><Avatar name={profileDisplayName(profiles.get(draft.profileId))} src={profiles.get(draft.profileId)?.avatar_url} size="sm" />{profileDisplayName(profiles.get(draft.profileId))}</p></div>)}
           <Input label="Title" name="calendar-title" required value={draft.title} disabled={!canEdit || saving} placeholder={draft.kind === "away" ? "Out of office" : "What is happening?"} onChange={(event) => updateDraft("title", event.target.value)} />
           <Textarea id="calendar-description" label="Details" name="calendar-description" value={draft.description} disabled={!canEdit || saving} rows={3} placeholder="Add the context other Ryans will need." onChange={(event) => updateDraft("description", event.target.value)} />
           <div className="grid gap-4 sm:grid-cols-2"><Input type="date" label="Start date" name="calendar-start-date" required value={draft.startDate} disabled={!canEdit || saving} onChange={(event) => updateDraft("startDate", event.target.value)} /><Input type="date" label="End date" name="calendar-end-date" required min={draft.startDate} value={draft.endDate} disabled={!canEdit || saving} onChange={(event) => updateDraft("endDate", event.target.value)} /></div>
