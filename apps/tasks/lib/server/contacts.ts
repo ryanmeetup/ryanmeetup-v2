@@ -13,6 +13,7 @@ export function shapeContact(row: ContactRow): Contact {
     id: row.id,
     display_name: row.display_name,
     image_url: row.image_url,
+    contact_group: row.contact_group,
     notes: row.notes,
     created_at: row.created_at,
     updated_at: row.updated_at,
@@ -31,11 +32,17 @@ export async function loadContacts(supabase: SupabaseClient) {
     .from("contacts")
     .select(CONTACT_COLUMNS)
     .order("display_name");
-  return { ...result, data: result.data?.map((row) => shapeContact(row as unknown as ContactRow)) };
+  return {
+    ...result,
+    data: result.data?.map((row) => shapeContact(row as unknown as ContactRow)),
+  };
 }
 
 export async function loadContactCategories(supabase: SupabaseClient) {
-  return supabase.from("contact_categories").select("id,name,color").order("name");
+  return supabase
+    .from("contact_categories")
+    .select("id,name,color")
+    .order("name");
 }
 
 export async function loadContact(supabase: SupabaseClient, id: string) {
@@ -44,5 +51,10 @@ export async function loadContact(supabase: SupabaseClient, id: string) {
     .select(CONTACT_COLUMNS)
     .eq("id", id)
     .single();
-  return { ...result, data: result.data ? shapeContact(result.data as unknown as ContactRow) : null };
+  return {
+    ...result,
+    data: result.data
+      ? shapeContact(result.data as unknown as ContactRow)
+      : null,
+  };
 }

@@ -2,17 +2,26 @@ import type { Metadata } from "next";
 import { ContactsPageClient } from "@/components/contacts";
 import { demoData } from "@/lib/demo-data";
 import { loadContacts } from "@/lib/server/contacts";
-import { isWorkspaceDemo, loadWorkspacePage } from "@/lib/server/workspace-page-loader";
+import {
+  isWorkspaceDemo,
+  loadWorkspacePage,
+} from "@/lib/server/workspace-page-loader";
 import { requireQueryData } from "@/lib/workspace-loader";
 
 export const metadata: Metadata = {
-  title: { absolute: "Organizations | Ryan Meetup Tasks" },
+  title: { absolute: "Contacts | Ryan Meetup Tasks" },
 };
 
 export default async function ContactsPage() {
   const demoMode = isWorkspaceDemo();
   if (demoMode)
-    return <ContactsPageClient initialData={demoData} initialContacts={[]} demoMode />;
+    return (
+      <ContactsPageClient
+        initialData={demoData}
+        initialContacts={[]}
+        demoMode
+      />
+    );
   const loaded = await loadWorkspacePage([
     "profiles",
     "statuses",

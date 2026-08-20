@@ -1,5 +1,5 @@
-import type { ContactDraftPerson } from "./contact-types";
-import { normalizeHttpUrl } from "@ryanmeetup/utils";
+import { isContactGroup, type ContactDraftPerson } from "./contact-types";
+import { formatInstagramHandle, normalizeHttpUrl } from "@ryanmeetup/utils";
 
 type JsonObject = Record<string, unknown>;
 
@@ -24,6 +24,7 @@ export function contactSaveSchema(value: unknown) {
     "id",
     "displayName",
     "imageUrl",
+    "contactGroup",
     "notes",
     "categoryIds",
     "newCategoryNames",
@@ -34,7 +35,15 @@ export function contactSaveSchema(value: unknown) {
   const displayName = cleanText(value.displayName, 160, true);
   const notes = cleanText(value.notes, 5000);
   const rawImageUrl = cleanText(value.imageUrl, 2048);
-  if (!displayName || notes === null || rawImageUrl === null) return null;
+  const contactGroup = cleanText(value.contactGroup, 80);
+  if (
+    !displayName ||
+    notes === null ||
+    rawImageUrl === null ||
+    contactGroup === null ||
+    (contactGroup && !isContactGroup(contactGroup))
+  )
+    return null;
   const imageUrl = rawImageUrl ? normalizeHttpUrl(rawImageUrl) : null;
   if (rawImageUrl && !imageUrl) return null;
   if (!Array.isArray(value.categoryIds) || value.categoryIds.length > 100)
@@ -72,10 +81,11 @@ export function contactSaveSchema(value: unknown) {
     const fullName = cleanText(person.full_name, 160, true);
     const title = cleanText(person.title ?? "", 160);
     const phone = cleanText(person.phone ?? "", 40);
-    const instagram = cleanText(person.instagram_handle ?? "", 100)?.replace(
-      /^@/,
-      "",
-    );
+    const instagramText =
+      typeof person.instagram_handle === "string"
+        ? person.instagram_handle
+        : "";
+    const instagram = cleanText(formatInstagramHandle(instagramText), 100);
     if (!fullName || title === null || phone === null || instagram === null)
       return null;
     if (!Array.isArray(person.emails) || person.emails.length > 1) return null;
@@ -101,6 +111,7 @@ export function contactSaveSchema(value: unknown) {
     id: value.id as string | undefined,
     displayName,
     imageUrl: imageUrl || null,
+    contactGroup: contactGroup || null,
     notes: notes || null,
     categoryIds: categoryIds as string[],
     newCategoryNames: newCategoryNames as string[],

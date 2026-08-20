@@ -24,16 +24,19 @@ async function save(request: Request) {
   );
   if (error)
     return databaseFailure(request, "contact.save", error, {
-      error: "The organization could not be saved. Try again.",
-      conflictError: "An organization or category with that name already exists.",
+      error: "The contact could not be saved. Try again.",
+      conflictError: "A contact or category with that name already exists.",
     });
   const imageUpdate = await authorization.supabase
     .from("contacts")
-    .update({ image_url: parsed.data.imageUrl })
+    .update({
+      image_url: parsed.data.imageUrl,
+      contact_group: parsed.data.contactGroup,
+    })
     .eq("id", contactId);
   if (imageUpdate.error)
     return databaseFailure(request, "contact.image", imageUpdate.error, {
-      error: "The organization was saved, but its image could not be updated.",
+      error: "The contact was saved, but its details could not be updated.",
     });
   const result = await loadContact(authorization.supabase, contactId);
   if (result.error)
@@ -42,7 +45,7 @@ async function save(request: Request) {
     });
   if (!result.data)
     return NextResponse.json(
-      { error: "The organization was saved, but could not be reloaded." },
+      { error: "The contact was saved, but could not be reloaded." },
       { status: 500 },
     );
   if (
@@ -56,8 +59,7 @@ async function save(request: Request) {
   )
     return NextResponse.json(
       {
-        error:
-          "The organization was saved, but its activity could not be recorded.",
+        error: "The contact was saved, but its activity could not be recorded.",
       },
       { status: 500 },
     );
@@ -67,10 +69,15 @@ async function save(request: Request) {
       .select("id,name")
       .in("name", parsed.data.newCategoryNames);
     if (categories.error)
-      return databaseFailure(request, "contact.category-activity", categories.error, {
-        error:
-          "The organization was saved, but its new categories could not be recorded.",
-      });
+      return databaseFailure(
+        request,
+        "contact.category-activity",
+        categories.error,
+        {
+          error:
+            "The contact was saved, but its new categories could not be recorded.",
+        },
+      );
     const categoryActivity = await Promise.all(
       (categories.data ?? []).map((category) =>
         recordWorkspaceActivity(authorization.user, {
@@ -86,7 +93,7 @@ async function save(request: Request) {
       return NextResponse.json(
         {
           error:
-            "The organization was saved, but its new category activity could not be recorded.",
+            "The contact was saved, but its new category activity could not be recorded.",
         },
         { status: 500 },
       );
@@ -110,7 +117,7 @@ export async function DELETE(request: Request) {
     .single();
   if (result.error)
     return databaseFailure(request, "contact.delete", result.error, {
-      error: "The organization could not be deleted. Try again.",
+      error: "The contact could not be deleted. Try again.",
     });
   if (
     !(await recordWorkspaceActivity(authorization.user, {
@@ -123,7 +130,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json(
       {
         error:
-          "The organization was deleted, but its activity could not be recorded.",
+          "The contact was deleted, but its activity could not be recorded.",
       },
       { status: 500 },
     );

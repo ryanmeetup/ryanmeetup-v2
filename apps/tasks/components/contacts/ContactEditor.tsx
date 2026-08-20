@@ -2,8 +2,19 @@
 
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { useSearchFilter } from "@ryanmeetup/hooks";
-import { normalizeHttpUrl } from "@ryanmeetup/utils";
-import { Button, IconButton, Input, Modal, Textarea } from "@ryanmeetup/ui";
+import {
+  formatInstagramHandle,
+  formatPhoneNumber,
+  normalizeHttpUrl,
+} from "@ryanmeetup/utils";
+import {
+  Button,
+  DropdownSelect,
+  IconButton,
+  Input,
+  Modal,
+  Textarea,
+} from "@ryanmeetup/ui";
 import {
   FiBriefcase,
   FiEdit2,
@@ -20,6 +31,7 @@ import type {
   ContactDraft,
   ContactDraftPerson,
 } from "@/lib/contact-types";
+import { CONTACT_GROUPS } from "@/lib/contact-types";
 import { CountBadge } from "@/components/global";
 
 const blankPerson = (): ContactDraftPerson => ({
@@ -36,6 +48,7 @@ const makeDraft = (contact?: Contact | null): ContactDraft => ({
   id: contact?.id,
   displayName: contact?.display_name ?? "",
   imageUrl: contact?.image_url ?? "",
+  contactGroup: contact?.contact_group ?? "",
   notes: contact?.notes ?? "",
   categoryIds: contact?.categories.map((category) => category.id) ?? [],
   newCategoryNames: [],
@@ -163,8 +176,8 @@ export function ContactEditor({
     <Modal
       open={open}
       setIsOpen={(next) => !next && !saving && onClose()}
-      title={contact ? `Edit ${contact.display_name}` : "New organization"}
-      description="Manage the organization and the people you know there."
+      title={contact ? `Edit ${contact.display_name}` : "New contact"}
+      description="Manage this contact and the people you know there."
       size="xl"
       maxHeight="min(48rem, calc(100dvh - 2rem))"
       hideActions
@@ -187,7 +200,7 @@ export function ContactEditor({
             loadingText={contact ? "Saving…" : "Creating…"}
             disabled={!valid || saving}
           >
-            {contact ? "Save changes" : "Create organization"}
+            {contact ? "Save changes" : "Create contact"}
           </Button>
         </div>
       }
@@ -205,7 +218,7 @@ export function ContactEditor({
             <div className="flex flex-col items-start gap-3">
               <div
                 role="img"
-                aria-label="Organization image preview"
+                aria-label="Contact image preview"
                 className="grid aspect-square w-24 place-items-center rounded-2xl border border-black/10 bg-white bg-cover bg-center text-xl font-semibold text-black/50 shadow-sm dark:border-white/10 dark:bg-white/10 dark:text-white/50 sm:w-32"
                 style={
                   imagePreview
@@ -216,16 +229,16 @@ export function ContactEditor({
                 }
               >
                 {!imagePreview &&
-                  (draft.displayName.trim().slice(0, 2).toUpperCase() || "ORG")}
+                  (draft.displayName.trim().slice(0, 2).toUpperCase() || "CO")}
               </div>
               <label
-                htmlFor="organization-image"
+                htmlFor="contact-image"
                 className="inline-flex w-24 cursor-pointer items-center justify-center rounded-lg border border-black/20 bg-white/80 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] transition hover:bg-black/5 focus-within:ring-2 focus-within:ring-black/30 dark:border-white/20 dark:bg-white/5 dark:hover:bg-white/10 dark:focus-within:ring-white/30 sm:w-32"
               >
                 {imagePreview ? "Change image" : "Upload image"}
                 <input
-                  id="organization-image"
-                  name="organization-image"
+                  id="contact-image"
+                  name="contact-image"
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
                   className="sr-only"
@@ -240,7 +253,7 @@ export function ContactEditor({
             <div className="w-full min-w-0 space-y-5">
               <div>
                 <Input
-                  label="Organization name"
+                  label="Contact name"
                   name="contact-display-name"
                   required
                   value={draft.displayName}
@@ -259,7 +272,7 @@ export function ContactEditor({
               <div>
                 <Input
                   label="Direct image URL"
-                  name="organization-image-url"
+                  name="contact-image-url"
                   type="text"
                   value={draft.imageUrl}
                   maxLength={2048}
@@ -291,6 +304,25 @@ export function ContactEditor({
                   }}
                 />
               </div>
+              <DropdownSelect
+                variant="field"
+                label="Group"
+                value={draft.contactGroup}
+                options={[
+                  { label: "Uncategorized", value: "" },
+                  ...CONTACT_GROUPS.map((group) => ({
+                    label: group,
+                    value: group,
+                  })),
+                ]}
+                disabled={saving}
+                onChange={(contactGroup) =>
+                  setDraft((current) => ({
+                    ...current,
+                    contactGroup: contactGroup as ContactDraft["contactGroup"],
+                  }))
+                }
+              />
               {imageError && (
                 <p
                   role="alert"
@@ -307,7 +339,7 @@ export function ContactEditor({
                   value={draft.notes}
                   maxLength={5000}
                   rows={3}
-                  placeholder="Add context about the organization or relationship"
+                  placeholder="Add context about the contact or relationship"
                   disabled={saving}
                   onChange={(event) =>
                     setDraft((current) => ({
@@ -328,7 +360,7 @@ export function ContactEditor({
                 People <CountBadge>{draft.people.length}</CountBadge>
               </h2>
               <p className="mt-1 text-xs text-black/55 dark:text-white/55">
-                Add the individual contacts you know at this organization.
+                Add the individual people associated with this contact.
               </p>
             </div>
             <Button
@@ -353,8 +385,8 @@ export function ContactEditor({
           </div>
           {draft.people.length === 0 && (
             <p className="rounded-xl border border-dashed border-black/15 px-4 py-6 text-center text-sm text-black/55 dark:border-white/15 dark:text-white/55">
-              No people added yet. You can save the organization now and add
-              people whenever you have them.
+              No people added yet. You can save the contact now and add people
+              whenever you have them.
             </p>
           )}
           {activePerson && activePersonIndex !== null && (
@@ -430,7 +462,7 @@ export function ContactEditor({
                   disabled={saving}
                   onChange={(event) =>
                     updatePerson(activePersonIndex, {
-                      phone: event.target.value,
+                      phone: formatPhoneNumber(event.target.value),
                     })
                   }
                 />
@@ -443,7 +475,9 @@ export function ContactEditor({
                   disabled={saving}
                   onChange={(event) =>
                     updatePerson(activePersonIndex, {
-                      instagram_handle: event.target.value,
+                      instagram_handle: formatInstagramHandle(
+                        event.target.value,
+                      ),
                     })
                   }
                 />
@@ -530,14 +564,16 @@ export function ContactEditor({
                         {person.phone && (
                           <span className="flex min-w-0 items-center gap-1.5">
                             <FiPhone aria-hidden className="shrink-0" />
-                            <span className="truncate">{person.phone}</span>
+                            <span className="truncate">
+                              {formatPhoneNumber(person.phone)}
+                            </span>
                           </span>
                         )}
                         {person.instagram_handle && (
                           <span className="flex min-w-0 items-center gap-1.5">
                             <FiInstagram aria-hidden className="shrink-0" />
                             <span className="truncate">
-                              @{person.instagram_handle.replace(/^@/, "")}
+                              @{formatInstagramHandle(person.instagram_handle)}
                             </span>
                           </span>
                         )}
@@ -550,6 +586,7 @@ export function ContactEditor({
                     </div>
                     <IconButton
                       label={`Edit ${person.full_name.trim() || `person ${index + 1}`}`}
+                      variant="edit"
                       onClick={() => {
                         setPersonBeforeEdit({
                           ...person,
