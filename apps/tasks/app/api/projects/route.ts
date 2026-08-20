@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
-import { projectCreateSchema, projectPatchSchema } from "@/lib/api-schemas";
-import { databaseFailure, notFound } from "@/lib/server/api-response";
+import {
+  idSchema,
+  projectCreateSchema,
+  projectPatchSchema,
+} from "@/lib/api-schemas";
+import { apiError, databaseFailure, notFound } from "@/lib/server/api-response";
 import { authorize } from "@/lib/server/auth";
 import { readJson } from "@/lib/server/request";
 import type { ProjectLink } from "@/lib/resource-types";
@@ -150,5 +154,58 @@ export async function PATCH(request: Request) {
       { error: "The project was updated, but its activity could not be recorded." },
       { status: 500 },
     );
+  return NextResponse.json({ ok: true });
+}
+
+export async function DELETE(request: Request) {
+  const parsed = await readJson(request, idSchema);
+  if ("response" in parsed) return parsed.response;
+  const authorization = await authorize({ onboarded: true });
+  if ("response" in authorization) return authorization.response;
+  const { supabase } = authorization;
+  const { data: canManage, error: permissionError } = await supabase.rpc(
+    "can_manage_project",
+    { project_id: parsed.data.id },
+  );
+  if (permissionError)
+    return databaseFailure(request, "project.permission", permissionError, {
+      error: "Project permissions are temporarily unavailable.",
+    });
+  if (!canManage) return notFound();
+  const projectResult = await supabase
+    .from("projects")
+    .select("id,name")
+    .eq("id", parsed.data.id)
+    .single();
+  if (projectResult.error) return notFound();
+  const { count, error: countError } = await supabase
+    .from("tasks")
+    .select("id", { count: "exact", head: true })
+    .eq("project_id", parsed.data.id);
+  if (countError)
+    return databaseFailure(request, "project.delete-check", countError, {
+      error: "The project could not be checked for tasks. Try again.",
+    });
+  if (count)
+    return apiError(
+      409,
+      "CONFLICT",
+      "Move or delete every task in this project before deleting it.",
+    );
+  const { error } = await supabase
+    .from("projects")
+    .delete()
+    .eq("id", parsed.data.id);
+  if (error)
+    return databaseFailure(request, "project.delete", error, {
+      error: "The project could not be deleted. Try again.",
+    });
+  await recordWorkspaceActivity(authorization.user, {
+    action: "project.delete",
+    targetType: "project",
+    targetId: parsed.data.id,
+    name: projectResult.data.name,
+    href: "/projects",
+  });
   return NextResponse.json({ ok: true });
 }

@@ -66,5 +66,20 @@ export default async function ProjectsPage({
     }
   }
 
+  const projectTaskCountEntries = await Promise.all(
+    initialData.projects.map(async (project) => {
+      const { count, error } = await supabase
+        .from("tasks")
+        .select("id", { count: "exact", head: true })
+        .eq("project_id", project.id);
+      if (error) throw error;
+      return [project.id, count ?? 0] as const;
+    }),
+  );
+  initialData = {
+    ...initialData,
+    projectTaskCounts: Object.fromEntries(projectTaskCountEntries),
+  };
+
   return <ProjectsPageClient initialData={initialData} demoMode={false} />;
 }

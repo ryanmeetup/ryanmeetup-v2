@@ -10,10 +10,12 @@ import {
 import {
   Button,
   Avatar,
+  ConfirmationDialog,
   FilterChip,
   IconButton,
   Input,
   Modal,
+  Pill,
   Tooltip,
   toast,
 } from "@ryanmeetup/ui";
@@ -26,11 +28,13 @@ import {
   FiRotateCcw,
   FiSearch,
   FiStar,
+  FiTrash2,
   FiUsers,
 } from "react-icons/fi";
 import { useQueryParamState, useSearchFilter } from "@ryanmeetup/hooks";
 import { withAccessPreview } from "@/lib/access-preview";
 import {
+  CountBadge,
   ManagementCard,
   ManagementCardTitle,
 } from "@/components/global";
@@ -67,10 +71,12 @@ export type ProjectsModalProps = {
     editProjectId?: string | null;
     readOnly?: boolean;
     showOwnerNames?: boolean;
+    initialDraft?: { name?: string; description?: string } | null;
   };
   events?: {
     onCreate?: () => void;
     onProjectUpdated?: (project: Project) => void;
+    onCreated?: (project: Project) => void | Promise<void>;
   };
 };
 
@@ -88,13 +94,17 @@ export function ProjectsModal({
     editProjectId = null,
     readOnly = false,
     showOwnerNames = false,
+    initialDraft = null,
   } = options ?? {};
-  const { onCreate, onProjectUpdated } = events ?? {};
+  const { onCreate, onProjectUpdated, onCreated } = events ?? {};
   const resourceMutations = useResourceMutations("project");
   const directEditProject = editProjectId
     ? (data.projects.find((project) => project.id === editProjectId) ?? null)
     : null;
-  const createState = useResourceModalState(data.currentProfile.id);
+  const createState = useResourceModalState(
+    data.currentProfile.id,
+    initialDraft ?? undefined,
+  );
   const { name, description, links, attachments, ownerIds: newOwnerIds } = createState.draft;
   const { setName, setDescription, setLinks, setAttachments, setOwnerIds: setNewOwnerIds } = createState.changes;
   const { creating, setCreating, detailsOpen: createDetailsOpen, setDetailsOpen: setCreateDetailsOpen } = createState;
@@ -107,9 +117,12 @@ export function ProjectsModal({
   const { resourceId: editingProjectId, setResourceId: setEditingProjectId, detailsOpen: editDetailsOpen, setDetailsOpen: setEditDetailsOpen, saving: renaming, setSaving: setRenaming } = editState;
   const { name: editingName, description: editingDescription, links: editingLinks, ownerIds: editingOwnerIds } = editState.draft;
   const { setName: setEditingName, setDescription: setEditingDescription, setLinks: setEditingLinks, setOwnerIds: setEditingOwnerIds } = editState.changes;
+  const [supportingDetailsChanged, setSupportingDetailsChanged] = useState(false);
   const [favoritePendingIds, setFavoritePendingIds] = useState<Set<string>>(
     new Set(),
   );
+  const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
+  const [deletePending, setDeletePending] = useState(false);
   const {
     query: projectQuery,
     setQuery: setProjectQuery,
@@ -172,6 +185,7 @@ export function ProjectsModal({
       }));
       createState.reset();
       toast.success(`${project.name} created.`);
+      await onCreated?.(project);
       if (createOnly) setOpen(false);
     } catch (error) {
       toast.error(
@@ -233,6 +247,7 @@ export function ProjectsModal({
           : current.projectOwners,
       }));
       toast.success(`${nextName} updated.`);
+      setSupportingDetailsChanged(false);
       setEditingProjectId(null);
       if (editProjectId) setOpen(false);
     } catch (error) {
@@ -247,6 +262,7 @@ export function ProjectsModal({
   }
 
   function beginRename(project: Project) {
+    setSupportingDetailsChanged(false);
     editState.begin(project,
       data.projectOwners
         .filter((item) => item.project_id === project.id)
@@ -255,6 +271,7 @@ export function ProjectsModal({
   }
 
   function closeEditor() {
+    setSupportingDetailsChanged(false);
     if (editState.close() && editProjectId) setOpen(false);
   }
 
@@ -280,6 +297,36 @@ export function ProjectsModal({
           ? error.message
           : "The project could not be updated.",
       );
+    }
+  }
+
+  async function deleteProject() {
+    if (!deleteTarget) return;
+    const project = deleteTarget;
+    setDeletePending(true);
+    try {
+      if (!demoMode) await resourceMutations.save("DELETE", { id: project.id });
+      setData((current) => ({
+        ...current,
+        projects: current.projects.filter((item) => item.id !== project.id),
+        projectOwners: current.projectOwners.filter(
+          (item) => item.project_id !== project.id,
+        ),
+        currentProfile: {
+          ...current.currentProfile,
+          favorite_project_ids: (
+            current.currentProfile.favorite_project_ids ?? []
+          ).filter((id) => id !== project.id),
+        },
+      }));
+      setDeleteTarget(null);
+      toast.success(`${project.name} deleted.`);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "The project could not be deleted.",
+      );
+    } finally {
+      setDeletePending(false);
     }
   }
 
@@ -359,6 +406,7 @@ export function ProjectsModal({
     <>
       <Modal
         open={open && !editProjectId}
+        maxHeight="min(42rem, calc(100dvh - 2rem))"
         setIsOpen={setOpen}
         title={createOnly ? "New Project" : "Projects"}
         description={
@@ -528,6 +576,10 @@ export function ProjectsModal({
                 className={`${searchPending ? "pointer-events-none opacity-55" : ""} grid min-w-0 grid-cols-1 items-stretch gap-4 transition-opacity md:grid-cols-2 ${embedded ? "lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3" : ""}`}
               >
                 {projects.map((project) => {
+                  const taskCount =
+                    data.projectTaskCounts?.[project.id] ??
+                    data.tasks.filter((task) => task.project_id === project.id)
+                      .length;
                   const isFavorite = (
                     data.currentProfile.favorite_project_ids ?? []
                   ).includes(project.id);
@@ -650,19 +702,23 @@ export function ProjectsModal({
                     >
                       <div className="min-w-0 flex-1 py-1">
                         <ManagementCardTitle
-                          className={
-                            project.archived_at
-                              ? "text-black/45 line-through dark:text-white/45"
-                              : undefined
-                          }
+                          className={project.archived_at ? "text-black/60 dark:text-white/60" : undefined}
                         >
-                          {project.name}
+                          <span className="inline-flex max-w-full items-center gap-2">
+                            <span className="truncate">{project.name}</span>
+                            <Tooltip
+                              content={`${taskCount} ${taskCount === 1 ? "task" : "tasks"} in this project`}
+                              placement="top"
+                            >
+                              <CountBadge>{taskCount}</CountBadge>
+                            </Tooltip>
+                          </span>
                         </ManagementCardTitle>
                       </div>
                       {project.archived_at && (
-                        <span className="mt-2 hidden text-[10px] font-semibold uppercase tracking-widest text-black/45 dark:text-white/45 sm:inline">
+                        <Pill variant="neutral" size="sm" className="shrink-0 !px-2.5 !tracking-[0.16em]">
                           Archived
-                        </span>
+                        </Pill>
                       )}
                       {!data.accessPreview && !project.archived_at && (
                         <IconButton
@@ -682,20 +738,32 @@ export function ProjectsModal({
                         <>
                           <IconButton
                             label={`Edit “${project.name}”`}
+                            variant="edit"
                             onClick={() => beginRename(project)}
                           >
                             <FiEdit2 />
                           </IconButton>
-                          <IconButton
-                            label={`${project.archived_at ? "Restore" : "Archive"} “${project.name}”`}
-                            onClick={() => void toggleArchived(project)}
-                          >
-                            {project.archived_at ? (
-                              <FiRotateCcw />
-                            ) : (
-                              <FiArchive />
-                            )}
-                          </IconButton>
+                          {taskCount > 0 ? (
+                            <IconButton
+                              label={`${project.archived_at ? "Restore" : "Archive"} “${project.name}”`}
+                              variant="archive"
+                              onClick={() => void toggleArchived(project)}
+                            >
+                              {project.archived_at ? (
+                                <FiRotateCcw />
+                              ) : (
+                                <FiArchive />
+                              )}
+                            </IconButton>
+                          ) : (
+                            <IconButton
+                              label={`Delete “${project.name}”`}
+                              variant="danger"
+                              onClick={() => setDeleteTarget(project)}
+                            >
+                              <FiTrash2 />
+                            </IconButton>
+                          )}
                         </>
                       )}
                     </ManagementCard>
@@ -727,9 +795,11 @@ export function ProjectsModal({
             editingDescription.trim() !== (project.description ?? "") ||
             JSON.stringify(editingLinks) !==
               JSON.stringify(project.links ?? []) ||
+            supportingDetailsChanged ||
             !sameIds(savedOwnerIds, editingOwnerIds);
           return (
             <Modal
+              maxHeight="min(42rem, calc(100dvh - 2rem))"
               open
               setIsOpen={(nextOpen) => {
                 if (!nextOpen) closeEditor();
@@ -779,12 +849,23 @@ export function ProjectsModal({
                   expanded={editDetailsOpen}
                   setExpanded={setEditDetailsOpen}
                   primary={<ResourceFields section="primary" resource={{ kind: "project", id: project.id }} values={{ name: editingName, description: editingDescription, ownerIds: editingOwnerIds, links: editingLinks }} changes={{ setName: setEditingName, setDescription: setEditingDescription, setOwnerIds: setEditingOwnerIds, setLinks: setEditingLinks }} editor={{ disabled: renaming, demoMode, currentUserId: data.currentProfile.id, profiles: data.profiles }} copy={{ nameLabel: "Project name", namePlaceholder: "Project name", descriptionPlaceholder: "What is this project working toward?" }} />}
-                  secondary={<ResourceFields section="supporting" resource={{ kind: "project", id: project.id }} values={{ name: editingName, description: editingDescription, ownerIds: editingOwnerIds, links: editingLinks }} changes={{ setName: setEditingName, setDescription: setEditingDescription, setOwnerIds: setEditingOwnerIds, setLinks: setEditingLinks }} editor={{ disabled: renaming, demoMode, currentUserId: data.currentProfile.id, profiles: data.profiles }} copy={{ nameLabel: "Project name", namePlaceholder: "Project name", descriptionPlaceholder: "What is this project working toward?" }} />}
+                  secondary={<ResourceFields section="supporting" resource={{ kind: "project", id: project.id }} values={{ name: editingName, description: editingDescription, ownerIds: editingOwnerIds, links: editingLinks }} changes={{ setName: setEditingName, setDescription: setEditingDescription, setOwnerIds: setEditingOwnerIds, setLinks: setEditingLinks }} editor={{ disabled: renaming, demoMode, currentUserId: data.currentProfile.id, profiles: data.profiles, onSupportingMutation: () => setSupportingDetailsChanged(true) }} copy={{ nameLabel: "Project name", namePlaceholder: "Project name", descriptionPlaceholder: "What is this project working toward?" }} />}
                 />
               </form>
             </Modal>
           );
         })()}
+      <ConfirmationDialog
+        open={Boolean(deleteTarget)}
+        setOpen={(nextOpen) => !nextOpen && !deletePending && setDeleteTarget(null)}
+        title="Delete this project?"
+        description={`This permanently removes “${deleteTarget?.name ?? "this project"}”. This cannot be undone.`}
+        confirmLabel="Delete project"
+        pendingLabel="Deleting project..."
+        pending={deletePending}
+        destructive
+        onConfirm={() => void deleteProject()}
+      />
     </>
   );
 }

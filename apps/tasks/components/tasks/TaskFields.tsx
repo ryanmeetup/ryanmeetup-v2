@@ -1,6 +1,7 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
+import { FiStar } from "react-icons/fi";
 import {
   DropdownSelect,
   Input,
@@ -13,6 +14,7 @@ import type { Priority, Status } from "@/lib/task-types";
 import type { Profile } from "@/lib/workspace-types";
 import type { TaskDraft } from "@/lib/task-mutations";
 import { profileDisplayName } from "@/lib/presentation";
+import { sortFavoriteProjectsFirst } from "@/lib/project-sort";
 
 const priorities: Priority[] = ["low", "medium", "high", "urgent"];
 
@@ -20,6 +22,7 @@ export type TaskFieldOptions = {
   statuses: Status[];
   categories: Category[];
   projects: Project[];
+  favoriteProjectIds: string[];
   profiles: Profile[];
   currentProfileId: string;
 };
@@ -35,11 +38,13 @@ export function TaskFields({
   options: TaskFieldOptions;
   density?: "full" | "quick";
 }) {
+  const favoriteProjectIds = new Set(options.favoriteProjectIds);
   const tagOptions = options.categories
     .filter((category) => draft.category_ids.includes(category.id))
     .flatMap((category) =>
       (category.tags ?? []).map((tag) => ({
-        label: `${category.name} / ${tag}`,
+        group: { color: category.color, label: category.name },
+        label: tag,
         value: JSON.stringify([category.id, tag]),
       })),
     );
@@ -94,7 +99,7 @@ export function TaskFields({
             })}
           </div>
         </fieldset>
-        {density === "full" && <DropdownSelect variant="field" label="Project" value={draft.project_id ?? ""} onChange={(project_id) => patch({ project_id: project_id || null })} options={[{ label: "No project", value: "" }, ...options.projects.filter((item) => !item.archived_at || item.id === draft.project_id).map((item) => ({ label: `${item.name}${item.archived_at ? " (archived)" : ""}`, value: item.id }))]} />}
+        {density === "full" && <DropdownSelect variant="field" label="Project" proximityGroup="Favorites" value={draft.project_id ?? ""} onChange={(project_id) => patch({ project_id: project_id || null })} options={[{ label: "No project", value: "" }, ...sortFavoriteProjectsFirst(options.projects.filter((item) => !item.archived_at || item.id === draft.project_id), options.favoriteProjectIds).map((item) => ({ group: favoriteProjectIds.has(item.id) ? { icon: <FiStar aria-hidden className="h-3 w-3 shrink-0 fill-yellow-400 text-yellow-500 dark:fill-yellow-300 dark:text-yellow-400" />, label: "Favorites" } : { label: "Projects" }, label: `${item.name}${item.archived_at ? " (archived)" : ""}`, value: item.id }))]} />}
         <DropdownSelect variant="field" label="Assignee" proximityValue={options.currentProfileId} value={draft.assignee_id ?? ""} onChange={(assignee_id) => patch({ assignee_id: assignee_id || null })} options={[{ label: "Unassigned", value: "" }, ...options.profiles.map((item) => ({ avatar: { name: profileDisplayName(item), src: item.avatar_url }, label: profileDisplayName(item), value: item.id }))]} />
         {density === "full" && <DropdownSelect variant="field" label="Reported by" proximityValue={options.currentProfileId} required value={draft.reported_by} onChange={(reported_by) => patch({ reported_by })} options={options.profiles.map((item) => ({ avatar: { name: profileDisplayName(item), src: item.avatar_url }, label: profileDisplayName(item), value: item.id }))} />}
         <label className="date-field"><span>Due date</span><input type="date" value={draft.due_date ?? ""} onChange={(event) => patch({ due_date: event.target.value || null, due_time: event.target.value ? draft.due_time : null })} /></label>
