@@ -20,12 +20,19 @@ import {
   FiCalendar,
   FiClock,
   FiExternalLink,
+  FiFolder,
   FiPlus,
   FiTrash2,
+  FiUsers,
   FiUserX,
 } from "react-icons/fi";
 import { WorkspacePageShell } from "@/components/global";
-import { TaskKeyBadge } from "@/components/tasks";
+import {
+  TaskCategoryBadge,
+  TaskDueDate,
+  TaskKeyBadge,
+  TaskPriorityBadge,
+} from "@/components/tasks";
 import {
   blankCalendarDraft,
 } from "@/lib/api-schema/calendar";
@@ -55,6 +62,14 @@ const dayFormatter = new Intl.DateTimeFormat("en-US", {
   timeZone: "UTC",
 });
 const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function displayTime(value: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "UTC",
+  }).format(new Date(`1970-01-01T${value.slice(0, 5)}:00Z`));
+}
 
 function moveMonth(month: string, amount: number) {
   const [year, monthNumber] = month.split("-").map(Number);
@@ -392,26 +407,83 @@ export function CalendarPageClient({
           {taskSummary?.items.map((item) => {
             const task = item.task;
             const status = data.statuses.find((candidate) => candidate.id === task?.status_id);
-            const assignee = data.profiles.find((profile) => profile.id === task?.assignee_id);
+            const assigneeIds = new Set([
+              ...(task?.assignee_id ? [task.assignee_id] : []),
+              ...data.taskAssignees
+                .filter((assignment) => assignment.task_id === task?.id)
+                .map((assignment) => assignment.profile_id),
+            ]);
+            const assignees = data.profiles.filter((profile) => assigneeIds.has(profile.id));
+            const project = data.projects.find((candidate) => candidate.id === task?.project_id);
+            const categoryIds = new Set(
+              data.taskCategories
+                .filter((assignment) => assignment.task_id === task?.id)
+                .map((assignment) => assignment.category_id),
+            );
+            const categories = data.categories.filter((category) => categoryIds.has(category.id));
             const href = withAccessPreview(item.href ?? "/board", data.accessPreview);
             return (
-              <div key={item.id} className="flex items-center gap-3 rounded-xl border border-black/10 bg-black/[0.025] p-3 dark:border-white/10 dark:bg-white/[0.04]">
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-semibold">{item.title}</p>
-                    {task && <TaskKeyBadge task={task} />}
-                  </div>
-                  <p className="mt-1 truncate text-xs text-black/60 dark:text-white/60">
-                    {[item.meta, status?.name, assignee ? profileDisplayName(assignee) : "Unassigned"].filter(Boolean).join(" · ")}
-                  </p>
+              <div key={item.id} className="rounded-xl border border-black/10 bg-black/[0.025] p-4 dark:border-white/10 dark:bg-white/[0.04]">
+                <div className="flex items-start justify-between gap-3">
+                  {task && <TaskKeyBadge task={task} />}
+                  <span className="flex shrink-0 items-center gap-2">
+                    {task && <TaskPriorityBadge priority={task.priority} size="compact" />}
+                    <Link
+                      href={href}
+                      aria-label={`Go to ${item.title} details`}
+                      title="Open task details"
+                      className="rounded p-0.5 text-black/40 transition hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:text-white/40 dark:hover:text-white dark:focus-visible:ring-white/40"
+                    >
+                      <FiExternalLink aria-hidden />
+                    </Link>
+                  </span>
                 </div>
-                <Link
-                  href={href}
-                  aria-label={`Open ${item.title}`}
-                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-black/15 bg-white text-black transition hover:border-black/30 hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:border-white/15 dark:bg-white/5 dark:text-white dark:hover:border-white/30 dark:hover:bg-white/10 dark:focus-visible:ring-white/40"
-                >
-                  <FiExternalLink aria-hidden />
-                </Link>
+                <h3 className="mt-3 font-semibold leading-snug">{item.title}</h3>
+                <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-black/60 dark:text-white/60">
+                  {status && (
+                    <span className="inline-flex items-center gap-1.5 font-medium text-black/75 dark:text-white/75">
+                      <i className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: status.color }} />
+                      {status.name}
+                    </span>
+                  )}
+                  {project && (
+                    <span className="inline-flex min-w-0 items-center gap-1.5">
+                      <FiFolder className="shrink-0" aria-hidden />
+                      <span className="truncate">{project.name}</span>
+                    </span>
+                  )}
+                  {task?.due_date && (
+                    <TaskDueDate dueDate={task.due_date} isCompleted={status?.is_completed ?? false} showIcon />
+                  )}
+                  {task?.due_time && (
+                    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                      <FiClock className="shrink-0" aria-hidden />
+                      <time dateTime={task.due_time}>{displayTime(task.due_time)}</time>
+                    </span>
+                  )}
+                  {assignees.length > 0 ? (
+                    <span className="inline-flex min-w-0 items-center gap-1.5">
+                      <span className="flex shrink-0 -space-x-1.5">
+                        {assignees.slice(0, 3).map((person) => (
+                          <Avatar key={person.id} name={profileDisplayName(person)} src={person.avatar_url} size="sm" />
+                        ))}
+                      </span>
+                      <span className="truncate">{assignees.map((person) => profileDisplayName(person)).join(", ")}</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5">
+                      <FiUsers aria-hidden />
+                      Unassigned
+                    </span>
+                  )}
+                </div>
+                {task && categories.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {categories.map((category) => (
+                      <TaskCategoryBadge key={category.id} category={category} tags={task.category_tags?.[category.id]} />
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}
