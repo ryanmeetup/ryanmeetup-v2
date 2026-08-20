@@ -33,11 +33,13 @@ export function ManagementCard({
     <div
       className={`flex h-full flex-col rounded-xl border border-black/10 bg-black/[0.015] px-4 py-3 dark:border-white/10 dark:bg-white/[0.025] ${className ?? ""}`}
     >
-      <div className="flex items-center gap-3">{children}</div>
-      {body && <div className="mt-2 min-w-0">{body}</div>}
+      <div className="flex-1">
+        <div className="flex items-center gap-3">{children}</div>
+        {body && <div className="mt-2 min-w-0">{body}</div>}
+      </div>
       {footer && (
         <div
-          className={`mt-auto flex min-w-0 items-center gap-3 border-t border-black/10 pt-3 dark:border-white/10 ${footerClassName}`}
+          className={`mt-3 flex min-w-0 items-center gap-3 border-t border-black/10 pt-3 dark:border-white/10 ${footerClassName}`}
         >
           {footer}
         </div>

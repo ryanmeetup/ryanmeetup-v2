@@ -430,6 +430,7 @@ export function DashboardPageClient({
                               <IconButton
                                 label={`Delete “${item.draft.title || "untitled draft"}”`}
                                 size="sm"
+                                variant="danger"
                                 onClick={() => setDraftPendingDelete(item)}
                               >
                                 <FiTrash2 />

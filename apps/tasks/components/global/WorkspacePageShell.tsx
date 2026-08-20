@@ -45,7 +45,7 @@ export function WorkspacePageShell({
         onCreateCategory={onCreateCategory ?? (() => undefined)}
         onCreateProject={onCreateProject ?? (() => undefined)}
       />
-      <main className="min-w-0 overflow-x-hidden lg:pl-64">
+      <main className="min-w-0 overflow-x-clip lg:pl-64">
         <header className="tasks-app-header">
           <IconButton
             label="Open navigation"
