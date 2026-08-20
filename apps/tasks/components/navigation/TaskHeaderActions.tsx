@@ -20,6 +20,7 @@ import {
   FiPlus,
   FiShield,
   FiSun,
+  FiTrendingUp,
   FiUser,
 } from "react-icons/fi";
 import type { WorkspaceData } from "@/lib/workspace-types";
@@ -69,6 +70,14 @@ export function TaskHeaderActions({
               leftIcon={<FiShield />}
             >
               Access
+            </Button.Link>
+            <Button.Link
+              href="/usage"
+              variant="secondary"
+              size="sm"
+              leftIcon={<FiTrendingUp />}
+            >
+              Usage
             </Button.Link>
           </span>
         )}
@@ -139,15 +148,15 @@ export function TaskHeaderActions({
                   >
                     Admin
                   </div>
-                  <div
-                    role="group"
-                    aria-labelledby="mobile-account-menu-admin"
-                  >
+                  <div role="group" aria-labelledby="mobile-account-menu-admin">
                     <DropdownMenuItem onClick={() => setStatusesOpen(true)}>
                       <FiCheck aria-hidden /> Statuses
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => router.push("/access")}>
                       <FiShield aria-hidden /> Access
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push("/usage")}>
+                      <FiTrendingUp aria-hidden /> Usage
                     </DropdownMenuItem>
                   </div>
                 </>
@@ -193,6 +202,9 @@ export function TaskHeaderActions({
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => router.push("/access")}>
                   <FiShield aria-hidden /> Access
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push("/usage")}>
+                  <FiTrendingUp aria-hidden /> Usage
                 </DropdownMenuItem>
               </DropdownMenuItems>
             </DropdownMenu>

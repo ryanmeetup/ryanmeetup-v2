@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/reconcile-task-attachments",
       "schedule": "17 3 * * *"
+    },
+    {
+      "path": "/api/cron/send-task-digests",
+      "schedule": "0 13 * * 1-5"
     }
   ]
 }
