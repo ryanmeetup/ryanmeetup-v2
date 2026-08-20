@@ -65,6 +65,8 @@ export default async function CalendarPage() {
     "categories",
     "projects",
     "tasks",
+    "subtasks",
+    "taskAssignees",
     "taskCategories",
   ]);
   const events = requireQueryData(

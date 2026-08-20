@@ -29,7 +29,6 @@ import {
 import { WorkspacePageShell } from "@/components/global";
 import {
   TaskCategoryBadge,
-  TaskDueDate,
   TaskKeyBadge,
   TaskPriorityBadge,
 } from "@/components/tasks";
@@ -69,6 +68,18 @@ function displayTime(value: string) {
     minute: "2-digit",
     timeZone: "UTC",
   }).format(new Date(`1970-01-01T${value.slice(0, 5)}:00Z`));
+}
+
+const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 } as const;
+
+function compareTaskItems(left: CalendarItem, right: CalendarItem) {
+  const priorityDifference =
+    priorityOrder[left.task?.priority ?? "low"] -
+    priorityOrder[right.task?.priority ?? "low"];
+  if (priorityDifference) return priorityDifference;
+  const leftTime = left.task?.due_time ?? "99:99";
+  const rightTime = right.task?.due_time ?? "99:99";
+  return leftTime.localeCompare(rightTime) || left.title.localeCompare(right.title);
 }
 
 function moveMonth(month: string, amount: number) {
@@ -400,11 +411,11 @@ export function CalendarPageClient({
         open={Boolean(taskSummary)}
         setIsOpen={(open) => { if (!open) setTaskSummary(null); }}
         title={taskSummary ? `Tasks due ${dayFormatter.format(new Date(`${taskSummary.date}T00:00:00Z`))}` : "Tasks due"}
-        description={taskSummary ? `${taskSummary.items.length} upcoming ${taskSummary.items.length === 1 ? "task is" : "tasks are"} due on this day.` : undefined}
+        description={taskSummary ? `${taskSummary.items.length} ${taskSummary.items.length === 1 ? "task is" : "tasks are"} due on this day, ordered by urgency.` : undefined}
         size="lg"
       >
         <div className="space-y-2">
-          {taskSummary?.items.map((item) => {
+          {taskSummary && [...taskSummary.items].sort(compareTaskItems).map((item) => {
             const task = item.task;
             const status = data.statuses.find((candidate) => candidate.id === task?.status_id);
             const assigneeIds = new Set([
@@ -421,21 +432,21 @@ export function CalendarPageClient({
                 .map((assignment) => assignment.category_id),
             );
             const categories = data.categories.filter((category) => categoryIds.has(category.id));
+            const subtasks = data.subtasks.filter((subtask) => subtask.task_id === task?.id);
+            const completedSubtasks = subtasks.filter((subtask) => subtask.is_completed).length;
             const href = withAccessPreview(item.href ?? "/board", data.accessPreview);
             return (
-              <div key={item.id} className="rounded-xl border border-black/10 bg-black/[0.025] p-4 dark:border-white/10 dark:bg-white/[0.04]">
+              <Link
+                key={item.id}
+                href={href}
+                aria-label={`Open ${item.title}`}
+                className="group block rounded-xl border border-black/10 bg-black/[0.025] p-4 transition hover:-translate-y-0.5 hover:border-black/25 hover:bg-black/[0.04] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 motion-reduce:transform-none dark:border-white/10 dark:bg-white/[0.04] dark:hover:border-white/30 dark:hover:bg-white/[0.07] dark:focus-visible:ring-white/40"
+              >
                 <div className="flex items-start justify-between gap-3">
                   {task && <TaskKeyBadge task={task} />}
                   <span className="flex shrink-0 items-center gap-2">
                     {task && <TaskPriorityBadge priority={task.priority} size="compact" />}
-                    <Link
-                      href={href}
-                      aria-label={`Go to ${item.title} details`}
-                      title="Open task details"
-                      className="rounded p-0.5 text-black/40 transition hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:text-white/40 dark:hover:text-white dark:focus-visible:ring-white/40"
-                    >
-                      <FiExternalLink aria-hidden />
-                    </Link>
+                    <FiExternalLink aria-hidden className="text-black/35 transition group-hover:text-black/70 dark:text-white/35 dark:group-hover:text-white/75" />
                   </span>
                 </div>
                 <h3 className="mt-3 font-semibold leading-snug">{item.title}</h3>
@@ -451,9 +462,6 @@ export function CalendarPageClient({
                       <FiFolder className="shrink-0" aria-hidden />
                       <span className="truncate">{project.name}</span>
                     </span>
-                  )}
-                  {task?.due_date && (
-                    <TaskDueDate dueDate={task.due_date} isCompleted={status?.is_completed ?? false} showIcon />
                   )}
                   {task?.due_time && (
                     <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
@@ -476,15 +484,23 @@ export function CalendarPageClient({
                       Unassigned
                     </span>
                   )}
+                  {subtasks.length > 0 && (
+                    <span className="inline-flex items-center gap-1.5 whitespace-nowrap font-semibold text-black/55 dark:text-white/55">
+                      <span aria-hidden>✓</span>
+                      {completedSubtasks}/{subtasks.length}
+                      <span className="sr-only">checklist items complete</span>
+                    </span>
+                  )}
                 </div>
                 {task && categories.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-1.5">
-                    {categories.map((category) => (
+                    {categories.slice(0, 3).map((category) => (
                       <TaskCategoryBadge key={category.id} category={category} tags={task.category_tags?.[category.id]} />
                     ))}
+                    {categories.length > 3 && <Pill size="sm">+{categories.length - 3}</Pill>}
                   </div>
                 )}
-              </div>
+              </Link>
             );
           })}
         </div>
