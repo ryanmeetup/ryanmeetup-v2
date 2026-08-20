@@ -522,8 +522,9 @@ Task deadlines appear in the calendar only when task RLS returns the source
 task. Standalone important dates may be workspace-wide or scoped to one project
 or category; scoped dates call the canonical project or category access helper
 in every read policy. Time-away entries are visible to onboarded members so the
-team can avoid contacting an unavailable person, and may be changed only by the
-person who logged them or an app owner. Google Calendar sync must apply these
+team can avoid contacting an unavailable person. Any member may log time away
+for an onboarded teammate; entries may be changed only by the person who logged
+them, the person who is away, or an app owner. Google Calendar sync must apply these
 same checks at delivery time and must not create a broader secondary feed.
 
 ## Migration strategy

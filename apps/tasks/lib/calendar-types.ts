@@ -35,6 +35,7 @@ export type CalendarEventDraft = {
   endTime: string;
   projectId: string;
   categoryId: string;
+  profileId: string;
 };
 
 export type CalendarItem = {

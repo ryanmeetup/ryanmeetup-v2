@@ -35,7 +35,7 @@ export async function POST(request: Request) {
   const result = await authorization.supabase
     .from("calendar_events")
     .insert({
-      ...calendarEventValues(parsed.data, authorization.user.id),
+      ...calendarEventValues(parsed.data),
       created_by: authorization.user.id,
     })
     .select(CALENDAR_EVENT_COLUMNS)
@@ -61,7 +61,7 @@ export async function PATCH(request: Request) {
   if ("response" in authorization) return authorization.response;
   const result = await authorization.supabase
     .from("calendar_events")
-    .update(calendarEventValues(parsed.data, authorization.user.id, false))
+    .update(calendarEventValues(parsed.data))
     .eq("id", parsed.data.id!)
     .select(CALENDAR_EVENT_COLUMNS)
     .single();

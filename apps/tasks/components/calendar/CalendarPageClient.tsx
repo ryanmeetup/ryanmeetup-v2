@@ -72,6 +72,7 @@ function eventDraft(event: CalendarEvent): CalendarEventDraft {
     endTime: event.ends_at.slice(11, 16) || "17:00",
     projectId: event.project_id ?? "",
     categoryId: event.category_id ?? "",
+    profileId: event.profile_id ?? "",
   };
 }
 
@@ -146,7 +147,10 @@ export function CalendarPageClient({
   ) => setDraft((current) => current ? { ...current, [key]: value } : current);
 
   function openNew(kind: CalendarEventKind, date = today || `${month}-01`) {
-    setDraft(blankCalendarDraft(kind, date));
+    setDraft({
+      ...blankCalendarDraft(kind, date),
+      profileId: kind === "away" ? data.currentProfile.id : "",
+    });
   }
 
   function openItem(item: CalendarItem) {
@@ -171,7 +175,7 @@ export function CalendarPageClient({
           all_day: draft.allDay,
           project_id: draft.kind === "important" ? draft.projectId || null : null,
           category_id: draft.kind === "important" ? draft.categoryId || null : null,
-          profile_id: draft.kind === "away" ? data.currentProfile.id : null,
+          profile_id: draft.kind === "away" ? draft.profileId : null,
           created_by: data.currentProfile.id,
           created_at: events.find((item) => item.id === draft.id)?.created_at ?? now,
           updated_at: now,
@@ -216,7 +220,11 @@ export function CalendarPageClient({
   }
 
   const editingEvent = draft?.id ? events.find((event) => event.id === draft.id) : null;
-  const canEdit = !editingEvent || editingEvent.created_by === data.currentProfile.id || data.currentProfile.app_role === "owner";
+  const canEdit =
+    !editingEvent ||
+    editingEvent.created_by === data.currentProfile.id ||
+    editingEvent.profile_id === data.currentProfile.id ||
+    data.currentProfile.app_role === "owner";
 
   return (
     <>
@@ -316,10 +324,11 @@ export function CalendarPageClient({
         formId="calendar-event-form"
         onSubmit={saveEvent}
         closable={!saving}
-        footer={draft && <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between"><div>{draft.id && canEdit && <Button variant="danger" size="sm" leftIcon={<FiTrash2 />} loading={deleting} onClick={deleteEvent}>Delete</Button>}</div><div className="flex flex-col-reverse gap-3 sm:flex-row"><Button variant="secondary" size="sm" disabled={saving} onClick={() => setDraft(null)}>Cancel</Button><Button type="submit" size="sm" loading={saving} disabled={!canEdit || !draft.title.trim() || draft.endDate < draft.startDate}>Save</Button></div></div>}
+        footer={draft && <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between"><div>{draft.id && canEdit && <Button variant="danger" size="sm" leftIcon={<FiTrash2 />} loading={deleting} onClick={deleteEvent}>Delete</Button>}</div><div className="flex flex-col-reverse gap-3 sm:flex-row"><Button variant="secondary" size="sm" disabled={saving} onClick={() => setDraft(null)}>Cancel</Button><Button type="submit" size="sm" loading={saving} disabled={!canEdit || !draft.title.trim() || draft.endDate < draft.startDate || (draft.kind === "away" && !draft.profileId)}>Save</Button></div></div>}
       >
         {draft && <div className="space-y-5">
-          {!canEdit && <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm">This was logged by {profileDisplayName(profiles.get(editingEvent?.created_by ?? ""))}. Only that Ryan or an app owner can change it.</div>}
+          {!canEdit && <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm">This was logged by {profileDisplayName(profiles.get(editingEvent?.created_by ?? ""))}. Only that Ryan, the teammate who is away, or an app owner can change it.</div>}
+          {draft.kind === "away" && (canEdit ? <Select label="Who will be away?" name="calendar-away-profile" value={draft.profileId} onChange={(value) => updateDraft("profileId", value)} options={data.profiles.filter((profile) => profile.onboarding_completed).map((profile) => ({ label: profileDisplayName(profile), value: profile.id }))} /> : <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-black/60 dark:text-white/60">Who will be away?</p><p className="mt-2 text-sm">{profileDisplayName(profiles.get(draft.profileId))}</p></div>)}
           <Input label="Title" name="calendar-title" required value={draft.title} disabled={!canEdit || saving} placeholder={draft.kind === "away" ? "Out of office" : "What is happening?"} onChange={(event) => updateDraft("title", event.target.value)} />
           <Textarea id="calendar-description" label="Details" name="calendar-description" value={draft.description} disabled={!canEdit || saving} rows={3} placeholder="Add the context other Ryans will need." onChange={(event) => updateDraft("description", event.target.value)} />
           <div className="grid gap-4 sm:grid-cols-2"><Input type="date" label="Start date" name="calendar-start-date" required value={draft.startDate} disabled={!canEdit || saving} onChange={(event) => updateDraft("startDate", event.target.value)} /><Input type="date" label="End date" name="calendar-end-date" required min={draft.startDate} value={draft.endDate} disabled={!canEdit || saving} onChange={(event) => updateDraft("endDate", event.target.value)} /></div>

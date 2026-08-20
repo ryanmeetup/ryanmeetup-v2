@@ -6,6 +6,7 @@ import {
   type CalendarEvent,
 } from "@/lib/calendar-types";
 import type { Task } from "@/lib/task-types";
+import { calendarEventSchema } from "@/lib/api-schema/calendar";
 
 const task = (overrides: Partial<Task> = {}): Task => ({
   id: "task-1",
@@ -47,6 +48,32 @@ const away: CalendarEvent = {
 };
 
 describe("calendar view models", () => {
+  it("requires an explicit teammate for time away", () => {
+    const draft = {
+      kind: "away",
+      title: "Out of office",
+      description: "",
+      startDate: "2026-08-27",
+      endDate: "2026-08-30",
+      allDay: true,
+      startTime: "09:00",
+      endTime: "17:00",
+      projectId: "",
+      categoryId: "",
+      profileId: "",
+    };
+    expect(calendarEventSchema(draft)).toBeNull();
+    expect(
+      calendarEventSchema({
+        ...draft,
+        profileId: "4ca54e7a-19ee-4ee6-adc6-c54310a0ce51",
+      }),
+    ).toMatchObject({
+      kind: "away",
+      profileId: "4ca54e7a-19ee-4ee6-adc6-c54310a0ce51",
+    });
+  });
+
   it("creates task deadlines and hides completed or archived tasks", () => {
     const items = calendarItems(
       [task(), task({ id: "done", completed_at: "2026-08-21T12:00:00Z" })],

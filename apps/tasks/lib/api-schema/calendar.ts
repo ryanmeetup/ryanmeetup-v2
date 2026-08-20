@@ -17,6 +17,7 @@ export function calendarEventSchema(value: unknown, requireId = false) {
     "endTime",
     "projectId",
     "categoryId",
+    "profileId",
   ]);
   if (!body) return null;
   const id = requireId ? uuid(body.id) : undefined;
@@ -45,6 +46,7 @@ export function calendarEventSchema(value: unknown, requireId = false) {
       : null;
   const projectId = body.projectId ? uuid(body.projectId) : null;
   const categoryId = body.categoryId ? uuid(body.categoryId) : null;
+  const profileId = body.profileId ? uuid(body.profileId) : null;
   if (
     (requireId && !id) ||
     !kind ||
@@ -57,8 +59,10 @@ export function calendarEventSchema(value: unknown, requireId = false) {
     (!allDay && (!startTime || !endTime)) ||
     (body.projectId && !projectId) ||
     (body.categoryId && !categoryId) ||
+    (body.profileId && !profileId) ||
     (projectId && categoryId) ||
-    (kind === "away" && (projectId || categoryId))
+    (kind === "away" && (!profileId || projectId || categoryId)) ||
+    (kind === "important" && profileId)
   )
     return null;
   return {
@@ -73,6 +77,7 @@ export function calendarEventSchema(value: unknown, requireId = false) {
     endTime: allDay ? null : endTime,
     projectId,
     categoryId,
+    profileId,
   };
 }
 
@@ -84,8 +89,6 @@ export function calendarEventDeleteSchema(value: unknown) {
 
 export function calendarEventValues(
   input: NonNullable<ReturnType<typeof calendarEventSchema>>,
-  profileId: string,
-  includeProfile = true,
 ) {
   const startsAt = `${input.startDate}T${input.startTime ?? "00:00"}:00`;
   const endsAt = `${input.endDate}T${input.endTime ?? "23:59"}:00`;
@@ -98,9 +101,7 @@ export function calendarEventValues(
     all_day: input.allDay,
     project_id: input.projectId,
     category_id: input.categoryId,
-    ...(includeProfile
-      ? { profile_id: input.kind === "away" ? profileId : null }
-      : {}),
+    profile_id: input.kind === "away" ? input.profileId : null,
   };
 }
 
@@ -116,5 +117,6 @@ export function blankCalendarDraft(kind: CalendarEventKind, date: string): Calen
     endTime: "17:00",
     projectId: "",
     categoryId: "",
+    profileId: "",
   };
 }
