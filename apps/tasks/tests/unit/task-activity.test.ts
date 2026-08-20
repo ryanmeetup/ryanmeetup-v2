@@ -38,6 +38,7 @@ describe("task activity", () => {
     expect(taskActivityLabel("note.comment")).toBe("Comment added to note");
     expect(taskActivityLabel("project.delete")).toBe("Project deleted");
     expect(taskActivityLabel("category.delete")).toBe("Category deleted");
+    expect(taskActivityLabel("task.delete")).toBe("Task deleted");
     expect(taskActivityLabel("project.attachment.delete")).toBe(
       "Project attachment removed",
     );

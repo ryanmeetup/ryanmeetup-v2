@@ -21,6 +21,8 @@ Converting a note into a task now removes the original note and opens the new ta
 
 Capture a thought quickly, organize it by category, and turn it into real work when it is ready.
 
+Category filters now keep every kind of note visible in one compact row, while each note carries its category label for faster scanning.
+
 Teammates can now comment on notes, with authors able to edit or remove their own comments.
 
 ### Contact management
@@ -81,7 +83,7 @@ Edit, archive, and delete icon buttons now use consistent colors throughout the 
 
 ### Workspace activity
 
-Activity now captures changes to projects, categories, notes, contacts, and attachments alongside task updates.
+Activity now captures changes to projects, categories, notes, contacts, and attachments alongside task updates, including a lasting record when a task is deleted.
 
 ### Category access and ownership
 

@@ -167,8 +167,7 @@ export async function GET(request: Request) {
       });
       if (resolved) {
         previewProjectIds = resolved.projectIds;
-        previewInaccessibleTaskIds =
-          resolved.preview.inaccessibleTaskIds ?? [];
+        previewInaccessibleTaskIds = resolved.preview.inaccessibleTaskIds ?? [];
       }
     }
   }
@@ -202,7 +201,9 @@ export async function GET(request: Request) {
   const auditResult = admin
     ? await admin
         .from("permission_audit_events")
-        .select("id,actor_id,action,target_type,target_id,after_state,created_at")
+        .select(
+          "id,actor_id,action,target_type,target_id,after_state,created_at",
+        )
         .contains("after_state", { activity: true })
         .order("created_at", { ascending: false })
         .limit(2000)
@@ -241,6 +242,7 @@ export async function GET(request: Request) {
     return item;
   });
   const resourceActivity = (auditResult.data ?? []).flatMap((event) => {
+    const metadata = (event.after_state ?? {}) as Record<string, unknown>;
     const visible =
       event.target_type === "project"
         ? Boolean(event.target_id && visibleProjectIds.has(event.target_id))
@@ -249,35 +251,40 @@ export async function GET(request: Request) {
           : event.target_type === "note"
             ? Boolean(
                 event.target_id &&
-                  (visibleNoteIds.has(event.target_id) ||
-                    event.actor_id === authorization.user.id),
+                (visibleNoteIds.has(event.target_id) ||
+                  event.actor_id === authorization.user.id),
               )
-            : event.target_type === "organization";
+            : event.target_type === "task"
+              ? typeof metadata.project_id === "string"
+                ? visibleProjectIds.has(metadata.project_id)
+                : true
+              : event.target_type === "organization";
     if (!visible) return [];
-    const metadata = (event.after_state ?? {}) as Record<string, unknown>;
-    return [{
-      id: event.id,
-      task_id: null,
-      actor_id: event.actor_id,
-      action: event.action,
-      details: {
-        resource_type: event.target_type,
-        resource_id: event.target_id ?? undefined,
-        resource_name:
-          typeof metadata.resource_name === "string"
-            ? metadata.resource_name
-            : undefined,
-        resource_href:
-          typeof metadata.resource_href === "string"
-            ? metadata.resource_href
-            : undefined,
-        project_id:
-          typeof metadata.project_id === "string"
-            ? metadata.project_id
-            : undefined,
-      },
-      created_at: event.created_at,
-    } satisfies TaskActivity];
+    return [
+      {
+        id: event.id,
+        task_id: null,
+        actor_id: event.actor_id,
+        action: event.action,
+        details: {
+          resource_type: event.target_type,
+          resource_id: event.target_id ?? undefined,
+          resource_name:
+            typeof metadata.resource_name === "string"
+              ? metadata.resource_name
+              : undefined,
+          resource_href:
+            typeof metadata.resource_href === "string"
+              ? metadata.resource_href
+              : undefined,
+          project_id:
+            typeof metadata.project_id === "string"
+              ? metadata.project_id
+              : undefined,
+        },
+        created_at: event.created_at,
+      } satisfies TaskActivity,
+    ];
   });
   const values = (name: string) =>
     (params.get(name) ?? "").split(",").filter(Boolean);
@@ -292,6 +299,7 @@ export async function GET(request: Request) {
     if (item.action.startsWith("organization.")) return "organization";
     if (item.action.startsWith("project.")) return "project";
     if (item.action.startsWith("category.")) return "category";
+    if (item.action === "task.delete") return "deleted";
     if (item.action === "created the task") return "created";
     if (item.action === "updated the task") return "updated";
     if (item.action === "moved task") return "moved";
@@ -323,7 +331,9 @@ export async function GET(request: Request) {
         (!includedEvents.length || includedEvents.includes(kind)) &&
         !excludedEvents.includes(kind) &&
         (!cutoff || new Date(item.created_at).getTime() >= cutoff) &&
-        (!previewProjectIds || !projectId || previewProjectIds.includes(projectId))
+        (!previewProjectIds ||
+          !projectId ||
+          previewProjectIds.includes(projectId))
       );
     })
     .sort(

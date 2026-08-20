@@ -40,6 +40,7 @@ export function taskActivityLabel(action: string) {
     "category.delete": "Category deleted",
     "category.attachment.add": "Category attachment added",
     "category.attachment.delete": "Category attachment removed",
+    "task.delete": "Task deleted",
   };
   if (workspaceLabels[action]) return workspaceLabels[action];
   if (action === "created the task") return "Task created";

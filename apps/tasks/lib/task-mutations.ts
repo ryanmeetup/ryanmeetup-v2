@@ -154,6 +154,8 @@ export function createTaskMutationService(context: MutationContext) {
     },
 
     async remove(id: string) {
+      const snapshot = context.getData();
+      const deletedTask = snapshot.tasks.find((item) => item.id === id);
       if (!context.demoMode) {
         await mutate<{ id: string }>("/api/tasks", {
           method: "DELETE",
@@ -165,7 +167,26 @@ export function createTaskMutationService(context: MutationContext) {
         tasks: current.tasks.filter((item) => item.id !== id),
         subtasks: current.subtasks.filter((item) => item.task_id !== id),
         comments: current.comments.filter((item) => item.task_id !== id),
-        activity: current.activity.filter((item) => item.task_id !== id),
+        activity: [
+          ...(context.demoMode && deletedTask
+            ? [
+                {
+                  id: crypto.randomUUID(),
+                  task_id: null,
+                  actor_id: current.currentProfile.id,
+                  action: "task.delete",
+                  details: {
+                    resource_type: "task",
+                    resource_id: deletedTask.id,
+                    resource_name: deletedTask.title,
+                    project_id: deletedTask.project_id ?? undefined,
+                  },
+                  created_at: new Date().toISOString(),
+                },
+              ]
+            : []),
+          ...current.activity.filter((item) => item.task_id !== id),
+        ],
         attachments: current.attachments.filter((item) => item.task_id !== id),
         taskAssignees: current.taskAssignees.filter(
           (item) => item.task_id !== id,

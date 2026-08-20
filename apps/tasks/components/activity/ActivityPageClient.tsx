@@ -383,6 +383,7 @@ export function ActivityPageClient({
                 { label: "Task created", value: "created" },
                 { label: "Task updated", value: "updated" },
                 { label: "Task moved", value: "moved" },
+                { label: "Task deleted", value: "deleted" },
                 { label: "Checklist", value: "checklist" },
                 { label: "Attachment", value: "attachment" },
                 { label: "Notes", value: "note" },

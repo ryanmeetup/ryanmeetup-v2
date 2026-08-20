@@ -1,12 +1,66 @@
 import { describe, expect, it, vi } from "vitest";
 import { mutate } from "@/lib/mutation-client";
-import { createTaskMutationService, type TaskDraft } from "@/lib/task-mutations";
+import {
+  createTaskMutationService,
+  type TaskDraft,
+} from "@/lib/task-mutations";
 import type { Task } from "@/lib/task-types";
 import type { WorkspaceData } from "@/lib/workspace-types";
 
 vi.mock("@/lib/mutation-client", () => ({ mutate: vi.fn() }));
 
 describe("task mutations", () => {
+  it("keeps a standalone deletion event in demo activity", async () => {
+    const task = {
+      id: "task-1",
+      title: "Chapter request",
+      project_id: "project-1",
+    } as Task;
+    let data = {
+      currentProfile: { id: "profile-1" },
+      tasks: [task],
+      subtasks: [],
+      comments: [],
+      activity: [
+        {
+          id: "old-activity",
+          task_id: task.id,
+          actor_id: "profile-1",
+          action: "created the task",
+          details: {},
+          created_at: "2026-08-20T12:00:00.000Z",
+        },
+      ],
+      attachments: [],
+      taskAssignees: [],
+      taskLabels: [],
+      taskCategories: [],
+    } as unknown as WorkspaceData;
+    const service = createTaskMutationService({
+      demoMode: true,
+      getData: () => data,
+      setData: (update) => {
+        data = typeof update === "function" ? update(data) : update;
+      },
+    });
+
+    await service.remove(task.id);
+
+    expect(data.tasks).toEqual([]);
+    expect(data.activity).toMatchObject([
+      {
+        task_id: null,
+        actor_id: "profile-1",
+        action: "task.delete",
+        details: {
+          resource_id: task.id,
+          resource_name: task.title,
+          project_id: task.project_id,
+        },
+      },
+    ]);
+  });
+
   it("keeps the submitted assignee when the save response omits it", async () => {
     const assigneeId = "profile-1";
     const task = {
