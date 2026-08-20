@@ -639,6 +639,8 @@ export function CategoriesModal({
           ) : undefined
         }
         hideActions
+        formId={createOnly ? "create-category-form" : undefined}
+        onSubmit={createOnly ? addCategory : undefined}
         size={createOnly && createDetailsOpen ? "2xl" : createOnly ? "lg" : "xl"}
         panelClassName={
           createOnly
@@ -648,11 +650,12 @@ export function CategoriesModal({
         embedded={embedded}
         footer={
           embedded ? undefined : createOnly ? (
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
               <Button
                 type="button"
                 variant="secondary"
                 size="sm"
+                className="w-full sm:w-auto"
                 onClick={() => setOpen(false)}
                 disabled={creating}
               >
@@ -660,9 +663,9 @@ export function CategoriesModal({
               </Button>
               <Button
                 type="submit"
-                form="create-category-form"
                 variant="action"
                 size="sm"
+                className="w-full sm:w-auto"
                 loading={creating}
                 loadingText="Creating..."
               >
@@ -702,11 +705,7 @@ export function CategoriesModal({
         }
       >
         {createOnly ? (
-          <form
-            id="create-category-form"
-            className="space-y-4"
-            onSubmit={addCategory}
-          >
+          <div className="space-y-4">
             <p className="text-sm text-black/60 dark:text-white/60">
               Give related work a recognizable label and color. You can edit or
               archive it from the Categories page later.
@@ -717,7 +716,7 @@ export function CategoriesModal({
               primary={newCategoryPrimaryFields}
               secondary={newCategorySecondaryFields}
             />
-          </form>
+          </div>
         ) : (
           <>
             {!embedded && (

@@ -8,7 +8,7 @@ import {
 } from "@headlessui/react";
 import { MdClose as Close, MdKeyboardArrowDown } from "react-icons/md";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ReactNode } from "react";
+import type { FormEventHandler, ReactNode } from "react";
 import { Button } from "./Button";
 import { IconButton } from "./IconButton";
 
@@ -35,6 +35,8 @@ export type ModalProps = {
   continueAction?: () => void;
   size?: ModalSize;
   embedded?: boolean;
+  formId?: string;
+  onSubmit?: FormEventHandler<HTMLFormElement>;
 };
 
 const sizeStyles: Record<ModalSize, string> = {
@@ -67,6 +69,8 @@ const Modal = ({
   continueAction,
   size = "md",
   embedded = false,
+  formId,
+  onSubmit,
 }: ModalProps) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollContentRef = useRef<HTMLDivElement>(null);
@@ -191,6 +195,9 @@ const Modal = ({
       />
       <div className="fixed inset-0 flex w-screen items-center justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
         <DialogPanel
+          as={formId ? "form" : "div"}
+          id={formId}
+          onSubmit={onSubmit}
           style={maxHeight ? { maxHeight } : undefined}
           className={`mx-auto flex w-full min-h-0 flex-col ${sizeStyles[size]} ${maxHeight ? "" : "max-h-[min(42rem,calc(100dvh-max(1rem,env(safe-area-inset-top))-max(1rem,env(safe-area-inset-bottom))))] sm:max-h-[calc(100dvh-max(1rem,env(safe-area-inset-top))-max(1rem,env(safe-area-inset-bottom)))]"} overflow-hidden rounded-2xl border border-black/15 bg-white shadow-[0_24px_80px_rgba(0,0,0,0.35)] ring-1 ring-black/5 dark:border-white/20 dark:bg-[#181818] dark:shadow-[0_28px_100px_rgba(0,0,0,0.85)] dark:ring-white/10 ${panelClassName ?? ""}`}
         >
