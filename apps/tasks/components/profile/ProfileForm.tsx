@@ -44,6 +44,8 @@ export function ProfileForm({
   );
   const [saving, setSaving] = useState(false);
   const [savingPreferences, setSavingPreferences] = useState(false);
+  const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [message, setMessage] = useState("");
   const [hasError, setHasError] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -110,7 +112,29 @@ export function ProfileForm({
       setSaving(false);
       return;
     }
+    if (onboardingRequired && password.length < 8) {
+      setMessage("Password must be at least 8 characters.");
+      setHasError(true);
+      setSaving(false);
+      return;
+    }
+    if (onboardingRequired && password !== passwordConfirmation) {
+      setMessage("Passwords do not match.");
+      setHasError(true);
+      setSaving(false);
+      return;
+    }
     try {
+      if (onboardingRequired) {
+        const { error: passwordError } = await createClient().auth.updateUser({
+          password,
+        });
+        if (passwordError) {
+          setMessage("Your password could not be set. Try a different password.");
+          setHasError(true);
+          return;
+        }
+      }
       let avatarPath: string | undefined;
       if (avatarFile) {
         avatarPath = `${profile.id}/avatar`;
@@ -120,7 +144,7 @@ export function ProfileForm({
             cacheControl: "3600",
             contentType: avatarFile.type,
             upsert: true,
-          });
+        });
         if (uploadError) throw uploadError;
       }
       const result = await mutate<{ profile: Profile }>("/api/profile", {
@@ -227,6 +251,32 @@ export function ProfileForm({
       <p className="-mt-3 text-xs text-black/55 dark:text-white/55">
         Your sign-in email cannot be changed here.
       </p>
+      {onboardingRequired && (
+        <>
+          <Input
+            label="Password"
+            name="password"
+            type="password"
+            required
+            minLength={8}
+            autoComplete="new-password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="At least 8 characters"
+          />
+          <Input
+            label="Confirm password"
+            name="password-confirmation"
+            type="password"
+            required
+            minLength={8}
+            autoComplete="new-password"
+            value={passwordConfirmation}
+            onChange={(event) => setPasswordConfirmation(event.target.value)}
+            placeholder="Enter it again"
+          />
+        </>
+      )}
       <div className="grid gap-3 sm:flex sm:flex-wrap sm:justify-end">
         {!onboardingRequired && (
           <Button
