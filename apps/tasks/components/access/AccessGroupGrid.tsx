@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { Avatar, Button, Card, Tooltip } from "@ryanmeetup/ui";
+import { Avatar, Button, Card, IconButton } from "@ryanmeetup/ui";
 import { FiEdit2, FiEye, FiFolder, FiUsers } from "react-icons/fi";
 import { accessGroupSlug } from "@/lib/access-groups";
 import { accessPreviewHref } from "@/lib/access-preview";
@@ -54,15 +53,14 @@ export function AccessGroupGrid({
                     {group.description || "No description yet."}
                   </p>
                 </div>
-                <Tooltip content={`Manage ${group.name}`}>
-                  <Link
-                    href={`/access/${accessGroupSlug(group.name)}`}
-                    aria-label={`Manage ${group.name}`}
-                    className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-black/10 text-black transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:border-white/10 dark:text-white dark:hover:bg-white/10 dark:focus-visible:ring-white/30"
-                  >
-                    <FiEdit2 />
-                  </Link>
-                </Tooltip>
+                <IconButton.Link
+                  href={`/access/${accessGroupSlug(group.name)}`}
+                  label={`Manage ${group.name}`}
+                  size="md"
+                  variant="edit"
+                >
+                  <FiEdit2 />
+                </IconButton.Link>
               </div>
               <div className="mt-auto grid grid-cols-2 gap-3 border-t border-black/10 pt-4 dark:border-white/10">
                 <div>

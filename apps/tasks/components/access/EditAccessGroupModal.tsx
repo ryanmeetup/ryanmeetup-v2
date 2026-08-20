@@ -60,6 +60,8 @@ export function EditAccessGroupModal({
   setGroup: (group: null) => void;
   setName: (value: string) => void;
 }) {
+  const formId = "edit-access-group-form";
+
   return (
     <Modal
       open={Boolean(group)}
@@ -69,9 +71,41 @@ export function EditAccessGroupModal({
       title={group ? `Edit ${group.name}` : "Edit access group"}
       size="lg"
       hideActions
+      footer={
+        group ? (
+          <div className="flex flex-col-reverse justify-between gap-3 sm:flex-row">
+            <Button
+              type="button"
+              variant="danger"
+              leftIcon={<FiTrash2 />}
+              onClick={onDelete}
+            >
+              Delete group
+            </Button>
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={saving}
+                onClick={() => setGroup(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                form={formId}
+                loading={saving}
+                loadingText="Saving..."
+              >
+                Save changes
+              </Button>
+            </div>
+          </div>
+        ) : undefined
+      }
     >
       {group && (
-        <form className="space-y-6" onSubmit={onSubmit}>
+        <form id={formId} className="space-y-6" onSubmit={onSubmit}>
           <div className="grid gap-4 sm:grid-cols-2">
             <Input
               label="Group name"
@@ -162,29 +196,6 @@ export function EditAccessGroupModal({
               onAdd={onAddGrant}
               onRemove={onRemoveGrant}
             />
-          </div>
-          <div className="flex flex-col-reverse justify-between gap-3 border-t border-black/10 pt-4 dark:border-white/10 sm:flex-row">
-            <Button
-              type="button"
-              variant="danger"
-              leftIcon={<FiTrash2 />}
-              onClick={onDelete}
-            >
-              Delete group
-            </Button>
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={saving}
-                onClick={() => setGroup(null)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" loading={saving} loadingText="Saving...">
-                Save changes
-              </Button>
-            </div>
           </div>
         </form>
       )}

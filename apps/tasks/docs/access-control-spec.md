@@ -365,6 +365,15 @@ Read access requires access to the parent task. Mutating content requires edit
 access to the parent task. A join-table record must not leak the existence of a
 hidden task.
 
+Comment replies must reference a parent comment on the same task. Removing a
+parent comment preserves its replies and clears their parent relationship.
+
+### Note comments
+
+`note_comments` inherits read and create access from its parent note. Comment
+authors may edit or delete their own comments only while they can still access
+the parent note. Deleting a note also deletes its comments.
+
 Global status, category, and label definitions may remain readable to all team
 members unless their names themselves become confidential. Their task
 relationships remain protected through the parent task.

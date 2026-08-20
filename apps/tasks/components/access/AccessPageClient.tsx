@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { Popover, PopoverButton, PopoverPanel } from "@headlessui/react";
 import {
   Avatar,
   Button,
@@ -9,11 +10,24 @@ import {
   ConfirmationDialog,
   Heading,
   IconButton,
+  Input,
   Pagination,
   Tooltip,
   toast,
 } from "@ryanmeetup/ui";
-import { FiEye, FiPlus, FiShield, FiTrash2 } from "react-icons/fi";
+import {
+  FiArrowDown,
+  FiArrowUp,
+  FiCheck,
+  FiChevronDown,
+  FiEye,
+  FiLoader,
+  FiPlus,
+  FiSearch,
+  FiShield,
+  FiTrash2,
+} from "react-icons/fi";
+import { useSearchFilter } from "@ryanmeetup/hooks";
 import { useAccessManagement } from "@/hooks/useAccessManagement";
 import {
   indexGrantsByGroup,
@@ -23,6 +37,11 @@ import {
 import { mutate } from "@/lib/mutation-client";
 import { errorMessage } from "@/lib/presentation";
 import { userAccessPreviewHref } from "@/lib/access-preview";
+import {
+  sortAccessTeam,
+  type TeamSortDirection,
+  type TeamSortField,
+} from "@/lib/access-team-sort";
 import { usePagination } from "@/hooks/usePagination";
 import type { Profile, WorkspaceData } from "@/lib/workspace-types";
 import type { Project } from "@/lib/resource-types";
@@ -46,6 +65,17 @@ import type {
   GroupMember,
   UserAccessMetadata,
 } from "@/lib/access-types";
+
+const taskSortOptions: {
+  label: string;
+  value: Exclude<TeamSortField, "name">;
+}[] = [
+  { label: "Open", value: "assignedOpen" },
+  { label: "Done", value: "assignedCompleted" },
+  { label: "Reported", value: "reported" },
+  { label: "Assigned", value: "assigned" },
+  { label: "Created", value: "created" },
+];
 
 export function AccessPageClient({
   currentUserId,
@@ -101,13 +131,10 @@ export function AccessPageClient({
   const [accessPending, setAccessPending] = useState(false);
   const [profileToRemove, setProfileToRemove] = useState<Profile | null>(null);
   const [deleteGroup, setDeleteGroup] = useState<AccessGroup | null>(null);
+  const [teamSortField, setTeamSortField] = useState<TeamSortField>("name");
+  const [teamSortDirection, setTeamSortDirection] =
+    useState<TeamSortDirection>("asc");
   const { page, pageSize, setPage, setPageSize } = usePagination();
-  const totalTeamPages = Math.max(1, Math.ceil(profiles.length / pageSize));
-  const teamPage = Math.min(page, totalTeamPages);
-  const paginatedProfiles = profiles.slice(
-    (teamPage - 1) * pageSize,
-    teamPage * pageSize,
-  );
   const projectNames = useMemo(
     () => new Map(projects.map((project) => [project.id, project.name])),
     [projects],
@@ -116,6 +143,36 @@ export function AccessPageClient({
     () =>
       new Map(teamMetadata.map((metadata) => [metadata.profileId, metadata])),
     [teamMetadata],
+  );
+  const {
+    query: teamQuery,
+    setQuery: setTeamQuery,
+    filtered: searchedProfiles,
+    isPending: teamSearchPending,
+  } = useSearchFilter({
+    data: profiles,
+    buildHaystack: (profile) =>
+      `${profile.full_name} ${metadataByProfile.get(profile.id)?.email ?? ""}`.toLowerCase(),
+    queryParam: "team-search",
+  });
+  const sortedProfiles = useMemo(
+    () =>
+      sortAccessTeam(
+        searchedProfiles,
+        metadataByProfile,
+        teamSortField,
+        teamSortDirection,
+      ),
+    [metadataByProfile, searchedProfiles, teamSortDirection, teamSortField],
+  );
+  const totalTeamPages = Math.max(
+    1,
+    Math.ceil(sortedProfiles.length / pageSize),
+  );
+  const teamPage = Math.min(page, totalTeamPages);
+  const paginatedProfiles = sortedProfiles.slice(
+    (teamPage - 1) * pageSize,
+    teamPage * pageSize,
   );
   const groupsByProfile = useMemo(
     () => indexGroupsByProfile(groups, members),
@@ -421,185 +478,307 @@ export function AccessPageClient({
                 </Button>
               </Tooltip>
             </div>
+            <div className="relative">
+              <Input
+                label="Search team"
+                name="team-search"
+                hideLabel
+                leadingIcon={<FiSearch aria-hidden />}
+                aria-busy={teamSearchPending}
+                value={teamQuery}
+                onChange={(event) => setTeamQuery(event.target.value)}
+                placeholder="Search team..."
+                inputClassName="pr-10"
+              />
+              {teamSearchPending && (
+                <span
+                  role="status"
+                  aria-label="Loading team results"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-black/45 dark:text-white/45"
+                >
+                  <FiLoader className="animate-spin motion-reduce:animate-none" />
+                </span>
+              )}
+            </div>
             <Card size="none" className="overflow-hidden">
-              <ul className="grid gap-4 p-4 lg:grid-cols-2 2xl:hidden">
-                {paginatedProfiles.map((profile) => {
-                  const metadata = metadataByProfile.get(profile.id);
-                  const profileGroups = groupsByProfile.get(profile.id) ?? [];
-
-                  return (
-                    <li
-                      key={profile.id}
-                      className="flex min-w-0 flex-col rounded-xl border border-black/10 bg-black/[0.025] p-4 dark:border-white/10 dark:bg-white/[0.025]"
-                    >
-                      <div className="flex min-w-0 items-start justify-between gap-3">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <Avatar
-                            name={profile.full_name}
-                            src={profile.avatar_url}
-                            size="md"
-                          />
-                          <div className="min-w-0">
-                            <h3 className="truncate font-semibold">
-                              {profile.full_name}
-                            </h3>
-                            {metadata?.email && (
-                              <p className="truncate text-xs text-black/55 dark:text-white/55">
-                                {metadata.email}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <TeamAccountStatus metadata={metadata} compact />
-                      </div>
-
-                      <TeamTaskStats metadata={metadata} compact />
-                      <TeamAccessGroups groups={profileGroups} labeled />
-
-                      <div className="mt-4 grid grid-cols-2 gap-2 border-t border-black/10 pt-4 dark:border-white/10 sm:grid-cols-3">
-                        <Button
-                          size="xs"
-                          variant="secondary"
-                          leftIcon={<FiShield />}
-                          onClick={() => editProfileAccess(profile)}
-                        >
-                          Manage
-                        </Button>
-                        <Button.Link
-                          href={userAccessPreviewHref(profile.full_name)}
-                          size="xs"
-                          variant="secondary"
-                          leftIcon={<FiEye />}
-                        >
-                          View as
-                        </Button.Link>
-                        <Button
-                          size="xs"
-                          variant="danger"
-                          leftIcon={<FiTrash2 />}
-                          disabled={profile.id === currentUserId}
-                          title={
-                            profile.id === currentUserId
-                              ? "You cannot remove your own owner account"
-                              : undefined
-                          }
-                          className="col-span-2 sm:col-span-1"
-                          onClick={() => setProfileToRemove(profile)}
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-              <div className="hidden min-w-0 overflow-x-auto 2xl:block">
-                <table className="w-full text-left text-sm">
-                  <thead className="border-b border-black/10 bg-black/[0.025] text-[10px] uppercase tracking-[0.16em] text-black/50 dark:border-white/10 dark:bg-white/[0.025] dark:text-white/50">
-                    <tr>
-                      <th className="px-4 py-3 font-semibold">Person</th>
-                      <th className="px-4 py-3 font-semibold">Account</th>
-                      <th className="hidden w-px whitespace-nowrap px-4 py-3 font-semibold 2xl:table-cell">
-                        Tasks
-                      </th>
-                      <th className="hidden px-4 py-3 font-semibold 2xl:table-cell">
-                        Access groups
-                      </th>
-                      <th className="px-4 py-3 text-right font-semibold">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-black/10 dark:divide-white/10">
+              <div className="relative" aria-busy={teamSearchPending}>
+                {teamSearchPending && (
+                  <div
+                    role="status"
+                    aria-label="Loading team results"
+                    className="absolute inset-0 z-10 grid min-h-40 place-items-center rounded-xl bg-white/80 backdrop-blur-sm dark:bg-[#181818]/80"
+                  >
+                    <span className="flex items-center gap-3 rounded-xl border border-black/15 bg-white px-5 py-3 text-sm font-semibold shadow-lg dark:border-white/15 dark:bg-[#181818]">
+                      <FiLoader className="h-5 w-5 animate-spin motion-reduce:animate-none" />
+                      Loading team
+                    </span>
+                  </div>
+                )}
+                <div
+                  className={
+                    teamSearchPending ? "pointer-events-none opacity-55" : ""
+                  }
+                >
+                  {searchedProfiles.length === 0 && (
+                    <p className="p-10 text-center text-sm text-black/55 dark:text-white/55">
+                      No people match this search.
+                    </p>
+                  )}
+                  <ul className="grid gap-4 p-4 lg:grid-cols-2 2xl:hidden">
                     {paginatedProfiles.map((profile) => {
                       const metadata = metadataByProfile.get(profile.id);
                       const profileGroups =
                         groupsByProfile.get(profile.id) ?? [];
+
                       return (
-                        <tr key={profile.id}>
-                          <td className="px-4 py-3">
-                            <span className="flex items-center gap-3">
+                        <li
+                          key={profile.id}
+                          className="flex min-w-0 flex-col rounded-xl border border-black/10 bg-black/[0.025] p-4 dark:border-white/10 dark:bg-white/[0.025]"
+                        >
+                          <div className="flex min-w-0 items-start justify-between gap-3">
+                            <div className="flex min-w-0 items-center gap-3">
                               <Avatar
                                 name={profile.full_name}
                                 src={profile.avatar_url}
-                                size="sm"
+                                size="md"
                               />
-                              <span className="min-w-0">
-                                <span className="block font-semibold">
+                              <div className="min-w-0">
+                                <h3 className="truncate font-semibold">
                                   {profile.full_name}
-                                </span>
+                                </h3>
                                 {metadata?.email && (
-                                  <span className="block truncate text-xs font-normal text-black/55 dark:text-white/55">
+                                  <p className="truncate text-xs text-black/55 dark:text-white/55">
                                     {metadata.email}
-                                  </span>
+                                  </p>
                                 )}
-                              </span>
-                            </span>
-                          </td>
-                          <td className="w-28 whitespace-nowrap px-4 py-3 text-xs text-black/65 dark:text-white/65">
-                            <TeamAccountStatus metadata={metadata} />
-                          </td>
-                          <td className="hidden w-px whitespace-nowrap px-4 py-3 2xl:table-cell">
-                            <TeamTaskStats metadata={metadata} />
-                          </td>
-                          <td className="hidden min-w-48 px-4 py-3 2xl:table-cell">
-                            <TeamAccessGroups groups={profileGroups} />
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <IconButton
-                              label={`Manage access groups for “${profile.full_name}”`}
+                              </div>
+                            </div>
+                            <TeamAccountStatus metadata={metadata} compact />
+                          </div>
+
+                          <TeamTaskStats metadata={metadata} compact />
+                          <TeamAccessGroups groups={profileGroups} labeled />
+
+                          <div className="mt-4 grid grid-cols-2 gap-2 border-t border-black/10 pt-4 dark:border-white/10 sm:grid-cols-3">
+                            <Button
+                              size="xs"
+                              variant="secondary"
+                              leftIcon={<FiShield />}
                               onClick={() => editProfileAccess(profile)}
                             >
-                              <FiShield />
-                            </IconButton>
-                            <Tooltip
-                              content={`View as ${profile.full_name}`}
-                              placement="left"
+                              Manage
+                            </Button>
+                            <Button.Link
+                              href={userAccessPreviewHref(profile.full_name)}
+                              size="xs"
+                              variant="secondary"
+                              leftIcon={<FiEye />}
                             >
-                              <Link
-                                href={userAccessPreviewHref(profile.full_name)}
-                                aria-label={`View as ${profile.full_name}`}
-                                className="mx-2 inline-grid h-8 w-8 place-items-center rounded-full border border-black/10 text-black transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:border-white/10 dark:text-white dark:hover:bg-white/10 dark:focus-visible:ring-white/30"
-                              >
-                                <FiEye />
-                              </Link>
-                            </Tooltip>
-                            {profile.id === currentUserId ? (
-                              <Tooltip
-                                content="You cannot remove your own owner account because that could lock you out of workspace administration."
-                                placement="left"
-                              >
-                                <IconButton
-                                  label="You cannot remove your own owner account"
-                                  tooltip={false}
-                                  variant="danger"
-                                  aria-disabled="true"
-                                  className="cursor-not-allowed opacity-40 hover:translate-y-0 hover:border-red-500/20 hover:bg-transparent hover:shadow-none dark:hover:border-red-400/25 dark:hover:bg-transparent"
-                                  onClick={(event) => event.preventDefault()}
-                                >
-                                  <FiTrash2 />
-                                </IconButton>
-                              </Tooltip>
-                            ) : (
-                              <IconButton
-                                label={`Remove “${profile.full_name}”`}
-                                variant="danger"
-                                onClick={() => setProfileToRemove(profile)}
-                              >
-                                <FiTrash2 />
-                              </IconButton>
-                            )}
-                          </td>
-                        </tr>
+                              View as
+                            </Button.Link>
+                            <Button
+                              size="xs"
+                              variant="danger"
+                              leftIcon={<FiTrash2 />}
+                              disabled={profile.id === currentUserId}
+                              title={
+                                profile.id === currentUserId
+                                  ? "You cannot remove your own owner account"
+                                  : undefined
+                              }
+                              className="col-span-2 sm:col-span-1"
+                              onClick={() => setProfileToRemove(profile)}
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        </li>
                       );
                     })}
-                  </tbody>
-                </table>
+                  </ul>
+                  <div className="hidden min-w-0 overflow-x-auto 2xl:block">
+                    <table className="w-full text-left text-sm">
+                      <thead className="border-b border-black/10 bg-black/[0.025] text-[10px] uppercase tracking-[0.16em] text-black/50 dark:border-white/10 dark:bg-white/[0.025] dark:text-white/50">
+                        <tr>
+                          <th className="px-4 py-3 font-semibold">Person</th>
+                          <th className="px-4 py-3 font-semibold">Account</th>
+                          <th className="hidden w-px whitespace-nowrap px-4 py-3 font-semibold 2xl:table-cell">
+                            <Popover className="relative">
+                              <PopoverButton className="inline-flex items-center gap-2 rounded-md py-1 uppercase tracking-[0.16em] transition hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:hover:text-white dark:focus-visible:ring-white/30">
+                                Tasks
+                                {teamSortField !== "name" && (
+                                  <span className="border-l border-black/20 pl-2 uppercase tracking-[0.16em] text-black/70 dark:border-white/20 dark:text-white/70">
+                                    {
+                                      taskSortOptions.find(
+                                        (option) =>
+                                          option.value === teamSortField,
+                                      )?.label
+                                    }
+                                  </span>
+                                )}
+                                <FiChevronDown aria-hidden />
+                              </PopoverButton>
+                              <PopoverPanel
+                                anchor={{ to: "bottom start", padding: 16 }}
+                                className="z-50 mt-2 w-64 rounded-xl border border-black/10 bg-white/95 p-2 text-black shadow-xl backdrop-blur focus:outline-none dark:border-white/10 dark:bg-[#181818]/95 dark:text-white"
+                              >
+                                <p className="px-2 pb-2 text-[10px] font-semibold uppercase tracking-widest text-black/45 dark:text-white/45">
+                                  Sort by task count
+                                </p>
+                                <div className="space-y-0.5">
+                                  {taskSortOptions.map((option) => (
+                                    <button
+                                      key={option.value}
+                                      type="button"
+                                      onClick={() => {
+                                        setTeamSortField(option.value);
+                                        setPage(1);
+                                      }}
+                                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:hover:bg-white/10 dark:focus-visible:ring-white/30"
+                                    >
+                                      <span className="flex-1">
+                                        {option.label}
+                                      </span>
+                                      {teamSortField === option.value && (
+                                        <FiCheck aria-hidden />
+                                      )}
+                                    </button>
+                                  ))}
+                                </div>
+                                <div className="mt-2 grid grid-cols-2 gap-1 border-t border-black/10 pt-2 dark:border-white/10">
+                                  {(["asc", "desc"] as const).map(
+                                    (direction) => (
+                                      <button
+                                        key={direction}
+                                        type="button"
+                                        aria-pressed={
+                                          teamSortDirection === direction
+                                        }
+                                        onClick={() => {
+                                          setTeamSortDirection(direction);
+                                          setPage(1);
+                                        }}
+                                        className="inline-flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-semibold transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 aria-pressed:bg-black/10 dark:hover:bg-white/10 dark:focus-visible:ring-white/30 dark:aria-pressed:bg-white/10"
+                                      >
+                                        {direction === "asc" ? (
+                                          <FiArrowUp aria-hidden />
+                                        ) : (
+                                          <FiArrowDown aria-hidden />
+                                        )}
+                                        {direction === "asc"
+                                          ? "Ascending"
+                                          : "Descending"}
+                                      </button>
+                                    ),
+                                  )}
+                                </div>
+                              </PopoverPanel>
+                            </Popover>
+                          </th>
+                          <th className="hidden px-4 py-3 font-semibold 2xl:table-cell">
+                            Access groups
+                          </th>
+                          <th className="px-4 py-3 text-right font-semibold">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-black/10 dark:divide-white/10">
+                        {paginatedProfiles.map((profile) => {
+                          const metadata = metadataByProfile.get(profile.id);
+                          const profileGroups =
+                            groupsByProfile.get(profile.id) ?? [];
+                          return (
+                            <tr key={profile.id}>
+                              <td className="px-4 py-3">
+                                <span className="flex items-center gap-3">
+                                  <Avatar
+                                    name={profile.full_name}
+                                    src={profile.avatar_url}
+                                    size="sm"
+                                  />
+                                  <span className="min-w-0">
+                                    <span className="block font-semibold">
+                                      {profile.full_name}
+                                    </span>
+                                    {metadata?.email && (
+                                      <span className="block truncate text-xs font-normal text-black/55 dark:text-white/55">
+                                        {metadata.email}
+                                      </span>
+                                    )}
+                                  </span>
+                                </span>
+                              </td>
+                              <td className="w-28 whitespace-nowrap px-4 py-3 text-xs text-black/65 dark:text-white/65">
+                                <TeamAccountStatus metadata={metadata} />
+                              </td>
+                              <td className="hidden w-px whitespace-nowrap px-4 py-3 2xl:table-cell">
+                                <TeamTaskStats metadata={metadata} />
+                              </td>
+                              <td className="hidden min-w-48 px-4 py-3 2xl:table-cell">
+                                <TeamAccessGroups groups={profileGroups} />
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                <IconButton
+                                  label={`Manage access groups for “${profile.full_name}”`}
+                                  onClick={() => editProfileAccess(profile)}
+                                >
+                                  <FiShield />
+                                </IconButton>
+                                <Tooltip
+                                  content={`View as ${profile.full_name}`}
+                                  placement="left"
+                                >
+                                  <Link
+                                    href={userAccessPreviewHref(
+                                      profile.full_name,
+                                    )}
+                                    aria-label={`View as ${profile.full_name}`}
+                                    className="mx-2 inline-grid h-8 w-8 place-items-center rounded-full border border-black/10 text-black transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:border-white/10 dark:text-white dark:hover:bg-white/10 dark:focus-visible:ring-white/30"
+                                  >
+                                    <FiEye />
+                                  </Link>
+                                </Tooltip>
+                                {profile.id === currentUserId ? (
+                                  <Tooltip
+                                    content="You cannot remove your own owner account because that could lock you out of workspace administration."
+                                    placement="left"
+                                  >
+                                    <IconButton
+                                      label="You cannot remove your own owner account"
+                                      tooltip={false}
+                                      variant="danger"
+                                      aria-disabled="true"
+                                      className="cursor-not-allowed opacity-40 hover:translate-y-0 hover:border-red-500/20 hover:bg-transparent hover:shadow-none dark:hover:border-red-400/25 dark:hover:bg-transparent"
+                                      onClick={(event) =>
+                                        event.preventDefault()
+                                      }
+                                    >
+                                      <FiTrash2 />
+                                    </IconButton>
+                                  </Tooltip>
+                                ) : (
+                                  <IconButton
+                                    label={`Remove “${profile.full_name}”`}
+                                    variant="danger"
+                                    onClick={() => setProfileToRemove(profile)}
+                                  >
+                                    <FiTrash2 />
+                                  </IconButton>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
               <Pagination
                 page={teamPage}
                 pageSize={pageSize}
-                totalCount={profiles.length}
+                totalCount={searchedProfiles.length}
                 itemLabel="people"
                 onPageChange={setPage}
                 onPageSizeChange={setPageSize}
