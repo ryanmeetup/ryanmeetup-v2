@@ -12,10 +12,12 @@ import {
 } from "@ryanmeetup/ui";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ThemeToggle } from "@/components/global";
 
 export function LoginForm() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -49,7 +51,7 @@ export function LoginForm() {
       setEmailError(true);
       setPasswordError(true);
       setMessage("Error: username or password is incorrect");
-    } else window.location.href = "/";
+    } else router.push("/");
   }
 
   return (

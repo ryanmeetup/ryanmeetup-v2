@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
   Button,
   ErrorCallout,
@@ -11,15 +11,23 @@ import {
   toast,
 } from "@ryanmeetup/ui";
 import { FiEye, FiEyeOff, FiLock } from "react-icons/fi";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export function PasswordForm({
   email,
+  formId,
+  hideSubmit = false,
+  onSavingChange,
   recovery = false,
 }: {
   email?: string;
+  formId?: string;
+  hideSubmit?: boolean;
+  onSavingChange?: (saving: boolean) => void;
   recovery?: boolean;
 }) {
+  const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
@@ -27,6 +35,10 @@ export function PasswordForm({
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    onSavingChange?.(saving);
+  }, [onSavingChange, saving]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -78,7 +90,10 @@ export function PasswordForm({
     setConfirmation("");
     setMessage("Password updated.");
     toast.success("Password updated.");
-    if (recovery) window.setTimeout(() => { window.location.href = "/"; }, 1200);
+    if (recovery)
+      window.setTimeout(() => {
+        router.push("/");
+      }, 1200);
   }
 
   const passwordAction = (
@@ -99,7 +114,7 @@ export function PasswordForm({
   );
 
   return (
-    <form className="space-y-5" onSubmit={submit}>
+    <form id={formId} className="space-y-5" onSubmit={submit}>
       {!recovery && (
         <Input
           label="Current password"
@@ -154,16 +169,18 @@ export function PasswordForm({
       ) : message ? (
         <SuccessCallout>{message}</SuccessCallout>
       ) : null}
-      <div className="flex justify-end">
-        <Button
-          type="submit"
-          leftIcon={<FiLock />}
-          loading={saving}
-          loadingText="Updating..."
-        >
-          Update password
-        </Button>
-      </div>
+      {!hideSubmit && (
+        <div className="flex justify-end">
+          <Button
+            type="submit"
+            leftIcon={<FiLock />}
+            loading={saving}
+            loadingText="Updating..."
+          >
+            Update password
+          </Button>
+        </div>
+      )}
     </form>
   );
 }
