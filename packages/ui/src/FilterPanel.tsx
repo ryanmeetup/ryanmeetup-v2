@@ -8,6 +8,7 @@ import { ClearFiltersButton } from "./ClearFiltersButton";
 
 export type FilterPanelProps = {
   children: ReactNode;
+  collapseOnMobile?: boolean;
   count: number;
   className?: string;
   controlsClassName?: string;
@@ -18,6 +19,7 @@ export type FilterPanelProps = {
 
 const FilterPanel = ({
   children,
+  collapseOnMobile = false,
   count,
   className,
   controlsClassName,
@@ -28,13 +30,17 @@ const FilterPanel = ({
   const [expanded, setExpanded] = useState(defaultExpanded);
 
   useEffect(() => {
-    if (!preferenceStorageKey) return;
-
     queueMicrotask(() => {
+      if (collapseOnMobile && window.matchMedia("(max-width: 639px)").matches) {
+        setExpanded(false);
+        return;
+      }
+      if (!preferenceStorageKey) return;
+
       const saved = localStorage.getItem(preferenceStorageKey);
       if (saved !== null) setExpanded(saved === "true");
     });
-  }, [preferenceStorageKey]);
+  }, [collapseOnMobile, preferenceStorageKey]);
 
   return (
     <Card size="none" className={className}>

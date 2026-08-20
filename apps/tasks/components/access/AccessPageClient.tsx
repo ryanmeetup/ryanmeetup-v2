@@ -463,20 +463,14 @@ export function AccessPageClient({
                   Manage the people who can sign in to this workspace.
                 </p>
               </div>
-              <Tooltip
-                content="Disabled until Resend is set up"
-                triggerClassName="w-full sm:w-auto"
+              <Button
+                size="sm"
+                leftIcon={<FiPlus />}
+                className="w-full sm:w-auto"
+                onClick={() => setInviteOpen(true)}
               >
-                <Button
-                  size="sm"
-                  leftIcon={<FiPlus />}
-                  className="w-full sm:w-auto"
-                  onClick={() => setInviteOpen(true)}
-                  disabled
-                >
-                  Invite teammate
-                </Button>
-              </Tooltip>
+                Invite Teammate
+              </Button>
             </div>
             <div className="relative">
               <Input
@@ -889,7 +883,7 @@ export function AccessPageClient({
       <ConfirmationDialog
         open={Boolean(deleteGroup)}
         setOpen={(open) => !open && setDeleteGroup(null)}
-        title="Delete access group?"
+        title="Delete Access Group?"
         description={
           deleteGroup
             ? `This removes ${deleteGroup.name} and every project grant attached to it. Anyone relying on those grants may immediately lose access.`

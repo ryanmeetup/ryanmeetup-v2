@@ -11,11 +11,14 @@ import { FiMove, FiPlus, FiTrash2 } from "react-icons/fi";
 import { CountBadge } from "@/components/global";
 import type { ResourceLink } from "@/lib/resource-types";
 
-function SortableLink({ id, label, reorderable, children }: { id: string; label: string; reorderable: boolean; children: ReactNode }) {
+function SortableLink({ id, label, reorderable, actions, children }: { id: string; label: string; reorderable: boolean; actions: ReactNode; children: ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled: !reorderable });
   const style: CSSProperties = { transform: CSS.Transform.toString(transform), transition };
   return <div ref={setNodeRef} style={style} className={`flex items-start gap-2 rounded-lg border border-black/10 bg-white/60 p-3 dark:border-white/10 dark:bg-black/10 ${isDragging ? "relative z-10 border-blue-500/60 opacity-80 shadow-lg dark:border-blue-400/60" : ""}`}>
-    {reorderable && <button type="button" aria-label={`Drag to reorder “${label || "link"}”`} className="mt-0.5 grid h-10 w-8 shrink-0 touch-none cursor-grab place-items-center rounded-lg border border-transparent text-black/40 transition hover:border-black/10 hover:bg-black/5 hover:text-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 active:cursor-grabbing dark:text-white/40 dark:hover:border-white/10 dark:hover:bg-white/10 dark:hover:text-white/70 dark:focus-visible:ring-white/30" {...attributes} {...listeners}><FiMove aria-hidden /></button>}
+    <div className="flex shrink-0 flex-col items-center gap-2">
+      {reorderable && <button type="button" aria-label={`Drag to reorder “${label || "link"}”`} className="grid h-10 w-10 shrink-0 touch-none cursor-grab place-items-center rounded-lg border border-transparent text-black/40 transition hover:border-black/10 hover:bg-black/5 hover:text-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 active:cursor-grabbing dark:text-white/40 dark:hover:border-white/10 dark:hover:bg-white/10 dark:hover:text-white/70 dark:focus-visible:ring-white/30" {...attributes} {...listeners}><FiMove aria-hidden /></button>}
+      {actions}
+    </div>
     {children}
   </div>;
 }
@@ -81,6 +84,7 @@ export function ResourceLinksFields({
           Add link
         </Button>
       }
+      actionsClassName="mt-3 w-full [&>*]:w-full"
       summary={
         <span className="flex items-center gap-3 pb-1 text-sm font-semibold">
           Useful links
@@ -92,8 +96,29 @@ export function ResourceLinksFields({
       <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
       <div className={links.length > 0 ? "max-h-[min(18rem,35dvh)] space-y-2 overflow-y-auto overscroll-contain pr-1" : undefined}>
         {links.map((link, index) => (
-          <SortableLink key={itemIds[index]} id={itemIds[index]} label={link.label} reorderable={reorderable}>
-            <div className="grid flex-1 gap-2 sm:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)_auto] sm:items-end">
+          <SortableLink
+            key={itemIds[index]}
+            id={itemIds[index]}
+            label={link.label}
+            reorderable={reorderable}
+            actions={
+              <IconButton
+                type="button"
+                label={`Remove “${link.label || "link"}”`}
+                size="md"
+                variant="danger"
+                disabled={disabled}
+                onClick={() =>
+                  setLinks((current) =>
+                    current.filter((_, linkIndex) => linkIndex !== index),
+                  )
+                }
+              >
+                <FiTrash2 />
+              </IconButton>
+            }
+          >
+            <div className="grid flex-1 gap-2 sm:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)] sm:items-end">
             <Input
               label="Label"
               name={`${namePrefix}-link-label-${index}`}
@@ -120,19 +145,6 @@ export function ResourceLinksFields({
                 update(index, "url", ensureHttpUrlScheme(event.target.value))
               }
             />
-            <IconButton
-              type="button"
-              label={`Remove “${link.label || "link"}”`}
-              variant="danger"
-              disabled={disabled}
-              onClick={() =>
-                setLinks((current) =>
-                  current.filter((_, linkIndex) => linkIndex !== index),
-                )
-              }
-            >
-              <FiTrash2 />
-            </IconButton>
             </div>
           </SortableLink>
         ))}

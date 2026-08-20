@@ -76,21 +76,31 @@ const DropdownSelect = ({
   const proximityOption = normalizedQuery
     ? undefined
     : visibleOptions.find((option) => option.value === proximityValue);
-  const proximityGroupOptions = normalizedQuery
-    ? []
-    : visibleOptions.filter((option) => option.group?.label === proximityGroup);
-  const pinnedValues = new Set([
-    ...(proximityOption ? [proximityOption.value] : []),
-    ...proximityGroupOptions.map((option) => option.value),
-  ]);
-  const scrollableOptions = visibleOptions.filter(
-    (option) => !pinnedValues.has(option.value),
+  const proximityGroupOptions =
+    normalizedQuery || !proximityGroup
+      ? []
+      : visibleOptions.filter(
+          (option) => option.group?.label === proximityGroup,
+        );
+  const proximityOptions = proximityOption
+    ? [proximityOption]
+    : proximityGroupOptions;
+  const proximityValues = new Set(
+    proximityOptions.map((option) => option.value),
   );
-  const renderOption = (option: DropdownSelectOption, pinned = false) => (
+  const remainingOptions = visibleOptions.filter(
+    (option) => !proximityValues.has(option.value),
+  );
+  const displayedOptions = normalizedQuery
+    ? visibleOptions
+    : opensUpward
+      ? [...remainingOptions, ...proximityOptions]
+      : [...proximityOptions, ...remainingOptions];
+  const renderOption = (option: DropdownSelectOption) => (
     <ListboxOption
       key={option.value}
       value={option.value}
-      className={`group flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm transition focus:outline-none data-focus:bg-black/5 data-selected:bg-black/5 data-selected:font-semibold dark:data-focus:bg-white/10 dark:data-selected:bg-white/10 ${pinned ? "shrink-0" : ""}`}
+      className="group flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm transition focus:outline-none data-focus:bg-black/5 data-selected:bg-black/5 data-selected:font-semibold dark:data-focus:bg-white/10 dark:data-selected:bg-white/10"
     >
       {option.avatar && (
         <Avatar
@@ -113,7 +123,7 @@ const DropdownSelect = ({
       />
     </ListboxOption>
   );
-  const renderOptions = (items: DropdownSelectOption[], pinned = false) =>
+  const renderOptions = (items: DropdownSelectOption[]) =>
     items.map((option, index) => {
       const showGroup =
         option.group && option.group.label !== items[index - 1]?.group?.label;
@@ -126,15 +136,10 @@ const DropdownSelect = ({
               <span className="truncate">{option.group?.label}</span>
             </div>
           )}
-          {renderOption(option, pinned)}
+          {renderOption(option)}
         </Fragment>
       );
     });
-
-  const pinnedOptions = proximityOption
-    ? [proximityOption]
-    : proximityGroupOptions;
-
   return (
     <Listbox
       as="div"
@@ -217,31 +222,9 @@ const DropdownSelect = ({
               />
             </div>
           </div>
-          {pinnedOptions.length > 0 && !opensUpward && (
-            <div
-              className={
-                proximityOption
-                  ? "m-1 shrink-0 space-y-1 rounded-lg border border-black/10 bg-white/95 p-1 shadow-sm dark:border-white/10 dark:bg-[#181818]/95"
-                  : "shrink-0 space-y-1"
-              }
-            >
-              {renderOptions(pinnedOptions, true)}
-            </div>
-          )}
           <div className="min-h-0 space-y-1 overflow-y-auto">
-            {renderOptions(scrollableOptions)}
+            {renderOptions(displayedOptions)}
           </div>
-          {pinnedOptions.length > 0 && opensUpward && (
-            <div
-              className={
-                proximityOption
-                  ? "m-1 shrink-0 space-y-1 rounded-lg border border-black/10 bg-white/95 p-1 shadow-sm dark:border-white/10 dark:bg-[#181818]/95"
-                  : "shrink-0 space-y-1"
-              }
-            >
-              {renderOptions(pinnedOptions, true)}
-            </div>
-          )}
           {visibleOptions.length === 0 && (
             <p className="px-3 py-4 text-center text-sm text-black/60 dark:text-white/60">
               No matching options

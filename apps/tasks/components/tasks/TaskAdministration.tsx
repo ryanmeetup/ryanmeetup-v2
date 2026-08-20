@@ -437,7 +437,7 @@ export function StatusSettingsModal({
         setOpen={(nextOpen) => {
           if (!nextOpen) setStatusToDelete(null);
         }}
-        title="Delete status?"
+        title="Delete Status?"
         description={
           statusToDelete &&
           "is_default" in statusToDelete &&

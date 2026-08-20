@@ -472,7 +472,7 @@ export function TaskPageClient({
         setOpen={(open) => {
           if (!open) setTaskPendingDelete(null);
         }}
-        title="Delete task?"
+        title="Delete Task?"
         description="This task and its related comments, attachments, and activity will be permanently removed."
         confirmLabel="Delete task"
         pendingLabel="Deleting..."

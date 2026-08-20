@@ -19,6 +19,7 @@ export type DisclosureCardProps = {
   iconClassName?: string;
   id?: string;
   actions?: ReactNode;
+  actionsClassName?: string;
   description?: ReactNode;
   collapsible?: boolean;
 };
@@ -33,6 +34,7 @@ const DisclosureCard = ({
   iconClassName = "h-4 w-4",
   id,
   actions,
+  actionsClassName = "absolute right-0 top-1/2 -translate-y-1/2",
   description,
   collapsible = true,
 }: DisclosureCardProps) => {
@@ -49,9 +51,7 @@ const DisclosureCard = ({
           </div>
           {description && <div className="-mt-1">{description}</div>}
           {actions && (
-            <div className="absolute right-0 top-1/2 -translate-y-1/2">
-              {actions}
-            </div>
+            <div className={actionsClassName}>{actions}</div>
           )}
         </div>
         <div>{children}</div>
@@ -85,9 +85,7 @@ const DisclosureCard = ({
             </DisclosureButton>
             {description && <div className="-mt-1">{description}</div>}
             {actions && (
-              <div className="absolute right-0 top-1/2 -translate-y-1/2">
-                {actions}
-              </div>
+              <div className={actionsClassName}>{actions}</div>
             )}
           </div>
           <div className="overflow-hidden">

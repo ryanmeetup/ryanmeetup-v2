@@ -45,7 +45,7 @@ export function CreateAccessGroupModal({
       setIsOpen={(nextOpen) => {
         if (!saving) setOpen(nextOpen);
       }}
-      title="New access group"
+      title="New Access Group"
       size="md"
       hideActions
       footer={

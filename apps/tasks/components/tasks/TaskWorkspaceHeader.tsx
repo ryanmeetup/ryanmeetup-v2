@@ -1,11 +1,24 @@
-import { Avatar, Button, Heading, Pill, Tooltip } from "@ryanmeetup/ui";
-import { FiEdit2, FiGrid, FiList, FiUsers } from "react-icons/fi";
-import type {
-  Category,
-  Project,
-} from "@/lib/resource-types";
+"use client";
+
+import { useEffect, useState } from "react";
+import { Avatar, Button, Heading, Tooltip } from "@ryanmeetup/ui";
+import {
+  FiChevronDown,
+  FiEdit2,
+  FiFolder,
+  FiGrid,
+  FiList,
+  FiTag,
+  FiUsers,
+} from "react-icons/fi";
+import { CountBadge } from "@/components/global";
+import type { Category, Project } from "@/lib/resource-types";
 import type { Profile } from "@/lib/workspace-types";
-import { ResourceAttachmentsPreview, ResourceLinks, useResourceAttachments } from "@/components/resources";
+import {
+  ResourceAttachmentsPreview,
+  ResourceLinks,
+  useResourceAttachments,
+} from "@/components/resources";
 
 export type TaskWorkspaceHeaderScope = {
   assignee: string;
@@ -37,6 +50,18 @@ export function TaskWorkspaceHeader({
   scope: TaskWorkspaceHeaderScope;
   controls: TaskWorkspaceHeaderControls;
 }) {
+  const [desktopDetails, setDesktopDetails] = useState(false);
+  const [projectDetailsOpen, setProjectDetailsOpen] = useState(false);
+  const [categoryDetailsOpen, setCategoryDetailsOpen] = useState(false);
+
+  useEffect(() => {
+    const query = window.matchMedia("(min-width: 768px)");
+    const sync = () => setDesktopDetails(query.matches);
+    sync();
+    query.addEventListener("change", sync);
+    return () => query.removeEventListener("change", sync);
+  }, []);
+
   const {
     assignee,
     demoMode,
@@ -77,100 +102,139 @@ export function TaskWorkspaceHeader({
                 ? "Personal workspace"
                 : "Team workspace"}
         </p>
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <Heading size="h1" className="text-2xl sm:text-4xl">
-            {viewTitle}
-          </Heading>
-          <Pill
-            size="sm"
-            className="px-2 tracking-[0.2em] sm:px-3 sm:tracking-[0.35em]"
-          >
-            <span>{taskCount}</span>
-            <span className="ml-1 hidden sm:inline">
-              {taskCount === 1 ? "task" : "tasks"}
-            </span>
-          </Pill>
-        </div>
+        <Heading size="h1" className="text-2xl sm:text-4xl">
+          {viewTitle}&nbsp;
+          <CountBadge className="align-middle">{taskCount}</CountBadge>
+        </Heading>
         {scopeDescription && (
           <p className="mt-2 text-sm text-black/70 dark:text-white/70 sm:text-base">
             {scopeDescription}
           </p>
         )}
         {selectedProject && (
-          <div className="mt-3 flex flex-wrap items-start gap-x-6 gap-y-3">
-            <div className="min-w-0">
-              <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-black/45 dark:text-white/45">
-                Owners
-              </p>
-              <div className="flex min-h-8 min-w-0 items-center gap-3">
-                {projectOwners.length > 0 ? (
-                  <Tooltip
-                    content={projectOwners
-                      .map((owner) => owner.full_name)
-                      .join(", ")}
-                    placement="bottom"
-                  >
-                    <div
-                      className="flex shrink-0 -space-x-2"
-                      aria-label={`${projectOwners.length} ${projectOwners.length === 1 ? "project owner" : "project owners"}`}
+          <details
+            open={desktopDetails || projectDetailsOpen}
+            onToggle={(event) => {
+              if (!desktopDetails)
+                setProjectDetailsOpen(event.currentTarget.open);
+            }}
+            className="group mt-3 rounded-2xl border border-black/10 bg-white/80 shadow-sm dark:border-white/10 dark:bg-white/5 md:border-0 md:bg-transparent md:shadow-none md:dark:bg-transparent"
+          >
+            <summary className="flex w-full cursor-pointer list-none items-center gap-2 rounded-2xl p-4 text-left text-xs font-semibold uppercase tracking-widest text-black/50 transition hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-black/30 dark:text-white/50 dark:hover:text-white dark:focus-visible:ring-white/30 md:hidden [&::-webkit-details-marker]:hidden">
+              <FiFolder aria-hidden />
+              Project details
+              <FiChevronDown
+                aria-hidden
+                className="ml-auto shrink-0 transition-transform group-open:-rotate-180 motion-reduce:transition-none"
+              />
+            </summary>
+            <div className="hidden flex-wrap items-start gap-x-6 gap-y-3 px-4 pb-4 group-open:flex md:flex md:p-0">
+              <div className="min-w-0">
+                <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-black/45 dark:text-white/45">
+                  Owners
+                </p>
+                <div className="flex min-h-8 min-w-0 items-center gap-3">
+                  {projectOwners.length > 0 ? (
+                    <Tooltip
+                      content={projectOwners
+                        .map((owner) => owner.full_name)
+                        .join(", ")}
+                      placement="bottom"
                     >
-                      {projectOwners.slice(0, 3).map((owner) => (
-                        <Avatar
-                          key={owner.id}
-                          name={owner.full_name}
-                          src={owner.avatar_url}
-                          size="md"
-                          className="ring-2 ring-[#f7f7f5] dark:ring-[#101010]"
-                        />
-                      ))}
-                    </div>
-                  </Tooltip>
-                ) : (
-                  <>
-                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-dashed border-black/25 text-black/45 dark:border-white/25 dark:text-white/45">
-                      <FiUsers aria-hidden size={14} />
-                    </span>
-                    <p className="text-xs font-medium text-black/70 dark:text-white/70">
-                      Unassigned
+                      <div
+                        className="flex shrink-0 -space-x-2"
+                        aria-label={`${projectOwners.length} ${projectOwners.length === 1 ? "project owner" : "project owners"}`}
+                      >
+                        {projectOwners.slice(0, 3).map((owner) => (
+                          <Avatar
+                            key={owner.id}
+                            name={owner.full_name}
+                            src={owner.avatar_url}
+                            size="md"
+                            className="ring-2 ring-[#f1f2ef] dark:ring-[#101010]"
+                          />
+                        ))}
+                      </div>
+                    </Tooltip>
+                  ) : (
+                    <>
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-dashed border-black/25 text-black/45 dark:border-white/25 dark:text-white/45">
+                        <FiUsers aria-hidden size={14} />
+                      </span>
+                      <p className="text-xs font-medium text-black/70 dark:text-white/70">
+                        Unassigned
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+              {selectedProject.links.length > 0 && (
+                <div className="min-w-0">
+                  <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-black/45 dark:text-white/45">
+                    Useful links
+                  </p>
+                  <ResourceLinks links={selectedProject.links} />
+                </div>
+              )}
+              {(projectAttachments.notes.length > 0 ||
+                projectAttachments.files.length > 0) && (
+                <div className="min-w-0">
+                  <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-black/45 dark:text-white/45">
+                    Attachments
+                  </p>
+                  <ResourceAttachmentsPreview
+                    notes={projectAttachments.notes}
+                    files={projectAttachments.files}
+                  />
+                </div>
+              )}
+            </div>
+          </details>
+        )}
+        {selectedCategory &&
+          ((selectedCategory.links ?? []).length > 0 ||
+            categoryAttachments.notes.length > 0 ||
+            categoryAttachments.files.length > 0) && (
+            <details
+              open={desktopDetails || categoryDetailsOpen}
+              onToggle={(event) => {
+                if (!desktopDetails)
+                  setCategoryDetailsOpen(event.currentTarget.open);
+              }}
+              className="group mt-3 rounded-2xl border border-black/10 bg-white/80 shadow-sm dark:border-white/10 dark:bg-white/5 md:border-0 md:bg-transparent md:shadow-none md:dark:bg-transparent"
+            >
+              <summary className="flex w-full cursor-pointer list-none items-center gap-2 rounded-2xl p-4 text-left text-xs font-semibold uppercase tracking-widest text-black/50 transition hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-black/30 dark:text-white/50 dark:hover:text-white dark:focus-visible:ring-white/30 md:hidden [&::-webkit-details-marker]:hidden">
+                <FiTag aria-hidden />
+                Category details
+                <FiChevronDown
+                  aria-hidden
+                  className="ml-auto shrink-0 transition-transform group-open:-rotate-180 motion-reduce:transition-none"
+                />
+              </summary>
+              <div className="hidden flex-wrap items-start gap-x-6 gap-y-3 px-4 pb-4 group-open:flex md:flex md:p-0">
+                {(selectedCategory.links ?? []).length > 0 && (
+                  <div className="min-w-0">
+                    <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-black/45 dark:text-white/45">
+                      Useful links
                     </p>
-                  </>
+                    <ResourceLinks links={selectedCategory.links ?? []} />
+                  </div>
+                )}
+                {(categoryAttachments.notes.length > 0 ||
+                  categoryAttachments.files.length > 0) && (
+                  <div className="min-w-0">
+                    <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-black/45 dark:text-white/45">
+                      Attachments
+                    </p>
+                    <ResourceAttachmentsPreview
+                      notes={categoryAttachments.notes}
+                      files={categoryAttachments.files}
+                    />
+                  </div>
                 )}
               </div>
-            </div>
-            {selectedProject.links.length > 0 && (
-              <div className="min-w-0">
-                <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-black/45 dark:text-white/45">
-                  Useful links
-                </p>
-                <ResourceLinks links={selectedProject.links} />
-              </div>
-            )}
-            {(projectAttachments.notes.length > 0 || projectAttachments.files.length > 0) && (
-              <div className="min-w-0">
-                <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-black/45 dark:text-white/45">
-                  Attachments
-                </p>
-                <ResourceAttachmentsPreview notes={projectAttachments.notes} files={projectAttachments.files} />
-              </div>
-            )}
-          </div>
-        )}
-        {selectedCategory && (selectedCategory.links ?? []).length > 0 && (
-          <div className="mt-3 min-w-0">
-            <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-black/45 dark:text-white/45">
-              Useful links
-            </p>
-            <ResourceLinks links={selectedCategory.links ?? []} />
-          </div>
-        )}
-        {selectedCategory && (categoryAttachments.notes.length > 0 || categoryAttachments.files.length > 0) && (
-          <div className="mt-3 min-w-0">
-            <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-black/45 dark:text-white/45">
-              Attachments
-            </p>
-            <ResourceAttachmentsPreview notes={categoryAttachments.notes} files={categoryAttachments.files} />
-          </div>
-        )}
+            </details>
+          )}
       </div>
       <div className="flex w-full flex-col gap-2 xl:w-auto xl:items-end">
         {selectedProject && !previewing && (

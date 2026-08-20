@@ -29,7 +29,7 @@ export function InviteTeammateModal({
       setIsOpen={(nextOpen) => {
         if (!pending) setOpen(nextOpen);
       }}
-      title="Invite teammate"
+      title="Invite Teammate"
       size="md"
       hideActions
       footer={
@@ -100,13 +100,13 @@ export function RemoveTeammateDialog({
       setOpen={(open) => {
         if (!open && !pending) setProfile(null);
       }}
-      title="Remove teammate?"
+      title="Remove Teammate?"
       description={
         profile
           ? `Remove ${profile.full_name} and revoke their workspace access?`
           : ""
       }
-      confirmLabel="Remove teammate"
+      confirmLabel="Remove Teammate"
       pendingLabel="Removing..."
       pending={pending}
       destructive

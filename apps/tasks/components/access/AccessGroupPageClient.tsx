@@ -292,7 +292,7 @@ export function AccessGroupPageClient({
       <ConfirmationDialog
         open={deleteOpen}
         setOpen={setDeleteOpen}
-        title="Delete access group?"
+        title="Delete Access Group?"
         description={`This removes ${group.name} and every project grant attached to it.`}
         confirmLabel="Delete group"
         destructive

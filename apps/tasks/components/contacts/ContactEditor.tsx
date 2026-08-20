@@ -176,7 +176,7 @@ export function ContactEditor({
     <Modal
       open={open}
       setIsOpen={(next) => !next && !saving && onClose()}
-      title={contact ? `Edit ${contact.display_name}` : "New contact"}
+      title={contact ? `Edit ${contact.display_name}` : "New Contact"}
       description="Manage this contact and the people you know there."
       size="xl"
       maxHeight="min(48rem, calc(100dvh - 2rem))"
@@ -213,13 +213,13 @@ export function ContactEditor({
           if (valid) onSave(draft, imageFile);
         }}
       >
-        <section className="rounded-2xl border border-black/10 bg-black/[0.02] p-5 dark:border-white/10 dark:bg-white/[0.025] sm:p-6">
+        <section className="rounded-2xl border border-black/10 bg-black/[0.02] p-4 dark:border-white/10 dark:bg-white/[0.025] sm:p-6">
           <div className="grid items-start gap-6 sm:grid-cols-[8rem_minmax(0,1fr)] lg:gap-8">
-            <div className="flex flex-col items-start gap-3">
+            <div className="flex items-center gap-4 sm:flex-col sm:items-start sm:gap-3">
               <div
                 role="img"
                 aria-label="Contact image preview"
-                className="grid aspect-square w-24 place-items-center rounded-2xl border border-black/10 bg-white bg-cover bg-center text-xl font-semibold text-black/50 shadow-sm dark:border-white/10 dark:bg-white/10 dark:text-white/50 sm:w-32"
+                className="grid aspect-square w-20 shrink-0 place-items-center rounded-2xl border border-black/10 bg-white bg-cover bg-center text-xl font-semibold text-black/50 shadow-sm dark:border-white/10 dark:bg-white/10 dark:text-white/50 sm:w-32"
                 style={
                   imagePreview
                     ? {
@@ -231,24 +231,26 @@ export function ContactEditor({
                 {!imagePreview &&
                   (draft.displayName.trim().slice(0, 2).toUpperCase() || "CO")}
               </div>
-              <label
-                htmlFor="contact-image"
-                className="inline-flex w-24 cursor-pointer items-center justify-center rounded-lg border border-black/20 bg-white/80 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] transition hover:bg-black/5 focus-within:ring-2 focus-within:ring-black/30 dark:border-white/20 dark:bg-white/5 dark:hover:bg-white/10 dark:focus-within:ring-white/30 sm:w-32"
-              >
-                {imagePreview ? "Change image" : "Upload image"}
-                <input
-                  id="contact-image"
-                  name="contact-image"
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  className="sr-only"
-                  disabled={saving}
-                  onChange={selectImage}
-                />
-              </label>
-              <p className="max-w-32 text-xs leading-relaxed text-black/50 dark:text-white/50">
-                JPG, PNG, or WebP. 5 MB max.
-              </p>
+              <div className="min-w-0 space-y-2 sm:contents">
+                <label
+                  htmlFor="contact-image"
+                  className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-black/20 bg-white/80 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] transition hover:bg-black/5 focus-within:ring-2 focus-within:ring-black/30 dark:border-white/20 dark:bg-white/5 dark:hover:bg-white/10 dark:focus-within:ring-white/30 sm:w-32"
+                >
+                  {imagePreview ? "Change image" : "Upload image"}
+                  <input
+                    id="contact-image"
+                    name="contact-image"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="sr-only"
+                    disabled={saving}
+                    onChange={selectImage}
+                  />
+                </label>
+                <p className="max-w-48 text-xs leading-relaxed text-black/50 dark:text-white/50 sm:max-w-32">
+                  JPG, PNG, or WebP. 5 MB max.
+                </p>
+              </div>
             </div>
             <div className="w-full min-w-0 space-y-5">
               <div>
@@ -354,8 +356,8 @@ export function ContactEditor({
         </section>
 
         <section className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
+          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="w-full min-w-0">
               <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em]">
                 People <CountBadge>{draft.people.length}</CountBadge>
               </h2>
@@ -367,6 +369,7 @@ export function ContactEditor({
               type="button"
               variant="secondary"
               size="sm"
+              className="w-full sm:w-auto"
               leftIcon={<FiPlus />}
               disabled={activePersonIndex !== null || saving}
               onClick={() => {

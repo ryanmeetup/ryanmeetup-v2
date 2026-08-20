@@ -826,7 +826,7 @@ export function TaskApp({
               <div
                 role="status"
                 aria-label="Loading task results"
-                className="absolute inset-0 z-10 grid min-h-56 place-items-center rounded-2xl bg-[#f7f7f5]/80 backdrop-blur-sm dark:bg-[#101010]/80"
+                className="absolute inset-0 z-10 grid min-h-56 place-items-center rounded-2xl bg-[#f1f2ef]/80 backdrop-blur-sm dark:bg-[#101010]/80"
               >
                 <span className="flex items-center gap-3 rounded-2xl border border-black/15 bg-white px-6 py-4 text-base font-semibold shadow-lg dark:border-white/15 dark:bg-[#181818]">
                   <FiLoader className="h-6 w-6 animate-spin motion-reduce:animate-none" />
@@ -905,7 +905,7 @@ export function TaskApp({
         setOpen={(nextOpen) => {
           if (!nextOpen) setTaskPendingDelete(null);
         }}
-        title="Delete task?"
+        title="Delete Task?"
         description="This task and its related comments, attachments, and activity will be permanently removed."
         confirmLabel="Delete task"
         pendingLabel="Deleting..."

@@ -277,7 +277,7 @@ export function ContactsPageClient({
               leftIcon={<FiPlus aria-hidden />}
               onClick={() => setEditing(null)}
             >
-              New contact
+              New Contact
             </Button>
           }
           hideActions

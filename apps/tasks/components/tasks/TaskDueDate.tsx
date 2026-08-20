@@ -12,10 +12,12 @@ export function TaskDueDate({
   dueDate,
   isCompleted,
   showIcon = false,
+  size = "compact",
 }: {
   dueDate: string | null;
   isCompleted: boolean;
   showIcon?: boolean;
+  size?: "compact" | "list";
 }) {
   if (!dueDate) return <span>—</span>;
 
@@ -23,10 +25,14 @@ export function TaskDueDate({
 
   return (
     <span
-      className={`inline-flex flex-wrap items-center gap-1.5 text-[11px] ${
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap ${
+        size === "list" ? "text-sm" : "text-[11px]"
+      } ${
         isLate
           ? "font-semibold text-red-700 dark:text-red-300"
-          : "text-black/55 dark:text-white/55"
+          : size === "list"
+            ? "text-black/80 dark:text-white/80"
+            : "text-black/55 dark:text-white/55"
       }`}
     >
       {showIcon && <FiCalendar className="shrink-0" aria-hidden="true" />}

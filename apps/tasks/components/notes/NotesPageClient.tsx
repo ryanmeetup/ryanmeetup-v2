@@ -316,7 +316,7 @@ export function NotesPageClient({
             {activeNotes.length ? (
               <div>
                 <div
-                  className="-mx-1 mb-5 flex gap-2 overflow-x-auto px-1 pb-1"
+                  className="-mx-5 mb-5 flex gap-2 overflow-x-auto px-5 pb-1 scroll-px-5"
                   aria-label="Filter notes by category"
                 >
                   <FilterChip

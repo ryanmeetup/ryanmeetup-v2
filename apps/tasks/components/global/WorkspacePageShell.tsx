@@ -36,7 +36,7 @@ export function WorkspacePageShell({
   sidebarOpen: boolean;
 }) {
   return (
-    <div className="min-h-screen bg-[#f7f7f5] text-black dark:bg-[#101010] dark:text-white">
+    <div className="min-h-screen bg-[#f1f2ef] text-black dark:bg-[#101010] dark:text-white">
       <TasksSidebar
         data={data}
         demoMode={demoMode}

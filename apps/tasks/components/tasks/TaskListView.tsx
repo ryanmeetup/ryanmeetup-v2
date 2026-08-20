@@ -81,18 +81,27 @@ export function TaskListView({
         </div>
       </div>
       <div className="hidden overflow-x-auto md:block" aria-busy={loading}>
-        <table className="w-full min-w-[900px] text-left">
+        <table className="w-full min-w-[1400px] table-fixed text-left">
+          <colgroup>
+            <col className="w-[34%]" />
+            <col className="w-[9%]" />
+            <col className="w-[19%]" />
+            <col className="w-[14%]" />
+            <col className="w-[9%]" />
+            <col className="w-[7%]" />
+            <col className="w-[8%]" />
+          </colgroup>
           <thead className="border-b border-black/10 bg-black/[0.025] text-[10px] uppercase tracking-[0.16em] text-black/50 dark:border-white/10 dark:bg-white/[0.025] dark:text-white/50">
             <tr>
               <th className="px-4 py-3">Task</th>
-              <th>Status</th>
-              <th>Categories</th>
-              <th>Project</th>
-              <th>Assignee</th>
-              <th>Priority</th>
-              <th>
+              <th className="px-3 py-3">Status</th>
+              <th className="px-3 py-3">Categories</th>
+              <th className="px-3 py-3">Project</th>
+              <th className="px-3 py-3">Assignee</th>
+              <th className="px-3 py-3">Priority</th>
+              <th className="px-3 py-3">
                 <button
-                  className="flex items-center gap-1"
+                  className="flex items-center gap-1 whitespace-nowrap"
                   onClick={onToggleSort}
                 >
                   Due <FiChevronDown />

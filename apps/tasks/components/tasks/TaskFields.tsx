@@ -254,6 +254,8 @@ export function TaskFields({
         {density === "full" && (
           <MultiSelect
             label="Tags"
+            className="sm:col-span-2"
+            summaryLimit={6}
             options={tagOptions}
             value={selectedTagValues}
             onChange={(values) => {
@@ -276,29 +278,6 @@ export function TaskFields({
                 : "No tags for selected categories"
             }
           />
-        )}
-        {density === "full" && (
-          <label className="date-field opacity-60">
-            <span>Reminder</span>
-            <Tooltip
-              content="Reminders are coming soon."
-              triggerClassName="w-full !block !text-sm !font-normal !normal-case !tracking-normal"
-            >
-              <span
-                className="block w-full cursor-help"
-                tabIndex={0}
-                aria-label="Reminder is coming soon"
-              >
-                <input
-                  type="datetime-local"
-                  value=""
-                  disabled
-                  aria-label="Reminder (coming soon)"
-                  className="cursor-not-allowed"
-                />
-              </span>
-            </Tooltip>
-          </label>
         )}
       </div>
     </div>

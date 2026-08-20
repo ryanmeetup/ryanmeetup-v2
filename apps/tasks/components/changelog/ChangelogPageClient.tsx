@@ -113,7 +113,7 @@ export function ChangelogPageClient({
                   changelogReleasePath(release),
                   data.accessPreview,
                 )}
-                className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f7f7f5] dark:focus-visible:ring-white/50 dark:focus-visible:ring-offset-[#101010]"
+                className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f1f2ef] dark:focus-visible:ring-white/50 dark:focus-visible:ring-offset-[#101010]"
               >
                 <Card
                   size="none"

@@ -23,6 +23,7 @@ export function ActivityFilterMenu({
   onIncludedChange,
   options,
   proximityValue,
+  stackLabelOnMobile = false,
 }: {
   excludedValues: string[];
   includedValues: string[];
@@ -31,6 +32,7 @@ export function ActivityFilterMenu({
   onIncludedChange: (values: string[]) => void;
   options: ActivityFilterOption[];
   proximityValue?: string;
+  stackLabelOnMobile?: boolean;
 }) {
   const { orderedOptions, setAnchorElement } = useProximityOptions(
     options,
@@ -70,19 +72,25 @@ export function ActivityFilterMenu({
   }
 
   return (
-    <Popover className="relative shrink-0">
-      <PopoverButton className={getFilterControlClasses(active)}>
-        <span className="text-black/50 dark:text-white/50">{label}</span>
-        <span>{summary}</span>
+    <Popover className="relative min-w-0 shrink-0">
+      <PopoverButton
+        className={`${getFilterControlClasses(active)} ${stackLabelOnMobile ? "!grid w-full grid-cols-[7rem_minmax(0,1fr)_auto] justify-stretch gap-3 px-3 py-2.5 text-left lg:!inline-flex lg:w-auto lg:justify-center lg:gap-2 lg:px-3 lg:py-1.5" : ""}`}
+      >
+        <span
+          className={`${stackLabelOnMobile ? "text-[10px] font-semibold uppercase tracking-wider text-black/55 dark:text-white/55 lg:text-xs lg:normal-case lg:tracking-normal" : "text-black/50 dark:text-white/50"}`}
+        >
+          {label}
+        </span>
+        <span className="min-w-0 truncate">{summary}</span>
         <FiChevronDown
           aria-hidden
-          className="text-black/40 dark:text-white/40"
+          className={`${stackLabelOnMobile ? "ml-auto" : ""} text-black/40 dark:text-white/40`}
         />
       </PopoverButton>
       <PopoverPanel
         ref={setAnchorElement}
         anchor={{ to: "bottom start", padding: 16 }}
-        className="z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-black/10 bg-white/95 p-2 text-black shadow-xl backdrop-blur dark:border-white/10 dark:bg-[#181818]/95 dark:text-white"
+        className={`z-50 mt-2 max-w-[calc(100vw-2rem)] rounded-xl border border-black/10 bg-white/95 p-2 text-black shadow-xl backdrop-blur dark:border-white/10 dark:bg-[#181818]/95 dark:text-white ${stackLabelOnMobile ? "w-[var(--button-width)] lg:w-80" : "w-80"}`}
       >
         <div className="flex items-center px-2 pb-2 text-[10px] font-semibold uppercase tracking-widest text-black/45 dark:text-white/45">
           <span className="flex-1">{label}</span>

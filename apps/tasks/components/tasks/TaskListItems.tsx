@@ -151,18 +151,18 @@ export function TaskListRows({
           {task.title}
         </span>
       </td>
-      <td>
-        <span className="flex items-center gap-2">
+      <td className="px-3 py-4">
+        <span className="flex flex-nowrap items-center gap-2 whitespace-nowrap">
           <i
-            className="h-2 w-2 rounded-full"
+            className="h-2 w-2 shrink-0 rounded-full"
             style={{ backgroundColor: status?.color }}
           />
           {status?.name}
         </span>
       </td>
-      <td>
+      <td className="px-3 py-4">
         {categories.length > 0 ? (
-          <span className="flex flex-wrap gap-1.5 py-2 pr-3">
+          <span className="flex flex-wrap gap-1.5">
             {categories.map((category) => (
               <TaskCategoryBadge
                 key={category.id}
@@ -175,17 +175,18 @@ export function TaskListRows({
           "—"
         )}
       </td>
-      <td>{project?.name ?? "—"}</td>
-      <td>
+      <td className="px-3 py-4">{project?.name ?? "—"}</td>
+      <td className="px-3 py-4">
         <Assignees people={people} />
       </td>
-      <td>
+      <td className="px-3 py-4">
         <TaskPriorityBadge priority={task.priority} />
       </td>
-      <td>
+      <td className="px-3 py-4">
         <TaskDueDate
           dueDate={task.due_date}
           isCompleted={status?.is_completed ?? false}
+          size="list"
         />
       </td>
     </tr>

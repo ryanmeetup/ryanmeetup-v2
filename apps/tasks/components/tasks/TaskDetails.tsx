@@ -816,7 +816,7 @@ export function TaskDetails({ task, workspace, display }: TaskDetailsProps) {
         setOpen={(open) => {
           if (!open) setCommentPendingDelete(null);
         }}
-        title="Delete comment?"
+        title="Delete Comment?"
         description="This comment will be permanently removed."
         confirmLabel="Delete comment"
         pendingLabel="Deleting..."

@@ -48,7 +48,7 @@ export function ProfilePageClient({
           </Heading>
           <p className="mt-2 text-sm text-black/65 dark:text-white/65">
             {onboardingRequired
-              ? "Enter your first and last name before continuing to the workspace."
+              ? "Choose your sign-in password and confirm how your name appears before continuing."
               : "Manage how teammates see you across the workspace."}
           </p>
           <div className="mt-10 border-t border-black/10 pt-8 dark:border-white/10">
@@ -79,7 +79,7 @@ export function ProfilePageClient({
         <Modal
           open={passwordOpen}
           setIsOpen={setPasswordOpen}
-          title="Change password"
+          title="Change Password"
           hideActions
           footer={
             <div className="flex justify-end gap-2">

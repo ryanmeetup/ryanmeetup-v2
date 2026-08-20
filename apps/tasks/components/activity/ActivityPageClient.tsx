@@ -322,8 +322,9 @@ export function ActivityPageClient({
           </div>
 
           <FilterPanel
+            collapseOnMobile
             count={filterCount}
-            controlsClassName="grid grid-cols-1 overflow-visible min-[360px]:grid-cols-2 [&>button]:min-w-0 [&>button]:w-full [&>button>span]:truncate [&>div]:min-w-0 [&>div>button]:min-w-0 [&>div>button]:w-full [&>div>button>span]:truncate lg:flex lg:overflow-x-auto lg:[&>button]:w-auto lg:[&>div>button]:w-auto"
+            controlsClassName="grid grid-cols-1 gap-3 overflow-visible sm:grid-cols-2 lg:flex lg:gap-2 lg:overflow-x-auto"
             defaultExpanded
             onClear={clearFilters}
             preferenceStorageKey={filterPanelsExpandedPreferenceKey}
@@ -345,6 +346,7 @@ export function ActivityPageClient({
                   value: project.name,
                 })),
               ]}
+              stackLabelOnMobile
             />
             <ActivityFilterMenu
               label="Person"
@@ -368,6 +370,7 @@ export function ActivityPageClient({
                   value: profileDisplayName(profile),
                 })),
               ]}
+              stackLabelOnMobile
             />
             <ActivityFilterMenu
               label="Event"
@@ -391,12 +394,14 @@ export function ActivityPageClient({
                 { label: "Projects", value: "project" },
                 { label: "Categories", value: "category" },
               ]}
+              stackLabelOnMobile
             />
             <DropdownSelect
               label="When"
               active={timeFilter !== "all"}
               value={timeFilter}
               onChange={(value) => setFilter(setTimeFilter, value)}
+              stackLabelOnMobile
               options={[
                 { label: "Any time", value: "all" },
                 { label: "Past 24 hours", value: "day" },

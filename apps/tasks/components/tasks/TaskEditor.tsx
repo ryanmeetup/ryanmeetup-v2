@@ -530,8 +530,8 @@ export function TaskEditor(props: TaskEditorProps) {
               className="min-w-0"
               contentClassName="min-w-0 lg:border-l lg:border-black/10 lg:pl-8 lg:dark:border-white/10"
             >
-              <div className="mb-5 flex items-center justify-between gap-3 border-b border-black/10 pb-3 dark:border-white/10">
-                <div>
+              <div className="mb-5 flex flex-col items-stretch gap-3 border-b border-black/10 pb-3 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between">
+                <div className="w-full min-w-0">
                   <p className="text-sm font-semibold">Task details</p>
                   <p className="text-xs text-black/55 dark:text-white/55">
                     {editing
@@ -543,6 +543,7 @@ export function TaskEditor(props: TaskEditorProps) {
                   type="button"
                   variant="secondary"
                   size="sm"
+                  className="w-full whitespace-nowrap sm:w-auto sm:shrink-0"
                   rightIcon={<FiChevronDown className="rotate-180" />}
                   aria-expanded="true"
                   aria-controls="task-secondary-details"

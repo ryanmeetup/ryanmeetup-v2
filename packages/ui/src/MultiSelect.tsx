@@ -33,6 +33,7 @@ export type MultiSelectProps = {
   required?: boolean;
   searchable?: boolean;
   searchPlaceholder?: string;
+  summaryLimit?: number;
 };
 
 const MultiSelect = ({
@@ -46,6 +47,7 @@ const MultiSelect = ({
   required = false,
   searchable = true,
   searchPlaceholder = "Search options",
+  summaryLimit = 2,
 }: MultiSelectProps) => {
   const buttonId = useId();
   const searchId = useId();
@@ -65,9 +67,9 @@ const MultiSelect = ({
   const summary =
     selectedLabels.length === 0
       ? placeholder
-      : selectedLabels.length <= 2
+      : selectedLabels.length <= summaryLimit
         ? selectedLabels.join(", ")
-        : `${selectedLabels.slice(0, 2).join(", ")} +${selectedLabels.length - 2}`;
+        : `${selectedLabels.slice(0, summaryLimit).join(", ")} +${selectedLabels.length - summaryLimit}`;
 
   return (
     <Listbox
