@@ -145,6 +145,20 @@ export function TaskApp({
     () => new Map(data.categories.map((item) => [item.id, item])),
     [data.categories],
   );
+  const accessibleCategoryIds = useMemo(
+    () =>
+      data.accessPreview?.accessibleCategoryIds
+        ? new Set(data.accessPreview.accessibleCategoryIds)
+        : null,
+    [data.accessPreview],
+  );
+  const accessibleCategories = useMemo(
+    () =>
+      accessibleCategoryIds
+        ? data.categories.filter((item) => accessibleCategoryIds.has(item.id))
+        : data.categories,
+    [accessibleCategoryIds, data.categories],
+  );
   const statuses = useMemo(
     () => [...data.statuses].sort((a, b) => a.sort_order - b.sort_order),
     [data.statuses],
@@ -170,11 +184,16 @@ export function TaskApp({
   );
   const selectedAssignee = profiles.get(includedAssigneeIds[0] ?? "") ?? null;
   const selectedReporter = profiles.get(includedReporterIds[0] ?? "") ?? null;
-  const selectedCategory =
+  const requestedCategory =
     group === "all"
       ? null
       : (categories.get(group) ??
         data.categories.find((item) => item.name === group));
+  const selectedCategory =
+    requestedCategory &&
+    (!accessibleCategoryIds || accessibleCategoryIds.has(requestedCategory.id))
+      ? requestedCategory
+      : null;
   const includedCategoryIds = useMemo(() => {
     const ids = includedCategories
       .split(",")
@@ -183,12 +202,21 @@ export function TaskApp({
         const category =
           categories.get(value) ??
           data.categories.find((item) => item.name === value);
-        return category ? [category.id] : [];
+        return category &&
+          (!accessibleCategoryIds || accessibleCategoryIds.has(category.id))
+          ? [category.id]
+          : [];
       });
     if (selectedCategory && !ids.includes(selectedCategory.id))
       ids.push(selectedCategory.id);
     return ids;
-  }, [categories, data.categories, includedCategories, selectedCategory]);
+  }, [
+    accessibleCategoryIds,
+    categories,
+    data.categories,
+    includedCategories,
+    selectedCategory,
+  ]);
   const excludedCategoryIds = useMemo(
     () =>
       excludedCategories
@@ -198,9 +226,12 @@ export function TaskApp({
           const category =
             categories.get(value) ??
             data.categories.find((item) => item.name === value);
-          return category ? [category.id] : [];
+          return category &&
+            (!accessibleCategoryIds || accessibleCategoryIds.has(category.id))
+            ? [category.id]
+            : [];
         }),
-    [categories, data.categories, excludedCategories],
+    [accessibleCategoryIds, categories, data.categories, excludedCategories],
   );
   const categoryNames = useCallback(
     (ids: string[]) =>
@@ -675,7 +706,7 @@ export function TaskApp({
           />
           <TaskFilters
             options={{
-              categories: data.categories,
+              categories: accessibleCategories,
               currentProfileId: data.currentProfile.id,
               profiles: data.profiles,
               projects: data.projects,

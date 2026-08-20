@@ -2,6 +2,33 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AccessPreview } from "./workspace-types";
 import { requireQueryData, requireQueryResult } from "./workspace-loader";
 
+type PreviewCategory = {
+  id: string;
+  access_mode: "open" | "restricted";
+};
+
+type PreviewCategoryGrant = { category_id: string; group_id: string };
+
+export function accessibleCategoryIdsForPreview(
+  categories: PreviewCategory[],
+  grants: PreviewCategoryGrant[],
+  groupIds: string[],
+  hasGlobalAccess: boolean,
+) {
+  if (hasGlobalAccess) return categories.map((category) => category.id);
+  const grantedCategoryIds = new Set(
+    grants
+      .filter((grant) => groupIds.includes(grant.group_id))
+      .map((grant) => grant.category_id),
+  );
+  return categories
+    .filter(
+      (category) =>
+        category.access_mode === "open" || grantedCategoryIds.has(category.id),
+    )
+    .map((category) => category.id);
+}
+
 async function resolveCategoryAccess(
   supabase: SupabaseClient,
   groupIds: string[],
@@ -9,7 +36,7 @@ async function resolveCategoryAccess(
 ) {
   const [categoriesResult, grantsResult, taskCategoriesResult] =
     await Promise.all([
-      supabase.from("work_groups").select("id"),
+      supabase.from("work_groups").select("id, access_mode"),
       supabase.from("category_group_grants").select("category_id, group_id"),
       supabase.from("task_categories").select("task_id, category_id"),
     ]);
@@ -19,25 +46,12 @@ async function resolveCategoryAccess(
     "preview task categories",
     taskCategoriesResult,
   );
-  const accessibleCategoryIds = hasGlobalAccess
-    ? categories.map((category) => category.id)
-    : (() => {
-        const restrictedCategoryIds = new Set(
-          grants.map((grant) => grant.category_id),
-        );
-        const grantedCategoryIds = new Set(
-          grants
-            .filter((grant) => groupIds.includes(grant.group_id))
-            .map((grant) => grant.category_id),
-        );
-        return categories
-          .filter(
-            (category) =>
-              !restrictedCategoryIds.has(category.id) ||
-              grantedCategoryIds.has(category.id),
-          )
-          .map((category) => category.id);
-      })();
+  const accessibleCategoryIds = accessibleCategoryIdsForPreview(
+    categories,
+    grants,
+    groupIds,
+    hasGlobalAccess,
+  );
   const accessibleCategoryIdSet = new Set(accessibleCategoryIds);
   return {
     accessibleCategoryIds,
@@ -199,11 +213,7 @@ export async function resolveAccessPreview(
     );
     projectIds = [...new Set(grants.map((grant) => grant.project_id))];
   }
-  const categoryAccess = await resolveCategoryAccess(
-    supabase,
-    groupIds,
-    false,
-  );
+  const categoryAccess = await resolveCategoryAccess(supabase, groupIds, false);
   return {
     preview: {
       kind: "user",

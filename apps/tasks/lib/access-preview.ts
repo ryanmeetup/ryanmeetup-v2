@@ -1,7 +1,4 @@
-import type {
-  AccessPreview,
-  WorkspaceData,
-} from "./workspace-types";
+import type { AccessPreview, WorkspaceData } from "./workspace-types";
 
 export const ACCESS_PREVIEW_PARAM = "viewAsGroup";
 export const USER_ACCESS_PREVIEW_PARAM = "viewAsUser";
@@ -33,6 +30,9 @@ export function applyAccessPreview(
   projectIds: string[],
 ): WorkspaceData {
   const visibleProjectIds = new Set(projectIds);
+  const visibleCategoryIds = new Set(
+    preview.accessibleCategoryIds ?? data.categories.map(({ id }) => id),
+  );
   const projects = data.projects.filter((project) =>
     visibleProjectIds.has(project.id),
   );
@@ -52,6 +52,7 @@ export function applyAccessPreview(
         ? preview.subjectProfile
         : { ...data.currentProfile, favorite_project_ids: [] },
     projects,
+    categories: data.categories,
     tasks,
     subtasks: data.subtasks.filter((item) => visibleTaskIds.has(item.task_id)),
     comments: data.comments.filter((item) => visibleTaskIds.has(item.task_id)),
@@ -72,6 +73,9 @@ export function applyAccessPreview(
     ),
     projectOwners: data.projectOwners.filter((item) =>
       visibleProjectIds.has(item.project_id),
+    ),
+    categoryOwners: data.categoryOwners.filter((item) =>
+      visibleCategoryIds.has(item.category_id),
     ),
   };
 }

@@ -78,6 +78,7 @@ type TaskEditorProps =
       workspace: TaskEditorWorkspace;
       onDelete: (task: Task) => void;
       showSupplementalDetails?: boolean;
+      showTaskPageLink?: boolean;
     }
   | {
       modal: TaskEditorModalState;
@@ -85,6 +86,7 @@ type TaskEditorProps =
       workspace: TaskEditorWorkspace;
       mode: TaskEditorMode;
       showSupplementalDetails?: boolean;
+      showTaskPageLink?: boolean;
     };
 
 export function TaskEditor(props: TaskEditorProps) {
@@ -101,6 +103,7 @@ export function TaskEditor(props: TaskEditorProps) {
   const { statuses, data, setData, demoMode } = workspace;
   const editing = mode.kind === "edit" ? mode.task : null;
   const showSupplementalDetails = props.showSupplementalDetails ?? true;
+  const showTaskPageLink = props.showTaskPageLink ?? true;
   const supplementalDetailsOpen = showSupplementalDetails && detailsOpen;
   async function copyTaskLink() {
     if (!editing) return;
@@ -165,13 +168,15 @@ export function TaskEditor(props: TaskEditorProps) {
               >
                 <FiLink />
               </IconButton>
-              <IconButton.Link
-                href={taskPath(editing)}
-                label="View task page"
-                size="md"
-              >
-                <FiExternalLink />
-              </IconButton.Link>
+              {showTaskPageLink && (
+                <IconButton.Link
+                  href={taskPath(editing)}
+                  label="View task page"
+                  size="md"
+                >
+                  <FiExternalLink />
+                </IconButton.Link>
+              )}
               <IconButton
                 type="button"
                 label="Delete task"
@@ -259,6 +264,8 @@ export function TaskEditor(props: TaskEditorProps) {
                   data.currentProfile.favorite_project_ids ?? [],
                 profiles: data.profiles,
                 currentProfileId: data.currentProfile.id,
+                accessibleCategoryIds:
+                  data.accessPreview?.accessibleCategoryIds,
               }}
             />
             {false && (

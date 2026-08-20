@@ -8,16 +8,14 @@ import type { WorkspaceData } from "@/lib/workspace-types";
 
 const baseData = {
   currentProfile: { favorite_project_ids: ["hidden"] },
+  categories: [{ id: "general" }, { id: "restricted" }],
   projects: [{ id: "visible" }, { id: "hidden" }],
   tasks: [
     { id: "visible-task", project_id: "visible" },
     { id: "hidden-task", project_id: "hidden" },
     { id: "shared-task", project_id: null },
   ],
-  subtasks: [
-    { task_id: "visible-task" },
-    { task_id: "hidden-task" },
-  ],
+  subtasks: [{ task_id: "visible-task" }, { task_id: "hidden-task" }],
   comments: [{ task_id: "hidden-task" }],
   activity: [{ task_id: "visible-task" }],
   attachments: [{ task_id: "hidden-task" }],
@@ -27,10 +25,8 @@ const baseData = {
     { task_id: "visible-task", category_id: "general" },
     { task_id: "hidden-task", category_id: "restricted" },
   ],
-  projectOwners: [
-    { project_id: "visible" },
-    { project_id: "hidden" },
-  ],
+  projectOwners: [{ project_id: "visible" }, { project_id: "hidden" }],
+  categoryOwners: [{ category_id: "general" }, { category_id: "restricted" }],
 } as unknown as WorkspaceData;
 
 describe("access preview", () => {
@@ -48,7 +44,10 @@ describe("access preview", () => {
     );
 
     expect(result.projects.map(({ id }) => id)).toEqual(["visible"]);
-    expect(result.tasks.map(({ id }) => id)).toEqual(["visible-task", "shared-task"]);
+    expect(result.tasks.map(({ id }) => id)).toEqual([
+      "visible-task",
+      "shared-task",
+    ]);
     expect(result.subtasks).toHaveLength(1);
     expect(result.comments).toHaveLength(0);
     expect(result.attachments).toHaveLength(0);
@@ -117,12 +116,18 @@ describe("access preview", () => {
         kind: "user",
         subjectId: "user-1",
         subjectName: "User One",
+        accessibleCategoryIds: ["general"],
         inaccessibleTaskIds: ["visible-task"],
       },
       ["visible"],
     );
 
     expect(result.tasks.map(({ id }) => id)).toEqual(["shared-task"]);
+    expect(result.categories.map(({ id }) => id)).toEqual([
+      "general",
+      "restricted",
+    ]);
+    expect(result.categoryOwners).toEqual([{ category_id: "general" }]);
     expect(result.taskCategories).toHaveLength(0);
   });
 });

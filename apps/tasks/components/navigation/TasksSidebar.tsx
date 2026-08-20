@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuItems,
   Pill,
+  Tooltip,
 } from "@ryanmeetup/ui";
 import {
   FiCalendar,
@@ -20,16 +21,45 @@ import {
   FiGrid,
   FiHome,
   FiFileText,
+  FiLock,
   FiPlus,
   FiUsers,
   FiStar,
   FiTag,
   FiX,
 } from "react-icons/fi";
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { WorkspaceData } from "@/lib/workspace-types";
 import { useSidebarSections } from "@/hooks/useSidebarSections";
 import { withAccessPreview } from "@/lib/access-preview";
+
+function SidebarItemLabel({ children }: { children: string }) {
+  const labelRef = useRef<HTMLSpanElement>(null);
+  const [truncated, setTruncated] = useState(false);
+
+  useLayoutEffect(() => {
+    const label = labelRef.current;
+    if (!label) return;
+    const update = () => setTruncated(label.scrollWidth > label.clientWidth);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(label);
+    return () => observer.disconnect();
+  }, [children]);
+
+  return (
+    <Tooltip
+      content={children}
+      disabled={!truncated}
+      placement="right"
+      triggerClassName="min-w-0 flex-1"
+    >
+      <span ref={labelRef} className="block truncate">
+        {children}
+      </span>
+    </Tooltip>
+  );
+}
 
 export function TasksSidebar({
   data,
@@ -57,6 +87,9 @@ export function TasksSidebar({
   const activeCategories = data.categories.filter(
     (category) => !category.archived_at,
   );
+  const accessibleCategoryIds = data.accessPreview?.accessibleCategoryIds
+    ? new Set(data.accessPreview.accessibleCategoryIds)
+    : null;
   const favoriteProjects = activeProjects.filter((project) =>
     (data.currentProfile.favorite_project_ids ?? []).includes(project.id),
   );
@@ -182,10 +215,7 @@ export function TasksSidebar({
         >
           <FiFileText />
           Notes
-          <Pill
-            size="sm"
-            className={newBadgeClass(isNotes)}
-          >
+          <Pill size="sm" className={newBadgeClass(isNotes)}>
             New
           </Pill>
         </Link>
@@ -196,10 +226,7 @@ export function TasksSidebar({
         >
           <FiUsers />
           Contacts
-          <Pill
-            size="sm"
-            className={newBadgeClass(isContacts)}
-          >
+          <Pill size="sm" className={newBadgeClass(isContacts)}>
             New
           </Pill>
         </Link>
@@ -244,14 +271,16 @@ export function TasksSidebar({
                   <FiFolder aria-hidden /> New project
                 </DropdownMenuItem>
               )}
-              {canManageCategories && <DropdownMenuItem
-                onClick={() => {
-                  closeSidebar();
-                  onCreateCategory();
-                }}
-              >
-                <FiTag aria-hidden /> New category
-              </DropdownMenuItem>}
+              {canManageCategories && (
+                <DropdownMenuItem
+                  onClick={() => {
+                    closeSidebar();
+                    onCreateCategory();
+                  }}
+                >
+                  <FiTag aria-hidden /> New category
+                </DropdownMenuItem>
+              )}
             </DropdownMenuItems>
           </DropdownMenu>
         </section>
@@ -301,7 +330,7 @@ export function TasksSidebar({
                     className="shrink-0 text-amber-600 dark:text-amber-300"
                     fill="currentColor"
                   />
-                  <span className="truncate">{project.name}</span>
+                  <SidebarItemLabel>{project.name}</SidebarItemLabel>
                 </Link>
               ))}
             </AnimatedCollapse>
@@ -340,27 +369,57 @@ export function TasksSidebar({
                 No categories yet.
               </p>
             )}
-            {activeCategories.map((category) => (
-              <Link
-                key={category.id}
-                href={boardHref(
-                  isCategorySelected(category.id, category.name)
-                    ? undefined
-                    : { category: category.name },
-                )}
-                onClick={closeSidebar}
-                className={linkClass(
-                  isCategorySelected(category.id, category.name),
-                )}
-              >
-                <span
-                  aria-hidden
-                  className="h-2.5 w-2.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: category.color }}
-                />
-                <span className="truncate">{category.name}</span>
-              </Link>
-            ))}
+            {activeCategories.map((category) => {
+              const accessible =
+                !accessibleCategoryIds ||
+                accessibleCategoryIds.has(category.id);
+              if (!accessible)
+                return (
+                  <Tooltip
+                    key={category.id}
+                    content="You don't have permission to view this category."
+                    placement="right"
+                    triggerClassName="block w-full"
+                  >
+                    <span
+                      aria-disabled="true"
+                      tabIndex={0}
+                      className="sidebar-link cursor-not-allowed opacity-55"
+                    >
+                      <span
+                        aria-hidden
+                        className="h-2.5 w-2.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: category.color }}
+                      />
+                      <span className="min-w-0 flex-1 truncate">
+                        {category.name}
+                      </span>
+                      <FiLock aria-hidden className="ml-auto shrink-0" />
+                    </span>
+                  </Tooltip>
+                );
+              return (
+                <Link
+                  key={category.id}
+                  href={boardHref(
+                    isCategorySelected(category.id, category.name)
+                      ? undefined
+                      : { category: category.name },
+                  )}
+                  onClick={closeSidebar}
+                  className={linkClass(
+                    isCategorySelected(category.id, category.name),
+                  )}
+                >
+                  <span
+                    aria-hidden
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: category.color }}
+                  />
+                  <SidebarItemLabel>{category.name}</SidebarItemLabel>
+                </Link>
+              );
+            })}
           </AnimatedCollapse>
         </section>
         <section className="pb-2">
@@ -410,7 +469,7 @@ export function TasksSidebar({
                 )}
               >
                 <FiFolder className="shrink-0" />
-                <span className="truncate">{project.name}</span>
+                <SidebarItemLabel>{project.name}</SidebarItemLabel>
               </Link>
             ))}
           </AnimatedCollapse>
