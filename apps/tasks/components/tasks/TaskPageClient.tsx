@@ -8,13 +8,17 @@ import {
   Button,
   Card,
   ConfirmationDialog,
+  DropdownMenu,
+  DropdownMenuButton,
+  DropdownMenuItem,
+  DropdownMenuItems,
+  DropdownMenuSeparator,
   FormattedText,
   toast,
 } from "@ryanmeetup/ui";
 import {
   FiActivity,
   FiCalendar,
-  FiCheck,
   FiCheckSquare,
   FiClock,
   FiColumns,
@@ -22,6 +26,8 @@ import {
   FiFlag,
   FiFolder,
   FiLink,
+  FiMoreHorizontal,
+  FiTrash2,
   FiUser,
   FiUserCheck,
 } from "react-icons/fi";
@@ -66,8 +72,6 @@ export function TaskPageClient({
   const [taskMessage, setTaskMessage] = useState("");
   const [taskPendingDelete, setTaskPendingDelete] = useState<Task | null>(null);
   const [taskDeleting, setTaskDeleting] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
-  const copyConfirmationTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
   const conversationTopRef = useRef<HTMLDivElement>(null);
   const [conversationHeight, setConversationHeight] = useState<number>();
   const task =
@@ -77,15 +81,6 @@ export function TaskPageClient({
   useEffect(() => {
     document.title = `${taskKey(task)}: ${task.title} | Ryan Meetup Tasks`;
   }, [task]);
-
-  useEffect(
-    () => () => {
-      if (copyConfirmationTimerRef.current) {
-        clearTimeout(copyConfirmationTimerRef.current);
-      }
-    },
-    [],
-  );
 
   const status = data.statuses.find((item) => item.id === task.status_id);
   const project = data.projects.find((item) => item.id === task.project_id);
@@ -177,14 +172,6 @@ export function TaskPageClient({
       await navigator.clipboard.writeText(
         new URL(taskPath(task!), window.location.origin).toString(),
       );
-      setLinkCopied(true);
-      if (copyConfirmationTimerRef.current) {
-        clearTimeout(copyConfirmationTimerRef.current);
-      }
-      copyConfirmationTimerRef.current = setTimeout(() => {
-        setLinkCopied(false);
-        copyConfirmationTimerRef.current = null;
-      }, 2000);
       toast.success(`${taskKey(task!)} link copied.`);
     } catch {
       toast.error("The task link could not be copied.");
@@ -201,65 +188,55 @@ export function TaskPageClient({
         setData={setData}
         contentClassName="mx-4 min-w-0 max-w-6xl space-y-5 py-4 sm:mx-6 sm:space-y-6 sm:py-6 lg:mx-8 lg:py-8 2xl:mx-auto"
       >
-          <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-5">
-            <div className="min-w-0 flex-1">
-              <Breadcrumbs
-                className="mb-2"
-                crumbs={[
-                  {
-                    current: false,
-                    href: withAccessPreview("/board", data.accessPreview),
-                    icon: <FiColumns aria-hidden className="mr-2 shrink-0" />,
-                    title: "Board",
-                  },
-                  {
-                    current: true,
-                    href: withAccessPreview(taskPath(task), data.accessPreview),
-                    icon: (
-                      <FiCheckSquare aria-hidden className="mr-2 shrink-0" />
-                    ),
-                    title: taskKey(task),
-                  },
-                ]}
-              />
-              <h1 className="break-words text-3xl font-bold leading-tight sm:text-4xl">
+          <div className="min-w-0 space-y-2">
+            <Breadcrumbs
+              crumbs={[
+                {
+                  current: false,
+                  href: withAccessPreview("/board", data.accessPreview),
+                  icon: <FiColumns aria-hidden className="mr-2 shrink-0" />,
+                  title: "Board",
+                },
+                {
+                  current: true,
+                  href: withAccessPreview(taskPath(task), data.accessPreview),
+                  icon: (
+                    <FiCheckSquare aria-hidden className="mr-2 shrink-0" />
+                  ),
+                  title: taskKey(task),
+                },
+              ]}
+            />
+            <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] items-start gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] xl:gap-6">
+              <h1 className="min-w-0 break-words text-3xl font-bold leading-tight sm:text-4xl">
                 {task.title}
               </h1>
-            </div>
-            <div className="grid shrink-0 grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                className={`transition-none w-full sm:w-auto ${
-                  linkCopied
-                    ? "border-emerald-500/60 bg-emerald-50 text-emerald-700 shadow-sm hover:border-emerald-500/60 hover:bg-emerald-50 dark:border-emerald-400/50 dark:bg-emerald-400/15 dark:text-emerald-300 dark:hover:border-emerald-400/50 dark:hover:bg-emerald-400/15"
-                    : ""
-                }`}
-                leftIcon={
-                  linkCopied ? (
-                    <FiCheck
-                      aria-hidden
-                      className="text-emerald-600 motion-safe:animate-bounce dark:text-emerald-300"
-                    />
-                  ) : (
-                    <FiLink aria-hidden />
-                  )
-                }
-                onClick={copyLink}
-              >
-                <span aria-live="polite">
-                  {linkCopied ? "Copied!" : "Copy link"}
-                </span>
-              </Button>
-              <Button
-                size="sm"
-                className="w-full sm:w-auto"
-                leftIcon={<FiEdit3 />}
-                onClick={openEditor}
-              >
-                Edit task
-              </Button>
+              <div className="flex shrink-0 items-center gap-2 sm:justify-self-end xl:w-full xl:self-end xl:justify-end">
+                <Button size="sm" leftIcon={<FiEdit3 />} onClick={openEditor}>
+                  Edit task
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuButton
+                    unstyled
+                    aria-label="More task actions"
+                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-black/10 text-black transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:border-white/10 dark:text-white dark:hover:bg-white/10 dark:focus-visible:ring-white/30"
+                  >
+                    <FiMoreHorizontal aria-hidden />
+                  </DropdownMenuButton>
+                  <DropdownMenuItems align="end">
+                    <DropdownMenuItem onClick={copyLink}>
+                      <FiLink aria-hidden /> Copy link
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      destructive
+                      onClick={() => setTaskPendingDelete(task)}
+                    >
+                      <FiTrash2 aria-hidden /> Delete task
+                    </DropdownMenuItem>
+                  </DropdownMenuItems>
+                </DropdownMenu>
+              </div>
             </div>
           </div>
 
@@ -473,6 +450,7 @@ export function TaskPageClient({
 
       <TaskEditor
         showSupplementalDetails={false}
+        showTaskPageLink={false}
         modal={{
           open: taskOpen,
           setOpen: setTaskOpen,
