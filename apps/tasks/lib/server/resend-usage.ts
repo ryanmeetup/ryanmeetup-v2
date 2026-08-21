@@ -1,26 +1,16 @@
-export type ResendQuota = {
-  used: number;
-  limit: number;
-  estimated: boolean;
-};
+import type {
+  ResendEmailDetail,
+  ResendEmailSummary,
+  ResendQuota,
+  ResendUsage,
+} from "@/lib/usage/resend-usage-types";
 
-export type ResendEmailSummary = {
-  id: string;
-  subject: string;
-  createdAt: string;
-  recipientCount: number;
-  recipients: string[];
-  lastEvent: string;
-};
-
-export type ResendUsage = {
-  status: "available" | "unconfigured" | "unavailable";
-  daily: ResendQuota | null;
-  monthly: ResendQuota | null;
-  recentEmails: ResendEmailSummary[];
-  checkedAt: string;
-  message?: string;
-};
+export type {
+  ResendEmailDetail,
+  ResendEmailSummary,
+  ResendQuota,
+  ResendUsage,
+} from "@/lib/usage/resend-usage-types";
 
 type ResendEmailResponse = {
   has_more?: boolean;
@@ -32,7 +22,22 @@ type ResendEmailResponse = {
     cc?: unknown;
     bcc?: unknown;
     last_event?: unknown;
+    scheduled_at?: unknown;
   }>;
+};
+
+type ResendEmailDetailResponse = {
+  id?: unknown;
+  subject?: unknown;
+  created_at?: unknown;
+  from?: unknown;
+  to?: unknown;
+  cc?: unknown;
+  bcc?: unknown;
+  last_event?: unknown;
+  scheduled_at?: unknown;
+  html?: unknown;
+  text?: unknown;
 };
 
 const positiveInteger = (value: string | undefined, fallback: number) => {
@@ -92,9 +97,97 @@ function parseRecentEmails(payload: ResendEmailResponse): ResendEmailSummary[] {
         recipientCount: recipients.length,
         recipients: [...new Set(recipients)],
         lastEvent: email.last_event,
+        scheduledAt:
+          typeof email.scheduled_at === "string" ? email.scheduled_at : null,
       },
     ];
   });
+}
+
+function parseEmailDetail(
+  email: ResendEmailDetailResponse,
+): ResendEmailDetail | null {
+  if (
+    typeof email.id !== "string" ||
+    typeof email.subject !== "string" ||
+    typeof email.created_at !== "string" ||
+    typeof email.from !== "string" ||
+    typeof email.last_event !== "string"
+  ) {
+    return null;
+  }
+  const recipients = [
+    ...addresses(email.to),
+    ...addresses(email.cc),
+    ...addresses(email.bcc),
+  ];
+  return {
+    id: email.id,
+    subject: email.subject,
+    createdAt: email.created_at,
+    from: email.from,
+    recipientCount: recipients.length,
+    recipients: [...new Set(recipients)],
+    lastEvent: email.last_event,
+    scheduledAt:
+      typeof email.scheduled_at === "string" ? email.scheduled_at : null,
+    html: typeof email.html === "string" ? email.html : null,
+    text: typeof email.text === "string" ? email.text : null,
+  };
+}
+
+export async function getResendEmail(
+  emailId: string,
+): Promise<ResendEmailDetail | null> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return null;
+  const response = await fetch(
+    `https://api.resend.com/emails/${encodeURIComponent(emailId)}`,
+    {
+      headers: {
+        authorization: `Bearer ${apiKey}`,
+        "user-agent": "ryan-meetup-tasks/1.0",
+      },
+      cache: "no-store",
+    },
+  );
+  if (!response.ok) return null;
+  return parseEmailDetail(
+    (await response.json()) as ResendEmailDetailResponse,
+  );
+}
+
+async function mutateScheduledResendEmail(
+  emailId: string,
+  path: "" | "/cancel",
+  init: RequestInit,
+) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return false;
+  const response = await fetch(
+    `https://api.resend.com/emails/${encodeURIComponent(emailId)}${path}`,
+    {
+      ...init,
+      headers: {
+        authorization: `Bearer ${apiKey}`,
+        "content-type": "application/json",
+        "user-agent": "ryan-meetup-tasks/1.0",
+      },
+      cache: "no-store",
+    },
+  );
+  return response.ok;
+}
+
+export async function delayResendEmail(emailId: string, scheduledAt: string) {
+  return mutateScheduledResendEmail(emailId, "", {
+    method: "PATCH",
+    body: JSON.stringify({ scheduled_at: scheduledAt }),
+  });
+}
+
+export async function cancelResendEmail(emailId: string) {
+  return mutateScheduledResendEmail(emailId, "/cancel", { method: "POST" });
 }
 
 const waitForResendRateLimit = () =>
@@ -119,6 +212,8 @@ function estimatedQuota(
   limit: number,
 ): ResendQuota {
   const used = emails.reduce((total, email) => {
+    if (email.last_event === "scheduled" || email.last_event === "canceled")
+      return total;
     const createdAt =
       typeof email.created_at === "string"
         ? new Date(email.created_at).getTime()
@@ -213,7 +308,7 @@ export async function getResendUsage(): Promise<ResendUsage> {
       message:
         dailyHeader && monthlyHeader
           ? undefined
-          : "Resend does not expose quota totals on this request, so usage is estimated from sent email history.",
+          : "Resend does not expose quota totals on this request, so rolling 24-hour and calendar-month usage are estimated from sent email history.",
     };
   } catch {
     return {

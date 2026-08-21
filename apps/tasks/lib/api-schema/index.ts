@@ -175,6 +175,13 @@ export function userDeleteSchema(value: unknown) {
   return userId ? { userId } : null;
 }
 
+export function scheduledEmailActionSchema(value: unknown) {
+  const body = objectWithKeys(value, ["action"]);
+  return body?.action === "delay" || body?.action === "cancel"
+    ? { action: body.action }
+    : null;
+}
+
 export function profileSchema(value: unknown) {
   const body = objectWithKeys(value, [
     "displayName",

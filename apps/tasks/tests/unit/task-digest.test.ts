@@ -6,6 +6,7 @@ import {
 } from "@/lib/tasks/task-digest";
 import {
   renderTaskDigestEmail,
+  sendTaskDigestEmail,
   timeOfDay,
 } from "@/lib/server/task-digest-email";
 
@@ -21,7 +22,10 @@ const task = (
   ...values,
 });
 
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+});
 
 describe("task workload digests", () => {
   it("uses the recipient workspace time for greetings", () => {
@@ -121,5 +125,37 @@ describe("task workload digests", () => {
     expect(html).toContain("📁&nbsp; tasks.ryanmeetup.com");
     expect(html).toContain("📅&nbsp; Due Aug 20");
     expect(html).not.toContain("&nbsp; · &nbsp;");
+  });
+
+  it("submits digests to Resend with a scheduled review window", async () => {
+    vi.stubEnv("RESEND_API_KEY", "re_test");
+    vi.stubEnv("TASK_DIGEST_FROM_EMAIL", "Tasks <tasks@example.com>");
+    vi.stubEnv("TASKS_APP_URL", "https://tasks.ryanmeetup.com");
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify({ id: "email-1" })));
+    vi.stubGlobal("fetch", fetchMock);
+    const scheduledAt = "2026-08-21T13:30:00.000Z";
+
+    await sendTaskDigestEmail({
+      digest: {
+        overdue: [task({ id: "1", task_number: 1, title: "Review me" })],
+        dueToday: [],
+        upcoming: [],
+        highPriority: [],
+        recentlyUpdated: [],
+      },
+      digestDate: "2026-08-21",
+      profileId: "profile-1",
+      recipientName: "Ryan",
+      to: "ryan@example.com",
+      scheduledAt,
+    });
+
+    const [, request] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(request.body as string)).toMatchObject({
+      to: ["ryan@example.com"],
+      scheduled_at: scheduledAt,
+    });
   });
 });

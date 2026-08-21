@@ -7,6 +7,7 @@ import { buildTaskDigest, taskDigestCount } from "@/lib/tasks/task-digest";
 export const runtime = "nodejs";
 
 const DAILY_RECIPIENT_CAP = 90;
+const DEFAULT_REVIEW_MINUTES = 30;
 const digestDateFormatter = new Intl.DateTimeFormat("en-CA", {
   timeZone: "America/New_York",
   year: "numeric",
@@ -21,6 +22,13 @@ function currentDigestDate() {
       .map((part) => [part.type, part.value]),
   );
   return `${parts.get("year")}-${parts.get("month")}-${parts.get("day")}`;
+}
+
+function reviewMinutes() {
+  const configured = Number(process.env.TASK_DIGEST_REVIEW_MINUTES);
+  return Number.isInteger(configured) && configured >= 5 && configured <= 1440
+    ? configured
+    : DEFAULT_REVIEW_MINUTES;
 }
 
 function firstRelation<T>(value: T | T[] | null): T | null {
@@ -73,7 +81,10 @@ export async function GET(request: Request) {
     );
 
   const digestDate = currentDigestDate();
-  let sent = 0;
+  const scheduledAt = new Date(
+    Date.now() + reviewMinutes() * 60 * 1000,
+  ).toISOString();
+  let scheduled = 0;
   let skipped = 0;
   let failed = 0;
   let attempted = 0;
@@ -106,8 +117,9 @@ export async function GET(request: Request) {
         profileId: profile.id,
         recipientName: profile.full_name,
         to: user.data.user.email,
+        scheduledAt,
       });
-      sent += 1;
+      scheduled += 1;
     } catch (error) {
       console.error("[task-digests.send]", {
         profileId: profile.id,
@@ -117,5 +129,5 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json({ sent, skipped, failed });
+  return NextResponse.json({ scheduled, scheduledAt, skipped, failed });
 }

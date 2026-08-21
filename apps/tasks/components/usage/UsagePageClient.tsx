@@ -1,8 +1,16 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card, Heading, Kicker, Pill, Text } from "@ryanmeetup/ui";
+import {
+  Button,
+  Card,
+  Heading,
+  Kicker,
+  Pill,
+  Text,
+  toast,
+} from "@ryanmeetup/ui";
 import {
   FiActivity,
   FiCheckCircle,
@@ -11,7 +19,7 @@ import {
   FiRefreshCw,
 } from "react-icons/fi";
 import { WorkspacePageShell } from "@/components/global";
-import type { ResendQuota, ResendUsage } from "@/lib/server/resend-usage";
+import type { ResendQuota, ResendUsage } from "@/lib/usage/resend-usage-types";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { RecentEmailTable } from "./RecentEmailTable";
 
@@ -112,6 +120,7 @@ export function UsagePageClient({
   const [data, setData] = useState(initialData);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [refreshing, startRefresh] = useTransition();
+  const wasRefreshing = useRef(false);
   const router = useRouter();
   const statusLabel =
     usage.status === "available"
@@ -119,6 +128,17 @@ export function UsagePageClient({
       : usage.status === "unconfigured"
         ? "Setup needed"
         : "Unavailable";
+
+  useEffect(() => {
+    if (wasRefreshing.current && !refreshing) {
+      if (usage.status === "unavailable") {
+        toast.error(usage.message ?? "Usage could not be refreshed.");
+      } else {
+        toast.success("Usage refreshed.");
+      }
+    }
+    wasRefreshing.current = refreshing;
+  }, [refreshing, usage.message, usage.status]);
 
   return (
     <WorkspacePageShell
@@ -193,7 +213,7 @@ export function UsagePageClient({
           )}
 
           <div className="grid gap-4 md:grid-cols-2">
-            <QuotaCard label="Today" quota={usage.daily} />
+            <QuotaCard label="Last 24 hours" quota={usage.daily} />
             <QuotaCard label="This month" quota={usage.monthly} />
           </div>
 

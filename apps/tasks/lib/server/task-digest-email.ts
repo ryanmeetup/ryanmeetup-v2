@@ -111,6 +111,7 @@ export async function sendTaskDigestEmail({
   recipientName,
   to,
   idempotencyKey,
+  scheduledAt,
 }: {
   digest: TaskDigest;
   digestDate: string;
@@ -118,6 +119,7 @@ export async function sendTaskDigestEmail({
   recipientName: string;
   to: string;
   idempotencyKey?: string;
+  scheduledAt?: string;
 }) {
   const apiKey = process.env.RESEND_API_KEY;
   const from =
@@ -127,7 +129,11 @@ export async function sendTaskDigestEmail({
   if (!apiKey || !from) throw new Error("Task digest email is not configured.");
 
   const count = taskDigestCount(digest);
-  const html = renderTaskDigestEmail(digest, recipientName);
+  const html = renderTaskDigestEmail(
+    digest,
+    recipientName,
+    scheduledAt ? new Date(scheduledAt) : new Date(),
+  );
   const plainTextTasks = Object.entries(digest)
     .filter(([, tasks]) => tasks.length)
     .map(
@@ -154,6 +160,7 @@ export async function sendTaskDigestEmail({
       subject: `${count} task${count === 1 ? "" : "s"} in your Ryan Meetup rundown`,
       html,
       text: `Your Ryan Meetup Tasks rundown\n\n${plainTextTasks}\n\nOpen your board: ${tasksAppUrl("/board")}`,
+      ...(scheduledAt ? { scheduled_at: scheduledAt } : {}),
     }),
   });
   if (!response.ok) {

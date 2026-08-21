@@ -1,47 +1,55 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useSearchFilter } from "@ryanmeetup/hooks";
-import { Card, EmptyState, Input, Pagination, Pill } from "@ryanmeetup/ui";
+import { Card, EmptyState, Input, Pagination } from "@ryanmeetup/ui";
 import { FiLoader, FiSearch } from "react-icons/fi";
 import { usePagination } from "@/hooks/usePagination";
-import type { ResendEmailSummary } from "@/lib/server/resend-usage";
+import type { ResendEmailSummary } from "@/lib/usage/resend-usage-types";
+import { EmailDetailModal } from "./EmailDetailModal";
+import { EmailStatusBadge, emailStatusLabel } from "./EmailStatusBadge";
 
 const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",
   timeStyle: "short",
 });
 
-const eventLabels: Record<string, string> = {
-  bounced: "Bounced",
-  canceled: "Canceled",
-  clicked: "Clicked",
-  complained: "Complained",
-  delivered: "Delivered",
-  delivery_delayed: "Delayed",
-  failed: "Failed",
-  opened: "Opened",
-  queued: "Queued",
-  scheduled: "Scheduled",
-  sent: "Sent",
-  suppressed: "Suppressed",
-};
-
-const eventLabel = (event: string) =>
-  eventLabels[event] ?? event.replaceAll("_", " ");
-
 const emailSearchText = (email: ResendEmailSummary) =>
   [
     email.subject,
     email.lastEvent,
-    eventLabel(email.lastEvent),
+    emailStatusLabel(email.lastEvent),
     dateTimeFormatter.format(new Date(email.createdAt)),
+    email.scheduledAt
+      ? dateTimeFormatter.format(new Date(email.scheduledAt))
+      : "",
     email.recipients.join(" "),
   ]
     .join(" ")
     .toLowerCase();
 
+const emailTiming = (email: ResendEmailSummary) => {
+  if (email.lastEvent === "scheduled" && email.scheduledAt) {
+    return {
+      dateTime: email.scheduledAt,
+      label: `Scheduled ${dateTimeFormatter.format(new Date(email.scheduledAt))}`,
+    };
+  }
+  if (email.lastEvent === "canceled" && email.scheduledAt) {
+    return {
+      dateTime: email.scheduledAt,
+      label: `Canceled before ${dateTimeFormatter.format(new Date(email.scheduledAt))}`,
+    };
+  }
+  return {
+    dateTime: email.createdAt,
+    label: dateTimeFormatter.format(new Date(email.createdAt)),
+  };
+};
+
 export function RecentEmailTable({ emails }: { emails: ResendEmailSummary[] }) {
+  const [selectedEmail, setSelectedEmail] =
+    useState<ResendEmailSummary | null>(null);
   const { query, setQuery, filtered, isPending } = useSearchFilter({
     data: emails,
     buildHaystack: emailSearchText,
@@ -111,14 +119,20 @@ export function RecentEmailTable({ emails }: { emails: ResendEmailSummary[] }) {
             {visibleEmails.map((email) => (
               <article key={email.id} className="space-y-3 p-4">
                 <div className="flex items-start justify-between gap-3">
-                  <p className="min-w-0 font-semibold">{email.subject}</p>
-                  <Pill size="sm" variant="neutral" className="shrink-0">
-                    {eventLabel(email.lastEvent)}
-                  </Pill>
+                  <button
+                    type="button"
+                    className="min-w-0 text-left font-semibold underline decoration-black/20 underline-offset-4 transition hover:decoration-black focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/70 dark:decoration-white/25 dark:hover:decoration-white dark:focus-visible:ring-white/70"
+                    onClick={() => setSelectedEmail(email)}
+                  >
+                    {email.subject}
+                  </button>
+                  <span className="shrink-0">
+                    <EmailStatusBadge status={email.lastEvent} />
+                  </span>
                 </div>
                 <div className="flex flex-wrap justify-between gap-2 text-xs text-black/55 dark:text-white/55">
-                  <time dateTime={email.createdAt}>
-                    {dateTimeFormatter.format(new Date(email.createdAt))}
+                  <time dateTime={emailTiming(email).dateTime}>
+                    {emailTiming(email).label}
                   </time>
                   <span className="break-all text-right">
                     {email.recipients.join(", ") || "Recipient unavailable"}
@@ -152,7 +166,7 @@ export function RecentEmailTable({ emails }: { emails: ResendEmailSummary[] }) {
                   <th className="px-4 py-3 font-semibold">Subject</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
                   <th className="px-4 py-3 font-semibold">Recipients</th>
-                  <th className="px-4 py-3 font-semibold">Sent</th>
+                  <th className="px-4 py-3 font-semibold">Timing</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-black/10 dark:divide-white/10">
@@ -162,12 +176,17 @@ export function RecentEmailTable({ emails }: { emails: ResendEmailSummary[] }) {
                     className="transition hover:bg-black/[0.025] dark:hover:bg-white/[0.025]"
                   >
                     <td className="px-4 py-3 font-semibold">
-                      <span className="block truncate">{email.subject}</span>
+                      <button
+                        type="button"
+                        className="block max-w-full truncate text-left underline decoration-black/20 underline-offset-4 transition hover:decoration-black focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/70 dark:decoration-white/25 dark:hover:decoration-white dark:focus-visible:ring-white/70"
+                        title={email.subject}
+                        onClick={() => setSelectedEmail(email)}
+                      >
+                        {email.subject}
+                      </button>
                     </td>
                     <td className="px-4 py-3">
-                      <Pill size="sm" variant="neutral">
-                        {eventLabel(email.lastEvent)}
-                      </Pill>
+                      <EmailStatusBadge status={email.lastEvent} />
                     </td>
                     <td className="px-4 py-3 text-black/65 dark:text-white/65">
                       <span className="block break-all">
@@ -175,8 +194,8 @@ export function RecentEmailTable({ emails }: { emails: ResendEmailSummary[] }) {
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-black/55 dark:text-white/55">
-                      <time dateTime={email.createdAt}>
-                        {dateTimeFormatter.format(new Date(email.createdAt))}
+                      <time dateTime={emailTiming(email).dateTime}>
+                        {emailTiming(email).label}
                       </time>
                     </td>
                   </tr>
@@ -209,6 +228,14 @@ export function RecentEmailTable({ emails }: { emails: ResendEmailSummary[] }) {
           />
         </Card>
       </div>
+
+      {selectedEmail && (
+        <EmailDetailModal
+          key={selectedEmail.id}
+          email={selectedEmail}
+          onClose={() => setSelectedEmail(null)}
+        />
+      )}
     </section>
   );
 }
