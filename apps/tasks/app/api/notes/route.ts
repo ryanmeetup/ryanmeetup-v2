@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { noteColumns } from "@/lib/notes";
+import { noteColumns } from "@/lib/resources/notes";
 import { databaseFailure } from "@/lib/server/api-response";
 import { authorize } from "@/lib/server/auth";
 import { readJson } from "@/lib/server/request";
-import { recordWorkspaceActivity } from "@/lib/privileged-api";
-import { noteTitle } from "@/lib/notes";
+import { recordWorkspaceActivity } from "@/lib/server/privileged-api";
+import { noteTitle } from "@/lib/resources/notes";
 
 function text(value: unknown, max: number) {
   if (typeof value !== "string") return null;

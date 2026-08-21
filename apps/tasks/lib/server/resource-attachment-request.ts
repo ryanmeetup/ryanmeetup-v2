@@ -1,4 +1,4 @@
-import { MAX_ATTACHMENT_SIZE } from "@/lib/task-attachments";
+import { MAX_ATTACHMENT_SIZE } from "@/lib/tasks/task-attachments";
 
 export type AttachmentResource = {
   kind: "category" | "project";

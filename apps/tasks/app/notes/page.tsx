@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { NotesPageClient } from "@/components/notes";
-import { demoData } from "@/lib/demo-data";
-import { noteColumns, noteCommentColumns } from "@/lib/notes";
-import { requireQueryData } from "@/lib/workspace-loader";
+import { demoData } from "@/lib/workspace/demo-data";
+import { noteColumns, noteCommentColumns } from "@/lib/resources/notes";
+import { requireQueryData } from "@/lib/server/workspace-loader";
 import {
   isWorkspaceDemo,
   loadWorkspacePage,

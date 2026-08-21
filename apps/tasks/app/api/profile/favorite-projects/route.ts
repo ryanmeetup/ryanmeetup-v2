@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { apiError, privilegedContext } from "@/lib/privileged-api";
+import { apiError, privilegedContext } from "@/lib/server/privileged-api";
 import { databaseFailure } from "@/lib/server/api-response";
 
 export async function PATCH(request: Request) {

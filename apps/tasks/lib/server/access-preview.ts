@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { AccessPreview } from "./workspace-types";
+import type { AccessPreview } from "@/lib/workspace/workspace-types";
 import { requireQueryData, requireQueryResult } from "./workspace-loader";
 
 type PreviewCategory = {

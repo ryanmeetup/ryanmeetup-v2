@@ -12,9 +12,9 @@ import {
   FiUser,
   FiZap,
 } from "react-icons/fi";
-import { withAccessPreview } from "@/lib/access-preview";
+import { withAccessPreview } from "@/lib/access/access-preview";
 import { changelogReleasePath, type ChangelogRelease } from "@/lib/changelog";
-import type { AccessPreview } from "@/lib/workspace-types";
+import type { AccessPreview } from "@/lib/workspace/workspace-types";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",

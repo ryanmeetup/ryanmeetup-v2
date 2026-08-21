@@ -1,8 +1,8 @@
-import { profileDisplayName } from "./presentation";
+import { profileDisplayName } from "@/lib/presentation";
 import { taskActivityLabel, taskStatusChange } from "./task-activity";
-import type { Profile } from "./workspace-types";
-import type { Category, Project } from "./resource-types";
-import type { Status, Task } from "./task-types";
+import type { Profile } from "@/lib/workspace/workspace-types";
+import type { Category, Project } from "@/lib/resources/resource-types";
+import type { Status, Task } from "@/lib/tasks/task-types";
 import type { TaskActivity } from "./activity-types";
 
 export type ActivityDescription =

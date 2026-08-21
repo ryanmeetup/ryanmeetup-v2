@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { hasDraftAutosaveContent } from "@/lib/task-drafts";
-import type { TaskDraft } from "@/lib/task-mutations";
+import { hasDraftAutosaveContent } from "@/lib/tasks/task-drafts";
+import type { TaskDraft } from "@/lib/tasks/task-mutations";
 
 const contextualDraft: TaskDraft = {
   title: "",

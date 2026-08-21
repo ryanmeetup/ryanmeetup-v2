@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accessibleCategoryIdsForPreview } from "@/lib/access-preview-server";
+import { accessibleCategoryIdsForPreview } from "@/lib/server/access-preview";
 
 const categories = [
   { id: "general", access_mode: "open" as const },

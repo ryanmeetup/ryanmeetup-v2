@@ -3,7 +3,7 @@ import { databaseFailure, logServerFailure } from "@/lib/server/api-response";
 import { authorize } from "@/lib/server/auth";
 import {
   detectAttachmentMimeType,
-} from "@/lib/task-attachments";
+} from "@/lib/tasks/task-attachments";
 import {
   attachmentResource,
   parseAttachmentReorder,
@@ -25,7 +25,7 @@ import {
   updateAttachmentOrder,
   updateAttachmentNote,
 } from "@/lib/server/resource-attachment-persistence";
-import { recordWorkspaceActivity } from "@/lib/privileged-api";
+import { recordWorkspaceActivity } from "@/lib/server/privileged-api";
 
 type AttachmentRow = {
   id: string;

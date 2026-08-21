@@ -1,4 +1,4 @@
-import type { Project } from "@/lib/resource-types";
+import type { Project } from "@/lib/resources/resource-types";
 
 export function sortFavoriteProjectsFirst(
   projects: Project[],

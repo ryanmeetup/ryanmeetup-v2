@@ -10,9 +10,9 @@ import {
   Textarea,
 } from "@ryanmeetup/ui";
 import { FiTrash2 } from "react-icons/fi";
-import type { Profile } from "@/lib/workspace-types";
-import type { Project } from "@/lib/resource-types";
-import type { AccessPermission } from "@/lib/access-types";
+import type { Profile } from "@/lib/workspace/workspace-types";
+import type { Project } from "@/lib/resources/resource-types";
+import type { AccessPermission } from "@/lib/access/access-types";
 import { GrantEditor } from "./GrantEditor";
 
 type EditableGroup = { id: string; name: string };

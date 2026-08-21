@@ -31,9 +31,9 @@ import {
   CONTACT_GROUPS,
   type Contact,
   type ContactDraft,
-} from "@/lib/contact-types";
+} from "@/lib/contacts/contact-types";
 import { mutate } from "@/lib/mutation-client";
-import type { WorkspaceData } from "@/lib/workspace-types";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { ContactEditor } from "./ContactEditor";
 
 function contactSearchText(contact: Contact) {

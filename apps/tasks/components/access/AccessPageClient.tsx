@@ -33,18 +33,18 @@ import {
   indexGrantsByGroup,
   indexGroupsByProfile,
   indexMembersByGroup,
-} from "@/lib/access-selectors";
+} from "@/lib/access/access-selectors";
 import { mutate } from "@/lib/mutation-client";
 import { errorMessage } from "@/lib/presentation";
-import { userAccessPreviewHref } from "@/lib/access-preview";
+import { userAccessPreviewHref } from "@/lib/access/access-preview";
 import {
   sortAccessTeam,
   type TeamSortDirection,
   type TeamSortField,
-} from "@/lib/access-team-sort";
+} from "@/lib/access/access-team-sort";
 import { usePagination } from "@/hooks/usePagination";
-import type { Profile, WorkspaceData } from "@/lib/workspace-types";
-import type { Project } from "@/lib/resource-types";
+import type { Profile, WorkspaceData } from "@/lib/workspace/workspace-types";
+import type { Project } from "@/lib/resources/resource-types";
 import { CategoriesModal } from "@/components/categories";
 import { WorkspacePageShell } from "@/components/global";
 import { ProjectsModal } from "@/components/projects";
@@ -64,7 +64,7 @@ import type {
   GroupGrant,
   GroupMember,
   UserAccessMetadata,
-} from "@/lib/access-types";
+} from "@/lib/access/access-types";
 
 const taskSortOptions: {
   label: string;

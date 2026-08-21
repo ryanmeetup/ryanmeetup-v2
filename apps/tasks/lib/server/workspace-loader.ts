@@ -1,11 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { WorkspaceData } from "./workspace-types";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import {
   TASK_ASSIGNEE_COLUMNS,
   TASK_CATEGORY_COLUMNS,
   TASK_COLUMNS,
   TASK_LABEL_COLUMNS,
-} from "./database-shapes";
+} from "@/lib/workspace/database-shapes";
 
 type QueryFailure = {
   code?: string;

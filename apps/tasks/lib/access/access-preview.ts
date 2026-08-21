@@ -1,4 +1,7 @@
-import type { AccessPreview, WorkspaceData } from "./workspace-types";
+import type {
+  AccessPreview,
+  WorkspaceData,
+} from "@/lib/workspace/workspace-types";
 
 export const ACCESS_PREVIEW_PARAM = "viewAsGroup";
 export const USER_ACCESS_PREVIEW_PARAM = "viewAsUser";

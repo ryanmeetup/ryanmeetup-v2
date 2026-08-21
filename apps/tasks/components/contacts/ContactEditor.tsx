@@ -30,8 +30,8 @@ import type {
   Contact,
   ContactDraft,
   ContactDraftPerson,
-} from "@/lib/contact-types";
-import { CONTACT_GROUPS } from "@/lib/contact-types";
+} from "@/lib/contacts/contact-types";
+import { CONTACT_GROUPS } from "@/lib/contacts/contact-types";
 import { CountBadge } from "@/components/global";
 
 const blankPerson = (): ContactDraftPerson => ({

@@ -44,15 +44,15 @@ import {
   type CalendarEventDraft,
   type CalendarEventKind,
   type CalendarItem,
-} from "@/lib/calendar-types";
+} from "@/lib/calendar/calendar-types";
 import { mutate, parseMutationResponse } from "@/lib/mutation-client";
-import { withAccessPreview } from "@/lib/access-preview";
+import { withAccessPreview } from "@/lib/access/access-preview";
 import { profileDisplayName } from "@/lib/presentation";
-import type { WorkspaceData } from "@/lib/workspace-types";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import type {
   GoogleCalendarConnection,
   GoogleCalendarEvent,
-} from "@/lib/google-calendar-types";
+} from "@/lib/calendar/google-calendar-types";
 
 const monthFormatter = new Intl.DateTimeFormat("en-US", {
   month: "long",

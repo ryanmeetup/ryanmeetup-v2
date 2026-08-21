@@ -1,9 +1,9 @@
-import type { AccessPreview } from "@/lib/workspace-types";
-import type { Priority } from "@/lib/task-types";
+import type { AccessPreview } from "@/lib/workspace/workspace-types";
+import type { Priority } from "@/lib/tasks/task-types";
 import {
   categoryTagFilterValue,
   type CategoryTagFilter,
-} from "@/lib/task-filter-values";
+} from "@/lib/tasks/task-filter-values";
 
 export type TaskQueryFilters = {
   statuses: string[];

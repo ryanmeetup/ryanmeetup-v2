@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { Button, DropdownSelect } from "@ryanmeetup/ui";
-import type { Project } from "@/lib/resource-types";
-import type { AccessPermission } from "@/lib/access-types";
+import type { Project } from "@/lib/resources/resource-types";
+import type { AccessPermission } from "@/lib/access/access-types";
 
 export function GrantEditor({
   label,

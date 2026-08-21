@@ -1,6 +1,6 @@
-import type { TaskDraft } from "@/lib/task-mutations";
-import type { NewTaskDetailsDraft, Task } from "@/lib/task-types";
-import type { WorkspaceData } from "@/lib/workspace-types";
+import type { TaskDraft } from "@/lib/tasks/task-mutations";
+import type { NewTaskDetailsDraft, Task } from "@/lib/tasks/task-types";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 
 export function emptyTaskDraft(
   statusId: string,

@@ -25,18 +25,18 @@ import { LatestChangelogCard } from "@/components/changelog";
 import { WorkspacePageShell } from "@/components/global";
 import { ProjectsModal } from "@/components/projects";
 import { NewTaskModal, TaskKeyBadge } from "@/components/tasks";
-import { withAccessPreview } from "@/lib/access-preview";
+import { withAccessPreview } from "@/lib/access/access-preview";
 import type { ChangelogRelease } from "@/lib/changelog";
 import {
   deleteTaskDraft,
   readTaskDrafts,
   taskDraftsChangedEvent,
   type StoredTaskDraft,
-} from "@/lib/task-drafts";
-import type { WorkspaceData } from "@/lib/workspace-types";
-import { taskPath } from "@/lib/task-key";
+} from "@/lib/tasks/task-drafts";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
+import { taskPath } from "@/lib/tasks/task-key";
 import { profileDisplayName } from "@/lib/presentation";
-import { taskStatusChange } from "@/lib/task-activity";
+import { taskStatusChange } from "@/lib/activity/task-activity";
 import {
   boundedWidgetPage,
   DashboardTaskList,

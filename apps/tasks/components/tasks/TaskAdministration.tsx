@@ -18,7 +18,7 @@ import {
   FiTrash2,
   FiX,
 } from "react-icons/fi";
-import type { WorkspaceData } from "@/lib/workspace-types";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { errorMessage } from "@/lib/presentation";
 import { mutate } from "@/lib/mutation-client";
 

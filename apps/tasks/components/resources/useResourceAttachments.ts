@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "@ryanmeetup/ui";
-import { MAX_ATTACHMENT_SIZE } from "@/lib/task-attachments";
-import type { ResourceAttachment } from "@/lib/resource-types";
-import type { ResourceAttachmentDraft } from "@/lib/resource-management";
+import { MAX_ATTACHMENT_SIZE } from "@/lib/tasks/task-attachments";
+import type { ResourceAttachment } from "@/lib/resources/resource-types";
+import type { ResourceAttachmentDraft } from "@/lib/resources/resource-management";
 import {
   appendAttachmentDraft,
   createFileDraft,
@@ -13,7 +13,7 @@ import {
   partitionAttachmentDrafts,
   removeAttachmentDraft,
   type ResourceKind,
-} from "@/lib/resource-attachment-drafts";
+} from "@/lib/resources/resource-attachment-drafts";
 
 export function useResourceAttachments({
   kind,

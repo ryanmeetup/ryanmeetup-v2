@@ -12,8 +12,8 @@ import {
   FiUsers,
 } from "react-icons/fi";
 import { CountBadge } from "@/components/global";
-import type { Category, Project } from "@/lib/resource-types";
-import type { Profile } from "@/lib/workspace-types";
+import type { Category, Project } from "@/lib/resources/resource-types";
+import type { Profile } from "@/lib/workspace/workspace-types";
 import {
   ResourceAttachmentsPreview,
   ResourceLinks,

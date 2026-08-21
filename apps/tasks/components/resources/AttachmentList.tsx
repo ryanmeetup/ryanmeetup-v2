@@ -9,7 +9,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { FormattedText, IconButton } from "@ryanmeetup/ui";
 import { FiEdit2, FiExternalLink, FiFile, FiFileText, FiMove, FiTrash2 } from "react-icons/fi";
 import { formatFileSize } from "@/lib/presentation";
-import type { ResourceAttachmentDraft } from "@/lib/resource-management";
+import type { ResourceAttachmentDraft } from "@/lib/resources/resource-management";
 
 type DropEdge = "before" | "after";
 

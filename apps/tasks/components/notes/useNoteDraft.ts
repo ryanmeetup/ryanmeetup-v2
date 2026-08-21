@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { mutate } from "@/lib/mutation-client";
-import { applyNoteDraft, noteAutosaveDelayMs } from "@/lib/notes";
-import type { Note } from "@/lib/resource-types";
+import { applyNoteDraft, noteAutosaveDelayMs } from "@/lib/resources/notes";
+import type { Note } from "@/lib/resources/resource-types";
 
 export type NoteSaveState = "idle" | "saving" | "saved" | "error";
 

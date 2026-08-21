@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { taskActivityLabel, taskStatusChange } from "@/lib/task-activity";
-import type { Status } from "@/lib/task-types";
-import type { TaskActivity } from "@/lib/activity-types";
+import { taskActivityLabel, taskStatusChange } from "@/lib/activity/task-activity";
+import type { Status } from "@/lib/tasks/task-types";
+import type { TaskActivity } from "@/lib/activity/activity-types";
 
 const statuses = [
   { id: "todo", name: "To do" },

@@ -3,9 +3,9 @@
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { Input, Textarea } from "@ryanmeetup/ui";
 import { ResourceOwnerSelect } from "@/components/global";
-import type { Profile } from "@/lib/workspace-types";
-import type { ResourceLink } from "@/lib/resource-types";
-import type { ResourceAttachmentDraft } from "@/lib/resource-management";
+import type { Profile } from "@/lib/workspace/workspace-types";
+import type { ResourceLink } from "@/lib/resources/resource-types";
+import type { ResourceAttachmentDraft } from "@/lib/resources/resource-management";
 import { ResourceAttachments } from "./ResourceAttachments";
 import { ResourceLinksFields } from "./ResourceLinksFields";
 

@@ -5,9 +5,9 @@ import type {
   Task,
   TaskAssignee,
   TaskCategory,
-} from "@/lib/task-types";
-import type { WorkspaceData } from "@/lib/workspace-types";
-import { withNormalizedTaskSchedule } from "@/lib/task-scheduling";
+} from "@/lib/tasks/task-types";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
+import { withNormalizedTaskSchedule } from "@/lib/tasks/task-scheduling";
 
 export type TaskDraft = Pick<
   Task,

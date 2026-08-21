@@ -1,4 +1,4 @@
-import type { WorkspaceData } from "@/lib/workspace-types";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 
 export type RealtimeRow = Record<string, unknown>;
 export type RealtimePayload = {

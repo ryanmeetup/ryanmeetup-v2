@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { taskCommentSegments } from "@/lib/task-comment-references";
-import type { TaskReference } from "@/lib/task-types";
+import { taskCommentSegments } from "@/lib/tasks/task-comment-references";
+import type { TaskReference } from "@/lib/tasks/task-types";
 
 const tasks = [
   { id: "task-123", task_number: 123, project_id: null },

@@ -3,7 +3,7 @@ import {
   categorySchema,
   projectCreateSchema,
   projectPatchSchema,
-} from "@/lib/api-schemas";
+} from "@/lib/api-schema";
 import { ensureHttpUrlScheme } from "@ryanmeetup/utils";
 
 describe("ensureHttpUrlScheme", () => {

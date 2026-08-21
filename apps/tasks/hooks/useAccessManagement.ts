@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { accessMutation } from "@/lib/access-mutations";
+import { accessMutation } from "@/lib/access/access-mutations";
 import type {
   AccessGroup,
   AccessPermission,
   GroupGrant,
   GroupMember,
-} from "@/lib/access-types";
+} from "@/lib/access/access-types";
 
 export function useAccessManagement({
   initialGroups,

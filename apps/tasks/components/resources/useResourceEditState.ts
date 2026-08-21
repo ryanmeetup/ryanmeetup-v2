@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { ResourceLink } from "@/lib/resource-types";
+import type { ResourceLink } from "@/lib/resources/resource-types";
 
 export type EditableResource = {
   id: string;

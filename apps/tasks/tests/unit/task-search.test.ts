@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { Category, Project } from "@/lib/resource-types";
-import type { Status, Task } from "@/lib/task-types";
-import type { Profile } from "@/lib/workspace-types";
+import type { Category, Project } from "@/lib/resources/resource-types";
+import type { Status, Task } from "@/lib/tasks/task-types";
+import type { Profile } from "@/lib/workspace/workspace-types";
 import {
   findRelatedTaskSearchResults,
   firstRelatedTaskSearchHref,
@@ -10,7 +10,7 @@ import {
   taskSearchAllHref,
   taskSearchFilterHref,
   taskSearchResultHref,
-} from "@/lib/task-search";
+} from "@/lib/tasks/task-search";
 
 const task = (
   id: string,

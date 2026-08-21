@@ -1,5 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Task, TaskAssignee, TaskCategory } from "../../task-types";
+import type {
+  Task,
+  TaskAssignee,
+  TaskCategory,
+} from "@/lib/tasks/task-types";
 import type {
   TaskMoveInput,
   TaskSaveInput,

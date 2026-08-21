@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { FormattedText, Modal } from "@ryanmeetup/ui";
 import { FiFile, FiFileText } from "react-icons/fi";
-import type { ResourceAttachmentDraft } from "@/lib/resource-management";
+import type { ResourceAttachmentDraft } from "@/lib/resources/resource-management";
 
 const pillClassName =
   "inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-full border border-black/10 bg-white/70 px-2.5 py-1.5 text-xs font-semibold text-black/70 transition hover:border-black/20 hover:bg-black/5 hover:text-black focus-visible:outline-2 focus-visible:outline-offset-2 dark:border-white/10 dark:bg-white/5 dark:text-white/70 dark:hover:border-white/20 dark:hover:bg-white/10 dark:hover:text-white";

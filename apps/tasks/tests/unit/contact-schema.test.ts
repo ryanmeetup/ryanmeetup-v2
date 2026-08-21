@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { contactSaveSchema } from "@/lib/contact-schema";
+import { contactSaveSchema } from "@/lib/contacts/contact-schema";
 
 const contact = (contactGroup: unknown) => ({
   displayName: "Fallen Media",

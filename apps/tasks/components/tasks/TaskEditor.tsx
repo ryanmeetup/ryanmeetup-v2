@@ -21,14 +21,14 @@ import {
   FiLink,
   FiTrash2,
 } from "react-icons/fi";
-import type { Priority, Status, Task } from "@/lib/task-types";
-import type { WorkspaceData } from "@/lib/workspace-types";
-import type { TaskDraft } from "@/lib/task-mutations";
-import { taskKey, taskPath } from "@/lib/task-key";
+import type { Priority, Status, Task } from "@/lib/tasks/task-types";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
+import type { TaskDraft } from "@/lib/tasks/task-mutations";
+import { taskKey, taskPath } from "@/lib/tasks/task-key";
 import { profileDisplayName } from "@/lib/presentation";
 import { TaskDetails } from "./TaskDetails";
 import { TaskKeyBadge } from "./TaskKeyBadge";
-import type { NewTaskDetailsDraft } from "@/lib/task-types";
+import type { NewTaskDetailsDraft } from "@/lib/tasks/task-types";
 import { NewTaskDetails } from "./NewTaskDetails";
 import { TaskFields } from "./TaskFields";
 import type { TaskEditorController } from "@/hooks/useTaskEditorController";

@@ -5,7 +5,7 @@ import {
   partitionAttachmentDrafts,
   removeAttachmentDraft,
   normalizeResourceLinks,
-} from "@/lib/resource-attachment-drafts";
+} from "@/lib/resources/resource-attachment-drafts";
 
 describe("resource attachment drafts", () => {
   it("creates trimmed category notes and preserves their resource shape", () => {

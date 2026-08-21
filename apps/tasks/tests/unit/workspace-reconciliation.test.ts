@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { demoData } from "@/lib/demo-data";
+import { demoData } from "@/lib/workspace/demo-data";
 import {
   reconcileTaskEvent,
   taskChildReconcilers,
-} from "@/lib/workspace-reconciliation";
-import type { RealtimePayload } from "@/lib/workspace-state";
+} from "@/lib/workspace/workspace-reconciliation";
+import type { RealtimePayload } from "@/lib/workspace/workspace-state";
 
 const event = (
   eventType: RealtimePayload["eventType"],

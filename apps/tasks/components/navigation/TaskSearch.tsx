@@ -10,9 +10,9 @@ import {
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FiLoader, FiSearch, FiX } from "react-icons/fi";
-import type { Category, Project } from "@/lib/resource-types";
-import type { Status, Task } from "@/lib/task-types";
-import type { Profile } from "@/lib/workspace-types";
+import type { Category, Project } from "@/lib/resources/resource-types";
+import type { Status, Task } from "@/lib/tasks/task-types";
+import type { Profile } from "@/lib/workspace/workspace-types";
 import {
   findRelatedTaskSearchResults,
   firstRelatedTaskSearchHref,
@@ -23,11 +23,11 @@ import {
   taskSearchResultHref,
   TASK_SEARCH_MIN_LENGTH,
   type TaskSearchPreview,
-} from "@/lib/task-search";
+} from "@/lib/tasks/task-search";
 import {
   ACCESS_PREVIEW_PARAM,
   USER_ACCESS_PREVIEW_PARAM,
-} from "@/lib/access-preview";
+} from "@/lib/access/access-preview";
 import { useSearchCombobox } from "@/hooks/useSearchCombobox";
 import { TaskSearchResults } from "./TaskSearchResults";
 

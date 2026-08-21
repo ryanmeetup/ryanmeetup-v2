@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ProjectsModal } from "./ProjectsModal";
 import { CategoriesModal } from "@/components/categories";
 import { WorkspacePageShell } from "@/components/global";
-import type { WorkspaceData } from "@/lib/workspace-types";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 
 export function ProjectsPageClient({
   initialData,

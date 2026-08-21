@@ -4,7 +4,7 @@ import {
   resolveEntityFilterIds,
   resolvePriorityFilterValues,
   splitTaskFilterValues,
-} from "@/lib/task-filter-values";
+} from "@/lib/tasks/task-filter-values";
 
 describe("task filter values", () => {
   it("normalizes empty and all selections", () => {

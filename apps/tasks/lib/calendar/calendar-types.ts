@@ -1,6 +1,6 @@
-import type { Category, Project } from "./resource-types";
-import type { Task } from "./task-types";
-import type { Profile } from "./workspace-types";
+import type { Category, Project } from "@/lib/resources/resource-types";
+import type { Task } from "@/lib/tasks/task-types";
+import type { Profile } from "@/lib/workspace/workspace-types";
 import type { GoogleCalendarEvent } from "./google-calendar-types";
 
 export type CalendarEventKind = "important" | "away";

@@ -1,12 +1,12 @@
 import { CategoriesPageClient } from "@/components/categories";
-import { demoData } from "@/lib/demo-data";
+import { demoData } from "@/lib/workspace/demo-data";
 import {
   ACCESS_PREVIEW_PARAM,
   applyAccessPreview,
   USER_ACCESS_PREVIEW_PARAM,
-} from "@/lib/access-preview";
-import { resolveAccessPreview } from "@/lib/access-preview-server";
-import { requireQueryData } from "@/lib/workspace-loader";
+} from "@/lib/access/access-preview";
+import { resolveAccessPreview } from "@/lib/server/access-preview";
+import { requireQueryData } from "@/lib/server/workspace-loader";
 import {
   isWorkspaceDemo,
   loadWorkspacePage,

@@ -2,7 +2,7 @@ import type {
   CategoryOwner,
   Project,
   ProjectOwner,
-} from "./resource-types";
+} from "@/lib/resources/resource-types";
 import type {
   Subtask,
   Task,
@@ -11,8 +11,8 @@ import type {
   TaskCategory,
   TaskComment,
   TaskLabel,
-} from "./task-types";
-import type { TaskActivity } from "./activity-types";
+} from "@/lib/tasks/task-types";
+import type { TaskActivity } from "@/lib/activity/activity-types";
 import type { WorkspaceData } from "./workspace-types";
 import {
   eventRow,

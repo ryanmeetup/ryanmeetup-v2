@@ -18,20 +18,20 @@ import { CategoriesModal, CategoryLabel } from "@/components/categories";
 import { WorkspacePageShell } from "@/components/global";
 import { filterPanelsExpandedPreferenceKey } from "@/lib/user-preferences";
 import { ProjectsModal } from "@/components/projects";
-import { withAccessPreview } from "@/lib/access-preview";
+import { withAccessPreview } from "@/lib/access/access-preview";
 import { useQueryParamState } from "@ryanmeetup/hooks";
 import { usePagination } from "@/hooks/usePagination";
-import type { TaskActivity } from "@/lib/activity-types";
-import type { WorkspaceData } from "@/lib/workspace-types";
-import { taskPath } from "@/lib/task-key";
+import type { TaskActivity } from "@/lib/activity/activity-types";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
+import { taskPath } from "@/lib/tasks/task-key";
 import { TaskKeyBadge } from "@/components/tasks";
 import { ActivityFilterMenu } from "./ActivityFilterMenu";
 import { profileDisplayName, splitCommaSeparated } from "@/lib/presentation";
 import {
   describeActivity,
   resolveActivityRows,
-} from "@/lib/activity-presentation";
-import { activityFilterCount, buildActivityQuery } from "@/lib/activity-query";
+} from "@/lib/activity/activity-presentation";
+import { activityFilterCount, buildActivityQuery } from "@/lib/activity/activity-query";
 
 const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",

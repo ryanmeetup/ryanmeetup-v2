@@ -10,8 +10,8 @@ import {
   noteTaskDescription,
   noteTitle,
   paginateNotes,
-} from "@/lib/notes";
-import type { Category, Note } from "@/lib/resource-types";
+} from "@/lib/resources/notes";
+import type { Category, Note } from "@/lib/resources/resource-types";
 
 describe("workspace notes", () => {
   it("uses an explicit title when converting a note", () => {

@@ -1,5 +1,5 @@
-import type { UserAccessMetadata } from "@/lib/access-types";
-import type { Profile } from "@/lib/workspace-types";
+import type { UserAccessMetadata } from "@/lib/access/access-types";
+import type { Profile } from "@/lib/workspace/workspace-types";
 
 export type TeamSortField =
   | "name"

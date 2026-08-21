@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { Task } from "@/lib/task-types";
+import type { Task } from "@/lib/tasks/task-types";
 
 export type TaskBoardDropTarget = {
   taskId: string;

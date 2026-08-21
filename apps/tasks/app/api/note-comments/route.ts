@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { noteCommentColumns, noteTitle } from "@/lib/notes";
-import type { NoteComment } from "@/lib/resource-types";
-import { recordWorkspaceActivity } from "@/lib/privileged-api";
+import { noteCommentColumns, noteTitle } from "@/lib/resources/notes";
+import type { NoteComment } from "@/lib/resources/resource-types";
+import { recordWorkspaceActivity } from "@/lib/server/privileged-api";
 import { databaseFailure } from "@/lib/server/api-response";
 import { authorize } from "@/lib/server/auth";
 import { readJson } from "@/lib/server/request";

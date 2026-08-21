@@ -1,10 +1,10 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { NewTaskDetailsDraft } from "./task-types";
 import type { Subtask, TaskAttachment, TaskComment } from "./task-types";
-import type { TaskActivity } from "./activity-types";
-import type { WorkspaceData } from "./workspace-types";
+import type { TaskActivity } from "@/lib/activity/activity-types";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { attachmentUrlName } from "./task-attachment-urls";
-import { mutate } from "./mutation-client";
+import { mutate } from "@/lib/mutation-client";
 
 export async function persistNewTaskDetails({
   taskId,

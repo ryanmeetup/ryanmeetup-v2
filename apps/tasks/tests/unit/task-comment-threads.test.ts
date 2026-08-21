@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildTaskCommentThreads } from "@/lib/task-comment-threads";
-import type { TaskComment } from "@/lib/task-types";
+import { buildTaskCommentThreads } from "@/lib/tasks/task-comment-threads";
+import type { TaskComment } from "@/lib/tasks/task-types";
 
 function comment(
   id: string,

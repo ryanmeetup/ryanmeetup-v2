@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { UsagePageClient } from "@/components/usage";
-import { demoData } from "@/lib/demo-data";
+import { demoData } from "@/lib/workspace/demo-data";
 import { getResendUsage } from "@/lib/server/resend-usage";
 import {
   isWorkspaceDemo,

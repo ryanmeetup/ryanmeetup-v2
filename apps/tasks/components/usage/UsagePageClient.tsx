@@ -12,7 +12,7 @@ import {
 } from "react-icons/fi";
 import { WorkspacePageShell } from "@/components/global";
 import type { ResendQuota, ResendUsage } from "@/lib/server/resend-usage";
-import type { WorkspaceData } from "@/lib/workspace-types";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { RecentEmailTable } from "./RecentEmailTable";
 
 const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {

@@ -3,14 +3,14 @@ import {
   idSchema,
   statusCreateSchema,
   statusPatchSchema,
-} from "@/lib/api-schemas";
+} from "@/lib/api-schema";
 import { databaseFailure } from "@/lib/server/api-response";
 import {
   apiError,
   auditPrivilegedAction,
   privilegedContext,
   readJson,
-} from "@/lib/privileged-api";
+} from "@/lib/server/privileged-api";
 
 export async function POST(request: Request) {
   const parsed = await readJson(request, statusCreateSchema);

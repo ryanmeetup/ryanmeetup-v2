@@ -24,12 +24,12 @@ import {
   FiPlus,
   FiTrash2,
 } from "react-icons/fi";
-import { MAX_ATTACHMENT_SIZE } from "@/lib/task-attachments";
-import { attachmentUrlName } from "@/lib/task-attachment-urls";
+import { MAX_ATTACHMENT_SIZE } from "@/lib/tasks/task-attachments";
+import { attachmentUrlName } from "@/lib/tasks/task-attachment-urls";
 import { CountBadge } from "@/components/global";
 import { normalizeHttpUrl } from "@ryanmeetup/utils";
 import { formatFileSize } from "@/lib/presentation";
-import type { NewTaskDetailsDraft } from "@/lib/task-types";
+import type { NewTaskDetailsDraft } from "@/lib/tasks/task-types";
 
 export function NewTaskDetails({
   value,

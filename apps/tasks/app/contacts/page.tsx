@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { ContactsPageClient } from "@/components/contacts";
-import { demoData } from "@/lib/demo-data";
+import { demoData } from "@/lib/workspace/demo-data";
 import { loadContacts } from "@/lib/server/contacts";
 import {
   isWorkspaceDemo,
   loadWorkspacePage,
 } from "@/lib/server/workspace-page-loader";
-import { requireQueryData } from "@/lib/workspace-loader";
+import { requireQueryData } from "@/lib/server/workspace-loader";
 
 export const metadata: Metadata = {
   title: { absolute: "Contacts | Ryan Meetup Tasks" },

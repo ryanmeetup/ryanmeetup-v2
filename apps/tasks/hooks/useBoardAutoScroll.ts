@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, type RefObject } from "react";
-import { boardDragScrollSpeed } from "@/lib/board-drag";
+import { boardDragScrollSpeed } from "@/lib/tasks/board-drag";
 
 export function useBoardAutoScroll(
   active: boolean,

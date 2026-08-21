@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { normalizeHttpUrl } from "@ryanmeetup/utils";
-import { attachmentUrlName } from "../../lib/task-attachment-urls";
+import { attachmentUrlName } from "@/lib/tasks/task-attachment-urls";
 
 describe("task attachment URLs", () => {
   it("accepts and normalizes HTTP URLs", () => {

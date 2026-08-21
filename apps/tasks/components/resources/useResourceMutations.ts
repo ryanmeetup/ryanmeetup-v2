@@ -1,8 +1,8 @@
 "use client";
 
 import { mutate } from "@/lib/mutation-client";
-import type { Category, Project } from "@/lib/resource-types";
-import { uploadResourceAttachments, type ResourceAttachmentDraft } from "@/lib/resource-management";
+import type { Category, Project } from "@/lib/resources/resource-types";
+import { uploadResourceAttachments, type ResourceAttachmentDraft } from "@/lib/resources/resource-management";
 
 type ResourceByKind = { category: Category; project: Project };
 

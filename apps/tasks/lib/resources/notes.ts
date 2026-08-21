@@ -1,6 +1,6 @@
 import type { Category, Note, Project } from "./resource-types";
-import type { Status, Task } from "./task-types";
-import type { StoredTaskDraft } from "./task-drafts";
+import type { Status, Task } from "@/lib/tasks/task-types";
+import type { StoredTaskDraft } from "@/lib/tasks/task-drafts";
 
 export const noteColumns =
   "id,title,body,category_id,created_by,converted_task_id,converted_project_id,created_at,updated_at,archived_at";

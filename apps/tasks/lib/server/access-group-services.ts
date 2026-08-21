@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { PrivilegedContext } from "@/lib/privileged-api";
+import type { PrivilegedContext } from "@/lib/server/privileged-api";
 import type { AccessGroupOperation } from "@/lib/server/access-group-operations";
 
 type ServiceResult = {

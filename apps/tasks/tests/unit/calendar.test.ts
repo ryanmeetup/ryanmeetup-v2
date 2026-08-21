@@ -4,8 +4,8 @@ import {
   itemsOnDate,
   monthBounds,
   type CalendarEvent,
-} from "@/lib/calendar-types";
-import type { Task } from "@/lib/task-types";
+} from "@/lib/calendar/calendar-types";
+import type { Task } from "@/lib/tasks/task-types";
 import { calendarEventSchema } from "@/lib/api-schema/calendar";
 
 const task = (overrides: Partial<Task> = {}): Task => ({

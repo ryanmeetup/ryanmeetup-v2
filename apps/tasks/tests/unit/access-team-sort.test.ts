@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { sortAccessTeam } from "@/lib/access-team-sort";
-import type { UserAccessMetadata } from "@/lib/access-types";
-import type { Profile } from "@/lib/workspace-types";
+import { sortAccessTeam } from "@/lib/access/access-team-sort";
+import type { UserAccessMetadata } from "@/lib/access/access-types";
+import type { Profile } from "@/lib/workspace/workspace-types";
 
 const profiles = [
   { id: "a", full_name: "Alex", avatar_url: null },

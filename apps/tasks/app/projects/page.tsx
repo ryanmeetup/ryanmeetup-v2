@@ -1,6 +1,6 @@
 import { ProjectsPageClient } from "@/components/projects";
-import { demoData } from "@/lib/demo-data";
-import { requireQueryData } from "@/lib/workspace-loader";
+import { demoData } from "@/lib/workspace/demo-data";
+import { requireQueryData } from "@/lib/server/workspace-loader";
 import {
   isWorkspaceDemo,
   loadWorkspacePage,
@@ -9,8 +9,8 @@ import {
   ACCESS_PREVIEW_PARAM,
   applyAccessPreview,
   USER_ACCESS_PREVIEW_PARAM,
-} from "@/lib/access-preview";
-import { resolveAccessPreview } from "@/lib/access-preview-server";
+} from "@/lib/access/access-preview";
+import { resolveAccessPreview } from "@/lib/server/access-preview";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {

@@ -8,16 +8,16 @@ import {
   FiTrash2,
 } from "react-icons/fi";
 import { CountBadge } from "@/components/global";
-import { withAccessPreview } from "@/lib/access-preview";
+import { withAccessPreview } from "@/lib/access/access-preview";
 import { profileDisplayName } from "@/lib/presentation";
-import { taskCommentSegments } from "@/lib/task-comment-references";
+import { taskCommentSegments } from "@/lib/tasks/task-comment-references";
 import {
   buildTaskCommentThreads,
   type TaskCommentThread,
-} from "@/lib/task-comment-threads";
-import { taskPath } from "@/lib/task-key";
-import type { TaskComment, TaskReference } from "@/lib/task-types";
-import type { AccessPreview, Profile } from "@/lib/workspace-types";
+} from "@/lib/tasks/task-comment-threads";
+import { taskPath } from "@/lib/tasks/task-key";
+import type { TaskComment, TaskReference } from "@/lib/tasks/task-types";
+import type { AccessPreview, Profile } from "@/lib/workspace/workspace-types";
 
 const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",

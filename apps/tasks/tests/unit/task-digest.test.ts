@@ -3,7 +3,7 @@ import {
   buildTaskDigest,
   taskDigestCount,
   type DigestTask,
-} from "@/lib/task-digest";
+} from "@/lib/tasks/task-digest";
 import {
   renderTaskDigestEmail,
   timeOfDay,

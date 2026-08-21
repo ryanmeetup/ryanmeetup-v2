@@ -1,9 +1,9 @@
 import { Avatar, Button, Card, IconButton } from "@ryanmeetup/ui";
 import { FiEdit2, FiEye, FiFolder, FiUsers } from "react-icons/fi";
-import { accessGroupSlug } from "@/lib/access-groups";
-import { accessPreviewHref } from "@/lib/access-preview";
-import type { AccessGroup, GroupGrant, GroupMember } from "@/lib/access-types";
-import type { Profile } from "@/lib/workspace-types";
+import { accessGroupSlug } from "@/lib/access/access-groups";
+import { accessPreviewHref } from "@/lib/access/access-preview";
+import type { AccessGroup, GroupGrant, GroupMember } from "@/lib/access/access-types";
+import type { Profile } from "@/lib/workspace/workspace-types";
 import { AccessGroupKindBadge } from "./AccessGroupKindBadge";
 
 export function AccessGroupGrid({

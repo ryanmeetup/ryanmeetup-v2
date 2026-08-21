@@ -9,12 +9,12 @@ import {
   RichTextarea,
   Tooltip,
 } from "@ryanmeetup/ui";
-import type { Category, Project } from "@/lib/resource-types";
-import type { Priority, Status } from "@/lib/task-types";
-import type { Profile } from "@/lib/workspace-types";
-import type { TaskDraft } from "@/lib/task-mutations";
+import type { Category, Project } from "@/lib/resources/resource-types";
+import type { Priority, Status } from "@/lib/tasks/task-types";
+import type { Profile } from "@/lib/workspace/workspace-types";
+import type { TaskDraft } from "@/lib/tasks/task-mutations";
 import { profileDisplayName } from "@/lib/presentation";
-import { sortFavoriteProjectsFirst } from "@/lib/project-sort";
+import { sortFavoriteProjectsFirst } from "@/lib/resources/project-sort";
 
 const priorities: Priority[] = ["low", "medium", "high", "urgent"];
 

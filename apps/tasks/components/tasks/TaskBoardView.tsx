@@ -3,8 +3,8 @@
 import { useMemo, type RefObject } from "react";
 import { AnimatedCollapse, IconButton } from "@ryanmeetup/ui";
 import { FiChevronDown, FiPlus } from "react-icons/fi";
-import type { Task } from "@/lib/task-types";
-import type { WorkspaceData } from "@/lib/workspace-types";
+import type { Task } from "@/lib/tasks/task-types";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { TaskBoardCard } from "./TaskBoardCard";
 import { BoardColumnTasks } from "./BoardColumnTasks";
 import type { TaskBoardDropTarget } from "@/hooks/useTaskBoardDrag";

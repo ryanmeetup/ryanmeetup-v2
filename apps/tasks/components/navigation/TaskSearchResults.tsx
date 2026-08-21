@@ -11,12 +11,12 @@ import {
   FiTag,
   FiUsers,
 } from "react-icons/fi";
-import type { Task } from "@/lib/task-types";
-import type { Profile } from "@/lib/workspace-types";
+import type { Task } from "@/lib/tasks/task-types";
+import type { Profile } from "@/lib/workspace/workspace-types";
 import type {
   TaskSearchGroup,
   TaskSearchRelatedResults,
-} from "@/lib/task-search";
+} from "@/lib/tasks/task-search";
 import { profileDisplayName } from "@/lib/presentation";
 import { TaskKeyBadge, TaskPriorityBadge } from "@/components/tasks";
 

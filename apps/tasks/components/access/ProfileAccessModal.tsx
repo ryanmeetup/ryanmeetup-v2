@@ -2,7 +2,7 @@
 
 import type { FormEvent } from "react";
 import { Button, DropdownSelect, Modal, MultiSelect } from "@ryanmeetup/ui";
-import type { Profile } from "@/lib/workspace-types";
+import type { Profile } from "@/lib/workspace/workspace-types";
 
 type AccessGroupOption = {
   id: string;

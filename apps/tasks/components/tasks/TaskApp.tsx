@@ -4,8 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ConfirmationDialog, toast } from "@ryanmeetup/ui";
 import { FiLoader } from "react-icons/fi";
 import { useQueryParamState, useSearchFilter } from "@ryanmeetup/hooks";
-import type { Task } from "@/lib/task-types";
-import type { WorkspaceData } from "@/lib/workspace-types";
+import type { Task } from "@/lib/tasks/task-types";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { WorkspacePageShell } from "@/components/global";
 import { TaskEditor } from "./TaskEditor";
 import { TaskFilters } from "./TaskFilters";
@@ -18,8 +18,8 @@ import { useTaskFilters } from "@/hooks/useTaskFilters";
 import { usePagination } from "@/hooks/usePagination";
 import { useCollapsedStatuses } from "@/hooks/useCollapsedStatuses";
 import { useBoardAutoScroll } from "@/hooks/useBoardAutoScroll";
-import { createTaskMutationService } from "@/lib/task-mutations";
-import { taskKey } from "@/lib/task-key";
+import { createTaskMutationService } from "@/lib/tasks/task-mutations";
+import { taskKey } from "@/lib/tasks/task-key";
 import { errorMessage, profileDisplayName } from "@/lib/presentation";
 import {
   categoryTagFilterValue,
@@ -29,18 +29,18 @@ import {
   resolveEntityFilterIds,
   resolvePriorityFilterValues,
   resolveProfileFilterIds,
-} from "@/lib/task-filter-values";
+} from "@/lib/tasks/task-filter-values";
 import {
   deriveVisibleTasks,
   indexTaskAssignees,
   indexTaskCategories,
-} from "@/lib/task-view";
+} from "@/lib/tasks/task-view";
 import {
   buildTaskQueryParams,
   taskQuerySignature as buildTaskQuerySignature,
   type TaskQueryFilters,
-} from "@/lib/task-query";
-import { parseTaskKey } from "@/lib/task-key";
+} from "@/lib/tasks/task-query";
+import { parseTaskKey } from "@/lib/tasks/task-key";
 import { useTaskEditorController } from "@/hooks/useTaskEditorController";
 import { useTaskBoardDrag } from "@/hooks/useTaskBoardDrag";
 import { TaskBoardView } from "./TaskBoardView";

@@ -1,7 +1,7 @@
 import { tasksAppUrl } from "@/lib/app-url";
-import { taskKey, taskPath } from "@/lib/task-key";
-import type { DigestTask, TaskDigest } from "@/lib/task-digest";
-import { taskDigestCount } from "@/lib/task-digest";
+import { taskKey, taskPath } from "@/lib/tasks/task-key";
+import type { DigestTask, TaskDigest } from "@/lib/tasks/task-digest";
+import { taskDigestCount } from "@/lib/tasks/task-digest";
 
 const escapeHtml = (value: string) =>
   value.replace(

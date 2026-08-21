@@ -1,8 +1,8 @@
 import { Card, DropdownSelect, Pagination } from "@ryanmeetup/ui";
 import { FiChevronDown } from "react-icons/fi";
-import type { Category, Project } from "@/lib/resource-types";
-import type { Profile } from "@/lib/workspace-types";
-import type { Status, Task } from "@/lib/task-types";
+import type { Category, Project } from "@/lib/resources/resource-types";
+import type { Profile } from "@/lib/workspace/workspace-types";
+import type { Status, Task } from "@/lib/tasks/task-types";
 import {
   resolveTaskListItems,
   TaskListCards,

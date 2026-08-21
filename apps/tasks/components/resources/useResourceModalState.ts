@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { ResourceLink } from "@/lib/resource-types";
-import type { ResourceAttachmentDraft } from "@/lib/resource-management";
+import type { ResourceLink } from "@/lib/resources/resource-types";
+import type { ResourceAttachmentDraft } from "@/lib/resources/resource-management";
 
 export function useResourceModalState(
   currentUserId: string,

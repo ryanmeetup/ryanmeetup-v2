@@ -9,7 +9,7 @@ import { Button, DisclosureCard, IconButton, Input } from "@ryanmeetup/ui";
 import { ensureHttpUrlScheme } from "@ryanmeetup/utils";
 import { FiMove, FiPlus, FiTrash2 } from "react-icons/fi";
 import { CountBadge } from "@/components/global";
-import type { ResourceLink } from "@/lib/resource-types";
+import type { ResourceLink } from "@/lib/resources/resource-types";
 
 function SortableLink({ id, label, reorderable, actions, children }: { id: string; label: string; reorderable: boolean; actions: ReactNode; children: ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled: !reorderable });

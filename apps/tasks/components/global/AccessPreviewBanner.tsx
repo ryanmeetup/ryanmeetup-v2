@@ -6,8 +6,8 @@ import { FiEye, FiX } from "react-icons/fi";
 import {
   ACCESS_PREVIEW_PARAM,
   USER_ACCESS_PREVIEW_PARAM,
-} from "@/lib/access-preview";
-import type { AccessPreview } from "@/lib/workspace-types";
+} from "@/lib/access/access-preview";
+import type { AccessPreview } from "@/lib/workspace/workspace-types";
 
 export function AccessPreviewBanner({ preview }: { preview?: AccessPreview }) {
   const pathname = usePathname();

@@ -29,9 +29,9 @@ import {
   FiX,
 } from "react-icons/fi";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { WorkspaceData } from "@/lib/workspace-types";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { useSidebarSections } from "@/hooks/useSidebarSections";
-import { withAccessPreview } from "@/lib/access-preview";
+import { withAccessPreview } from "@/lib/access/access-preview";
 
 function SidebarItemLabel({ children }: { children: string }) {
   const labelRef = useRef<HTMLSpanElement>(null);

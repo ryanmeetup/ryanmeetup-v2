@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { categorySchema, idSchema } from "@/lib/api-schemas";
+import { categorySchema, idSchema } from "@/lib/api-schema";
 import { databaseFailure } from "@/lib/server/api-response";
 import {
   apiError,
   privilegedContext,
   recordWorkspaceActivity,
   readJson,
-} from "@/lib/privileged-api";
+} from "@/lib/server/privileged-api";
 
 async function categoryManagerContext() {
   const context = await privilegedContext();

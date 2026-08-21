@@ -3,9 +3,9 @@ import {
   describeActivity,
   groupActivityByDate,
   resolveActivityRows,
-} from "@/lib/activity-presentation";
-import type { TaskActivity } from "@/lib/activity-types";
-import type { Status } from "@/lib/task-types";
+} from "@/lib/activity/activity-presentation";
+import type { TaskActivity } from "@/lib/activity/activity-types";
+import type { Status } from "@/lib/tasks/task-types";
 
 const activity = (
   id: string,

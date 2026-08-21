@@ -1,8 +1,8 @@
 import type {
   ResourceAttachment,
   ResourceLink,
-} from "@/lib/resource-types";
-import type { Profile } from "@/lib/workspace-types";
+} from "@/lib/resources/resource-types";
+import type { Profile } from "@/lib/workspace/workspace-types";
 
 export type ResourceAttachmentDraft = ResourceAttachment & { file?: File };
 

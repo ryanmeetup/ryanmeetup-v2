@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { AccessPermission } from "@/lib/access-types";
+import type { AccessPermission } from "@/lib/access/access-types";
 
 export type AccessGroupOperation =
   | {

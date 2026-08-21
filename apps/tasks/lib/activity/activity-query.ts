@@ -1,6 +1,6 @@
-import { profileDisplayName, splitCommaSeparated } from "./presentation";
-import type { Project } from "./resource-types";
-import type { Profile } from "./workspace-types";
+import { profileDisplayName, splitCommaSeparated } from "@/lib/presentation";
+import type { Project } from "@/lib/resources/resource-types";
+import type { Profile } from "@/lib/workspace/workspace-types";
 
 export type ActivityFilters = {
   projects: string;

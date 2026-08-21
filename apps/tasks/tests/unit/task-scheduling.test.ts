@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeTaskSchedule, withNormalizedTaskSchedule } from "@/lib/task-scheduling";
+import { normalizeTaskSchedule, withNormalizedTaskSchedule } from "@/lib/tasks/task-scheduling";
 
 describe("task scheduling normalization", () => {
   it("trims dates, canonicalizes times, and converts reminders to ISO", () => {

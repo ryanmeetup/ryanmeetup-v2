@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { AccessGroupPageClient } from "@/components/access";
-import { accessGroupSlug } from "@/lib/access-groups";
-import { requireQueryData } from "@/lib/workspace-loader";
+import { accessGroupSlug } from "@/lib/access/access-groups";
+import { requireQueryData } from "@/lib/server/workspace-loader";
 import { loadWorkspacePage } from "@/lib/server/workspace-page-loader";
 import type { Metadata } from "next";
 

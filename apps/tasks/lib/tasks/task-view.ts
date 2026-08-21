@@ -3,10 +3,10 @@ import type {
   Task,
   TaskAssignee,
   TaskCategory,
-} from "@/lib/task-types";
-import { localDateValue } from "@/lib/task-scheduling";
-import { taskPriorities } from "@/lib/task-filter-values";
-import type { CategoryTagFilter } from "@/lib/task-filter-values";
+} from "@/lib/tasks/task-types";
+import { localDateValue } from "@/lib/tasks/task-scheduling";
+import { taskPriorities } from "@/lib/tasks/task-filter-values";
+import type { CategoryTagFilter } from "@/lib/tasks/task-filter-values";
 
 export function indexTaskCategories(rows: TaskCategory[]) {
   const result = new Map<string, Set<string>>();

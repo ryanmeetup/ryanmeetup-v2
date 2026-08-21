@@ -2,7 +2,7 @@
 
 import type { FormEvent } from "react";
 import { Button, ConfirmationDialog, Input, Modal } from "@ryanmeetup/ui";
-import type { Profile } from "@/lib/workspace-types";
+import type { Profile } from "@/lib/workspace/workspace-types";
 
 export function InviteTeammateModal({
   email,

@@ -4,7 +4,7 @@ import {
   auditPrivilegedAction,
   privilegedContext,
   readJson,
-} from "@/lib/privileged-api";
+} from "@/lib/server/privileged-api";
 import { databaseFailure } from "@/lib/server/api-response";
 import { accessGroupOperationSchema } from "@/lib/server/access-group-operations";
 import { dispatchAccessGroupOperation } from "@/lib/server/access-group-services";

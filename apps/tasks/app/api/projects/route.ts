@@ -3,12 +3,12 @@ import {
   idSchema,
   projectCreateSchema,
   projectPatchSchema,
-} from "@/lib/api-schemas";
+} from "@/lib/api-schema";
 import { apiError, databaseFailure, notFound } from "@/lib/server/api-response";
 import { authorize } from "@/lib/server/auth";
 import { readJson } from "@/lib/server/request";
-import type { ProjectLink } from "@/lib/resource-types";
-import { recordWorkspaceActivity } from "@/lib/privileged-api";
+import type { ProjectLink } from "@/lib/resources/resource-types";
+import { recordWorkspaceActivity } from "@/lib/server/privileged-api";
 
 export async function POST(request: Request) {
   const parsed = await readJson(request, projectCreateSchema);

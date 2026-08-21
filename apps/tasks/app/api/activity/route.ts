@@ -2,14 +2,14 @@ import { NextResponse } from "next/server";
 import { authorize } from "@/lib/server/auth";
 import { databaseFailure } from "@/lib/server/api-response";
 import { derivePagination, parsePagination } from "@/lib/pagination";
-import { WORKSPACE_COLUMNS } from "@/lib/workspace-loader";
-import type { Task } from "@/lib/task-types";
-import type { TaskActivity } from "@/lib/activity-types";
+import { WORKSPACE_COLUMNS } from "@/lib/server/workspace-loader";
+import type { Task } from "@/lib/tasks/task-types";
+import type { TaskActivity } from "@/lib/activity/activity-types";
 import {
   ACCESS_PREVIEW_PARAM,
   USER_ACCESS_PREVIEW_PARAM,
-} from "@/lib/access-preview";
-import { resolveAccessPreview } from "@/lib/access-preview-server";
+} from "@/lib/access/access-preview";
+import { resolveAccessPreview } from "@/lib/server/access-preview";
 import { getAdminClient } from "@/lib/server/admin-client";
 
 const DAY = 24 * 60 * 60 * 1000;

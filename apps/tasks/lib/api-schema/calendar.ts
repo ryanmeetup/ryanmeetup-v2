@@ -1,5 +1,8 @@
 import { objectWithKeys, optionalText, text, uuid } from "./shared";
-import type { CalendarEventDraft, CalendarEventKind } from "../calendar-types";
+import type {
+  CalendarEventDraft,
+  CalendarEventKind,
+} from "@/lib/calendar/calendar-types";
 
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 const timePattern = /^\d{2}:\d{2}$/;

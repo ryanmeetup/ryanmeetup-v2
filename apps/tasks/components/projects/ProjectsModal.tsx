@@ -32,14 +32,14 @@ import {
   FiUsers,
 } from "react-icons/fi";
 import { useQueryParamState, useSearchFilter } from "@ryanmeetup/hooks";
-import { withAccessPreview } from "@/lib/access-preview";
+import { withAccessPreview } from "@/lib/access/access-preview";
 import {
   CountBadge,
   ManagementCard,
   ManagementCardTitle,
 } from "@/components/global";
-import type { Project } from "@/lib/resource-types";
-import type { WorkspaceData } from "@/lib/workspace-types";
+import type { Project } from "@/lib/resources/resource-types";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import {
   ExpandableResourceEditor,
   ResourceFields,
@@ -53,7 +53,7 @@ import {
   filterAndSortResources,
   resourceSearchText,
   sameIds,
-} from "@/lib/resource-management";
+} from "@/lib/resources/resource-management";
 
 export type ProjectsModalProps = {
   modal: {

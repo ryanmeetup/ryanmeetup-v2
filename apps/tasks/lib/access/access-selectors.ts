@@ -3,7 +3,7 @@ import type {
   AccessPermission,
   GroupGrant,
   GroupMember,
-} from "@/lib/access-types";
+} from "@/lib/access/access-types";
 
 const permissionRank: Record<AccessPermission, number> = {
   viewer: 1,

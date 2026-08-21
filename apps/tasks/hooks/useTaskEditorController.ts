@@ -2,18 +2,18 @@
 
 import { useEffect, useRef, useState, type SetStateAction } from "react";
 import { toast } from "@ryanmeetup/ui";
-import type { Task } from "@/lib/task-types";
-import type { WorkspaceData } from "@/lib/workspace-types";
+import type { Task } from "@/lib/tasks/task-types";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import type {
   createTaskMutationService,
   TaskDraft,
-} from "@/lib/task-mutations";
+} from "@/lib/tasks/task-mutations";
 import {
   editTaskDraft,
   emptyNewTaskDetails,
   emptyTaskDraft,
-} from "@/lib/task-draft-factory";
-import type { NewTaskDetailsDraft } from "@/lib/task-types";
+} from "@/lib/tasks/task-draft-factory";
+import type { NewTaskDetailsDraft } from "@/lib/tasks/task-types";
 import {
   deleteTaskDraft,
   draftSavedStatus,
@@ -21,10 +21,10 @@ import {
   hasDraftContent,
   saveTaskDraft,
   taskDraftAutosaveDelayMs,
-} from "@/lib/task-drafts";
+} from "@/lib/tasks/task-drafts";
 import { errorMessage } from "@/lib/presentation";
-import { persistNewTaskDetails } from "@/lib/new-task-details";
-import { taskKey, taskPath } from "@/lib/task-key";
+import { persistNewTaskDetails } from "@/lib/tasks/new-task-details";
+import { taskKey, taskPath } from "@/lib/tasks/task-key";
 
 type MutationService = ReturnType<typeof createTaskMutationService>;
 

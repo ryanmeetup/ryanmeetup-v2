@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { boardDragScrollSpeed } from "@/lib/board-drag";
-import { emptyBoardDragState, leaveBoardColumn } from "@/lib/board-drag";
+import { boardDragScrollSpeed } from "@/lib/tasks/board-drag";
+import { emptyBoardDragState, leaveBoardColumn } from "@/lib/tasks/board-drag";
 
 describe("board drag scrolling", () => {
   it("scrolls toward nearby viewport edges", () => {

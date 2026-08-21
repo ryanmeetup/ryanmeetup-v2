@@ -10,8 +10,8 @@ import {
 } from "@ryanmeetup/ui";
 import { FiArrowDown, FiTrash2 } from "react-icons/fi";
 import { CountBadge } from "@/components/global";
-import type { AccessGroup, GroupMember } from "@/lib/access-types";
-import type { Profile } from "@/lib/workspace-types";
+import type { AccessGroup, GroupMember } from "@/lib/access/access-types";
+import type { Profile } from "@/lib/workspace/workspace-types";
 
 export function AccessGroupMembersPanel({
   currentProfileId,

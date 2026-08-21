@@ -9,18 +9,18 @@ import {
   type SetStateAction,
 } from "react";
 import { toast } from "@ryanmeetup/ui";
-import type { WorkspaceData } from "@/lib/workspace-types";
-import type { Task } from "@/lib/task-types";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
+import type { Task } from "@/lib/tasks/task-types";
 import {
   createTaskMutationService,
   type TaskDraft,
-} from "@/lib/task-mutations";
+} from "@/lib/tasks/task-mutations";
 import { TaskEditor } from "./TaskEditor";
-import { emptyNewTaskDetails } from "@/lib/task-draft-factory";
-import type { NewTaskDetailsDraft } from "@/lib/task-types";
-import { persistNewTaskDetails } from "@/lib/new-task-details";
+import { emptyNewTaskDetails } from "@/lib/tasks/task-draft-factory";
+import type { NewTaskDetailsDraft } from "@/lib/tasks/task-types";
+import { persistNewTaskDetails } from "@/lib/tasks/new-task-details";
 import { errorMessage } from "@/lib/presentation";
-import { newWorkspaceTaskDraft } from "@/lib/task-draft-factory";
+import { newWorkspaceTaskDraft } from "@/lib/tasks/task-draft-factory";
 import {
   deleteTaskDraft,
   draftSavedStatus,
@@ -29,8 +29,8 @@ import {
   saveTaskDraft,
   taskDraftAutosaveDelayMs,
   type StoredTaskDraft,
-} from "@/lib/task-drafts";
-import { taskKey, taskPath } from "@/lib/task-key";
+} from "@/lib/tasks/task-drafts";
+import { taskKey, taskPath } from "@/lib/tasks/task-key";
 
 export function NewTaskModal({
   data,

@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { CONTACT_COLUMNS, type Contact } from "@/lib/contact-types";
+import { CONTACT_COLUMNS, type Contact } from "@/lib/contacts/contact-types";
 
 type ContactRow = Omit<Contact, "categories" | "people"> & {
   contact_people: Contact["people"];

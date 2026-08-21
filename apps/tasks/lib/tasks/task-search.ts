@@ -1,7 +1,7 @@
-import type { Category, Project } from "@/lib/resource-types";
-import type { Profile } from "@/lib/workspace-types";
-import type { Status, Task } from "@/lib/task-types";
-import { taskKey, taskPath } from "@/lib/task-key";
+import type { Category, Project } from "@/lib/resources/resource-types";
+import type { Profile } from "@/lib/workspace/workspace-types";
+import type { Status, Task } from "@/lib/tasks/task-types";
+import { taskKey, taskPath } from "@/lib/tasks/task-key";
 import { profileDisplayName } from "@/lib/presentation";
 
 export const TASK_SEARCH_LIMIT = 25;

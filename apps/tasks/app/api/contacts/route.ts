@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { contactDeleteSchema, contactSaveSchema } from "@/lib/contact-schema";
+import { contactDeleteSchema, contactSaveSchema } from "@/lib/contacts/contact-schema";
 import { databaseFailure } from "@/lib/server/api-response";
 import { authorize } from "@/lib/server/auth";
 import { loadContact } from "@/lib/server/contacts";
 import { readJson } from "@/lib/server/request";
-import { recordWorkspaceActivity } from "@/lib/privileged-api";
+import { recordWorkspaceActivity } from "@/lib/server/privileged-api";
 
 async function save(request: Request) {
   const parsed = await readJson(request, contactSaveSchema);

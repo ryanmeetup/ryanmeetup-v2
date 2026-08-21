@@ -22,16 +22,16 @@ import {
   FiRotateCcw,
   FiTrash2,
 } from "react-icons/fi";
-import { noteTitle } from "@/lib/notes";
-import { taskPath } from "@/lib/task-key";
+import { noteTitle } from "@/lib/resources/notes";
+import { taskPath } from "@/lib/tasks/task-key";
 import type {
   Category,
   Note,
   NoteComment,
   Project,
-} from "@/lib/resource-types";
-import type { Task } from "@/lib/task-types";
-import type { WorkspaceData } from "@/lib/workspace-types";
+} from "@/lib/resources/resource-types";
+import type { Task } from "@/lib/tasks/task-types";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { useNoteDraft } from "./useNoteDraft";
 import { NoteComments } from "./NoteComments";
 

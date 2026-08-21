@@ -12,7 +12,7 @@ import {
   toast,
 } from "@ryanmeetup/ui";
 import { FiLock, FiSave } from "react-icons/fi";
-import type { Profile } from "@/lib/workspace-types";
+import type { Profile } from "@/lib/workspace/workspace-types";
 import { mutate } from "@/lib/mutation-client";
 import { errorMessage as getErrorMessage } from "@/lib/presentation";
 import { displayNameError, normalizeDisplayName } from "@/lib/display-name";

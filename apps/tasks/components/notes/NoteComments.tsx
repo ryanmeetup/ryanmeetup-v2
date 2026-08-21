@@ -18,8 +18,8 @@ import {
 import { CountBadge } from "@/components/global";
 import { mutate } from "@/lib/mutation-client";
 import { profileDisplayName } from "@/lib/presentation";
-import type { NoteComment } from "@/lib/resource-types";
-import type { Profile } from "@/lib/workspace-types";
+import type { NoteComment } from "@/lib/resources/resource-types";
+import type { Profile } from "@/lib/workspace/workspace-types";
 
 const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",

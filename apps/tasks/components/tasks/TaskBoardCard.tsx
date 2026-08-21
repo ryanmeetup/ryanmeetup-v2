@@ -5,15 +5,15 @@ import { FiExternalLink, FiFolder, FiUsers } from "react-icons/fi";
 import type {
   Category,
   Project,
-} from "@/lib/resource-types";
-import type { Profile } from "@/lib/workspace-types";
+} from "@/lib/resources/resource-types";
+import type { Profile } from "@/lib/workspace/workspace-types";
 import type {
   Status,
   Subtask,
   Task,
-} from "@/lib/task-types";
+} from "@/lib/tasks/task-types";
 import { profileDisplayName } from "@/lib/presentation";
-import { taskPath } from "@/lib/task-key";
+import { taskPath } from "@/lib/tasks/task-key";
 import { TaskCategoryBadge } from "./TaskCategoryBadge";
 import { TaskDueDate } from "./TaskDueDate";
 import { TaskKeyBadge } from "./TaskKeyBadge";

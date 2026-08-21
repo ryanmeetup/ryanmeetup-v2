@@ -9,8 +9,8 @@ import {
   type SetStateAction,
 } from "react";
 import { Card, ConfirmationDialog, toast } from "@ryanmeetup/ui";
-import { MAX_ATTACHMENT_SIZE } from "@/lib/task-attachments";
-import { attachmentUrlName } from "@/lib/task-attachment-urls";
+import { MAX_ATTACHMENT_SIZE } from "@/lib/tasks/task-attachments";
+import { attachmentUrlName } from "@/lib/tasks/task-attachment-urls";
 import { normalizeHttpUrl } from "@ryanmeetup/utils";
 import type {
   Subtask,
@@ -18,9 +18,9 @@ import type {
   TaskAttachment,
   TaskComment,
   TaskReference,
-} from "@/lib/task-types";
-import type { TaskActivity } from "@/lib/activity-types";
-import type { WorkspaceData } from "@/lib/workspace-types";
+} from "@/lib/tasks/task-types";
+import type { TaskActivity } from "@/lib/activity/activity-types";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { TaskActivityPanel } from "./TaskActivityPanel";
 import { TaskChecklistPanel } from "./TaskChecklistPanel";
 import { TaskCommentsPanel } from "./TaskCommentsPanel";

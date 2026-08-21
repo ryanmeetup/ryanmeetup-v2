@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { idSchema, taskMoveSchema, taskSaveSchema } from "@/lib/api-schemas";
+import { idSchema, taskMoveSchema, taskSaveSchema } from "@/lib/api-schema";
 import { databaseFailure } from "@/lib/server/api-response";
 import { authorize } from "@/lib/server/auth";
 import { readJson } from "@/lib/server/request";
@@ -8,15 +8,15 @@ import {
   TASK_CATEGORY_COLUMNS,
   TASK_COLUMNS,
   TASK_LABEL_COLUMNS,
-} from "@/lib/database-shapes";
+} from "@/lib/workspace/database-shapes";
 import { derivePagination } from "@/lib/pagination";
-import type { Task } from "@/lib/task-types";
+import type { Task } from "@/lib/tasks/task-types";
 import {
   ACCESS_PREVIEW_PARAM,
   USER_ACCESS_PREVIEW_PARAM,
-} from "@/lib/access-preview";
-import { resolveAccessPreview } from "@/lib/access-preview-server";
-import { parseTaskKey } from "@/lib/task-key";
+} from "@/lib/access/access-preview";
+import { resolveAccessPreview } from "@/lib/server/access-preview";
+import { parseTaskKey } from "@/lib/tasks/task-key";
 import { deleteTask, moveTask, saveTask } from "@/lib/server/tasks/mutations";
 import {
   parseTaskListQuery,

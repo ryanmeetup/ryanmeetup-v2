@@ -1,5 +1,5 @@
-import type { Priority, Task } from "../task-types";
-import { normalizeTaskSchedule } from "../task-scheduling";
+import type { Priority, Task } from "@/lib/tasks/task-types";
+import { normalizeTaskSchedule } from "@/lib/tasks/task-scheduling";
 import { objectWithKeys, text, uuid, uuidList } from "./shared";
 
 type TaskInput = Pick<

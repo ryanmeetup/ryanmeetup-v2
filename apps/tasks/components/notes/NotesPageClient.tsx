@@ -22,13 +22,13 @@ import {
   linkNoteToProject,
   noteConversionDraft,
   noteConversionProjectDraft,
-} from "@/lib/notes";
-import type { Note, NoteComment, Project } from "@/lib/resource-types";
-import type { Task } from "@/lib/task-types";
-import { taskPath } from "@/lib/task-key";
-import type { WorkspaceData } from "@/lib/workspace-types";
+} from "@/lib/resources/notes";
+import type { Note, NoteComment, Project } from "@/lib/resources/resource-types";
+import type { Task } from "@/lib/tasks/task-types";
+import { taskPath } from "@/lib/tasks/task-key";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { mutate } from "@/lib/mutation-client";
-import { archiveFilter } from "@/lib/resource-management";
+import { archiveFilter } from "@/lib/resources/resource-management";
 import { NoteCard } from "./NoteCard";
 export function NotesPageClient({
   initialData,

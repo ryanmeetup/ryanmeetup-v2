@@ -38,7 +38,7 @@ import {
   FiTrash2,
   FiUsers,
 } from "react-icons/fi";
-import { withAccessPreview } from "@/lib/access-preview";
+import { withAccessPreview } from "@/lib/access/access-preview";
 import {
   CountBadge,
   ManagementCard,
@@ -48,8 +48,8 @@ import {
 import type {
   Category,
   ProjectLink,
-} from "@/lib/resource-types";
-import type { WorkspaceData } from "@/lib/workspace-types";
+} from "@/lib/resources/resource-types";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import {
   ExpandableResourceEditor,
   ResourceFields,
@@ -65,7 +65,7 @@ import {
   filterAndSortResources,
   resourceSearchText,
   sameIds,
-} from "@/lib/resource-management";
+} from "@/lib/resources/resource-management";
 
 type CategoryAccessGroup = {
   id: string;

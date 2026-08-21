@@ -5,7 +5,7 @@ import {
   WorkspaceLoadError,
   requireQueryData,
   type WorkspaceCollection,
-} from "@/lib/workspace-loader";
+} from "@/lib/server/workspace-loader";
 
 export const isWorkspaceDemo = () =>
   !process.env.NEXT_PUBLIC_SUPABASE_URL ||

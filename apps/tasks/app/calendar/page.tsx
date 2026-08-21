@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { CalendarPageClient } from "@/components/calendar";
-import { demoData } from "@/lib/demo-data";
+import { demoData } from "@/lib/workspace/demo-data";
 import {
   CALENDAR_EVENT_COLUMNS,
   type CalendarEvent,
-} from "@/lib/calendar-types";
-import { requireQueryData } from "@/lib/workspace-loader";
+} from "@/lib/calendar/calendar-types";
+import { requireQueryData } from "@/lib/server/workspace-loader";
 import {
   isWorkspaceDemo,
   loadWorkspacePage,
@@ -15,7 +15,7 @@ import {
   isGoogleCalendarConfigured,
   listGoogleCalendarEvents,
 } from "@/lib/server/google-calendar";
-import type { GoogleCalendarEvent } from "@/lib/google-calendar-types";
+import type { GoogleCalendarEvent } from "@/lib/calendar/google-calendar-types";
 
 export const metadata: Metadata = {
   title: { absolute: "Calendar | Ryan Meetup Tasks" },

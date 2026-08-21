@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { inviteSchema, userDeleteSchema } from "@/lib/api-schemas";
+import { inviteSchema, userDeleteSchema } from "@/lib/api-schema";
 import { tasksAppUrl } from "@/lib/app-url";
 import { databaseFailure } from "@/lib/server/api-response";
 import {
@@ -8,7 +8,7 @@ import {
   consumeInviteLimit,
   privilegedContext,
   readJson,
-} from "@/lib/privileged-api";
+} from "@/lib/server/privileged-api";
 
 export async function POST(request: Request) {
   const parsed = await readJson(request, inviteSchema);

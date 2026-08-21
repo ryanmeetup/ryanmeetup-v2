@@ -3,8 +3,8 @@ import {
   accessPreviewHref,
   applyAccessPreview,
   withAccessPreview,
-} from "@/lib/access-preview";
-import type { WorkspaceData } from "@/lib/workspace-types";
+} from "@/lib/access/access-preview";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 
 const baseData = {
   currentProfile: { favorite_project_ids: ["hidden"] },

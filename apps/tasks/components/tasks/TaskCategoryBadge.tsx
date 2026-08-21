@@ -1,4 +1,4 @@
-import type { Category } from "@/lib/resource-types";
+import type { Category } from "@/lib/resources/resource-types";
 
 export function TaskCategoryBadge({
   category,

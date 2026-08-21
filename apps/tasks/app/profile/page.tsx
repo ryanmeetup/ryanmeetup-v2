@@ -5,8 +5,8 @@ import {
   isWorkspaceDemo,
   loadWorkspacePage,
 } from "@/lib/server/workspace-page-loader";
-import { WorkspaceLoadError } from "@/lib/workspace-loader";
-import type { WorkspaceData } from "@/lib/workspace-types";
+import { WorkspaceLoadError } from "@/lib/server/workspace-loader";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {

@@ -1,4 +1,4 @@
-import type { AccessPreview } from "@/lib/workspace-types";
+import type { AccessPreview } from "@/lib/workspace/workspace-types";
 import { AccessPreviewBanner } from "./AccessPreviewBanner";
 import { BetaBanner } from "./BetaBanner";
 

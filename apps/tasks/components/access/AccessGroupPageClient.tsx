@@ -18,8 +18,8 @@ import { FiShield, FiTrash2, FiUsers } from "react-icons/fi";
 import {
   ACCESS_GROUP_COLOR_OPTIONS,
   accessGroupSlug,
-} from "@/lib/access-groups";
-import type { WorkspaceData } from "@/lib/workspace-types";
+} from "@/lib/access/access-groups";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { useAccessManagement } from "@/hooks/useAccessManagement";
 import { CategoriesModal } from "@/components/categories";
 import { WorkspacePageShell } from "@/components/global";
@@ -27,7 +27,7 @@ import { ProjectsModal } from "@/components/projects";
 import { AccessGroupKindBadge } from "./AccessGroupKindBadge";
 import { AccessGroupMembersPanel } from "./AccessGroupMembersPanel";
 import { ProjectPermissionMatrix } from "./ProjectPermissionMatrix";
-import type { AccessGroup, GroupGrant, GroupMember } from "@/lib/access-types";
+import type { AccessGroup, GroupGrant, GroupMember } from "@/lib/access/access-types";
 
 export function AccessGroupPageClient({
   initialData,

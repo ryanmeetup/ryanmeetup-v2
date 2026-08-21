@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { apiError, databaseFailure } from "@/lib/server/api-response";
 import { getAdminClient } from "@/lib/server/admin-client";
 import { sendTaskDigestEmail } from "@/lib/server/task-digest-email";
-import { buildTaskDigest, taskDigestCount } from "@/lib/task-digest";
+import { buildTaskDigest, taskDigestCount } from "@/lib/tasks/task-digest";
 
 export const runtime = "nodejs";
 

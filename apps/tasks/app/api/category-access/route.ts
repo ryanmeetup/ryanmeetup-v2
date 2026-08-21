@@ -5,7 +5,7 @@ import {
   auditPrivilegedAction,
   privilegedContext,
   readJson,
-} from "@/lib/privileged-api";
+} from "@/lib/server/privileged-api";
 
 const uuid = (value: unknown): value is string =>
   typeof value === "string" && /^[0-9a-f-]{36}$/i.test(value);

@@ -1,8 +1,8 @@
 import type {
   ResourceAttachment,
   ResourceLink,
-} from "@/lib/resource-types";
-import type { ResourceAttachmentDraft } from "@/lib/resource-management";
+} from "@/lib/resources/resource-types";
+import type { ResourceAttachmentDraft } from "@/lib/resources/resource-management";
 
 export type ResourceKind = "category" | "project";
 

@@ -7,8 +7,8 @@ import {
   isInheritedPermissionEffective,
   selectEffectivePermission,
   selectInheritedProjectAccess,
-} from "@/lib/access-selectors";
-import type { AccessGroup, GroupGrant } from "@/lib/access-types";
+} from "@/lib/access/access-selectors";
+import type { AccessGroup, GroupGrant } from "@/lib/access/access-types";
 
 const group = (id: string, rank: number): AccessGroup => ({
   id,

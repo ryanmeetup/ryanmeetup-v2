@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseTaskKey, taskKey, taskPath } from "@/lib/task-key";
+import { parseTaskKey, taskKey, taskPath } from "@/lib/tasks/task-key";
 
 describe("task keys", () => {
   it("formats task keys and share paths", () => {

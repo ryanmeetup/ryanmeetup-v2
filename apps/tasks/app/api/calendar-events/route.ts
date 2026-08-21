@@ -7,8 +7,8 @@ import {
 import { databaseFailure } from "@/lib/server/api-response";
 import { authorize } from "@/lib/server/auth";
 import { readJson } from "@/lib/server/request";
-import { recordWorkspaceActivity } from "@/lib/privileged-api";
-import { CALENDAR_EVENT_COLUMNS } from "@/lib/calendar-types";
+import { recordWorkspaceActivity } from "@/lib/server/privileged-api";
+import { CALENDAR_EVENT_COLUMNS } from "@/lib/calendar/calendar-types";
 
 async function record(
   user: Parameters<typeof recordWorkspaceActivity>[0],

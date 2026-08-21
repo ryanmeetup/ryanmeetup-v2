@@ -9,13 +9,13 @@ import {
   isInheritedPermissionEffective,
   selectEffectivePermission,
   selectInheritedProjectAccess,
-} from "@/lib/access-selectors";
+} from "@/lib/access/access-selectors";
 import type {
   AccessGroup,
   AccessPermission,
   GroupGrant,
-} from "@/lib/access-types";
-import type { Project } from "@/lib/resource-types";
+} from "@/lib/access/access-types";
+import type { Project } from "@/lib/resources/resource-types";
 
 export function ProjectPermissionMatrix({
   group,

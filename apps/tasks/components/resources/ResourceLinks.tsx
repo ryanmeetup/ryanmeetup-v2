@@ -1,5 +1,5 @@
 import { FiExternalLink } from "react-icons/fi";
-import type { ResourceLink } from "@/lib/resource-types";
+import type { ResourceLink } from "@/lib/resources/resource-types";
 
 export function ResourceLinks({
   links,

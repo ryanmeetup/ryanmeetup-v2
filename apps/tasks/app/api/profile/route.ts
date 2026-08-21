@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { profileSchema } from "@/lib/api-schemas";
+import { profileSchema } from "@/lib/api-schema";
 import { displayNameError, normalizeDisplayName } from "@/lib/display-name";
 import { databaseFailure, logServerFailure } from "@/lib/server/api-response";
 import {
@@ -7,7 +7,7 @@ import {
   auditPrivilegedAction,
   privilegedContext,
   readJson,
-} from "@/lib/privileged-api";
+} from "@/lib/server/privileged-api";
 
 export async function PATCH(request: Request) {
   const parsed = await readJson(request, profileSchema);

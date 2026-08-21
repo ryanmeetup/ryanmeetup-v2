@@ -3,7 +3,7 @@ import {
   buildTaskQueryParams,
   taskQuerySignature,
   type TaskQueryFilters,
-} from "@/lib/task-query";
+} from "@/lib/tasks/task-query";
 
 const filters: TaskQueryFilters = {
   statuses: ["todo"],

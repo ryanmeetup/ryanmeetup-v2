@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button, DisclosureCard } from "@ryanmeetup/ui";
 import { FiPlus } from "react-icons/fi";
 import { CountBadge } from "@/components/global";
-import type { ResourceAttachmentDraft } from "@/lib/resource-management";
+import type { ResourceAttachmentDraft } from "@/lib/resources/resource-management";
 import { AttachmentList } from "./AttachmentList";
 import { AttachmentNoteEditor } from "./AttachmentNoteEditor";
 import { AttachmentUploadControl } from "./AttachmentUploadControl";

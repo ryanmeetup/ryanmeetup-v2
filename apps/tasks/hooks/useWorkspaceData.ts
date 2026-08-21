@@ -8,9 +8,9 @@ import {
   useState,
 } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { subscribeToWorkspace } from "@/lib/workspace-realtime";
-import { restoreWorkspace } from "@/lib/workspace-state";
-import type { WorkspaceData } from "@/lib/workspace-types";
+import { subscribeToWorkspace } from "@/lib/workspace/workspace-realtime";
+import { restoreWorkspace } from "@/lib/workspace/workspace-state";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 
 const STORAGE_KEY = "ryanmeetup.tasks.workspace";
 

@@ -8,7 +8,7 @@ import { PasswordForm } from "@/components/auth";
 import { CategoriesModal } from "@/components/categories";
 import { WorkspacePageShell } from "@/components/global";
 import { ProjectsModal } from "@/components/projects";
-import type { WorkspaceData } from "@/lib/workspace-types";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 
 export function ProfilePageClient({
   initialData,

@@ -12,9 +12,9 @@ import {
   FiZap,
 } from "react-icons/fi";
 import { WorkspacePageShell } from "@/components/global";
-import { withAccessPreview } from "@/lib/access-preview";
+import { withAccessPreview } from "@/lib/access/access-preview";
 import { changelogReleasePath, type ChangelogRelease } from "@/lib/changelog";
-import type { WorkspaceData } from "@/lib/workspace-types";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 
 export function ChangelogPageClient({
   initialData,

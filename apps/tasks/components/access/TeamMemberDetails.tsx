@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { Pill, Tooltip } from "@ryanmeetup/ui";
 import { FiCheckCircle, FiClock, FiShield, FiUsers } from "react-icons/fi";
-import { accessGroupSlug } from "@/lib/access-groups";
-import type { AccessGroup, UserAccessMetadata } from "@/lib/access-types";
+import { accessGroupSlug } from "@/lib/access/access-groups";
+import type { AccessGroup, UserAccessMetadata } from "@/lib/access/access-types";
 
 const accountDateFormatter = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",

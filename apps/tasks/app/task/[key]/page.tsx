@@ -5,11 +5,11 @@ import {
   ACCESS_PREVIEW_PARAM,
   applyAccessPreview,
   USER_ACCESS_PREVIEW_PARAM,
-} from "@/lib/access-preview";
-import { resolveAccessPreview } from "@/lib/access-preview-server";
-import { demoData } from "@/lib/demo-data";
-import { parseTaskKey, taskKey } from "@/lib/task-key";
-import { requireQueryData, WORKSPACE_COLUMNS } from "@/lib/workspace-loader";
+} from "@/lib/access/access-preview";
+import { resolveAccessPreview } from "@/lib/server/access-preview";
+import { demoData } from "@/lib/workspace/demo-data";
+import { parseTaskKey, taskKey } from "@/lib/tasks/task-key";
+import { requireQueryData, WORKSPACE_COLUMNS } from "@/lib/server/workspace-loader";
 import {
   isWorkspaceDemo,
   loadWorkspacePage,

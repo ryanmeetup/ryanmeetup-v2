@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { activityFilterCount, buildActivityQuery } from "@/lib/activity-query";
-import type { Project } from "@/lib/resource-types";
-import type { Profile } from "@/lib/workspace-types";
+import { activityFilterCount, buildActivityQuery } from "@/lib/activity/activity-query";
+import type { Project } from "@/lib/resources/resource-types";
+import type { Profile } from "@/lib/workspace/workspace-types";
 
 describe("activity query controller", () => {
   const projects = [{ id: "p1", name: "Meetup" }] as Project[];

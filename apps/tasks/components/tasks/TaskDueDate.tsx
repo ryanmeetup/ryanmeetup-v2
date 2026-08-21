@@ -1,5 +1,5 @@
 import { FiCalendar } from "react-icons/fi";
-import { isTaskLate } from "@/lib/task-scheduling";
+import { isTaskLate } from "@/lib/tasks/task-scheduling";
 
 function displayDate(value: string) {
   return new Intl.DateTimeFormat("en-US", {

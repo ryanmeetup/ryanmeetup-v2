@@ -5,7 +5,7 @@ import {
   resourceSearchText,
   sameIds,
   uploadResourceAttachments,
-} from "@/lib/resource-management";
+} from "@/lib/resources/resource-management";
 
 const resources = [
   { name: "Zulu", archived_at: null },

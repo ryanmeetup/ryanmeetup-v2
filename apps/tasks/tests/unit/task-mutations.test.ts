@@ -3,9 +3,9 @@ import { mutate } from "@/lib/mutation-client";
 import {
   createTaskMutationService,
   type TaskDraft,
-} from "@/lib/task-mutations";
-import type { Task } from "@/lib/task-types";
-import type { WorkspaceData } from "@/lib/workspace-types";
+} from "@/lib/tasks/task-mutations";
+import type { Task } from "@/lib/tasks/task-types";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 
 vi.mock("@/lib/mutation-client", () => ({ mutate: vi.fn() }));
 

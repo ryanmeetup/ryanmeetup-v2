@@ -1,11 +1,11 @@
-import type { TaskActivity } from "./activity-types";
-import type { PaginationState } from "./pagination";
+import type { TaskActivity } from "@/lib/activity/activity-types";
+import type { PaginationState } from "@/lib/pagination";
 import type {
   Category,
   CategoryOwner,
   Project,
   ProjectOwner,
-} from "./resource-types";
+} from "@/lib/resources/resource-types";
 import type {
   Label,
   Status,
@@ -17,7 +17,7 @@ import type {
   TaskComment,
   TaskLabel,
   TaskReference,
-} from "./task-types";
+} from "@/lib/tasks/task-types";
 
 export type Profile = {
   id: string;

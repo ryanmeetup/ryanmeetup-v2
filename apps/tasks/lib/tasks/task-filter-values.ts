@@ -1,7 +1,7 @@
-import type { Priority } from "@/lib/task-types";
-import type { Profile } from "@/lib/workspace-types";
+import type { Priority } from "@/lib/tasks/task-types";
+import type { Profile } from "@/lib/workspace/workspace-types";
 import { profileDisplayName } from "@/lib/presentation";
-import type { Category } from "@/lib/resource-types";
+import type { Category } from "@/lib/resources/resource-types";
 
 export const taskPriorities: Priority[] = ["low", "medium", "high", "urgent"];
 

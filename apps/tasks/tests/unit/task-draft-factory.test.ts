@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { editTaskDraft } from "@/lib/task-draft-factory";
-import type { Task } from "@/lib/task-types";
+import { editTaskDraft } from "@/lib/tasks/task-draft-factory";
+import type { Task } from "@/lib/tasks/task-types";
 
 const task: Task = {
   id: "task-1",

@@ -18,10 +18,10 @@ import {
 import type {
   Status,
   Task,
-} from "@/lib/task-types";
-import type { WorkspaceData } from "@/lib/workspace-types";
-import { withAccessPreview } from "@/lib/access-preview";
-import { taskPath } from "@/lib/task-key";
+} from "@/lib/tasks/task-types";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
+import { withAccessPreview } from "@/lib/access/access-preview";
+import { taskPath } from "@/lib/tasks/task-key";
 import { profileDisplayName } from "@/lib/presentation";
 import { TaskKeyBadge } from "@/components/tasks";
 

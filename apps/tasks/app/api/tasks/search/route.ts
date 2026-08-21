@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { authorize } from "@/lib/server/auth";
 import { databaseFailure } from "@/lib/server/api-response";
-import { WORKSPACE_COLUMNS } from "@/lib/workspace-loader";
-import { parseTaskKey } from "@/lib/task-key";
+import { WORKSPACE_COLUMNS } from "@/lib/server/workspace-loader";
+import { parseTaskKey } from "@/lib/tasks/task-key";
 
 const SEARCH_LIMIT = 25;
 const MIN_QUERY_LENGTH = 3;

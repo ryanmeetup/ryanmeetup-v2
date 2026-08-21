@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { indexTaskAssignees, indexTaskCategories } from "@/lib/task-view";
-import type { Task, TaskAssignee, TaskCategory } from "@/lib/task-types";
+import { indexTaskAssignees, indexTaskCategories } from "@/lib/tasks/task-view";
+import type { Task, TaskAssignee, TaskCategory } from "@/lib/tasks/task-types";
 
 describe("task board relation selectors", () => {
   it("indexes every category without duplicating relations", () => {

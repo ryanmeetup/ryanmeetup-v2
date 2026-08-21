@@ -5,8 +5,8 @@ import { authorize } from "@/lib/server/auth";
 import {
   detectAttachmentMimeType,
   MAX_ATTACHMENT_SIZE,
-} from "@/lib/task-attachments";
-import { attachmentUrlName } from "@/lib/task-attachment-urls";
+} from "@/lib/tasks/task-attachments";
+import { attachmentUrlName } from "@/lib/tasks/task-attachment-urls";
 import { normalizeHttpUrl } from "@ryanmeetup/utils";
 
 export const runtime = "nodejs";

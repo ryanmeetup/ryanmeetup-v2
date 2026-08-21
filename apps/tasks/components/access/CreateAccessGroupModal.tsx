@@ -2,7 +2,7 @@
 
 import type { FormEvent } from "react";
 import { Button, DropdownSelect, Input, Modal, Textarea } from "@ryanmeetup/ui";
-import { ACCESS_GROUP_COLOR_OPTIONS } from "@/lib/access-groups";
+import { ACCESS_GROUP_COLOR_OPTIONS } from "@/lib/access/access-groups";
 
 export function CreateAccessGroupModal({
   color,

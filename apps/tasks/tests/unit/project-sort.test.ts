@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { sortFavoriteProjectsFirst } from "@/lib/project-sort";
-import type { Project } from "@/lib/resource-types";
+import { sortFavoriteProjectsFirst } from "@/lib/resources/project-sort";
+import type { Project } from "@/lib/resources/resource-types";
 
 const projects = ["alpha", "beta", "gamma", "delta"].map(
   (id) => ({ id }) as Project,

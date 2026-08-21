@@ -4,7 +4,7 @@ import { useState } from "react";
 import { CategoriesModal } from "./CategoriesModal";
 import { WorkspacePageShell } from "@/components/global";
 import { ProjectsModal } from "@/components/projects";
-import type { WorkspaceData } from "@/lib/workspace-types";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 
 export function CategoriesPageClient({
   initialData,

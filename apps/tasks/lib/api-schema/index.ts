@@ -1,6 +1,6 @@
-import type { ProjectLink } from "./resource-types";
+import type { ProjectLink } from "@/lib/resources/resource-types";
 import { normalizeHttpUrl } from "@ryanmeetup/utils";
-export { taskMoveSchema, taskSaveSchema } from "./api-schema/task";
+export { taskMoveSchema, taskSaveSchema } from "./task";
 
 type JsonObject = Record<string, unknown>;
 

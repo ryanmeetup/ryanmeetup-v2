@@ -33,16 +33,16 @@ import {
 } from "react-icons/fi";
 import { WorkspacePageShell } from "@/components/global";
 import { useWorkspaceData } from "@/hooks/useWorkspaceData";
-import { withAccessPreview } from "@/lib/access-preview";
+import { withAccessPreview } from "@/lib/access/access-preview";
 import {
   createTaskMutationService,
   type TaskDraft,
-} from "@/lib/task-mutations";
-import { taskKey, taskPath } from "@/lib/task-key";
+} from "@/lib/tasks/task-mutations";
+import { taskKey, taskPath } from "@/lib/tasks/task-key";
 import { errorMessage } from "@/lib/presentation";
-import { taskDraftFromTask } from "@/lib/task-draft-factory";
-import type { Task } from "@/lib/task-types";
-import type { WorkspaceData } from "@/lib/workspace-types";
+import { taskDraftFromTask } from "@/lib/tasks/task-draft-factory";
+import type { Task } from "@/lib/tasks/task-types";
+import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { TaskDetails } from "./TaskDetails";
 import { TaskDueDate } from "./TaskDueDate";
 import { TaskEditor } from "./TaskEditor";

@@ -7,7 +7,7 @@ import {
 } from "@ryanmeetup/ui";
 import { FiCheck, FiPlus, FiTrash2 } from "react-icons/fi";
 import { CountBadge } from "@/components/global";
-import type { Subtask } from "@/lib/task-types";
+import type { Subtask } from "@/lib/tasks/task-types";
 
 export function TaskChecklistPanel({
   items,
