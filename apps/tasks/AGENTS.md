@@ -25,7 +25,10 @@ Code is organized by responsibility:
 - `hooks` owns reusable Tasks client controllers. Keep feature-specific hooks
   beside their feature when they are not shared across the app.
 - `lib` owns framework-light domain types, selectors, parsing, normalization,
-  state reconciliation, and client mutation services.
+  state reconciliation, and client mutation services. Domain code is grouped
+  under `lib/access`, `lib/activity`, `lib/calendar`, `lib/contacts`,
+  `lib/resources`, `lib/tasks`, and `lib/workspace`; keep cross-domain modules
+  at the `lib` root only when no single domain is the correct owner.
 - `lib/server` is the server-only application layer: authorization, request and
   response handling, privileged operations, persistence, and query services.
   Client modules must never import it, including indirectly through a barrel.
@@ -34,11 +37,11 @@ Code is organized by responsibility:
   Historical migrations are not retained in this repository.
 
 Use `@/` for app-owned absolute imports. Prefer domain-owned types such as
-`task-types.ts`, `workspace-types.ts`, `resource-types.ts`, and
-`activity-types.ts`; do not grow `lib/types.ts` into a new catch-all. Keep
-feature `index.ts` exports narrow and intentional. Code within a feature should
-usually import its siblings directly rather than expanding a barrel solely for
-internal use.
+`lib/tasks/task-types.ts`, `lib/workspace/workspace-types.ts`,
+`lib/resources/resource-types.ts`, and `lib/activity/activity-types.ts`; do not
+grow `lib/types.ts` into a new catch-all. Keep feature `index.ts` exports narrow
+and intentional. Code within a feature should usually import its siblings
+directly rather than expanding a barrel solely for internal use.
 
 ## Server pages and workspace data
 
@@ -61,10 +64,10 @@ internal use.
 
 `useWorkspaceData` owns the live client workspace. Demo persistence,
 realtime subscription setup, pure event reconciliation, and mutation behavior
-have separate owners. Extend `workspace-realtime.ts`,
-`workspace-reconciliation.ts`, or a domain mutation service instead of adding
-unrelated behavior to the hook. Access-preview sessions intentionally do not
-subscribe to realtime updates.
+have separate owners. Extend `lib/workspace/workspace-realtime.ts`,
+`lib/workspace/workspace-reconciliation.ts`, or a domain mutation service
+instead of adding unrelated behavior to the hook. Access-preview sessions
+intentionally do not subscribe to realtime updates.
 
 ## Client feature boundaries
 
@@ -75,14 +78,15 @@ Keep page clients and top-level feature components focused on composition:
   drag behavior in `useTaskBoardDrag`, and editor lifecycle in
   `useTaskEditorController`.
 - Task drafts, scheduling, query parsing, filtering, view derivation, and
-  mutation behavior belong in their named `lib/task-*` modules. Use pure
+  mutation behavior belong in their named `lib/tasks/task-*` modules. Use pure
   helpers for rules that can be tested without React.
 - Category and project screens may share neutral fields, links, attachment UI,
-  and persistence machinery through `components/resources`, `lib/resource-*`,
-  and `lib/server/resource-*`. Their distinct domain rules, permissions, copy,
-  and state remain in their feature directories.
+  and persistence machinery through `components/resources`,
+  `lib/resources/resource-*`, and `lib/server/resource-*`. Their distinct
+  domain rules, permissions, copy, and state remain in their feature
+  directories.
 - Access screens compose panels and dialogs. Effective-permission derivation
-  belongs in `access-selectors.ts`, client mutation coordination in
+  belongs in `lib/access/access-selectors.ts`, client mutation coordination in
   `useAccessManagement`, and server workflows in the access-group operation and
   service modules.
 - Search ranking/href generation, activity presentation, notes behavior, and
@@ -100,7 +104,7 @@ props when a component can receive a narrower view model or controller.
   `mutate`/`parseMutationResponse` client helpers. Do not write protected
   workspace data directly from components.
 - JSON mutation routes must use `readJson` and a schema from `lib/api-schema`
-  or the deliberate `lib/api-schemas.ts` public surface. This preserves origin,
+  (whose `index.ts` is the deliberate public surface). This preserves origin,
   content-type, body-size, unknown-key, and field validation.
 - Route handlers must use `authorize` and return the shared structured API
   errors. Database failures go through `databaseFailure` so correlation IDs and

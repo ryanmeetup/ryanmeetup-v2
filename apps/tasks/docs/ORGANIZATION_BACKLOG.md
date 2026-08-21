@@ -16,7 +16,7 @@ Current hotspots:
 - `components/categories/CategoriesModal.tsx`
 - `components/projects/ProjectsModal.tsx`
 - `components/resources/ResourceAttachments.tsx`
-- `lib/resource-management.ts`
+- `lib/resources/resource-management.ts`
 - `lib/server/resource-attachments-route.ts`
 
 Remaining work:
@@ -138,7 +138,7 @@ Current hotspots:
 Remaining work:
 
 - Move activity description generation, actor/resource resolution, and date
-  grouping into `lib/activity-presentation.ts` with tests.
+  grouping into `lib/activity/activity-presentation.ts` with tests.
 - Extract activity result rows/groups and the filter/query controller.
 - Move `NoteCard` out of `NotesPageClient` and separate note draft/autosave state
   from collection filtering and pagination.
@@ -187,8 +187,8 @@ Current hotspots:
 
 - `hooks/useWorkspaceData.ts`
 - `app/api/tasks/route.ts`
-- `lib/workspace-loader.ts`
-- `lib/api-schemas.ts`
+- `lib/server/workspace-loader.ts`
+- `lib/api-schema/index.ts`
 
 Remaining work:
 
