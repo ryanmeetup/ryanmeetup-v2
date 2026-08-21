@@ -20,7 +20,7 @@ overview:
 
 The new Calendar brings task deadlines, project or category milestones, and team time away into one monthly view. Sensitive dates follow the same project and category access rules as the work they describe, while away periods help everyone know when a Ryan is unreachable.
 
-Each Ryan can connect their primary Google Calendar with read-only access, bringing personal meetings into the shared calendar view without exposing them to teammates.
+Owners can connect one workspace Google Calendar and grant access through access groups. Events from Google appear automatically for permitted teammates, while tasks and dates created in Tasks stay in Tasks unless someone explicitly publishes them in a future workflow.
 
 ### Weekday task rundown
 
@@ -28,7 +28,7 @@ Assignees now receive one concise weekday email grouping overdue work, today’s
 
 Those rundowns now mirror the task board more closely, with higher-contrast cards, icon-led sections, and roomier task metadata for quicker scanning.
 
-Workspace owners can monitor Resend's daily and monthly email allowance, recent sends, and delivery state from the new Usage page.
+Workspace owners can monitor Resend's daily and monthly email allowance, recent sends, and color-coded delivery states from the new Usage page. Weekday digests now appear there 30 minutes before delivery, giving owners time to inspect the exact message, delay it, or cancel it.
 
 ### Notes that become tasks
 
