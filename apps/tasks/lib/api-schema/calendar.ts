@@ -3,6 +3,10 @@ import type {
   CalendarEventDraft,
   CalendarEventKind,
 } from "@/lib/calendar/calendar-types";
+import {
+  parseRecurrence,
+  recurrenceSpanConflict,
+} from "@/lib/calendar/calendar-recurrence";
 
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 const timePattern = /^\d{2}:\d{2}$/;
@@ -18,9 +22,11 @@ export function calendarEventSchema(value: unknown, requireId = false) {
     "allDay",
     "startTime",
     "endTime",
+    "recurrence",
     "projectId",
     "categoryId",
     "profileId",
+    "syncToGoogle",
   ]);
   if (!body) return null;
   const id = requireId ? uuid(body.id) : undefined;
@@ -47,9 +53,16 @@ export function calendarEventSchema(value: unknown, requireId = false) {
     typeof body.endTime === "string" && timePattern.test(body.endTime)
       ? body.endTime
       : null;
+  // An absent rule and an unreadable one are different answers: the first is a
+  // date that happens once, the second is a request that must not be saved.
+  const recurrence =
+    body.recurrence === null || body.recurrence === undefined
+      ? null
+      : parseRecurrence(body.recurrence);
   const projectId = body.projectId ? uuid(body.projectId) : null;
   const categoryId = body.categoryId ? uuid(body.categoryId) : null;
   const profileId = body.profileId ? uuid(body.profileId) : null;
+  const syncToGoogle = body.syncToGoogle ?? false;
   if (
     (requireId && !id) ||
     !kind ||
@@ -59,6 +72,10 @@ export function calendarEventSchema(value: unknown, requireId = false) {
     !endDate ||
     endDate < startDate ||
     typeof allDay !== "boolean" ||
+    typeof syncToGoogle !== "boolean" ||
+    (Boolean(body.recurrence) && !recurrence) ||
+    (recurrence?.ends.type === "on" && recurrence.ends.date < startDate) ||
+    Boolean(recurrenceSpanConflict(startDate, endDate, recurrence)) ||
     (!allDay && (!startTime || !endTime)) ||
     (body.projectId && !projectId) ||
     (body.categoryId && !categoryId) ||
@@ -78,9 +95,11 @@ export function calendarEventSchema(value: unknown, requireId = false) {
     allDay,
     startTime: allDay ? null : startTime,
     endTime: allDay ? null : endTime,
+    recurrence,
     projectId,
     categoryId,
     profileId,
+    syncToGoogle,
   };
 }
 
@@ -102,6 +121,7 @@ export function calendarEventValues(
     starts_at: startsAt,
     ends_at: endsAt,
     all_day: input.allDay,
+    recurrence: input.recurrence,
     project_id: input.projectId,
     category_id: input.categoryId,
     profile_id: input.kind === "away" ? input.profileId : null,
@@ -118,8 +138,10 @@ export function blankCalendarDraft(kind: CalendarEventKind, date: string): Calen
     allDay: true,
     startTime: "09:00",
     endTime: "17:00",
+    recurrence: null,
     projectId: "",
     categoryId: "",
     profileId: "",
+    syncToGoogle: false,
   };
 }

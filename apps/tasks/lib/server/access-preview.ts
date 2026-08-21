@@ -9,6 +9,18 @@ type PreviewCategory = {
 
 type PreviewCategoryGrant = { category_id: string; group_id: string };
 
+type PreviewGroupCalendarAccess = { id: string; calendar_access?: boolean | null };
+
+export function grantsCalendarAccessForPreview(
+  groups: PreviewGroupCalendarAccess[],
+  groupIds: string[],
+) {
+  const effectiveGroupIds = new Set(groupIds);
+  return groups.some(
+    (group) => effectiveGroupIds.has(group.id) && group.calendar_access === true,
+  );
+}
+
 export function accessibleCategoryIdsForPreview(
   categories: PreviewCategory[],
   grants: PreviewCategoryGrant[],
@@ -76,7 +88,9 @@ export async function resolveAccessPreview(
   if (options.groupId) {
     const groupLookup = supabase
       .from("access_groups")
-      .select("id, name, kind, hierarchy_rank, grants_global_content");
+      .select(
+        "id, name, kind, hierarchy_rank, grants_global_content, calendar_access",
+      );
     const groupRequest =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
         options.groupId,
@@ -85,7 +99,9 @@ export async function resolveAccessPreview(
         : groupLookup.eq("name", options.groupId);
     const [groupResult, groupsResult] = await Promise.all([
       groupRequest.maybeSingle(),
-      supabase.from("access_groups").select("id, kind, hierarchy_rank"),
+      supabase
+        .from("access_groups")
+        .select("id, kind, hierarchy_rank, calendar_access"),
     ]);
     const group = requireQueryResult("preview access group", groupResult);
     const groups = requireQueryData("preview access groups", groupsResult);
@@ -119,6 +135,10 @@ export async function resolveAccessPreview(
         kind: "group",
         subjectId: group.id,
         subjectName: group.name,
+        calendarAccess: grantsCalendarAccessForPreview(
+          groups,
+          inheritedGroupIds,
+        ),
         ...categoryAccess,
       },
       projectIds: group.grants_global_content
@@ -149,6 +169,7 @@ export async function resolveAccessPreview(
         subjectId: profile.id,
         subjectName: profile.full_name,
         subjectProfile: profile,
+        calendarAccess: true,
         ...categoryAccess,
       },
       projectIds: options.allProjectIds,
@@ -162,7 +183,7 @@ export async function resolveAccessPreview(
       .eq("profile_id", profile.id),
     supabase
       .from("access_groups")
-      .select("id, kind, hierarchy_rank, grants_global_content"),
+      .select("id, kind, hierarchy_rank, grants_global_content, calendar_access"),
   ]);
   const membershipRows = requireQueryData(
     "preview access memberships",
@@ -175,6 +196,17 @@ export async function resolveAccessPreview(
   const memberTier = groupRows.find(
     (group) => group.kind === "tier" && directGroupIds.includes(group.id),
   );
+  const groupIds = groupRows
+    .filter(
+      (group) =>
+        directGroupIds.includes(group.id) ||
+        (group.kind === "tier" &&
+          memberTier?.hierarchy_rank !== null &&
+          memberTier?.hierarchy_rank !== undefined &&
+          (group.hierarchy_rank ?? 0) <= memberTier.hierarchy_rank),
+    )
+    .map((group) => group.id);
+  const calendarAccess = grantsCalendarAccessForPreview(groupRows, groupIds);
   if (memberTier?.grants_global_content) {
     const categoryAccess = await resolveCategoryAccess(
       supabase,
@@ -187,21 +219,12 @@ export async function resolveAccessPreview(
         subjectId: profile.id,
         subjectName: profile.full_name,
         subjectProfile: profile,
+        calendarAccess,
         ...categoryAccess,
       },
       projectIds: options.allProjectIds,
     };
   }
-  const groupIds = groupRows
-    .filter(
-      (group) =>
-        directGroupIds.includes(group.id) ||
-        (group.kind === "tier" &&
-          memberTier?.hierarchy_rank !== null &&
-          memberTier?.hierarchy_rank !== undefined &&
-          (group.hierarchy_rank ?? 0) <= memberTier.hierarchy_rank),
-    )
-    .map((group) => group.id);
   let projectIds: string[] = [];
   if (groupIds.length > 0) {
     const grants = requireQueryData(
@@ -220,6 +243,7 @@ export async function resolveAccessPreview(
       subjectId: profile.id,
       subjectName: profile.full_name,
       subjectProfile: profile,
+      calendarAccess,
       ...categoryAccess,
     },
     projectIds,

@@ -1,5 +1,12 @@
 import type { Metadata } from "next";
 import { CalendarPageClient } from "@/components/calendar";
+import {
+  ACCESS_PREVIEW_PARAM,
+  applyAccessPreview,
+  calendarEventsForPreview,
+  USER_ACCESS_PREVIEW_PARAM,
+} from "@/lib/access/access-preview";
+import { resolveAccessPreview } from "@/lib/server/access-preview";
 import { demoData } from "@/lib/workspace/demo-data";
 import {
   CALENDAR_EVENT_COLUMNS,
@@ -18,6 +25,7 @@ import {
   listGoogleCalendarEvents,
 } from "@/lib/server/google-calendar";
 import type { GoogleCalendarEvent } from "@/lib/calendar/google-calendar-types";
+import type { AccessPreview } from "@/lib/workspace/workspace-types";
 
 export const metadata: Metadata = {
   title: { absolute: "Calendar | Ryan Meetup Tasks" },
@@ -32,6 +40,7 @@ const demoEvents: CalendarEvent[] = [
     starts_at: "2026-08-27T00:00:00",
     ends_at: "2026-08-30T23:59:00",
     all_day: true,
+    recurrence: null,
     project_id: null,
     category_id: null,
     profile_id: "ryan",
@@ -47,7 +56,30 @@ const demoEvents: CalendarEvent[] = [
     starts_at: "2026-08-24T00:00:00",
     ends_at: "2026-08-24T23:59:00",
     all_day: true,
+    recurrence: null,
     project_id: "ryancon-2027",
+    category_id: null,
+    profile_id: null,
+    created_by: "ryan",
+    created_at: "2026-08-20T12:00:00Z",
+    updated_at: "2026-08-20T12:00:00Z",
+  },
+  {
+    id: "demo-recurring",
+    kind: "important",
+    title: "Weekly Ryan sync",
+    description: "Same time every week until the conference.",
+    starts_at: "2026-08-26T00:00:00",
+    ends_at: "2026-08-26T23:59:00",
+    all_day: true,
+    recurrence: {
+      frequency: "weekly",
+      interval: 1,
+      weekdays: [3],
+      monthlyMode: "date",
+      ends: { type: "never" },
+    },
+    project_id: null,
     category_id: null,
     profile_id: null,
     created_by: "ryan",
@@ -59,10 +91,19 @@ const demoEvents: CalendarEvent[] = [
 export default async function CalendarPage({
   searchParams,
 }: {
-  searchParams: Promise<{ google?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const initialMonth = new Date().toISOString().slice(0, 7);
-  const googleStatus = (await searchParams).google;
+  const query = await searchParams;
+  const googleStatus = typeof query.google === "string" ? query.google : undefined;
+  const requestedGroupPreview =
+    typeof query[ACCESS_PREVIEW_PARAM] === "string"
+      ? query[ACCESS_PREVIEW_PARAM]
+      : undefined;
+  const requestedUserPreview =
+    typeof query[USER_ACCESS_PREVIEW_PARAM] === "string"
+      ? query[USER_ACCESS_PREVIEW_PARAM]
+      : undefined;
   const demoMode = isWorkspaceDemo();
   if (demoMode)
     return (
@@ -89,16 +130,48 @@ export default async function CalendarPage({
     "taskAssignees",
     "taskCategories",
   ]);
-  const events = requireQueryData(
+  let initialData = loaded.data;
+  let events = requireQueryData(
     "calendar events",
     await loaded.supabase
       .from("calendar_events")
       .select(CALENDAR_EVENT_COLUMNS)
       .order("starts_at"),
   );
-  const googleCanManage = loaded.data.currentProfile.app_role === "owner";
+  let preview: AccessPreview | undefined;
+  if (requestedGroupPreview || requestedUserPreview) {
+    const isOwner = requireQueryData(
+      "owner access",
+      await loaded.supabase.rpc("is_app_owner"),
+    );
+    if (isOwner) {
+      const resolvedPreview = await resolveAccessPreview(loaded.supabase, {
+        groupId: requestedGroupPreview,
+        userName: requestedUserPreview,
+        allProjectIds: initialData.projects.map((project) => project.id),
+      });
+      if (resolvedPreview) {
+        initialData = applyAccessPreview(
+          initialData,
+          resolvedPreview.preview,
+          resolvedPreview.projectIds,
+        );
+        events = calendarEventsForPreview(
+          events,
+          resolvedPreview.preview,
+          resolvedPreview.projectIds,
+        );
+        preview = resolvedPreview.preview;
+      }
+    }
+  }
+  // A preview is read-only, so it never offers connection management.
+  const googleCanManage =
+    !preview && loaded.data.currentProfile.app_role === "owner";
   let googleCanView = googleCanManage;
-  if (!googleCanView) {
+  if (preview) {
+    googleCanView = preview.calendarAccess === true;
+  } else if (!googleCanView) {
     try {
       googleCanView = await canViewWorkspaceGoogleCalendar(loaded.supabase);
     } catch (error) {
@@ -124,7 +197,7 @@ export default async function CalendarPage({
   }
   return (
     <CalendarPageClient
-      initialData={loaded.data}
+      initialData={initialData}
       initialEvents={events}
       initialGoogleEvents={googleEvents}
       googleConnection={googleConnection}

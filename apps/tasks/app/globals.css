@@ -2,6 +2,15 @@
 @import "@ryanmeetup/brand/theme.css";
 @source "../../../packages/ui/src";
 
+@theme {
+  --animate-sync-sweep: sync-sweep 1.4s ease-in-out infinite;
+
+  @keyframes sync-sweep {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(400%); }
+  }
+}
+
 * {
   box-sizing: border-box;
 }

@@ -527,7 +527,17 @@ for an onboarded teammate; entries may be changed only by the person who logged
 them, the person who is away, or an app owner. The single workspace Google
 Calendar is visible to owners and members whose effective access group grants
 calendar access. Google events are read into the calendar view at request time;
-local task and calendar records are not exported automatically.
+local task and calendar records are never exported automatically. A calendar
+date leaves the workspace only when its author explicitly publishes it, and
+publishing requires the same effective calendar access that reading the shared
+calendar requires. Treat a published copy as visible to everyone who can see
+the shared calendar, including for a date scoped to one project or category:
+Google enforces its own sharing, not workspace scoping. The workspace row owns
+its published copy; editing, unpublishing, or deleting the row reconciles
+Google, and an access preview never publishes. The owner access preview must
+resolve calendar visibility for the previewed subject rather than the
+signed-in owner, on the calendar page and on the Google event request it makes
+for later months.
 
 ## Migration strategy
 

@@ -12,6 +12,7 @@ import {
   Input,
   Modal,
   toast,
+  Tooltip,
 } from "@ryanmeetup/ui";
 import {
   FiBriefcase,
@@ -71,6 +72,7 @@ export function ContactsPageClient({
   const [deleting, setDeleting] = useState<Contact | null>(null);
   const [saving, setSaving] = useState(false);
   const [deletingPending, setDeletingPending] = useState(false);
+  const previewing = Boolean(data.accessPreview);
   const [expandedPeopleIds, setExpandedPeopleIds] = useState<Set<string>>(
     () => new Set(),
   );
@@ -270,15 +272,29 @@ export function ContactsPageClient({
           title="Contacts"
           description="Browse the brands, venues, sponsors, teams, and groups we know, with the right people listed under each one."
           actions={
-            <Button
-              type="button"
-              size="sm"
-              className="w-full sm:w-auto"
-              leftIcon={<FiPlus aria-hidden />}
-              onClick={() => setEditing(null)}
-            >
-              New Contact
-            </Button>
+            previewing ? (
+              <Tooltip content="Exit access preview to change contacts">
+                <Button
+                  type="button"
+                  size="sm"
+                  className="w-full sm:w-auto"
+                  leftIcon={<FiPlus aria-hidden />}
+                  disabled
+                >
+                  New Contact
+                </Button>
+              </Tooltip>
+            ) : (
+              <Button
+                type="button"
+                size="sm"
+                className="w-full sm:w-auto"
+                leftIcon={<FiPlus aria-hidden />}
+                onClick={() => setEditing(null)}
+              >
+                New Contact
+              </Button>
+            )
           }
           hideActions
           size="xl"
@@ -408,22 +424,24 @@ export function ContactsPageClient({
                                           </div>
                                         </div>
                                       </div>
-                                      <div className="flex shrink-0 gap-1">
-                                        <IconButton
-                                          label={`Edit “${contact.display_name}”`}
-                                          variant="edit"
-                                          onClick={() => setEditing(contact)}
-                                        >
-                                          <FiEdit2 />
-                                        </IconButton>
-                                        <IconButton
-                                          label={`Delete “${contact.display_name}”`}
-                                          variant="danger"
-                                          onClick={() => setDeleting(contact)}
-                                        >
-                                          <FiTrash2 />
-                                        </IconButton>
-                                      </div>
+                                      {!previewing && (
+                                        <div className="flex shrink-0 gap-1">
+                                          <IconButton
+                                            label={`Edit “${contact.display_name}”`}
+                                            variant="edit"
+                                            onClick={() => setEditing(contact)}
+                                          >
+                                            <FiEdit2 />
+                                          </IconButton>
+                                          <IconButton
+                                            label={`Delete “${contact.display_name}”`}
+                                            variant="danger"
+                                            onClick={() => setDeleting(contact)}
+                                          >
+                                            <FiTrash2 />
+                                          </IconButton>
+                                        </div>
+                                      )}
                                     </div>
                                     {contact.notes && (
                                       <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-black/65 dark:text-white/65">

@@ -2,8 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   accessPreviewHref,
   applyAccessPreview,
+  calendarEventsForPreview,
+  notesForPreview,
   withAccessPreview,
 } from "@/lib/access/access-preview";
+import type { CalendarEvent } from "@/lib/calendar/calendar-types";
+import type { Note } from "@/lib/resources/resource-types";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 
 const baseData = {
@@ -129,5 +133,95 @@ describe("access preview", () => {
     ]);
     expect(result.categoryOwners).toEqual([{ category_id: "general" }]);
     expect(result.taskCategories).toHaveLength(0);
+  });
+});
+
+const calendarEvent = (overrides: Partial<CalendarEvent>): CalendarEvent => ({
+  id: "event-1",
+  kind: "important",
+  title: "RyanCon venue decision",
+  description: null,
+  starts_at: "2026-08-24T00:00:00",
+  ends_at: "2026-08-24T23:59:00",
+  all_day: true,
+  recurrence: null,
+  project_id: null,
+  category_id: null,
+  profile_id: null,
+  created_by: "ryan",
+  created_at: "2026-08-20T12:00:00Z",
+  updated_at: "2026-08-20T12:00:00Z",
+  ...overrides,
+});
+
+describe("calendar events in an access preview", () => {
+  const preview = {
+    kind: "group" as const,
+    subjectId: "group-1",
+    subjectName: "Reviewers",
+    accessibleCategoryIds: ["general"],
+  };
+  const events = [
+    calendarEvent({ id: "workspace-wide" }),
+    calendarEvent({ id: "visible-project", project_id: "visible" }),
+    calendarEvent({ id: "hidden-project", project_id: "hidden" }),
+    calendarEvent({ id: "open-category", category_id: "general" }),
+    calendarEvent({ id: "restricted-category", category_id: "restricted" }),
+    calendarEvent({
+      id: "time-away",
+      kind: "away",
+      project_id: "hidden",
+      profile_id: "ryan",
+    }),
+  ];
+
+  it("keeps only the dates the previewed group may read", () => {
+    expect(
+      calendarEventsForPreview(events, preview, ["visible"]).map(({ id }) => id),
+    ).toEqual([
+      "workspace-wide",
+      "visible-project",
+      "open-category",
+      "time-away",
+    ]);
+  });
+
+  it("keeps every date when the preview resolved no category limits", () => {
+    expect(
+      calendarEventsForPreview(
+        events,
+        { kind: "group", subjectId: "group-1", subjectName: "Reviewers" },
+        ["visible", "hidden"],
+      ).map(({ id }) => id),
+    ).toHaveLength(events.length);
+  });
+});
+
+describe("notes in an access preview", () => {
+  const notes = [
+    { id: "unfiled", category_id: null },
+    { id: "open", category_id: "general" },
+    { id: "restricted", category_id: "finance" },
+  ] as Note[];
+
+  it("keeps unfiled notes and drops notes in unreachable work groups", () => {
+    expect(
+      notesForPreview(notes, {
+        kind: "group",
+        subjectId: "group-1",
+        subjectName: "Reviewers",
+        accessibleCategoryIds: ["general"],
+      }).map(({ id }) => id),
+    ).toEqual(["unfiled", "open"]);
+  });
+
+  it("keeps every note when the preview resolved no category limits", () => {
+    expect(
+      notesForPreview(notes, {
+        kind: "group",
+        subjectId: "group-1",
+        subjectName: "Reviewers",
+      }),
+    ).toHaveLength(notes.length);
   });
 });

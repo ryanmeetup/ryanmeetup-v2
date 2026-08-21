@@ -1,3 +1,5 @@
+import type { CalendarEvent } from "@/lib/calendar/calendar-types";
+import type { Note } from "@/lib/resources/resource-types";
 import type {
   AccessPreview,
   WorkspaceData,
@@ -81,4 +83,37 @@ export function applyAccessPreview(
       visibleCategoryIds.has(item.category_id),
     ),
   };
+}
+
+// Standalone important dates may be workspace-wide or scoped to a project or a
+// category. Time away stays visible so the team can see who is unavailable.
+export function calendarEventsForPreview(
+  events: CalendarEvent[],
+  preview: AccessPreview,
+  projectIds: string[],
+): CalendarEvent[] {
+  const visibleProjectIds = new Set(projectIds);
+  const accessibleCategoryIds = preview.accessibleCategoryIds
+    ? new Set(preview.accessibleCategoryIds)
+    : null;
+  return events.filter((event) => {
+    if (event.kind === "away") return true;
+    if (event.project_id && !visibleProjectIds.has(event.project_id))
+      return false;
+    return !(
+      event.category_id &&
+      accessibleCategoryIds &&
+      !accessibleCategoryIds.has(event.category_id)
+    );
+  });
+}
+
+// Notes filed under a work group follow that group's access; an unfiled note
+// stays workspace-wide, like a projectless task.
+export function notesForPreview(notes: Note[], preview: AccessPreview): Note[] {
+  if (!preview.accessibleCategoryIds) return notes;
+  const accessibleCategoryIds = new Set(preview.accessibleCategoryIds);
+  return notes.filter(
+    (note) => !note.category_id || accessibleCategoryIds.has(note.category_id),
+  );
 }

@@ -20,7 +20,9 @@ overview:
 
 The new Calendar brings task deadlines, project or category milestones, and team time away into one monthly view. Sensitive dates follow the same project and category access rules as the work they describe, while away periods help everyone know when a Ryan is unreachable.
 
-Owners can connect one workspace Google Calendar and grant access through access groups. Events from Google appear automatically for permitted teammates, while tasks and dates created in Tasks stay in Tasks unless someone explicitly publishes them in a future workflow.
+Owners can connect one workspace Google Calendar and grant access through access groups. Events from Google appear automatically for permitted teammates, while tasks and dates created in Tasks stay in Tasks unless someone publishes them. Any important date or time-away entry can be copied to the shared Google Calendar with one checkbox, and editing or deleting the date keeps the Google copy in step.
+
+Google events now use their own magenta calendar notation so they stay distinct from blue task deadlines, and routine Home blocks no longer clutter the shared view. Time away stays at the top of each day, crowded dates open into a complete day agenda, the details sidebar can be hidden between visits, and Google connection controls live in a compact status badge above the calendar.
 
 ### Weekday task rundown
 

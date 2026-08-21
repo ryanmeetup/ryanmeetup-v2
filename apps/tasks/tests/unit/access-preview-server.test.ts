@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { accessibleCategoryIdsForPreview } from "@/lib/server/access-preview";
+import {
+  accessibleCategoryIdsForPreview,
+  grantsCalendarAccessForPreview,
+} from "@/lib/server/access-preview";
 
 const categories = [
   { id: "general", access_mode: "open" as const },
@@ -28,5 +31,33 @@ describe("access preview category visibility", () => {
       "finance",
       "events",
     ]);
+  });
+});
+
+const groups = [
+  { id: "r-suite", calendar_access: true },
+  { id: "ryan-leads", calendar_access: false },
+  { id: "events-team", calendar_access: null },
+];
+
+describe("access preview calendar visibility", () => {
+  it("grants the workspace calendar through the group that allows it", () => {
+    expect(grantsCalendarAccessForPreview(groups, ["r-suite"])).toBe(true);
+  });
+
+  it("inherits calendar access from a lower tier", () => {
+    expect(
+      grantsCalendarAccessForPreview(groups, ["ryan-leads", "r-suite"]),
+    ).toBe(true);
+  });
+
+  it("hides the workspace calendar from groups without calendar access", () => {
+    expect(
+      grantsCalendarAccessForPreview(groups, ["ryan-leads", "events-team"]),
+    ).toBe(false);
+  });
+
+  it("hides the workspace calendar from a group with no memberships", () => {
+    expect(grantsCalendarAccessForPreview(groups, [])).toBe(false);
   });
 });

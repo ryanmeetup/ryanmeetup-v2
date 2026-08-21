@@ -40,6 +40,7 @@ export function NoteCard({
   category,
   profiles,
   demoMode,
+  previewing,
   canConvertToProject,
   onChange,
   onConvert,
@@ -55,6 +56,7 @@ export function NoteCard({
   category: Category | null;
   profiles: WorkspaceData["profiles"];
   demoMode: boolean;
+  previewing: boolean;
   canConvertToProject: boolean;
   onChange: (note: Note) => void;
   onConvert: (note: Note) => void;
@@ -94,7 +96,7 @@ export function NoteCard({
             placeholder="Optional title"
             value={draft.title}
             maxLength={200}
-            disabled={Boolean(note.archived_at)}
+            disabled={previewing || Boolean(note.archived_at)}
             onChange={(event) => draft.setTitle(event.target.value)}
           />
           <Textarea
@@ -105,7 +107,7 @@ export function NoteCard({
             value={draft.body}
             rows={4}
             maxLength={10000}
-            disabled={Boolean(note.archived_at)}
+            disabled={previewing || Boolean(note.archived_at)}
             onChange={(event) => draft.setBody(event.target.value)}
           />
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-black/50 dark:text-white/50">
@@ -134,29 +136,35 @@ export function NoteCard({
       </div>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-black/10 pt-3 dark:border-white/10">
         <div className="flex items-center gap-2">
-          <IconButton
-            label={
-              note.archived_at
-                ? `Restore “${noteTitle(note)}”`
-                : `Archive “${noteTitle(note)}”`
-            }
-            variant="archive"
-            onClick={() =>
-              void onChange({
-                ...note,
-                archived_at: note.archived_at ? null : new Date().toISOString(),
-              })
-            }
-          >
-            {note.archived_at ? <FiRotateCcw /> : <FiArchive />}
-          </IconButton>
-          <IconButton
-            label={`Delete “${noteTitle(note)}”`}
-            variant="danger"
-            onClick={() => onDelete(note)}
-          >
-            <FiTrash2 />
-          </IconButton>
+          {!previewing && (
+            <>
+              <IconButton
+                label={
+                  note.archived_at
+                    ? `Restore “${noteTitle(note)}”`
+                    : `Archive “${noteTitle(note)}”`
+                }
+                variant="archive"
+                onClick={() =>
+                  void onChange({
+                    ...note,
+                    archived_at: note.archived_at
+                      ? null
+                      : new Date().toISOString(),
+                  })
+                }
+              >
+                {note.archived_at ? <FiRotateCcw /> : <FiArchive />}
+              </IconButton>
+              <IconButton
+                label={`Delete “${noteTitle(note)}”`}
+                variant="danger"
+                onClick={() => onDelete(note)}
+              >
+                <FiTrash2 />
+              </IconButton>
+            </>
+          )}
         </div>
         <div className="ml-auto flex items-center gap-2">
           {note.converted_task_id && (
@@ -183,7 +191,8 @@ export function NoteCard({
               View project
             </Button.Link>
           )}
-          {!note.converted_task_id &&
+          {!previewing &&
+            !note.converted_task_id &&
             !note.converted_project_id &&
             !note.archived_at &&
             (canConvertToProject ? (
@@ -244,6 +253,7 @@ export function NoteCard({
         currentProfileId={currentProfileId}
         profiles={profiles}
         demoMode={demoMode}
+        previewing={previewing}
         onChange={onCommentsChange}
       />
     </article>

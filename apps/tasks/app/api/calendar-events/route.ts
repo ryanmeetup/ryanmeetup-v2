@@ -8,7 +8,11 @@ import { databaseFailure } from "@/lib/server/api-response";
 import { authorize } from "@/lib/server/auth";
 import { readJson } from "@/lib/server/request";
 import { recordWorkspaceActivity } from "@/lib/server/privileged-api";
-import { CALENDAR_EVENT_COLUMNS } from "@/lib/calendar/calendar-types";
+import { syncWorkspaceEventToGoogle } from "@/lib/server/google-calendar";
+import {
+  CALENDAR_EVENT_COLUMNS,
+  type CalendarEvent,
+} from "@/lib/calendar/calendar-types";
 
 async function record(
   user: Parameters<typeof recordWorkspaceActivity>[0],
@@ -23,6 +27,21 @@ async function record(
     href: "/calendar",
     projectId: event.project_id,
   });
+}
+
+// Publishing is best effort: the workspace row is already saved, so a Google
+// failure is reported as a warning instead of discarding the write.
+async function syncToGoogle(
+  supabase: Parameters<typeof syncWorkspaceEventToGoogle>[0],
+  event: CalendarEvent,
+  publish: boolean,
+) {
+  try {
+    return await syncWorkspaceEventToGoogle(supabase, event, publish);
+  } catch (error) {
+    console.error("Google Calendar copy could not be updated", error);
+    return "Google Calendar could not be updated.";
+  }
 }
 
 export async function POST(request: Request) {
@@ -49,7 +68,10 @@ export async function POST(request: Request) {
       { error: "The date was saved, but its activity could not be recorded." },
       { status: 500 },
     );
-  return NextResponse.json({ event: result.data });
+  const warning = parsed.data.syncToGoogle
+    ? await syncToGoogle(authorization.supabase, result.data, true)
+    : null;
+  return NextResponse.json({ event: result.data, warning });
 }
 
 export async function PATCH(request: Request) {
@@ -74,7 +96,14 @@ export async function PATCH(request: Request) {
       { error: "The date was updated, but its activity could not be recorded." },
       { status: 500 },
     );
-  return NextResponse.json({ event: result.data });
+  // An edit reconciles the copy in both directions, so clearing the option
+  // removes a date that was published earlier.
+  const warning = await syncToGoogle(
+    authorization.supabase,
+    result.data,
+    parsed.data.syncToGoogle,
+  );
+  return NextResponse.json({ event: result.data, warning });
 }
 
 export async function DELETE(request: Request) {
@@ -97,5 +126,10 @@ export async function DELETE(request: Request) {
       { error: "The date was deleted, but its activity could not be recorded." },
       { status: 500 },
     );
-  return NextResponse.json({ ok: true });
+  const warning = await syncToGoogle(
+    authorization.supabase,
+    result.data,
+    false,
+  );
+  return NextResponse.json({ ok: true, warning });
 }

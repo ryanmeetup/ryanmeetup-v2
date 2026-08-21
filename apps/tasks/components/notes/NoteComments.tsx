@@ -32,6 +32,7 @@ export function NoteComments({
   currentProfileId,
   profiles,
   demoMode,
+  previewing,
   onChange,
 }: {
   noteId: string;
@@ -39,6 +40,7 @@ export function NoteComments({
   currentProfileId: string;
   profiles: Profile[];
   demoMode: boolean;
+  previewing: boolean;
   onChange: (comments: NoteComment[]) => void;
 }) {
   const [body, setBody] = useState("");
@@ -231,7 +233,8 @@ export function NoteComments({
                         </p>
                       )}
                     </div>
-                    {comment.created_by === currentProfileId &&
+                    {!previewing &&
+                      comment.created_by === currentProfileId &&
                       editing?.id !== comment.id && (
                         <span className="flex gap-1">
                           <IconButton
@@ -259,27 +262,31 @@ export function NoteComments({
               })}
             </div>
           )}
-          <Textarea
-            id={`note-comment-${noteId}`}
-            label="Comment"
-            hideLabel
-            name={`note-comment-${noteId}`}
-            value={body}
-            maxLength={5000}
-            rows={2}
-            placeholder="Add a comment…"
-            onChange={(event) => setBody(event.target.value)}
-          />
-          <Button
-            type="button"
-            variant="action"
-            className="w-full sm:w-auto"
-            loading={saving && !editing}
-            disabled={saving || !body.trim()}
-            onClick={() => void addComment()}
-          >
-            Comment
-          </Button>
+          {!previewing && (
+            <>
+              <Textarea
+                id={`note-comment-${noteId}`}
+                label="Comment"
+                hideLabel
+                name={`note-comment-${noteId}`}
+                value={body}
+                maxLength={5000}
+                rows={2}
+                placeholder="Add a comment…"
+                onChange={(event) => setBody(event.target.value)}
+              />
+              <Button
+                type="button"
+                variant="action"
+                className="w-full sm:w-auto"
+                loading={saving && !editing}
+                disabled={saving || !body.trim()}
+                onClick={() => void addComment()}
+              >
+                Comment
+              </Button>
+            </>
+          )}
         </div>
       </AnimatedCollapse>
     </section>

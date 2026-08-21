@@ -63,8 +63,9 @@ export function NotesPageClient({
   const [convertProjectTarget, setConvertProjectTarget] = useState<Note | null>(
     null,
   );
+  const previewing = Boolean(data.accessPreview);
   const canConvertToProject =
-    demoMode || data.currentProfile.app_role === "owner";
+    !previewing && (demoMode || data.currentProfile.app_role === "owner");
 
   async function createNote() {
     if (!body.trim()) return;
@@ -264,47 +265,49 @@ export function NotesPageClient({
           size="xl"
           embedded
         >
-          <section className="rounded-xl border border-black/10 bg-black/[0.015] p-4 dark:border-white/10 dark:bg-white/[0.025] sm:p-5">
-            <Textarea
-              id="quick-note"
-              label="Quick note"
-              required
-              name="quick-note"
-              value={body}
-              rows={4}
-              maxLength={10000}
-              placeholder="Drop the thought here…"
-              onChange={(event) => setBody(event.target.value)}
-            />
-            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <DropdownSelect
-                label="Category"
-                value={categoryId}
-                onChange={setCategoryId}
-                options={[
-                  { label: "Uncategorized", value: "" },
-                  ...data.categories
-                    .filter((category) => !category.archived_at)
-                    .map((category) => ({
-                      label: category.name,
-                      value: category.id,
-                      color: category.color,
-                    })),
-                ]}
+          {!previewing && (
+            <section className="rounded-xl border border-black/10 bg-black/[0.015] p-4 dark:border-white/10 dark:bg-white/[0.025] sm:p-5">
+              <Textarea
+                id="quick-note"
+                label="Quick note"
+                required
+                name="quick-note"
+                value={body}
+                rows={4}
+                maxLength={10000}
+                placeholder="Drop the thought here…"
+                onChange={(event) => setBody(event.target.value)}
               />
-              <Button
-                type="button"
-                className="w-full sm:w-auto"
-                leftIcon={<FiPlus />}
-                loading={creating}
-                loadingText="Saving…"
-                disabled={!body.trim()}
-                onClick={() => void createNote()}
-              >
-                Save note
-              </Button>
-            </div>
-          </section>
+              <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <DropdownSelect
+                  label="Category"
+                  value={categoryId}
+                  onChange={setCategoryId}
+                  options={[
+                    { label: "Uncategorized", value: "" },
+                    ...data.categories
+                      .filter((category) => !category.archived_at)
+                      .map((category) => ({
+                        label: category.name,
+                        value: category.id,
+                        color: category.color,
+                      })),
+                  ]}
+                />
+                <Button
+                  type="button"
+                  className="w-full sm:w-auto"
+                  leftIcon={<FiPlus />}
+                  loading={creating}
+                  loadingText="Saving…"
+                  disabled={!body.trim()}
+                  onClick={() => void createNote()}
+                >
+                  Save note
+                </Button>
+              </div>
+            </section>
+          )}
 
           <section className="mt-6 border-t border-black/10 pt-5 dark:border-white/10">
             <div className="mb-4 flex items-center gap-4">
@@ -382,6 +385,7 @@ export function NotesPageClient({
                         }
                         profiles={data.profiles}
                         demoMode={demoMode}
+                        previewing={previewing}
                         canConvertToProject={canConvertToProject}
                         onChange={(next) => void updateNote(next)}
                         onConvert={setConvertTarget}

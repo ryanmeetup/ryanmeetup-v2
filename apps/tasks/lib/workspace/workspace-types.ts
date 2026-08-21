@@ -36,6 +36,7 @@ export type AccessPreview = {
   subjectProfile?: Profile;
   accessibleCategoryIds?: string[];
   inaccessibleTaskIds?: string[];
+  calendarAccess?: boolean;
 };
 
 export type WorkspaceData = {

@@ -8,10 +8,24 @@ import {
 } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isAllowedTasksRequestOrigin, tasksAppUrl } from "@/lib/app-url";
+import type { CalendarEvent } from "@/lib/calendar/calendar-types";
+import {
+  WORKSPACE_TIME_ZONE,
+  workspaceGoogleEventBody,
+  workspaceGoogleEventId,
+} from "@/lib/calendar/google-calendar-sync";
 import type {
   GoogleCalendarConnection,
   GoogleCalendarEvent,
 } from "@/lib/calendar/google-calendar-types";
+import {
+  googleAttachments,
+  googleAttendees,
+  googleConferenceEntries,
+  googleEventDescription,
+  type GoogleAttendeeSource,
+  type GoogleConferenceSource,
+} from "@/lib/calendar/google-event-details";
 import { getAdminClient } from "./admin-client";
 
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
@@ -37,11 +51,18 @@ export type GoogleCalendarIntegrationRow = {
   updated_at: string;
 };
 
-type GoogleEvent = {
+type GoogleEvent = GoogleConferenceSource & {
   id?: string;
   status?: string;
+  recurringEventId?: string;
   summary?: string;
+  description?: string;
   htmlLink?: string;
+  eventType?: string;
+  organizer?: { email?: string; displayName?: string; self?: boolean };
+  attendees?: GoogleAttendeeSource[];
+  attachments?: { title?: string; fileUrl?: string }[];
+  workingLocationProperties?: { type?: string };
   start?: { date?: string; dateTime?: string };
   end?: { date?: string; dateTime?: string };
 };
@@ -49,8 +70,19 @@ type GoogleEvent = {
 type GoogleEventList = {
   items?: GoogleEvent[];
   nextPageToken?: string;
-  summary?: string;
 };
+
+export function isVisibleGoogleCalendarEvent(event: {
+  eventType?: string;
+  summary?: string;
+  workingLocationProperties?: { type?: string };
+}) {
+  return !(
+    event.eventType === "workingLocation" &&
+    (event.workingLocationProperties?.type === "homeOffice" ||
+      event.summary?.trim().toLowerCase() === "home")
+  );
+}
 
 function configuration() {
   const clientId = process.env.GOOGLE_CALENDAR_CLIENT_ID;
@@ -300,6 +332,31 @@ export function googleCalendarMonthRange(month: string) {
   return { start: start.toISOString(), end: end.toISOString() };
 }
 
+/**
+ * The metadata the details dialog shows in place of sending a reader straight
+ * to Google. Descriptions arrive as HTML and guest lists arrive unbounded, so
+ * both are normalized and capped here rather than passed through, and a field
+ * Google left empty is dropped instead of travelling as an empty value.
+ */
+export function googleCalendarEventDetails(event: GoogleEvent) {
+  const organizerName = event.organizer?.displayName?.trim();
+  const organizerEmail = event.organizer?.email?.trim();
+  const conference = googleConferenceEntries(event);
+  const attachments = googleAttachments(event.attachments);
+  return {
+    ...googleEventDescription(event.description),
+    ...googleAttendees(event.attendees),
+    location: event.location?.trim() || undefined,
+    tentative: event.status === "tentative" || undefined,
+    organizer:
+      organizerName || organizerEmail
+        ? { name: organizerName || undefined, email: organizerEmail || undefined }
+        : undefined,
+    conference: conference.length ? conference : undefined,
+    attachments: attachments.length ? attachments : undefined,
+  };
+}
+
 export async function listGoogleCalendarEvents(
   connection: GoogleCalendarIntegrationRow,
   month: string,
@@ -320,6 +377,10 @@ export async function listGoogleCalendarEvents(
       singleEvents: "true",
       orderBy: "startTime",
       maxResults: "2500",
+      // Asking for the workspace zone means an imported time is the same wall
+      // clock the calendar labels it with, whatever zone the connected
+      // calendar itself is set to.
+      timeZone: WORKSPACE_TIME_ZONE,
       ...(pageToken ? { pageToken } : {}),
     }).toString();
     const page = await googleJson<GoogleEventList>(url.toString(), {
@@ -328,6 +389,7 @@ export async function listGoogleCalendarEvents(
     for (const event of page.items ?? []) {
       if (
         event.status === "cancelled" ||
+        !isVisibleGoogleCalendarEvent(event) ||
         !event.id ||
         !event.start ||
         !event.end
@@ -343,13 +405,124 @@ export async function listGoogleCalendarEvents(
         start,
         end: allDay ? addUtcDays(rawEnd, -1) : rawEnd,
         allDay,
+        // Google returns a timed event in the calendar's own zone, so the
+        // wall-clock part is already the time a reader expects to see.
+        startTime: allDay ? undefined : event.start.dateTime?.slice(11, 16),
+        endTime: allDay ? undefined : event.end.dateTime?.slice(11, 16),
         htmlLink: event.htmlLink,
-        calendarName: page.summary ?? "Google Calendar",
+        recurringEventId: event.recurringEventId,
+        ...googleCalendarEventDetails(event),
       });
     }
     pageToken = page.nextPageToken;
   } while (pageToken);
   return events;
+}
+
+function eventUrl(
+  connection: GoogleCalendarIntegrationRow,
+  eventId?: string,
+) {
+  const calendarId = encodeURIComponent(connection.calendar_id);
+  const base = `${GOOGLE_CALENDAR_URL}/calendars/${calendarId}/events`;
+  return eventId ? `${base}/${encodeURIComponent(eventId)}` : base;
+}
+
+async function googleWrite(
+  url: string,
+  token: string,
+  method: string,
+  body?: unknown,
+  handled: number[] = [],
+) {
+  const response = await fetch(url, {
+    method,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+    },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    cache: "no-store",
+  });
+  if (!response.ok && !handled.includes(response.status))
+    console.error("Google Calendar write failed", {
+      method,
+      status: response.status,
+      body: (await response.text()).slice(0, 500),
+    });
+  return response;
+}
+
+// The published copy uses an ID derived from the workspace event, so writing it
+// is an upsert: insert first, then fall back to updating an existing copy.
+export async function publishWorkspaceEventToGoogle(
+  connection: GoogleCalendarIntegrationRow,
+  event: CalendarEvent,
+) {
+  const token = await accessToken(connection);
+  const id = workspaceGoogleEventId(event.id);
+  const body = workspaceGoogleEventBody(event);
+  const created = await googleWrite(
+    eventUrl(connection),
+    token,
+    "POST",
+    { id, ...body },
+    [409],
+  );
+  if (created.ok) return;
+  if (created.status !== 409)
+    throw new Error("Google Calendar could not be updated.");
+  // A 409 means the copy already exists, including one cancelled by an earlier
+  // removal, so the update restores it to the workspace values.
+  const updated = await googleWrite(eventUrl(connection, id), token, "PUT", {
+    ...body,
+    status: "confirmed",
+  });
+  if (!updated.ok) throw new Error("Google Calendar could not be updated.");
+}
+
+export async function removeWorkspaceEventFromGoogle(
+  connection: GoogleCalendarIntegrationRow,
+  eventId: string,
+) {
+  const token = await accessToken(connection);
+  const response = await googleWrite(
+    eventUrl(connection, workspaceGoogleEventId(eventId)),
+    token,
+    "DELETE",
+    undefined,
+    [404, 410],
+  );
+  // A copy that is already gone is the intended end state.
+  if (!response.ok && response.status !== 404 && response.status !== 410)
+    throw new Error("Google Calendar could not be updated.");
+}
+
+// Reconciles the published copy with what the author asked for. Returns a
+// warning when the workspace row was saved but Google was left untouched.
+export async function syncWorkspaceEventToGoogle(
+  supabase: SupabaseClient,
+  event: CalendarEvent,
+  publish: boolean,
+) {
+  let allowed = false;
+  try {
+    allowed = await canViewWorkspaceGoogleCalendar(supabase);
+  } catch (error) {
+    console.error("Google Calendar permission could not be resolved", error);
+  }
+  if (!allowed)
+    return publish
+      ? "You do not have access to the workspace Google Calendar."
+      : null;
+  const connection = await loadGoogleCalendarIntegration();
+  if (!connection)
+    return publish
+      ? "No workspace Google Calendar is connected."
+      : null;
+  if (publish) await publishWorkspaceEventToGoogle(connection, event);
+  else await removeWorkspaceEventFromGoogle(connection, event.id);
+  return null;
 }
 
 export async function revokeGoogleCalendar(
