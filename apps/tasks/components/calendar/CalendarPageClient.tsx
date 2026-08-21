@@ -182,6 +182,8 @@ export function CalendarPageClient({
   initialGoogleEvents,
   googleConnection: initialGoogleConnection,
   googleConfigured,
+  googleCanManage,
+  googleCanView,
   googleStatus,
   initialMonth,
   demoMode,
@@ -191,6 +193,8 @@ export function CalendarPageClient({
   initialGoogleEvents: GoogleCalendarEvent[];
   googleConnection: GoogleCalendarConnection;
   googleConfigured: boolean;
+  googleCanManage: boolean;
+  googleCanView: boolean;
   googleStatus?: string;
   initialMonth: string;
   demoMode: boolean;
@@ -211,7 +215,8 @@ export function CalendarPageClient({
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [source, setSource] = useState("all");
-  const googleLoading = googleConnection.connected && month !== loadedGoogleMonth;
+  const googleLoading =
+    googleCanView && googleConnection.connected && month !== loadedGoogleMonth;
   const { days, monthNumber } = monthBounds(month);
   const today = initialMonth === new Date().toISOString().slice(0, 7)
     ? new Date().toISOString().slice(0, 10)
@@ -368,7 +373,12 @@ export function CalendarPageClient({
   }, [googleStatus]);
 
   useEffect(() => {
-    if (!googleConnection.connected || month === loadedGoogleMonth) return;
+    if (
+      !googleCanView ||
+      !googleConnection.connected ||
+      month === loadedGoogleMonth
+    )
+      return;
     const controller = new AbortController();
     fetch(`/api/integrations/google-calendar/events?month=${encodeURIComponent(month)}`, {
       signal: controller.signal,
@@ -385,7 +395,7 @@ export function CalendarPageClient({
         }
       });
     return () => controller.abort();
-  }, [googleConnection.connected, loadedGoogleMonth, month]);
+  }, [googleCanView, googleConnection.connected, loadedGoogleMonth, month]);
 
   async function disconnectGoogle() {
     setDisconnectingGoogle(true);
@@ -446,7 +456,7 @@ export function CalendarPageClient({
                     { label: "Deadlines", value: "task" },
                     { label: "Time away", value: "away" },
                     { label: "Important dates", value: "important" },
-                    ...(googleConnection.connected ? [{ label: "Google Calendar", value: "google" }] : []),
+                    ...(googleCanView && googleConnection.connected ? [{ label: "Google Calendar", value: "google" }] : []),
                   ]} />
                   <Button size="sm" variant="secondary" leftIcon={<FiCalendar />} onClick={() => setMonth(initialMonth)}>Today</Button>
                 </div>
@@ -478,17 +488,17 @@ export function CalendarPageClient({
               </div>
             </section>
             <aside className="space-y-4">
-              <Card className="p-4">
-                <div className="flex items-start gap-3"><span className="rounded-lg bg-blue-500/10 p-2 text-blue-600 dark:text-blue-300"><FiCalendar /></span><div><h2 className="font-semibold">Google Calendar</h2><p className="mt-1 text-sm leading-relaxed text-black/65 dark:text-white/65">Bring meetings from your primary calendar into this view.</p></div></div>
+              {(googleCanView || googleCanManage) && <Card className="p-4">
+                <div className="flex items-start gap-3"><span className="rounded-lg bg-blue-500/10 p-2 text-blue-600 dark:text-blue-300"><FiCalendar /></span><div><h2 className="font-semibold">Google Calendar</h2><p className="mt-1 text-sm leading-relaxed text-black/65 dark:text-white/65">Shared events from the owner-connected calendar appear in this view.</p></div></div>
                 {googleConnection.connected ? <>
                   <p className="mt-3 truncate text-sm font-medium">{googleConnection.email}</p>
-                  <Button className="mt-4 w-full" size="sm" variant="secondary" leftIcon={<FiX />} loading={disconnectingGoogle} onClick={disconnectGoogle}>Disconnect</Button>
-                  <p className="mt-2 text-xs text-black/50 dark:text-white/50">Meetings from your primary calendar appear only for you. {googleLoading ? "Refreshing this month…" : "Calendar access is read-only."}</p>
+                  {googleCanManage && <Button className="mt-4 w-full" size="sm" variant="secondary" leftIcon={<FiX />} loading={disconnectingGoogle} onClick={disconnectGoogle}>Disconnect workspace calendar</Button>}
+                  <p className="mt-2 text-xs text-black/50 dark:text-white/50">Events from the workspace calendar appear automatically for permitted teammates. {googleLoading ? "Refreshing this month…" : "Tasks and local dates are not sent to Google."}</p>
                 </> : <>
-                  <Button.Link href="/api/integrations/google-calendar/connect" className="mt-4 w-full" size="sm" variant="secondary" leftIcon={<FiExternalLink />} disabled={!googleConfigured || demoMode}>Connect Google Calendar</Button.Link>
-                  <p className="mt-2 text-xs text-black/50 dark:text-white/50">{googleConfigured ? "Connect your primary calendar with read-only access." : "Add the Google OAuth environment variables to enable this connection."}</p>
+                  {googleCanManage && <Button.Link href="/api/integrations/google-calendar/connect" className="mt-4 w-full" size="sm" variant="secondary" leftIcon={<FiExternalLink />} disabled={!googleConfigured || demoMode}>Connect workspace calendar</Button.Link>}
+                  <p className="mt-2 text-xs text-black/50 dark:text-white/50">{googleConfigured ? "An app owner must authorize the Google account that owns the shared calendar." : "Add the Google OAuth environment variables to enable this connection."}</p>
                 </>}
-              </Card>
+              </Card>}
               <Card className="p-4">
                 <h2 className="flex items-center gap-2 font-semibold"><FiClock /> Coming up</h2>
                 <div className="mt-3 space-y-2">{agendaDates.slice(0, 6).map((date) => <div key={`upcoming:${date}`} className="space-y-1"><p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-black/50 dark:text-white/50">{dayFormatter.format(new Date(`${date}T00:00:00Z`))}</p>{renderDayItems(date, monthItems.filter((item) => item.start === date), 2)}</div>)}{!monthItems.length && <p className="text-sm text-black/60 dark:text-white/60">Nothing on the books this month.</p>}</div>

@@ -1,5 +1,5 @@
 import { Avatar, Button, Card, IconButton } from "@ryanmeetup/ui";
-import { FiEdit2, FiEye, FiFolder, FiUsers } from "react-icons/fi";
+import { FiCalendar, FiEdit2, FiEye, FiFolder, FiUsers } from "react-icons/fi";
 import { accessGroupSlug } from "@/lib/access/access-groups";
 import { accessPreviewHref } from "@/lib/access/access-preview";
 import type { AccessGroup, GroupGrant, GroupMember } from "@/lib/access/access-types";
@@ -62,7 +62,7 @@ export function AccessGroupGrid({
                   <FiEdit2 />
                 </IconButton.Link>
               </div>
-              <div className="mt-auto grid grid-cols-2 gap-3 border-t border-black/10 pt-4 dark:border-white/10">
+              <div className="mt-auto grid grid-cols-3 gap-3 border-t border-black/10 pt-4 dark:border-white/10">
                 <div>
                   <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-black/45 dark:text-white/45">
                     <FiUsers /> Members
@@ -86,6 +86,14 @@ export function AccessGroupGrid({
                       {groupMembers.length}
                     </span>
                   </div>
+                </div>
+                <div>
+                  <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-black/45 dark:text-white/45">
+                    <FiCalendar /> Calendar
+                  </p>
+                  <p className="mt-2 text-sm font-semibold">
+                    {group.calendar_access ? "Yes" : "No"}
+                  </p>
                 </div>
                 <div>
                   <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-black/45 dark:text-white/45">

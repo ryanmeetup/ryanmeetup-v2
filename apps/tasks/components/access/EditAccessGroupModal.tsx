@@ -19,6 +19,7 @@ type EditableGroup = { id: string; name: string };
 
 export function EditAccessGroupModal({
   currentUserId,
+  calendarAccess,
   description,
   grants,
   group,
@@ -36,10 +37,12 @@ export function EditAccessGroupModal({
   saving,
   selectedMemberId,
   setDescription,
+  setCalendarAccess,
   setGroup,
   setName,
 }: {
   currentUserId: string;
+  calendarAccess: boolean;
   description: string;
   grants: { project_id: string; permission: AccessPermission }[];
   group: EditableGroup | null;
@@ -57,6 +60,7 @@ export function EditAccessGroupModal({
   saving: boolean;
   selectedMemberId: string;
   setDescription: (value: string) => void;
+  setCalendarAccess: (value: boolean) => void;
   setGroup: (group: null) => void;
   setName: (value: string) => void;
 }) {
@@ -125,6 +129,21 @@ export function EditAccessGroupModal({
               disabled={saving}
             />
           </div>
+          <label className="flex items-start gap-3 border-t border-black/10 pt-5 text-sm dark:border-white/10">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4"
+              checked={calendarAccess}
+              onChange={(event) => setCalendarAccess(event.target.checked)}
+              disabled={saving}
+            />
+            <span>
+              View the workspace Google Calendar
+              <span className="mt-1 block text-black/60 dark:text-white/60">
+                Members of this group can see events synced from Google.
+              </span>
+            </span>
+          </label>
           <div className="grid gap-6 border-t border-black/10 pt-5 dark:border-white/10 lg:grid-cols-2">
             <div>
               <DropdownSelect

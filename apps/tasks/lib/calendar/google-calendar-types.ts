@@ -2,6 +2,7 @@ export type GoogleCalendarConnection = {
   connected: boolean;
   email?: string;
   connectedAt?: string;
+  calendarId?: string;
 };
 
 export type GoogleCalendarEvent = {

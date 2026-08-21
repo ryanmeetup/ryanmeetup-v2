@@ -524,8 +524,10 @@ or category; scoped dates call the canonical project or category access helper
 in every read policy. Time-away entries are visible to onboarded members so the
 team can avoid contacting an unavailable person. Any member may log time away
 for an onboarded teammate; entries may be changed only by the person who logged
-them, the person who is away, or an app owner. Google Calendar sync must apply these
-same checks at delivery time and must not create a broader secondary feed.
+them, the person who is away, or an app owner. The single workspace Google
+Calendar is visible to owners and members whose effective access group grants
+calendar access. Google events are read into the calendar view at request time;
+local task and calendar records are not exported automatically.
 
 ## Migration strategy
 

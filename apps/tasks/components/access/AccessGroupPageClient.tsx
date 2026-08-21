@@ -62,6 +62,7 @@ export function AccessGroupPageClient({
   const [grantsGlobalContent, setGrantsGlobalContent] = useState(
     group.grants_global_content,
   );
+  const [calendarAccess, setCalendarAccess] = useState(group.calendar_access);
   const [saving, setSaving] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -79,6 +80,7 @@ export function AccessGroupPageClient({
       kind,
       hierarchy_rank: kind === "tier" ? Number(hierarchyRank) : null,
       grants_global_content: kind === "tier" && grantsGlobalContent,
+      calendar_access: calendarAccess,
     });
     setSaving(false);
     setGroup(updated);
@@ -208,6 +210,21 @@ export function AccessGroupPageClient({
                     </label>
                   </>
                 )}
+                <label className="flex items-start gap-3 text-sm">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 h-4 w-4"
+                    checked={calendarAccess}
+                    onChange={(event) => setCalendarAccess(event.target.checked)}
+                    disabled={saving}
+                  />
+                  <span>
+                    View the workspace Google Calendar
+                    <span className="mt-1 block text-black/60 dark:text-white/60">
+                      Members of this group can see events synced from Google.
+                    </span>
+                  </span>
+                </label>
                 <DropdownSelect
                   label="Color"
                   variant="field"

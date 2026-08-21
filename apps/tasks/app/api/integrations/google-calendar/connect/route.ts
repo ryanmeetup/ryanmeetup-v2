@@ -7,7 +7,7 @@ import {
 } from "@/lib/server/google-calendar";
 
 export async function GET(request: Request) {
-  const authorization = await authorize({ onboarded: true });
+  const authorization = await authorize({ owner: true, onboarded: true });
   if ("response" in authorization) return authorization.response;
   if (!isGoogleCalendarConfigured())
     return NextResponse.redirect(new URL("/calendar?google=unavailable", request.url));
@@ -16,9 +16,9 @@ export async function GET(request: Request) {
   const response = NextResponse.redirect(oauth.url);
   response.cookies.set(GOOGLE_OAUTH_COOKIE, oauth.cookieValue, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: new URL(request.url).protocol === "https:",
     sameSite: "lax",
-    path: "/api/integrations/google-calendar/callback",
+    path: "/api/integrations/google-calendar",
     maxAge: 10 * 60,
   });
   return response;

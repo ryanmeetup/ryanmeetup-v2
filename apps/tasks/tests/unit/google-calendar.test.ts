@@ -1,17 +1,16 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { User } from "@supabase/supabase-js";
+
+vi.mock("server-only", () => ({}));
+
 import {
   decryptGoogleRefreshToken,
   encryptGoogleRefreshToken,
-  googleCalendarAppMetadata,
   googleCalendarConnection,
+  googleCalendarIntegrationValues,
   googleCalendarMonthRange,
+  googleCalendarRedirectUri,
   isGoogleCalendarConfigured,
-  withoutGoogleCalendarAppMetadata,
 } from "@/lib/server/google-calendar";
-
-const user = (appMetadata: Record<string, unknown> = {}) =>
-  ({ id: "user-1", app_metadata: appMetadata }) as User;
 
 function configure() {
   vi.stubEnv("GOOGLE_CALENDAR_CLIENT_ID", "client-id");
@@ -36,18 +35,15 @@ describe("Google Calendar connection storage", () => {
     expect(encrypted).not.toContain("refresh-token");
     expect(decryptGoogleRefreshToken(encrypted)).toBe("refresh-token");
 
-    const metadata = googleCalendarAppMetadata(
-      user({ role: "member" }),
+    const connection = googleCalendarIntegrationValues(
       "refresh-token",
       "ryan@example.com",
+      "user-1",
     );
-    const connectedUser = user(metadata);
-    expect(googleCalendarConnection(connectedUser)).toMatchObject({
+    expect(googleCalendarConnection(connection)).toMatchObject({
       connected: true,
       email: "ryan@example.com",
-    });
-    expect(withoutGoogleCalendarAppMetadata(connectedUser)).toEqual({
-      role: "member",
+      calendarId: "primary",
     });
   });
 
@@ -58,5 +54,25 @@ describe("Google Calendar connection storage", () => {
     });
     expect(googleCalendarMonthRange("2026-8")).toBeNull();
     expect(googleCalendarMonthRange("2026-13")).toBeNull();
+  });
+
+  it("keeps OAuth callbacks on the allowed origin where the connection started", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("TASKS_APP_URL", "https://tasks.ryanmeetup.com");
+
+    expect(
+      googleCalendarRedirectUri(
+        "http://localhost:3000/api/integrations/google-calendar/connect",
+      ),
+    ).toBe(
+      "http://localhost:3000/api/integrations/google-calendar/callback",
+    );
+    expect(
+      googleCalendarRedirectUri(
+        "https://tasks.ryanmeetup.com/api/integrations/google-calendar/connect",
+      ),
+    ).toBe(
+      "https://tasks.ryanmeetup.com/api/integrations/google-calendar/callback",
+    );
   });
 });

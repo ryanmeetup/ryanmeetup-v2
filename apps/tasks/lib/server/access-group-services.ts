@@ -39,6 +39,7 @@ export async function mutateAccessGroup(
     kind: operation.kind,
     hierarchy_rank: operation.hierarchyRank,
     grants_global_content: operation.grantsGlobalContent,
+    calendar_access: operation.calendarAccess,
     ...(operation.action === "group.create"
       ? { created_by: context.user.id }
       : {}),

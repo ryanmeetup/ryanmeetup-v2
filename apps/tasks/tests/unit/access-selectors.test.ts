@@ -21,6 +21,7 @@ const group = (id: string, rank: number): AccessGroup => ({
   kind: "tier",
   hierarchy_rank: rank,
   grants_global_content: false,
+  calendar_access: false,
 });
 const grant = (
   group_id: string,

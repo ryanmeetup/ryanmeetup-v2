@@ -11,6 +11,7 @@ export type AccessGroup = {
   kind: "tier" | "team";
   hierarchy_rank: number | null;
   grants_global_content: boolean;
+  calendar_access: boolean;
 };
 
 export type GroupMember = {

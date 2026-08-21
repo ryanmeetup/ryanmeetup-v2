@@ -11,6 +11,7 @@ export type AccessGroupOperation =
       kind: "tier" | "team";
       hierarchyRank: number | null;
       grantsGlobalContent: boolean;
+      calendarAccess: boolean;
     }
   | {
       action: "group.update";
@@ -21,6 +22,7 @@ export type AccessGroupOperation =
       kind: "tier" | "team";
       hierarchyRank: number | null;
       grantsGlobalContent: boolean;
+      calendarAccess: boolean;
     }
   | { action: "group.delete"; id: string }
   | {
@@ -62,6 +64,7 @@ export function accessGroupOperationSchema(
     body.name.length <= 100 &&
     hexColor(body.color) &&
     groupShape(body) &&
+    typeof body.calendarAccess === "boolean" &&
     (body.description === null || typeof body.description === "string")
   ) {
     return {
@@ -72,6 +75,7 @@ export function accessGroupOperationSchema(
       kind: body.kind as "tier" | "team",
       hierarchyRank: body.hierarchyRank as number | null,
       grantsGlobalContent: body.grantsGlobalContent as boolean,
+      calendarAccess: body.calendarAccess,
       description: body.description
         ? String(body.description).trim().slice(0, 500)
         : null,

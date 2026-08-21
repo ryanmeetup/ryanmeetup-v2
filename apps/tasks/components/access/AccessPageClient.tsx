@@ -121,6 +121,7 @@ export function AccessPageClient({
   const [groupKind, setGroupKind] = useState<"tier" | "team">("team");
   const [hierarchyRank, setHierarchyRank] = useState("0");
   const [grantsGlobalContent, setGrantsGlobalContent] = useState(false);
+  const [calendarAccess, setCalendarAccess] = useState(false);
   const [saving, setSaving] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteName, setInviteName] = useState("");
@@ -205,6 +206,7 @@ export function AccessPageClient({
       kind: groupKind,
       hierarchy_rank: groupKind === "tier" ? Number(hierarchyRank) : null,
       grants_global_content: groupKind === "tier" && grantsGlobalContent,
+      calendar_access: calendarAccess,
     });
     setSaving(false);
     setName("");
@@ -213,6 +215,7 @@ export function AccessPageClient({
     setGroupKind("team");
     setHierarchyRank("0");
     setGrantsGlobalContent(false);
+    setCalendarAccess(false);
     setGroupCreateOpen(false);
     toast.success(`${data.name} created.`);
   }
@@ -228,6 +231,7 @@ export function AccessPageClient({
       kind: editingGroup.kind,
       hierarchy_rank: editingGroup.hierarchy_rank,
       grants_global_content: editingGroup.grants_global_content,
+      calendar_access: editingGroup.calendar_access,
     });
     setSaving(false);
     setEditingGroup(null);
@@ -816,6 +820,7 @@ export function AccessPageClient({
         setSelections={setAccessSelections}
       />
       <CreateAccessGroupModal
+        calendarAccess={calendarAccess}
         color={color}
         description={description}
         grantsGlobalContent={grantsGlobalContent}
@@ -826,6 +831,7 @@ export function AccessPageClient({
         open={groupCreateOpen}
         saving={saving}
         setColor={setColor}
+        setCalendarAccess={setCalendarAccess}
         setDescription={setDescription}
         setGrantsGlobalContent={setGrantsGlobalContent}
         setHierarchyRank={setHierarchyRank}
@@ -834,6 +840,7 @@ export function AccessPageClient({
         setOpen={setGroupCreateOpen}
       />
       <EditAccessGroupModal
+        calendarAccess={editingGroup?.calendar_access ?? false}
         currentUserId={currentUserId}
         description={editingDescription}
         grants={editingGrants}
@@ -870,6 +877,11 @@ export function AccessPageClient({
           editingGroup ? (memberSelections[editingGroup.id] ?? "") : ""
         }
         setDescription={setEditingDescription}
+        setCalendarAccess={(value) =>
+          setEditingGroup((current) =>
+            current ? { ...current, calendar_access: value } : current,
+          )
+        }
         setGroup={setEditingGroup}
         setName={setEditingName}
       />

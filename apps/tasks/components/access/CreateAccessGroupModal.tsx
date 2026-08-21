@@ -6,6 +6,7 @@ import { ACCESS_GROUP_COLOR_OPTIONS } from "@/lib/access/access-groups";
 
 export function CreateAccessGroupModal({
   color,
+  calendarAccess,
   description,
   grantsGlobalContent,
   hierarchyRank,
@@ -15,6 +16,7 @@ export function CreateAccessGroupModal({
   open,
   saving,
   setColor,
+  setCalendarAccess,
   setDescription,
   setGrantsGlobalContent,
   setHierarchyRank,
@@ -23,6 +25,7 @@ export function CreateAccessGroupModal({
   setOpen,
 }: {
   color: string;
+  calendarAccess: boolean;
   description: string;
   grantsGlobalContent: boolean;
   hierarchyRank: string;
@@ -32,6 +35,7 @@ export function CreateAccessGroupModal({
   open: boolean;
   saving: boolean;
   setColor: (value: string) => void;
+  setCalendarAccess: (value: boolean) => void;
   setDescription: (value: string) => void;
   setGrantsGlobalContent: (value: boolean) => void;
   setHierarchyRank: (value: string) => void;
@@ -128,6 +132,21 @@ export function CreateAccessGroupModal({
             </label>
           </>
         )}
+        <label className="flex items-start gap-3 text-sm">
+          <input
+            type="checkbox"
+            className="mt-0.5 h-4 w-4"
+            checked={calendarAccess}
+            onChange={(event) => setCalendarAccess(event.target.checked)}
+            disabled={saving}
+          />
+          <span>
+            View the workspace Google Calendar
+            <span className="mt-1 block text-black/60 dark:text-white/60">
+              Members of this group can see events synced from Google.
+            </span>
+          </span>
+        </label>
         <DropdownSelect
           label="Color"
           variant="field"

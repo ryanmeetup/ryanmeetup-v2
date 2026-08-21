@@ -11,8 +11,10 @@ import {
   loadWorkspacePage,
 } from "@/lib/server/workspace-page-loader";
 import {
+  canViewWorkspaceGoogleCalendar,
   googleCalendarConnection,
   isGoogleCalendarConfigured,
+  loadGoogleCalendarIntegration,
   listGoogleCalendarEvents,
 } from "@/lib/server/google-calendar";
 import type { GoogleCalendarEvent } from "@/lib/calendar/google-calendar-types";
@@ -70,6 +72,8 @@ export default async function CalendarPage({
         initialGoogleEvents={[]}
         googleConnection={{ connected: false }}
         googleConfigured={false}
+        googleCanManage={false}
+        googleCanView={false}
         googleStatus={googleStatus}
         demoMode
         initialMonth={initialMonth}
@@ -92,11 +96,28 @@ export default async function CalendarPage({
       .select(CALENDAR_EVENT_COLUMNS)
       .order("starts_at"),
   );
-  const googleConnection = googleCalendarConnection(loaded.user);
-  let googleEvents: GoogleCalendarEvent[] = [];
-  if (googleConnection.connected) {
+  const googleCanManage = loaded.data.currentProfile.app_role === "owner";
+  let googleCanView = googleCanManage;
+  if (!googleCanView) {
     try {
-      googleEvents = await listGoogleCalendarEvents(loaded.user, initialMonth);
+      googleCanView = await canViewWorkspaceGoogleCalendar(loaded.supabase);
+    } catch (error) {
+      console.error("Google Calendar permission could not be resolved", error);
+    }
+  }
+  let integration = null;
+  if (googleCanView || googleCanManage) {
+    try {
+      integration = await loadGoogleCalendarIntegration();
+    } catch (error) {
+      console.error("Google Calendar connection could not be loaded", error);
+    }
+  }
+  const googleConnection = googleCalendarConnection(integration);
+  let googleEvents: GoogleCalendarEvent[] = [];
+  if (googleCanView && integration) {
+    try {
+      googleEvents = await listGoogleCalendarEvents(integration, initialMonth);
     } catch (error) {
       console.error("Google Calendar could not be loaded on the calendar page", error);
     }
@@ -108,6 +129,8 @@ export default async function CalendarPage({
       initialGoogleEvents={googleEvents}
       googleConnection={googleConnection}
       googleConfigured={isGoogleCalendarConfigured()}
+      googleCanManage={googleCanManage}
+      googleCanView={googleCanView}
       googleStatus={googleStatus}
       demoMode={false}
       initialMonth={initialMonth}
