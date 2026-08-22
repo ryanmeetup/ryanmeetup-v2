@@ -71,6 +71,15 @@ export function isAllowedTasksRequestOrigin(value: string | null) {
   );
 }
 
+/**
+ * Origin for statically evaluated metadata, where no request is available and a
+ * missing configuration must not break the render. Falls back to the original
+ * Ryan Meetup deployment, matching how the rest of the instance defaults work.
+ */
+export function metadataOrigin() {
+  return configuredOrigin() ?? productionTasksAppOrigin;
+}
+
 export function tasksAppOrigin(request?: Request | string) {
   const origin = configuredOrigin() ?? requestOrigin(request);
   if (origin) return origin;

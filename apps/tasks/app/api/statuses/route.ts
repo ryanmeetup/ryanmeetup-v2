@@ -93,6 +93,10 @@ export async function PATCH(request: Request) {
 
   const updates = {
     ...(parsed.data.name !== undefined ? { name: parsed.data.name } : {}),
+    ...(parsed.data.description !== undefined
+      ? { description: parsed.data.description }
+      : {}),
+    ...(parsed.data.color !== undefined ? { color: parsed.data.color } : {}),
     ...(parsed.data.isCompleted !== undefined
       ? { is_completed: parsed.data.isCompleted }
       : {}),

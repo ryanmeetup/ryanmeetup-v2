@@ -3,10 +3,11 @@ import { requireQueryData } from "@/lib/server/workspace-loader";
 import { getAdminClient } from "@/lib/server/admin-client";
 import { loadWorkspacePage } from "@/lib/server/workspace-page-loader";
 import type { Metadata } from "next";
+import { pageTitle } from "@/lib/server/instance-settings";
 
-export const metadata: Metadata = {
-  title: { absolute: "Team Access | Ryan Meetup Tasks" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: { absolute: await pageTitle("Team Access") } };
+}
 
 export default async function AccessPage() {
   const {

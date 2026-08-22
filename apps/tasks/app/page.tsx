@@ -13,10 +13,11 @@ import {
   loadWorkspacePage,
 } from "@/lib/server/workspace-page-loader";
 import { latestChangelogRelease } from "@/lib/server/changelog";
+import { pageTitle } from "@/lib/server/instance-settings";
 
-export const metadata: Metadata = {
-  title: { absolute: "Dashboard | Ryan Meetup Tasks" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: { absolute: await pageTitle("Dashboard") } };
+}
 
 export default async function DashboardPage({
   searchParams,

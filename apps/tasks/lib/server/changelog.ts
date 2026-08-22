@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
 import type { ChangelogRelease } from "@/lib/changelog";
+import { instanceBuild } from "@/lib/instance";
 
 const changelogDirectory = path.join(process.cwd(), "changelog");
 
@@ -9,7 +10,6 @@ function readRelease(fileName: string): ChangelogRelease {
   const source = readFileSync(path.join(changelogDirectory, fileName), "utf8");
   const { data, content } = matter(source);
   const requiredStrings = [
-    "version",
     "slug",
     "author",
     "date",
@@ -23,7 +23,8 @@ function readRelease(fileName: string): ChangelogRelease {
       throw new Error(`Invalid ${field} in changelog/${fileName}`);
     }
   }
-  if (!/^RMT v\d+$/.test(data.version)) {
+  const releaseNumber = data.version;
+  if (!Number.isInteger(releaseNumber) || releaseNumber < 1) {
     throw new Error(`Invalid version in changelog/${fileName}`);
   }
   if (
@@ -34,7 +35,8 @@ function readRelease(fileName: string): ChangelogRelease {
   }
 
   return {
-    version: data.version as ChangelogRelease["version"],
+    version: `${instanceBuild.changelogVersionPrefix} v${releaseNumber as number}`,
+    releaseNumber: releaseNumber as number,
     slug: data.slug,
     author: data.author,
     date: data.date,

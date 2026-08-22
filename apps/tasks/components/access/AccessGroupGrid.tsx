@@ -5,6 +5,7 @@ import { accessPreviewHref } from "@/lib/access/access-preview";
 import type { AccessGroup, GroupGrant, GroupMember } from "@/lib/access/access-types";
 import type { Profile } from "@/lib/workspace/workspace-types";
 import { AccessGroupKindBadge } from "./AccessGroupKindBadge";
+import { adminAccessGroupPath } from "@/lib/admin/admin-routes";
 
 export function AccessGroupGrid({
   groups,
@@ -54,7 +55,7 @@ export function AccessGroupGrid({
                   </p>
                 </div>
                 <IconButton.Link
-                  href={`/access/${accessGroupSlug(group.name)}`}
+                  href={adminAccessGroupPath(accessGroupSlug(group.name))}
                   label={`Manage ${group.name}`}
                   size="md"
                   variant="edit"

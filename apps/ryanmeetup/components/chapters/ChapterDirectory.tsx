@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { EmptyState, FilterBar, Input, Select, Text } from "@ryanmeetup/ui";
+import {
+  DropdownSelect,
+  EmptyState,
+  FilterBar,
+  Input,
+  Text,
+} from "@ryanmeetup/ui";
 import { SearchIndicator } from "@/components/global";
 import { FaSliders as Filters } from "react-icons/fa6";
 import { ChapterTile } from "@/components/chapters";
@@ -139,9 +145,9 @@ const ChapterDirectory = (props: ChapterDirectoryProps) => {
             className={`grid w-full grid-cols-2 gap-3 lg:w-auto lg:flex lg:flex-wrap lg:items-end lg:justify-end ${showFilters ? "" : "hidden lg:flex"}`}
           >
             <div className="col-span-2 flex flex-col gap-2 lg:col-auto">
-              <Select
+              <DropdownSelect
                 label="State"
-                name="chapter-state"
+                variant="field"
                 value={stateFilter}
                 options={[
                   { label: "All states", value: "all" },

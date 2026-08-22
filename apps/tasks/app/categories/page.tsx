@@ -12,10 +12,11 @@ import {
   loadWorkspacePage,
 } from "@/lib/server/workspace-page-loader";
 import type { Metadata } from "next";
+import { pageTitle } from "@/lib/server/instance-settings";
 
-export const metadata: Metadata = {
-  title: { absolute: "Work Groups | Ryan Meetup Tasks" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: { absolute: await pageTitle("Work Groups") } };
+}
 
 export default async function CategoriesPage({
   searchParams,

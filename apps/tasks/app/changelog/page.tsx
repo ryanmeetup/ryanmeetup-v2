@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import { ChangelogPageClient } from "@/components/changelog";
 import { loadChangelogPage } from "@/lib/server/changelog-page-loader";
 import { changelog } from "@/lib/server/changelog";
+import { pageTitle } from "@/lib/server/instance-settings";
 
-export const metadata: Metadata = {
-  title: { absolute: "Changelog | Ryan Meetup Tasks" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: { absolute: await pageTitle("Changelog") } };
+}
 
 export default async function ChangelogPage({
   searchParams,

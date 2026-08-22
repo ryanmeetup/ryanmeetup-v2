@@ -1,10 +1,16 @@
 import { ImageResponse } from "next/og";
+import { instanceDefaults } from "@/lib/instance";
+import { getInstanceSettings } from "@/lib/server/instance-settings";
 
-export const alt = "Ryan Meetup Tasks — private team workspace";
+// Metadata file exports must be static values. The runtime alt text reaches
+// the page through `openGraph.images` in app/layout.tsx, which takes precedence
+// over this fallback whenever the two differ.
+export const alt = instanceDefaults.ogAlt;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-export default function OpenGraphImage() {
+export default async function OpenGraphImage() {
+  const instance = await getInstanceSettings();
   return new ImageResponse(
     <div
       style={{
@@ -66,9 +72,9 @@ export default function OpenGraphImage() {
               width: "48px",
             }}
           >
-            R
+            {instance.monogram}
           </div>
-          Ryan Meetup
+          {instance.name}
         </div>
         <div style={{ display: "flex", flexDirection: "column" }}>
           <div
@@ -80,7 +86,7 @@ export default function OpenGraphImage() {
               lineHeight: 1,
             }}
           >
-            Tasks
+            {instance.ogHeadline}
           </div>
           <div
             style={{
@@ -90,7 +96,7 @@ export default function OpenGraphImage() {
               marginTop: "24px",
             }}
           >
-            Private workspace for the core team
+            {instance.ogTagline}
           </div>
         </div>
         <div
@@ -110,7 +116,7 @@ export default function OpenGraphImage() {
               width: "10px",
             }}
           />
-          Plan it. Assign it. Get it done.
+          {instance.ogMotto}
         </div>
       </div>
     </div>,

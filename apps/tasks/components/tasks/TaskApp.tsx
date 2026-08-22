@@ -6,7 +6,10 @@ import { FiLoader } from "react-icons/fi";
 import { useQueryParamState, useSearchFilter } from "@ryanmeetup/hooks";
 import type { Task } from "@/lib/tasks/task-types";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
-import { WorkspacePageShell } from "@/components/global";
+import {
+  useInstancePageTitle,
+  WorkspacePageShell,
+} from "@/components/global";
 import { TaskEditor } from "./TaskEditor";
 import { TaskFilters } from "./TaskFilters";
 import { TaskListView } from "./TaskListView";
@@ -45,7 +48,7 @@ import { useTaskEditorController } from "@/hooks/useTaskEditorController";
 import { useTaskBoardDrag } from "@/hooks/useTaskBoardDrag";
 import { TaskBoardView } from "./TaskBoardView";
 
-export { StatusSettingsModal } from "./TaskAdministration";
+
 
 type View = "board" | "list";
 export function TaskApp({
@@ -501,11 +504,12 @@ export function TaskApp({
     : isMyTasks
       ? "My Tasks"
       : "All Tasks";
+  const pageTitle = useInstancePageTitle();
   const viewTitle =
     visibility === "archived" ? `${taskScopeTitle} · Archived` : taskScopeTitle;
   useEffect(() => {
-    document.title = `${viewTitle} | Ryan Meetup Tasks`;
-  }, [viewTitle]);
+    document.title = pageTitle(viewTitle);
+  }, [pageTitle, viewTitle]);
   const categoriesByTask = useMemo(
     () => indexTaskCategories(data.taskCategories),
     [data.taskCategories],
@@ -708,6 +712,8 @@ export function TaskApp({
             options={{
               categories: accessibleCategories,
               currentProfileId: data.currentProfile.id,
+              favoriteProjectIds:
+                data.currentProfile.favorite_project_ids ?? [],
               profiles: data.profiles,
               projects: data.projects,
               statuses,

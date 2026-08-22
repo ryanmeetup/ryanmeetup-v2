@@ -3,6 +3,7 @@ import { Pill, Tooltip } from "@ryanmeetup/ui";
 import { FiCheckCircle, FiClock, FiShield, FiUsers } from "react-icons/fi";
 import { accessGroupSlug } from "@/lib/access/access-groups";
 import type { AccessGroup, UserAccessMetadata } from "@/lib/access/access-types";
+import { adminAccessGroupPath } from "@/lib/admin/admin-routes";
 
 const accountDateFormatter = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",
@@ -145,7 +146,7 @@ export function TeamAccessGroups({
           {groups.map((group) => (
             <li key={group.id}>
               <Link
-                href={`/access/${accessGroupSlug(group.name)}`}
+                href={adminAccessGroupPath(accessGroupSlug(group.name))}
                 className="inline-flex rounded-md transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:hover:brightness-125 dark:focus-visible:ring-white/30"
               >
                 <Pill

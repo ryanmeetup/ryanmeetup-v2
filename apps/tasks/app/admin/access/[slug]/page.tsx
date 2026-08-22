@@ -4,10 +4,11 @@ import { accessGroupSlug } from "@/lib/access/access-groups";
 import { requireQueryData } from "@/lib/server/workspace-loader";
 import { loadWorkspacePage } from "@/lib/server/workspace-page-loader";
 import type { Metadata } from "next";
+import { pageTitle } from "@/lib/server/instance-settings";
 
-export const metadata: Metadata = {
-  title: { absolute: "Access Group | Ryan Meetup Tasks" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: { absolute: await pageTitle("Access Group") } };
+}
 
 export default async function AccessGroupPage({
   params,
@@ -32,10 +33,7 @@ export default async function AccessGroupPage({
   const group = groups.find((item) => accessGroupSlug(item.name) === slug);
   if (!group) notFound();
   const [membersResult, grantsResult] = await Promise.all([
-    supabase
-      .from("access_group_members")
-      .select("*")
-      .eq("group_id", group.id),
+    supabase.from("access_group_members").select("*").eq("group_id", group.id),
     supabase.from("project_group_grants").select("*"),
   ]);
   const members = requireQueryData("access group members", membersResult);

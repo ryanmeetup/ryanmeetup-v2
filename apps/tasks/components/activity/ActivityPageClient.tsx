@@ -8,16 +8,24 @@ import {
   DropdownSelect,
   EmptyState,
   FilterPanel,
-  Heading,
   Pagination,
   Spinner,
   toast,
 } from "@ryanmeetup/ui";
-import { FiArrowRight } from "react-icons/fi";
+import { FiArrowRight, FiClock } from "react-icons/fi";
 import { CategoriesModal, CategoryLabel } from "@/components/categories";
-import { WorkspacePageShell } from "@/components/global";
+import {
+  CountBadge,
+  PageHeader,
+  WorkspacePageShell,
+} from "@/components/global";
 import { filterPanelsExpandedPreferenceKey } from "@/lib/user-preferences";
-import { ProjectsModal } from "@/components/projects";
+import {
+  favoriteProjectsGroupLabel,
+  projectOptionGroup,
+  ProjectsModal,
+} from "@/components/projects";
+import { sortFavoriteProjectsFirst } from "@/lib/resources/project-sort";
 import { withAccessPreview } from "@/lib/access/access-preview";
 import { useQueryParamState } from "@ryanmeetup/hooks";
 import { usePagination } from "@/hooks/usePagination";
@@ -31,7 +39,10 @@ import {
   describeActivity,
   resolveActivityRows,
 } from "@/lib/activity/activity-presentation";
-import { activityFilterCount, buildActivityQuery } from "@/lib/activity/activity-query";
+import {
+  activityFilterCount,
+  buildActivityQuery,
+} from "@/lib/activity/activity-query";
 
 const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",
@@ -164,6 +175,7 @@ export function ActivityPageClient({
     ],
   );
   const filterCount = activityFilterCount(filters);
+  const favoriteProjectIds = data.currentProfile.favorite_project_ids ?? [];
 
   function setFilter(setter: (value: string) => void, value: string) {
     setter(value);
@@ -309,17 +321,17 @@ export function ActivityPageClient({
         contentClassName="p-4 sm:p-6 lg:p-8"
       >
         <div className="space-y-6">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-black/50 dark:text-white/50">
-              Workspace history
-            </p>
-            <Heading size="h1" className="mt-2 text-4xl">
-              Activity
-            </Heading>
-            <p className="mt-2 text-sm text-black/65 dark:text-white/65">
-              The latest task, note, contact, project, and category happenings.
-            </p>
-          </div>
+          <PageHeader
+            kicker="Workspace history"
+            icon={FiClock}
+            title="Activity"
+            badge={
+              <CountBadge size="lg">
+                {data.activityPage?.totalCount ?? data.activity.length}
+              </CountBadge>
+            }
+            description="The latest task, note, contact, project, and category happenings."
+          />
 
           <FilterPanel
             collapseOnMobile
@@ -339,9 +351,20 @@ export function ActivityPageClient({
               onExcludedChange={(values) =>
                 setFilter(setExcludedProjects, values.join(","))
               }
+              proximityGroup={favoriteProjectsGroupLabel}
               options={[
-                { label: "No project", value: "none" },
-                ...data.projects.map((project) => ({
+                {
+                  group: projectOptionGroup(false),
+                  label: "No project",
+                  value: "none",
+                },
+                ...sortFavoriteProjectsFirst(
+                  data.projects,
+                  favoriteProjectIds,
+                ).map((project) => ({
+                  group: projectOptionGroup(
+                    favoriteProjectIds.includes(project.id),
+                  ),
                   label: `${project.name}${project.archived_at ? " (archived)" : ""}`,
                   value: project.name,
                 })),

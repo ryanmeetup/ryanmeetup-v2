@@ -1,0 +1,284 @@
+import "server-only";
+
+import { getAdminClient } from "@/lib/server/admin-client";
+import { instanceBuild } from "@/lib/instance";
+
+export type IntegrationState = "connected" | "configured" | "missing";
+
+/** Which glyph a fact carries. Mapped to an icon in the client component. */
+export type FactKind =
+  | "host"
+  | "secret"
+  | "client"
+  | "email"
+  | "schedule"
+  | "accounts"
+  | "origin";
+
+/**
+ * One labelled line inside an integration: what the setting is, what it
+ * currently holds, and where it comes from.
+ */
+export type IntegrationFact = {
+  kind: FactKind;
+  /** What this line is, in plain words: "API key", "Sends as", "Schedule". */
+  label: string;
+  /** Masked or non-secret value. Null when the underlying setting is absent. */
+  value: string | null;
+  /** Where the value comes from: an env var name, or a config file. */
+  source: string;
+  /** Machine data, rendered monospace. False for prose like "1 account". */
+  mono?: boolean;
+};
+
+export type IntegrationCheck = {
+  key: string;
+  label: string;
+  state: IntegrationState;
+  /** One line on what the integration does, for anyone who has not met it. */
+  blurb: string;
+  /** What breaks while the check is failing. Only set when it is. */
+  consequence: string | null;
+  facts: IntegrationFact[];
+};
+
+/**
+ * Last four characters only. Enough to tell two keys apart when rotating,
+ * never enough to use one. Full secret values are never sent to the browser.
+ */
+function fingerprint(value: string) {
+  return value.length <= 4 ? "••••" : `••••${value.slice(-4)}`;
+}
+
+const present = (name: string) => {
+  const value = process.env[name]?.trim();
+  return value ? value : null;
+};
+
+function hostOf(value: string | null) {
+  if (!value) return null;
+  try {
+    return new URL(value).host;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Read-only view of the deployment's credentials and integrations.
+ *
+ * Secrets are reported as present or absent with a masked fingerprint. They are
+ * deliberately not editable here: they live in the hosting environment, a
+ * change requires a redeploy either way, and storing them in the database to
+ * render into a form would turn one compromised owner session into full
+ * credential disclosure.
+ */
+export async function getIntegrationHealth(): Promise<IntegrationCheck[]> {
+  const supabaseUrl = present("NEXT_PUBLIC_SUPABASE_URL");
+  const resendKey = present("RESEND_API_KEY");
+  const googleId = present("GOOGLE_CALENDAR_CLIENT_ID");
+  const googleSecret = present("GOOGLE_CALENDAR_CLIENT_SECRET");
+  const googleTokenKey = present("GOOGLE_CALENDAR_TOKEN_KEY");
+  const cronSecret = present("CRON_SECRET");
+  const supabaseKey = present("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
+  const supabaseSecret = present("SUPABASE_SECRET_KEY");
+  const appUrl = present("TASKS_APP_URL");
+  // Any of three names may supply the from-address; report the one in use so
+  // the row points at the variable an operator would actually edit.
+  const fromEmailVar =
+    [
+      "TASK_DIGEST_FROM_EMAIL",
+      "TASK_REMINDER_FROM_EMAIL",
+      "RESEND_FROM_EMAIL",
+    ].find((name) => present(name)) ?? "TASK_DIGEST_FROM_EMAIL";
+  const fromEmail = present(fromEmailVar);
+
+  let googleConnections: number | null = null;
+  if (googleId && googleSecret && googleTokenKey) {
+    const admin = getAdminClient();
+    if (admin) {
+      const { count, error } = await admin
+        .from("workspace_google_calendar_integrations")
+        .select("id", { count: "exact", head: true });
+      googleConnections = error ? null : (count ?? 0);
+    }
+  }
+
+  return [
+    {
+      key: "supabase",
+      label: "Supabase",
+      state: supabaseUrl && supabaseKey ? "connected" : "missing",
+      blurb: "The Postgres database and the auth session behind every page.",
+      consequence:
+        supabaseUrl && supabaseKey
+          ? null
+          : "Running in demo mode with local fixture data.",
+      facts: [
+        {
+          kind: "host",
+          label: "Project",
+          value: supabaseUrl ? (hostOf(supabaseUrl) ?? supabaseUrl) : null,
+          source: "NEXT_PUBLIC_SUPABASE_URL",
+        },
+        {
+          kind: "client",
+          label: "Browser key",
+          value: supabaseKey ? fingerprint(supabaseKey) : null,
+          source: "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+        },
+      ],
+    },
+    {
+      key: "supabase-secret",
+      label: "Supabase service role",
+      state: supabaseSecret ? "configured" : "missing",
+      blurb:
+        "Signs privileged server-side writes that bypass row-level security.",
+      consequence: supabaseSecret
+        ? null
+        : "Privileged writes are unavailable without it.",
+      facts: [
+        {
+          kind: "secret",
+          label: "Service key",
+          value: supabaseSecret ? fingerprint(supabaseSecret) : null,
+          source: "SUPABASE_SECRET_KEY",
+        },
+      ],
+    },
+    {
+      key: "resend",
+      label: "Resend",
+      state: resendKey && fromEmail ? "configured" : "missing",
+      blurb: "Delivers task digests, reminders, and invitations.",
+      consequence:
+        resendKey && fromEmail
+          ? null
+          : "Task digests and reminders will not send.",
+      facts: [
+        {
+          kind: "secret",
+          label: "API key",
+          value: resendKey ? fingerprint(resendKey) : null,
+          source: "RESEND_API_KEY",
+        },
+        {
+          kind: "email",
+          label: "Sends as",
+          value: fromEmail,
+          source: fromEmailVar,
+        },
+      ],
+    },
+    {
+      key: "google-calendar",
+      label: "Google Calendar",
+      state:
+        googleId && googleSecret && googleTokenKey
+          ? googleConnections
+            ? "connected"
+            : "configured"
+          : "missing",
+      blurb: "Syncs tasks with the calendars workspace members link.",
+      consequence:
+        googleId && googleSecret && googleTokenKey
+          ? null
+          : "Calendar sync is unavailable.",
+      facts: [
+        {
+          kind: "client",
+          label: "OAuth client",
+          value: googleId ? fingerprint(googleId) : null,
+          source: "GOOGLE_CALENDAR_CLIENT_ID",
+        },
+        {
+          kind: "secret",
+          label: "OAuth secret",
+          value: googleSecret ? fingerprint(googleSecret) : null,
+          source: "GOOGLE_CALENDAR_CLIENT_SECRET",
+        },
+        {
+          kind: "secret",
+          label: "Token encryption",
+          value: googleTokenKey ? fingerprint(googleTokenKey) : null,
+          source: "GOOGLE_CALENDAR_TOKEN_KEY",
+        },
+        {
+          kind: "accounts",
+          label: "Linked",
+          value:
+            googleConnections === null
+              ? "Count unavailable"
+              : `${googleConnections} account${googleConnections === 1 ? "" : "s"}`,
+          source: "workspace_google_calendar_integrations",
+          mono: false,
+        },
+      ],
+    },
+    {
+      key: "cron",
+      label: "Scheduled jobs",
+      state: cronSecret ? "configured" : "missing",
+      blurb: "The shared secret every cron route checks before it runs.",
+      consequence: cronSecret ? null : "Cron routes will reject every request.",
+      facts: [
+        {
+          kind: "secret",
+          label: "Shared secret",
+          value: cronSecret ? fingerprint(cronSecret) : null,
+          source: "CRON_SECRET",
+        },
+        {
+          kind: "schedule",
+          label: "Task digests",
+          value: "Weekdays, 13:00 UTC",
+          source: "vercel.json",
+          mono: false,
+        },
+        {
+          kind: "schedule",
+          label: "Attachment sweep",
+          value: "Daily, 03:17 UTC",
+          source: "vercel.json",
+          mono: false,
+        },
+      ],
+    },
+    {
+      key: "app-url",
+      label: "Canonical origin",
+      state: appUrl ? "configured" : "missing",
+      blurb: "The base URL every link in an outgoing email is built from.",
+      consequence: appUrl
+        ? null
+        : "Email links fall back to the request origin.",
+      facts: [
+        {
+          kind: "origin",
+          label: "Origin",
+          value: appUrl,
+          source: "TASKS_APP_URL",
+        },
+      ],
+    },
+  ];
+}
+
+/** Build-time identity, shown read-only beside the editable branding. */
+export function buildTimeIdentity() {
+  return [
+    {
+      label: "Task key prefix",
+      value: `${instanceBuild.taskKeyPrefix}-142`,
+      variable: "NEXT_PUBLIC_TASK_KEY_PREFIX",
+      note: "Appears in every task URL. Changing it breaks existing links.",
+    },
+    {
+      label: "Changelog version",
+      value: `${instanceBuild.changelogVersionPrefix} v5`,
+      variable: "NEXT_PUBLIC_CHANGELOG_VERSION_PREFIX",
+      note: "Defaults to the task key prefix.",
+    },
+  ];
+}

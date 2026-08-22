@@ -1,6 +1,6 @@
 "use client";
 
-import { Select } from "@ryanmeetup/ui";
+import { DropdownSelect } from "@ryanmeetup/ui";
 
 type ResultsPerPageProps = {
   value: number;
@@ -12,9 +12,8 @@ const ResultsPerPage = (props: ResultsPerPageProps) => {
   const { value, options, onChange } = props;
 
   return (
-    <Select
+    <DropdownSelect
       label="Results per page"
-      name="results-per-page"
       variant="compact"
       value={String(value)}
       options={options.map((option) => ({

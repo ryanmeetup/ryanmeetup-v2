@@ -10,6 +10,7 @@ import { MdClose as Close, MdKeyboardArrowDown } from "react-icons/md";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEventHandler, ReactNode } from "react";
 import { Button } from "./Button";
+import { Heading } from "./Heading";
 import { IconButton } from "./IconButton";
 
 export type ModalSize = "sm" | "md" | "lg" | "xl" | "2xl" | "full";
@@ -163,7 +164,9 @@ const Modal = ({
         {title && (
           <div className="flex flex-col gap-4 border-b border-black/10 px-5 py-4 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <h1 className="text-xl font-semibold">{title}</h1>
+              <Heading size="h1" className="text-2xl sm:text-3xl">
+                {title}
+              </Heading>
               {description && (
                 <div className="mt-2 text-sm leading-relaxed text-black/65 dark:text-white/65">
                   {description}

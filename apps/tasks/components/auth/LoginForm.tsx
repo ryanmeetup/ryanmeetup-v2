@@ -14,7 +14,7 @@ import { FiEye, FiEyeOff } from "react-icons/fi";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { ThemeToggle } from "@/components/global";
+import { InstanceWordmark, ThemeToggle } from "@/components/global";
 
 export function LoginForm() {
   const router = useRouter();
@@ -65,7 +65,7 @@ export function LoginForm() {
             size="h1"
             className="mb-6 whitespace-nowrap text-center text-3xl uppercase tracking-[0.08em] sm:text-5xl"
           >
-            Ryan Meetup
+            <InstanceWordmark />
           </Heading>
         </div>
         <form className="space-y-5" onSubmit={submit} noValidate>

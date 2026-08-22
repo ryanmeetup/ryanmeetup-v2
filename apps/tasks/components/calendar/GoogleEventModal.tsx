@@ -1,10 +1,13 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { Avatar, Button, Modal } from "@ryanmeetup/ui";
 import {
   FiAlignLeft,
   FiCalendar,
+  FiCheck,
+  FiCopy,
   FiExternalLink,
   FiLink,
   FiMapPin,
@@ -16,7 +19,10 @@ import {
 } from "react-icons/fi";
 import {
   googleAttendeeName,
+  googleEventPlace,
+  googleEventRelativeWhen,
   googleEventWhen,
+  googleNoteBlocks,
   googleResponseCounts,
   googleResponseLabel,
   linkedTextParts,
@@ -28,6 +34,13 @@ import type {
   GoogleCalendarResponse,
 } from "@/lib/calendar/google-calendar-types";
 
+// A roster longer than this is a mailing list rather than a guest list, and
+// scrolling past it to reach the buttons helps nobody, so the rest waits behind
+// a click. The same for a description that runs to a page of dial-in details.
+const GUEST_PREVIEW = 8;
+const LONG_NOTE_CHARACTERS = 600;
+const LONG_NOTE_LINES = 12;
+
 const responseStyles: Record<GoogleCalendarResponse, string> = {
   accepted:
     "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:border-emerald-400/30 dark:text-emerald-200",
@@ -36,8 +49,13 @@ const responseStyles: Record<GoogleCalendarResponse, string> = {
   declined:
     "border-rose-500/30 bg-rose-500/10 text-rose-800 dark:border-rose-400/30 dark:text-rose-200",
   needsAction:
-    "border-black/15 bg-black/[0.04] text-black/60 dark:border-white/15 dark:bg-white/[0.07] dark:text-white/60",
+    "border-black/15 bg-black/[0.04] text-black/70 dark:border-white/15 dark:bg-white/[0.07] dark:text-white/70",
 };
+
+const quietText = "text-black/70 dark:text-white/70";
+
+const inlineButton =
+  "rounded-md text-xs font-semibold text-blue-700 underline underline-offset-2 transition hover:text-blue-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:text-blue-300 dark:hover:text-blue-200";
 
 function Section({
   icon,
@@ -49,10 +67,22 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section className="space-y-2">
-      <h3 className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-black/55 dark:text-white/55">
-        <span aria-hidden className="text-sm">{icon}</span>
-        {title}
+    <section className="space-y-2.5">
+      {/* The headings are what a reader scans on the way to the one part of the
+          invite they opened it for, so each carries its icon on a tile and runs
+          its rule to the edge, which reads as a band rather than as a caption
+          on the paragraph under it. */}
+      <h3 className="flex items-center gap-2.5">
+        <span
+          aria-hidden
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-black/[0.06] text-[13px] text-black/70 dark:bg-white/10 dark:text-white/70"
+        >
+          {icon}
+        </span>
+        <span className="text-xs font-bold uppercase tracking-[0.14em] text-black dark:text-white">
+          {title}
+        </span>
+        <span aria-hidden className="h-px flex-1 bg-black/10 dark:bg-white/10" />
       </h3>
       {children}
     </section>
@@ -63,7 +93,7 @@ function Section({
 // rebuilt as real anchors instead of being handed back to the browser as markup.
 function LinkedText({ text }: { text: string }) {
   return (
-    <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-black/75 dark:text-white/75">
+    <p className={`whitespace-pre-wrap break-words text-sm leading-relaxed ${quietText}`}>
       {linkedTextParts(text).map((part) =>
         part.url ? (
           <a
@@ -95,7 +125,7 @@ function ConferenceRow({ entry }: { entry: GoogleCalendarConferenceEntry }) {
         <Button.Link href={entry.uri} newTab size="sm" fullWidth leftIcon={<FiVideo />}>
           Join {entry.label}
         </Button.Link>
-        <p className="mt-2 truncate text-center text-[11px] text-black/55 dark:text-white/55">
+        <p className={`mt-2 truncate text-center text-[11px] ${quietText}`}>
           {details.length ? details.join(" · ") : entry.uri.replace(/^https?:\/\//, "")}
         </p>
       </div>
@@ -112,7 +142,7 @@ function ConferenceRow({ entry }: { entry: GoogleCalendarConferenceEntry }) {
       <span className="min-w-0 flex-1">
         <span className="block truncate font-medium">{entry.label}</span>
         {details.length > 0 && (
-          <span className="block truncate text-[11px] text-black/55 dark:text-white/55">
+          <span className={`block truncate text-[11px] ${quietText}`}>
             {details.join(" · ")}
           </span>
         )}
@@ -129,21 +159,19 @@ function AttendeeRow({ attendee }: { attendee: GoogleCalendarAttendee }) {
     attendee.optional && "Optional",
   ].filter(Boolean);
   return (
-    <li className="flex items-center gap-3 py-1.5">
+    <li className={`flex items-center gap-3 py-1.5 ${attendee.self ? "font-medium" : ""}`}>
       <Avatar name={name} size="sm" />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-medium">
           {name}
           {note.length > 0 && (
-            <span className="ml-1.5 text-xs font-normal text-black/50 dark:text-white/50">
+            <span className={`ml-1.5 text-xs font-normal ${quietText}`}>
               {note.join(" · ")}
             </span>
           )}
         </span>
         {attendee.email && attendee.name && (
-          <span className="block truncate text-xs text-black/55 dark:text-white/55">
-            {attendee.email}
-          </span>
+          <span className={`block truncate text-xs ${quietText}`}>{attendee.email}</span>
         )}
       </span>
       <span
@@ -152,6 +180,31 @@ function AttendeeRow({ attendee }: { attendee: GoogleCalendarAttendee }) {
         {googleResponseLabel(attendee.response)}
       </span>
     </li>
+  );
+}
+
+/** Copies the meeting address without leaving the dialog for the calendar. */
+function CopyJoinLink({ uri }: { uri: string }) {
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(timer);
+  }, [copied]);
+  return (
+    <Button
+      variant="secondary"
+      size="sm"
+      leftIcon={copied ? <FiCheck /> : <FiCopy />}
+      onClick={() => {
+        navigator.clipboard
+          ?.writeText(uri)
+          .then(() => setCopied(true))
+          .catch(() => setCopied(false));
+      }}
+    >
+      {copied ? "Copied" : "Copy join link"}
+    </Button>
   );
 }
 
@@ -168,6 +221,18 @@ export function GoogleEventModal({
   event: GoogleCalendarEvent | null;
   onClose: () => void;
 }) {
+  // A dialog reused for the next event opens on that event's own defaults
+  // rather than on how far the last reader had unfolded the one before it, so
+  // the unfolding is tracked against the event it was done to.
+  const [unfolded, setUnfolded] = useState({
+    id: event?.id,
+    notes: false,
+    guests: false,
+  });
+  if (unfolded.id !== event?.id)
+    setUnfolded({ id: event?.id, notes: false, guests: false });
+  const { notes: notesOpen, guests: allGuests } = unfolded;
+
   const attendees = event?.attendees ?? [];
   const people = attendees.filter((attendee) => !attendee.resource);
   const rooms = attendees.filter((attendee) => attendee.resource);
@@ -181,8 +246,24 @@ export function GoogleEventModal({
     .filter(Boolean)
     .join(" · ");
   // The list is capped so one all-hands invite cannot dominate the month load.
-  const hiddenGuests = Math.max(0, (event?.attendeeCount ?? 0) - attendees.length);
+  const guestCount = event?.guestCount ?? people.length;
+  const hiddenGuests = Math.max(0, guestCount - people.length);
+  const shownGuests = allGuests ? people : people.slice(0, GUEST_PREVIEW);
   const organizerName = event?.organizer?.name || event?.organizer?.email;
+  const place = googleEventPlace(event?.location, rooms);
+  const noteBlocks = event?.description ? googleNoteBlocks(event.description) : [];
+  const longNote = Boolean(
+    event?.description &&
+      (event.description.length > LONG_NOTE_CHARACTERS ||
+        event.description.split("\n").length > LONG_NOTE_LINES),
+  );
+  const joinLink = event?.conference?.find((entry) => entry.kind === "video")?.uri;
+  // Nothing here can send a reply, so an unanswered invite says as much and
+  // points the primary button at the one place that can.
+  const awaitingYou = attendees.some(
+    (attendee) => attendee.self && attendee.response === "needsAction",
+  );
+  const relative = event ? googleEventRelativeWhen(event) : null;
   const bare =
     event &&
     !event.description &&
@@ -199,12 +280,33 @@ export function GoogleEventModal({
       }}
       size="lg"
       title={event?.title ?? "Google Calendar event"}
-      description={event ? googleEventWhen(event) : undefined}
+      description={
+        event && (
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span>{googleEventWhen(event)}</span>
+            {relative && (
+              <span
+                className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
+                  relative.past
+                    ? "border-black/15 bg-black/[0.04] text-black/60 dark:border-white/15 dark:bg-white/[0.07] dark:text-white/60"
+                    : "border-blue-500/30 bg-blue-500/10 text-blue-800 dark:border-blue-400/30 dark:text-blue-200"
+                }`}
+              >
+                {relative.label}
+              </span>
+            )}
+          </span>
+        )
+      }
       footer={
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <Button variant="secondary" size="sm" onClick={onClose}>
-            Close
-          </Button>
+          {joinLink ? (
+            <CopyJoinLink uri={joinLink} />
+          ) : (
+            <Button variant="secondary" size="sm" onClick={onClose}>
+              Close
+            </Button>
+          )}
           {event?.htmlLink && (
             <Button.Link
               href={event.htmlLink}
@@ -212,15 +314,15 @@ export function GoogleEventModal({
               size="sm"
               leftIcon={<FiExternalLink />}
             >
-              Open in Google Calendar
+              {awaitingYou ? "Reply in Google Calendar" : "Open in Google Calendar"}
             </Button.Link>
           )}
         </div>
       }
     >
       {event && (
-        <div className="space-y-5">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-black/60 dark:text-white/60">
+        <div className="space-y-6">
+          <div className={`flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs ${quietText}`}>
             <span className="inline-flex items-center gap-1.5 font-semibold text-blue-800 dark:text-blue-200">
               <FiCalendar aria-hidden />
               Google Calendar
@@ -239,6 +341,13 @@ export function GoogleEventModal({
             {organizerName && <span className="truncate">Organized by {organizerName}</span>}
           </div>
 
+          {awaitingYou && (
+            <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:border-amber-400/30 dark:text-amber-100">
+              You have not replied to this invite. Replies are made in Google
+              Calendar.
+            </p>
+          )}
+
           {event.conference && event.conference.length > 0 && (
             <Section icon={<FiVideo />} title="Join">
               <div className="space-y-2">
@@ -249,17 +358,47 @@ export function GoogleEventModal({
             </Section>
           )}
 
-          {event.location && (
+          {place && (
             <Section icon={<FiMapPin />} title="Where">
-              <LinkedText text={event.location} />
+              <LinkedText text={place} />
             </Section>
           )}
 
-          {event.description && (
+          {noteBlocks.length > 0 && (
             <Section icon={<FiAlignLeft />} title="Notes">
-              <LinkedText text={event.description} />
+              <div
+                className={`relative space-y-3 ${
+                  longNote && !notesOpen ? "max-h-56 overflow-hidden" : ""
+                }`}
+              >
+                {noteBlocks.map((block) =>
+                  block.kind === "rule" ? (
+                    <hr
+                      key={block.key}
+                      className="border-black/10 dark:border-white/10"
+                    />
+                  ) : (
+                    <LinkedText key={block.key} text={block.text} />
+                  ),
+                )}
+                {longNote && !notesOpen && (
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-white to-transparent dark:from-[#181818]"
+                  />
+                )}
+              </div>
+              {longNote && (
+                <button
+                  type="button"
+                  className={inlineButton}
+                  onClick={() => setUnfolded((state) => ({ ...state, notes: !state.notes }))}
+                >
+                  {notesOpen ? "Show less" : "Show more"}
+                </button>
+              )}
               {event.descriptionTruncated && (
-                <p className="text-xs text-black/50 dark:text-white/50">
+                <p className={`text-xs ${quietText}`}>
                   Shortened here. Open it in Google Calendar to read the rest.
                 </p>
               )}
@@ -287,23 +426,27 @@ export function GoogleEventModal({
           )}
 
           {people.length > 0 && (
-            <Section
-              icon={<FiUsers />}
-              title={`Guests · ${event.attendeeCount ?? people.length}`}
-            >
-              {guestSummary && (
-                <p className="text-xs text-black/55 dark:text-white/55">{guestSummary}</p>
-              )}
+            <Section icon={<FiUsers />} title={`Guests · ${guestCount}`}>
+              {guestSummary && <p className={`text-xs ${quietText}`}>{guestSummary}</p>}
               <ul className="divide-y divide-black/5 dark:divide-white/10">
-                {people.map((attendee) => (
+                {shownGuests.map((attendee) => (
                   <AttendeeRow
                     key={attendee.email ?? googleAttendeeName(attendee)}
                     attendee={attendee}
                   />
                 ))}
               </ul>
+              {people.length > GUEST_PREVIEW && (
+                <button
+                  type="button"
+                  className={inlineButton}
+                  onClick={() => setUnfolded((state) => ({ ...state, guests: !state.guests }))}
+                >
+                  {allGuests ? "Show fewer guests" : `Show all ${people.length} guests`}
+                </button>
+              )}
               {hiddenGuests > 0 && (
-                <p className="text-xs text-black/50 dark:text-white/50">
+                <p className={`text-xs ${quietText}`}>
                   {hiddenGuests} more {hiddenGuests === 1 ? "guest is" : "guests are"} on
                   this invite. Open it in Google Calendar for the full list.
                 </p>
@@ -313,7 +456,7 @@ export function GoogleEventModal({
 
           {rooms.length > 0 && (
             <Section icon={<FiMapPin />} title="Rooms and equipment">
-              <ul className="space-y-1 text-sm text-black/75 dark:text-white/75">
+              <ul className={`space-y-1 text-sm ${quietText}`}>
                 {rooms.map((room) => (
                   <li key={room.email ?? googleAttendeeName(room)} className="truncate">
                     {googleAttendeeName(room)}
@@ -324,7 +467,7 @@ export function GoogleEventModal({
           )}
 
           {bare && (
-            <p className="rounded-xl border border-black/10 bg-black/[0.025] p-4 text-sm text-black/65 dark:border-white/10 dark:bg-white/[0.04] dark:text-white/65">
+            <p className={`rounded-xl border border-black/10 bg-black/[0.025] p-4 text-sm dark:border-white/10 dark:bg-white/[0.04] ${quietText}`}>
               Google shared nothing beyond the title and time for this event. Open it in
               Google Calendar if you expected notes or a guest list.
             </p>

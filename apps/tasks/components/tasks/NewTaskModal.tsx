@@ -59,7 +59,8 @@ export function NewTaskModal({
   const [createAnother, setCreateAnother] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
-  const [detailsOpen, setDetailsOpen] = useState(false);
+  const detailsOpenByDefault = data.currentProfile.task_details_open_by_default;
+  const [detailsOpen, setDetailsOpen] = useState(detailsOpenByDefault);
   const [newTaskDetails, setNewTaskDetails] =
     useState<NewTaskDetailsDraft>(emptyNewTaskDetails);
 
@@ -68,9 +69,12 @@ export function NewTaskModal({
       setDraft(initialDraft.draft);
       draftId.current = initialDraft.id;
     }
-    if (open && !opened.current) draftTouched.current = false;
+    if (open && !opened.current) {
+      draftTouched.current = false;
+      setDetailsOpen(detailsOpenByDefault);
+    }
     opened.current = open;
-  }, [initialDraft, open]);
+  }, [detailsOpenByDefault, initialDraft, open]);
 
   useEffect(() => {
     if (

@@ -1,4 +1,6 @@
-export const TASK_KEY_PREFIX = "RMT";
+import { instanceBuild } from "@/lib/instance";
+
+export const TASK_KEY_PREFIX = instanceBuild.taskKeyPrefix;
 
 export function taskKey(task: { task_number: number }) {
   return `${TASK_KEY_PREFIX}-${task.task_number}`;

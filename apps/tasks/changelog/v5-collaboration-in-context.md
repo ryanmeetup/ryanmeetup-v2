@@ -1,5 +1,5 @@
 ---
-version: RMT v5
+version: 5
 slug: v5-collaboration-in-context
 author: Ryan Le
 date: "2026-08-20"
@@ -47,6 +47,12 @@ Teammates can comment on notes, with authors able to edit or remove their own co
 Comments now support nested replies, making it clear which message a teammate is responding to while keeping the full conversation together.
 
 ## Improved
+
+### Notes that read like notes
+
+The notes board now presents each note as a finished card: its title, formatted text, author, and comment count at a glance. Links written inside a note appear as chips you can follow, alongside the task or project the note became.
+
+Opening a note brings up its full text and conversation, and editing happens there too, saved deliberately with Save note instead of quietly while you type.
 
 ### Complete teammate onboarding
 

@@ -7,10 +7,11 @@ import {
   ListboxOptions,
   Transition,
 } from "@headlessui/react";
-import { Fragment, useId, useState } from "react";
+import { Fragment, useId } from "react";
 import { FiCheck, FiChevronDown, FiSearch } from "react-icons/fi";
 import { Avatar, type AvatarProps } from "./Avatar";
 import { getFieldLabelClasses } from "./fieldStyles";
+import { useDropdownSearch } from "./useDropdownSearch";
 
 export type MultiSelectOption = {
   avatar?: AvatarProps;
@@ -51,7 +52,8 @@ const MultiSelect = ({
 }: MultiSelectProps) => {
   const buttonId = useId();
   const searchId = useId();
-  const [query, setQuery] = useState("");
+  const { handleInputKeyDown, handleOptionsKeyDown, inputRef, query, setQuery } =
+    useDropdownSearch();
   const selectedOptions = options.filter((option) =>
     value.includes(option.value),
   );
@@ -127,6 +129,7 @@ const MultiSelect = ({
       >
         <ListboxOptions
           anchor="bottom start"
+          onKeyDown={searchable ? handleOptionsKeyDown : undefined}
           className="z-[60] mt-2 flex max-h-80 w-[var(--button-width)] origin-top flex-col gap-1 overflow-y-auto rounded-xl border border-black/10 bg-white/95 p-1.5 text-black shadow-xl backdrop-blur focus:outline-none dark:border-white/10 dark:bg-[#181818]/95 dark:text-white"
         >
           {searchable && (
@@ -141,10 +144,11 @@ const MultiSelect = ({
                 />
                 <input
                   id={searchId}
+                  ref={inputRef}
                   type="search"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  onKeyDown={(event) => event.stopPropagation()}
+                  onKeyDown={handleInputKeyDown}
                   placeholder={searchPlaceholder}
                   className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-black/45 dark:placeholder:text-white/45"
                 />

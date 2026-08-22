@@ -3,36 +3,38 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
 import {
   Button,
+  Card,
   ConfirmationDialog,
   IconButton,
   Input,
-  Modal,
   Pill,
   Textarea,
+  Tooltip,
   toast,
 } from "@ryanmeetup/ui";
 import {
-  FiCheck,
+  FiCheckCircle,
   FiChevronDown,
+  FiCircle,
   FiEdit2,
   FiTrash2,
-  FiX,
 } from "react-icons/fi";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
+import { ManagementCardTitle } from "@/components/global";
 import { errorMessage } from "@/lib/presentation";
 import { mutate } from "@/lib/mutation-client";
 
 const archiveDelayMs = 14 * 24 * 60 * 60 * 1000;
 
-export function StatusSettingsModal({
-  open,
-  setOpen,
+/**
+ * Owner-only status management, rendered as a page section at /admin/statuses.
+ * It was a header modal until the admin section gave it a permanent home.
+ */
+export function StatusSettings({
   data,
   setData,
   demoMode,
 }: {
-  open: boolean;
-  setOpen: (value: boolean) => void;
   data: WorkspaceData;
   setData: Dispatch<SetStateAction<WorkspaceData>>;
   demoMode: boolean;
@@ -42,6 +44,8 @@ export function StatusSettingsModal({
   const [color, setColor] = useState("#ee1a25");
   const [editingStatusId, setEditingStatusId] = useState<string | null>(null);
   const [editingStatusName, setEditingStatusName] = useState("");
+  const [editingStatusDescription, setEditingStatusDescription] = useState("");
+  const [editingStatusColor, setEditingStatusColor] = useState("#ee1a25");
   const [statusToDelete, setStatusToDelete] = useState<
     WorkspaceData["statuses"][number] | null
   >(null);
@@ -96,35 +100,59 @@ export function StatusSettingsModal({
     }
   }
 
-  async function renameSetting(
-    id: string,
-    currentName: string,
-    nextName: string,
-  ) {
-    if (!nextName) return;
-    if (nextName === currentName) {
-      setEditingStatusId(null);
-      setEditingStatusName("");
+  function beginEdit(item: WorkspaceData["statuses"][number]) {
+    setEditingStatusId(item.id);
+    setEditingStatusName(item.name);
+    setEditingStatusDescription(item.description ?? "");
+    setEditingStatusColor(item.color);
+  }
+
+  function cancelEdit() {
+    setEditingStatusId(null);
+    setEditingStatusName("");
+    setEditingStatusDescription("");
+  }
+
+  /** Saves only the fields the owner actually changed. */
+  async function saveSetting(current: WorkspaceData["statuses"][number]) {
+    const nextName = editingStatusName.trim();
+    if (!nextName || settingActionPending) return;
+    const nextDescription = editingStatusDescription.trim() || null;
+    const changes = {
+      ...(nextName !== current.name ? { name: nextName } : {}),
+      ...(nextDescription !== (current.description ?? null)
+        ? { description: nextDescription }
+        : {}),
+      ...(editingStatusColor !== current.color
+        ? { color: editingStatusColor }
+        : {}),
+    };
+    if (Object.keys(changes).length === 0) {
+      cancelEdit();
       return;
     }
     setSettingActionPending(true);
     try {
       if (!demoMode) {
-        await statusRequest("PATCH", { id, name: nextName });
+        await statusRequest("PATCH", { id: current.id, ...changes });
       }
-      setData((current) => ({
-        ...current,
-        statuses: current.statuses.map((item) =>
-          item.id === id ? { ...item, name: nextName } : item,
+      setData((workspace) => ({
+        ...workspace,
+        statuses: workspace.statuses.map((item) =>
+          item.id === current.id
+            ? {
+                ...item,
+                name: nextName,
+                description: nextDescription,
+                color: editingStatusColor,
+              }
+            : item,
         ),
       }));
-      setEditingStatusId(null);
-      setEditingStatusName("");
+      cancelEdit();
       toast.success(`${nextName} updated.`);
     } catch (error) {
-      toast.error(
-        errorMessage(error, "The status could not be renamed."),
-      );
+      toast.error(errorMessage(error, "The status could not be saved."));
     } finally {
       setSettingActionPending(false);
     }
@@ -230,30 +258,222 @@ export function StatusSettingsModal({
     }
   }
   return (
-    <>
-      <Modal
-        open={open}
-        setIsOpen={setOpen}
-        title="Status Settings"
-        description="Completion statuses mark tasks complete when they enter the column and automatically archive them after 14 days. Moving a task back to an active status reopens it."
-        hideActions
-        size="lg"
-        footer={
-          <form
-            id="create-status-form"
-            className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 sm:grid-cols-[minmax(0,24rem)_auto] sm:justify-between"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void add();
-            }}
-          >
+    <div className="space-y-6">
+      <p className="text-sm leading-6 text-black/70 dark:text-white/70">
+        Completion statuses mark tasks complete when they enter the column and
+        automatically archive them after 14 days. Moving a task back to an
+        active status reopens it.
+      </p>
+
+      <div className="space-y-3">
+        {[...data.statuses]
+          .sort((a, b) => a.sort_order - b.sort_order)
+          .map((item, index, ordered) => (
+            <div
+              key={item.id}
+              className="rounded-xl border border-black/10 bg-black/[0.015] p-4 dark:border-white/10 dark:bg-white/[0.025]"
+            >
+              {editingStatusId === item.id ? (
+                <form
+                  className="space-y-4"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void saveSetting(item);
+                  }}
+                >
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
+                    <Input
+                      label="Status name"
+                      name={`status-name-${item.id}`}
+                      value={editingStatusName}
+                      onChange={(event) =>
+                        setEditingStatusName(event.target.value)
+                      }
+                      disabled={settingActionPending}
+                      autoFocus
+                      required
+                      maxLength={80}
+                    />
+                    <label className="date-field">
+                      <span>
+                        Color <span className="text-red-500">*</span>
+                      </span>
+                      <input
+                        type="color"
+                        aria-label={`Color for ${item.name}`}
+                        className="color-input !h-11 !w-11"
+                        value={editingStatusColor}
+                        disabled={settingActionPending}
+                        required
+                        onChange={(event) =>
+                          setEditingStatusColor(event.target.value)
+                        }
+                      />
+                    </label>
+                  </div>
+                  <Textarea
+                    id={`status-description-${item.id}`}
+                    label="Brief description"
+                    name={`status-description-${item.id}`}
+                    value={editingStatusDescription}
+                    onChange={(event) =>
+                      setEditingStatusDescription(event.target.value)
+                    }
+                    placeholder="What belongs in this column?"
+                    disabled={settingActionPending}
+                    maxLength={240}
+                    rows={2}
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={cancelEdit}
+                      disabled={settingActionPending}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      size="sm"
+                      disabled={!editingStatusName.trim()}
+                      loading={settingActionPending}
+                      loadingText="Saving..."
+                    >
+                      Save changes
+                    </Button>
+                  </div>
+                </form>
+              ) : (
+                <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
+                  <span
+                    aria-hidden
+                    className="mt-1 h-3.5 w-3.5 shrink-0 rounded-full ring-2 ring-inset ring-black/10 dark:ring-white/20"
+                    style={{ backgroundColor: item.color }}
+                  />
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="min-w-0 font-semibold">{item.name}</span>
+                      {"is_default" in item && item.is_default && (
+                        <Tooltip content="Built-in status. Tasks must be moved before it can be deleted.">
+                          <span className="inline-flex">
+                            <Pill
+                              variant="neutral"
+                              size="sm"
+                              className="!px-2 !py-0.5 !text-[10px] font-medium !tracking-[0.12em]"
+                            >
+                              Default
+                            </Pill>
+                          </span>
+                        </Tooltip>
+                      )}
+                    </div>
+                    {item.description && (
+                      <p className="text-sm text-black/60 dark:text-white/60">
+                        {item.description}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 flex-wrap items-center gap-2">
+                    <Tooltip
+                      content={
+                        item.is_completed
+                          ? "Tasks here are complete and archive after 14 days. Select to make it an active status."
+                          : "Select to make this status complete tasks."
+                      }
+                    >
+                      <button
+                        type="button"
+                        aria-label={`${item.name} ${item.is_completed ? "currently completes tasks and archives them after 14 days" : "is an active workflow status"}`}
+                        aria-pressed={item.is_completed}
+                        disabled={settingActionPending}
+                        onClick={() =>
+                          void toggleCompletedStatus(
+                            item.id,
+                            !item.is_completed,
+                          )
+                        }
+                        className={`inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[11px] font-semibold uppercase tracking-[0.12em] transition focus:outline-none focus:ring-2 focus:ring-black/20 disabled:opacity-50 dark:focus:ring-white/30 ${item.is_completed ? "border-emerald-500/35 bg-emerald-500/15 text-emerald-800 dark:text-emerald-200" : "border-black/10 text-black/50 hover:border-black/25 hover:text-black dark:border-white/10 dark:text-white/50 dark:hover:border-white/25 dark:hover:text-white"}`}
+                      >
+                        {item.is_completed ? (
+                          <FiCheckCircle aria-hidden className="h-3.5 w-3.5" />
+                        ) : (
+                          <FiCircle aria-hidden className="h-3.5 w-3.5" />
+                        )}
+                        {item.is_completed
+                          ? "Completes tasks"
+                          : "Active status"}
+                      </button>
+                    </Tooltip>
+                    <span
+                      aria-hidden
+                      className="h-6 w-px bg-black/10 dark:bg-white/10"
+                    />
+                    <div className="flex items-center gap-1.5">
+                      <IconButton
+                        className="disabled:opacity-40"
+                        label={`Move “${item.name}” up`}
+                        disabled={settingActionPending || index === 0}
+                        onClick={() => void moveStatus(item.id, -1)}
+                      >
+                        <FiChevronDown className="rotate-180" />
+                      </IconButton>
+                      <IconButton
+                        className="disabled:opacity-40"
+                        label={`Move “${item.name}” down`}
+                        disabled={
+                          settingActionPending || index === ordered.length - 1
+                        }
+                        onClick={() => void moveStatus(item.id, 1)}
+                      >
+                        <FiChevronDown />
+                      </IconButton>
+                      <IconButton
+                        label={`Edit “${item.name}”`}
+                        variant="edit"
+                        disabled={settingActionPending}
+                        onClick={() => beginEdit(item)}
+                      >
+                        <FiEdit2 />
+                      </IconButton>
+                      <IconButton
+                        label={`Delete “${item.name}”`}
+                        variant="danger"
+                        disabled={settingActionPending}
+                        onClick={() => setStatusToDelete(item)}
+                      >
+                        <FiTrash2 />
+                      </IconButton>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+      </div>
+
+      <Card size="lg">
+        <ManagementCardTitle>New status</ManagementCardTitle>
+        <p className="mt-1 text-sm text-black/60 dark:text-white/60">
+          Adds a column to every board in the workspace.
+        </p>
+        <form
+          id="create-status-form"
+          className="mt-4 space-y-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void add();
+          }}
+        >
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
             <Input
-              label="New status"
+              label="Status name"
               required
               name="setting-name"
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="Name"
+              placeholder="Blocked"
             />
             <label className="date-field">
               <span>
@@ -267,171 +487,30 @@ export function StatusSettingsModal({
                 onChange={(event) => setColor(event.target.value)}
               />
             </label>
-            <div className="col-span-2">
-              <Textarea
-                id="setting-description"
-                label="Brief description"
-                name="setting-description"
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-                placeholder="What belongs in this column?"
-                maxLength={240}
-                rows={2}
-              />
-            </div>
-            <div className="col-span-2 flex flex-wrap justify-end gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => setOpen(false)}
-                disabled={settingActionPending}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                size="sm"
-                loading={settingActionPending}
-                loadingText="Adding..."
-              >
-                Add status
-              </Button>
-            </div>
-          </form>
-        }
-      >
-        <>
-          <div className="space-y-3">
-            {[...data.statuses]
-              .sort((a, b) => a.sort_order - b.sort_order)
-              .map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-start gap-3 rounded-xl border border-black/10 p-3 dark:border-white/10"
-                >
-                  <i
-                    className="mt-1.5 h-3 w-3 shrink-0 rounded-full"
-                    style={{ backgroundColor: item.color }}
-                  />
-                  {editingStatusId === item.id ? (
-                    <form
-                      className="flex min-w-0 flex-1 items-center gap-2"
-                      onSubmit={(event) => {
-                        event.preventDefault();
-                        void renameSetting(
-                          item.id,
-                          item.name,
-                          editingStatusName.trim(),
-                        );
-                      }}
-                    >
-                      <Input
-                        label={`Status name for ${item.name}`}
-                        hideLabel
-                        name={`status-name-${item.id}`}
-                        value={editingStatusName}
-                        onChange={(event) =>
-                          setEditingStatusName(event.target.value)
-                        }
-                        inputClassName="h-9"
-                        autoFocus
-                        required
-                      />
-                      <IconButton
-                        type="submit"
-                        label={`Save “${item.name}”`}
-                        disabled={
-                          settingActionPending || !editingStatusName.trim()
-                        }
-                      >
-                        <FiCheck />
-                      </IconButton>
-                      <IconButton
-                        type="button"
-                        label={`Cancel editing “${item.name}”`}
-                        disabled={settingActionPending}
-                        onClick={() => {
-                          setEditingStatusId(null);
-                          setEditingStatusName("");
-                        }}
-                      >
-                        <FiX />
-                      </IconButton>
-                    </form>
-                  ) : (
-                    <div className="min-w-0 flex-1 space-y-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="min-w-0 font-semibold">
-                          {item.name}
-                        </span>
-                        {"is_default" in item && item.is_default && (
-                          <Pill size="sm">Default</Pill>
-                        )}
-                      </div>
-                      {item.description && (
-                        <p className="text-sm text-black/70 dark:text-white/70">
-                          {item.description}
-                        </p>
-                      )}
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          aria-label={`${item.name} ${item.is_completed ? "currently completes tasks and archives them after 14 days" : "is an active workflow status"}`}
-                          aria-pressed={item.is_completed}
-                          disabled={settingActionPending}
-                          onClick={() =>
-                            void toggleCompletedStatus(
-                              item.id,
-                              !item.is_completed,
-                            )
-                          }
-                          className={`rounded-full border px-2.5 py-1 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-black/20 disabled:opacity-50 dark:focus:ring-white/30 ${item.is_completed ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-200" : "border-black/10 text-black/60 hover:text-black dark:border-white/10 dark:text-white/60 dark:hover:text-white"}`}
-                        >
-                          {item.is_completed
-                            ? "Completes tasks"
-                            : "Set as completion"}
-                        </button>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <IconButton
-                            label={`Move “${item.name}” up`}
-                            onClick={() => void moveStatus(item.id, -1)}
-                          >
-                            <FiChevronDown className="rotate-180" />
-                          </IconButton>
-                          <IconButton
-                            label={`Move “${item.name}” down`}
-                            onClick={() => void moveStatus(item.id, 1)}
-                          >
-                            <FiChevronDown />
-                          </IconButton>
-                          <IconButton
-                            label={`Edit “${item.name}”`}
-                            variant="edit"
-                            disabled={settingActionPending}
-                            onClick={() => {
-                              setEditingStatusId(item.id);
-                              setEditingStatusName(item.name);
-                            }}
-                          >
-                            <FiEdit2 />
-                          </IconButton>
-                          <IconButton
-                            label={`Delete “${item.name}”`}
-                            variant="danger"
-                            onClick={() => setStatusToDelete(item)}
-                          >
-                            <FiTrash2 />
-                          </IconButton>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
           </div>
-        </>
-      </Modal>
+          <Textarea
+            id="setting-description"
+            label="Brief description"
+            name="setting-description"
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            placeholder="What belongs in this column?"
+            maxLength={240}
+            rows={2}
+          />
+          <div className="flex justify-end">
+            <Button
+              type="submit"
+              size="sm"
+              loading={settingActionPending}
+              loadingText="Adding..."
+            >
+              Add status
+            </Button>
+          </div>
+        </form>
+      </Card>
+
       <ConfirmationDialog
         open={Boolean(statusToDelete)}
         setOpen={(nextOpen) => {
@@ -453,6 +532,6 @@ export function StatusSettingsModal({
           if (statusToDelete) void deleteSetting(statusToDelete.id);
         }}
       />
-    </>
+    </div>
   );
 }

@@ -21,7 +21,10 @@ Code is organized by responsibility:
   Large interactions should be split into focused views, panels, fields, and
   controller hooks instead of accumulating in a page client or modal.
 - `components/global` is for Tasks-only UI used by several features. Generic,
-  brand-consistent primitives still belong in `@ryanmeetup/ui`.
+  brand-consistent primitives still belong in `@ryanmeetup/ui`. Screens lead
+  with `PageHeader` rather than composing their own kicker, heading, and
+  description, so the icon treatment and spacing stay identical everywhere; a
+  page's icon is the one its sidebar or admin tab entry already uses.
 - `hooks` owns reusable Tasks client controllers. Keep feature-specific hooks
   beside their feature when they are not shared across the app.
 - `lib` owns framework-light domain types, selectors, parsing, normalization,
@@ -33,6 +36,20 @@ Code is organized by responsibility:
   response handling, privileged operations, persistence, and query services.
   Client modules must never import it, including indirectly through a barrel.
 - `lib/supabase` owns browser and server client construction only.
+- `lib/instance.ts` owns every value that differs between deployments of this
+  codebase, in two tiers. `instanceBuild` is compiled in and holds the values
+  that compose identifiers (task key prefix, changelog version prefix).
+  `InstanceSettings` is presentational and is overridable at runtime from the
+  `instance_settings` table through `/admin/settings`. Never hardcode Ryan
+  Meetup branding in a component, page title, or email: read it from
+  `getInstanceSettings()` on the server or `useInstance()` on the client, and
+  give every value a Ryan Meetup default. See `docs/MULTI_INSTANCE.md`.
+- `app/admin` is the owner-only section: overview, statuses, access, usage, and
+  settings. Every admin page passes `{ owner: true }` to `loadWorkspacePage`
+  and renders its content inside `AdminPageShell`, which owns the tab strip,
+  page padding, and content width so tabs never shift between screens; admin
+  clients must not set those themselves. New owner-only tools belong here and
+  in `lib/admin/admin-routes.ts`, not as another control in the header.
 - The linked Supabase project is the database and authorization source of truth.
   Historical migrations are not retained in this repository.
 
@@ -59,8 +76,10 @@ directly rather than expanding a barrel solely for internal use.
   second server-loading layer.
 - `searchParams` is asynchronous in this Next.js version. Type it as a promise
   and await it before reading values.
-- Public task references use readable `RMT-<number>` keys. UUIDs remain internal
-  identifiers and must not replace task keys in navigation or shared URLs.
+- Public task references use readable `<prefix>-<number>` keys built by
+  `lib/tasks/task-key.ts`, where the prefix is per-instance and defaults to
+  `RMT`. Never hardcode the prefix. UUIDs remain internal identifiers and must
+  not replace task keys in navigation or shared URLs.
 
 `useWorkspaceData` owns the live client workspace. Demo persistence,
 realtime subscription setup, pure event reconciliation, and mutation behavior
@@ -257,17 +276,18 @@ Every page must set an explicit absolute metadata title ending in
 Next.js does not apply that template to a page in the same route segment, which
 can produce inconsistent browser-tab titles.
 
-Use this pattern for static pages:
+Build titles with `pageTitle` from `lib/server/instance-settings.ts`. It resolves
+the runtime product name, so it is async and every page uses `generateMetadata`:
 
 ```tsx
-export const metadata: Metadata = {
-  title: { absolute: "Dashboard | Ryan Meetup Tasks" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: { absolute: await pageTitle("Dashboard") } };
+}
 ```
 
-Dynamic pages must use the same absolute-title shape from `generateMetadata`.
-Task detail pages should use
-`RMT-<number>: <task title> | Ryan Meetup Tasks`.
+Task detail pages use `await pageTitle(`${taskKey(task)}: ${task.title}`)`.
+Client components that set `document.title` use `useInstancePageTitle()` from
+`@/components/global` instead.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

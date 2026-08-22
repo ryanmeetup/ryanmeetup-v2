@@ -1,3 +1,4 @@
+import { normalizeHttpUrl } from "@ryanmeetup/utils";
 import type { Category, Note, Project } from "./resource-types";
 import type { Status, Task } from "@/lib/tasks/task-types";
 import type { StoredTaskDraft } from "@/lib/tasks/task-drafts";
@@ -6,8 +7,6 @@ export const noteColumns =
   "id,title,body,category_id,created_by,converted_task_id,converted_project_id,created_at,updated_at,archived_at";
 export const noteCommentColumns =
   "id,note_id,body,created_by,created_at,edited_at";
-
-export const noteAutosaveDelayMs = 800;
 
 export function applyNoteDraft(
   note: Note,
@@ -21,6 +20,40 @@ export function applyNoteDraft(
     body: body.trim(),
     updated_at: updatedAt,
   };
+}
+
+export type NoteLink = { label: string; url: string };
+
+const markdownLinkPattern = /\[([^\]\n]+)\]\(\s*(<[^>\n]+>|[^)\s]+)[^)]*\)/g;
+const bareLinkPattern = /(?:https?:\/\/|www\.)[^\s<>"'`\]]+/gi;
+const trailingPunctuation = /[.,;:!?*_~"'`)\]}]+$/;
+
+function noteLinkLabel(url: string) {
+  const parsed = new URL(url);
+  const path = `${parsed.pathname}${parsed.search}`.replace(/\/+$/, "");
+  const label = `${parsed.hostname.replace(/^www\./, "")}${path}`;
+  return label.length > 48 ? `${label.slice(0, 47)}\u2026` : label;
+}
+
+/**
+ * Collects the links a note points at so a read-only note can offer them as
+ * real navigation. Markdown links keep their written label; bare URLs fall
+ * back to a readable host and path.
+ */
+export function noteLinks(note: Pick<Note, "body">): NoteLink[] {
+  const links: NoteLink[] = [];
+  const add = (candidate: string, label?: string) => {
+    const url = normalizeHttpUrl(
+      candidate.replace(/^<|>$/g, "").replace(trailingPunctuation, ""),
+    );
+    if (!url || links.some((link) => link.url === url)) return;
+    links.push({ label: label?.trim() || noteLinkLabel(url), url });
+  };
+  for (const match of note.body.matchAll(markdownLinkPattern))
+    add(match[2], match[1]);
+  const bare = note.body.replace(markdownLinkPattern, " ");
+  for (const match of bare.match(bareLinkPattern) ?? []) add(match);
+  return links;
 }
 
 export function noteTitle(note: Pick<Note, "title" | "body">) {

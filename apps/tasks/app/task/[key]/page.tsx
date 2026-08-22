@@ -14,6 +14,7 @@ import {
   isWorkspaceDemo,
   loadWorkspacePage,
 } from "@/lib/server/workspace-page-loader";
+import { pageTitle } from "@/lib/server/instance-settings";
 
 export async function generateMetadata({
   params,
@@ -29,7 +30,7 @@ export async function generateMetadata({
     return task
       ? {
           title: {
-            absolute: `${taskKey(task)}: ${task.title} | Ryan Meetup Tasks`,
+            absolute: await pageTitle(`${taskKey(task)}: ${task.title}`),
           },
         }
       : {};
@@ -47,7 +48,7 @@ export async function generateMetadata({
   return task
     ? {
         title: {
-          absolute: `${taskKey(task)}: ${task.title} | Ryan Meetup Tasks`,
+          absolute: await pageTitle(`${taskKey(task)}: ${task.title}`),
         },
       }
     : {};

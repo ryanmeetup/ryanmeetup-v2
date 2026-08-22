@@ -1,5 +1,5 @@
 ---
-version: RMT v4
+version: 4
 slug: v4-workspace-grows-up
 author: Ryan Le
 date: "2026-08-13"

@@ -2,10 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-export function useProximityOptions<T extends { value: string }>(
-  options: T[],
-  proximityValue?: string,
-) {
+export function useProximityOptions<
+  T extends { value: string; group?: { label: string } },
+>(options: T[], proximityValue?: string, proximityGroup?: string) {
   const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null);
   const [opensUpward, setOpensUpward] = useState(false);
 
@@ -23,18 +22,22 @@ export function useProximityOptions<T extends { value: string }>(
   }, [anchorElement]);
 
   const orderedOptions = useMemo(() => {
-    if (!proximityValue) return options;
-    const proximityOption = options.find(
-      (option) => option.value === proximityValue,
+    const proximityOptions = proximityValue
+      ? options.filter((option) => option.value === proximityValue)
+      : proximityGroup
+        ? options.filter((option) => option.group?.label === proximityGroup)
+        : [];
+    if (proximityOptions.length === 0) return options;
+    const proximityValues = new Set(
+      proximityOptions.map((option) => option.value),
     );
-    if (!proximityOption) return options;
     const remainingOptions = options.filter(
-      (option) => option.value !== proximityValue,
+      (option) => !proximityValues.has(option.value),
     );
     return opensUpward
-      ? [...remainingOptions, proximityOption]
-      : [proximityOption, ...remainingOptions];
-  }, [opensUpward, options, proximityValue]);
+      ? [...remainingOptions, ...proximityOptions]
+      : [...proximityOptions, ...remainingOptions];
+  }, [opensUpward, options, proximityGroup, proximityValue]);
 
   return { opensUpward, orderedOptions, setAnchorElement };
 }

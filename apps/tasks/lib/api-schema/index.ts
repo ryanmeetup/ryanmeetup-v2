@@ -1,4 +1,5 @@
 import type { ProjectLink } from "@/lib/resources/resource-types";
+import { footerVariants, socialPlatforms } from "@/lib/instance";
 import { normalizeHttpUrl } from "@ryanmeetup/utils";
 export { taskMoveSchema, taskSaveSchema } from "./task";
 
@@ -52,6 +53,8 @@ export function statusPatchSchema(value: unknown) {
   const body = objectWithKeys(value, [
     "id",
     "name",
+    "description",
+    "color",
     "isCompleted",
     "orderedIds",
     "expectedRevision",
@@ -71,15 +74,35 @@ export function statusPatchSchema(value: unknown) {
   }
   const id = uuid(body.id);
   const name = body.name === undefined ? undefined : text(body.name, 80);
+  // A null description is how the client clears one it had already written.
+  const description = optionalText(
+    body.description === null ? "" : body.description,
+    240,
+  );
+  const patchColor = body.color === undefined ? undefined : color(body.color);
   const isCompleted = body.isCompleted;
   if (
     !id ||
     name === null ||
+    description === null ||
+    patchColor === null ||
     (isCompleted !== undefined && typeof isCompleted !== "boolean")
   )
     return null;
-  if (name === undefined && isCompleted === undefined) return null;
-  return { id, name, isCompleted: isCompleted as boolean | undefined };
+  if (
+    name === undefined &&
+    description === undefined &&
+    patchColor === undefined &&
+    isCompleted === undefined
+  )
+    return null;
+  return {
+    id,
+    name,
+    description: description === undefined ? undefined : description || null,
+    color: patchColor,
+    isCompleted: isCompleted as boolean | undefined,
+  };
 }
 
 export function idSchema(value: unknown) {
@@ -109,11 +132,7 @@ export function categorySchema(value: unknown, requireId = false) {
   const links = projectLinks(body.links ?? []);
   const rawTags = body.tags ?? [];
   const tags = Array.isArray(rawTags)
-    ? [
-        ...new Set(
-          rawTags.map((tag) => text(tag, 40)).filter(Boolean),
-        ),
-      ]
+    ? [...new Set(rawTags.map((tag) => text(tag, 40)).filter(Boolean))]
     : null;
   const archived = body.archived;
   const ownerIds =
@@ -227,6 +246,42 @@ function projectLinks(value: unknown): ProjectLink[] | null {
   return links;
 }
 
+/** Titled link columns for the branded footer. */
+function footerSections(value: unknown) {
+  if (!Array.isArray(value) || value.length > 3) return null;
+  const sections: { title: string; links: ProjectLink[] }[] = [];
+  for (const item of value) {
+    const body = objectWithKeys(item, ["title", "links"]);
+    const title = body && text(body.title, 80);
+    const links = body && projectLinks(body.links ?? []);
+    if (!title || !links) return null;
+    sections.push({ title, links });
+  }
+  return sections;
+}
+
+/** Social icons for the footer, keyed by a platform the icon map knows. */
+function footerSocials(value: unknown) {
+  if (!Array.isArray(value) || value.length > 8) return null;
+  const socials: { platform: string; url: string }[] = [];
+  for (const item of value) {
+    const body = objectWithKeys(item, ["platform", "url"]);
+    if (
+      !body ||
+      typeof body.platform !== "string" ||
+      !(socialPlatforms as readonly string[]).includes(body.platform)
+    )
+      return null;
+    const url = httpsUrl(body.url);
+    if (!url) return null;
+    // One entry per network, so the footer cannot render the same icon twice.
+    if (socials.some((social) => social.platform === body.platform))
+      return null;
+    socials.push({ platform: body.platform, url });
+  }
+  return socials;
+}
+
 const uuidList = (value: unknown) => {
   if (!Array.isArray(value) || value.length > 100) return null;
   const ids = value.map(uuid);
@@ -285,4 +340,80 @@ export function projectPatchSchema(value: unknown) {
     archived: body.archived as boolean | undefined,
     ownerIds,
   };
+}
+
+/**
+ * Runtime branding overrides. Every field is optional; `null` clears a value
+ * back to the build-time default. Keys absent from the body are left alone.
+ */
+/**
+ * Instance URLs must be https. `normalizeHttpUrl` also accepts http, but every
+ * URL column in `instance_settings` carries a `~ '^https://'` check, so an http
+ * value would pass validation only to be rejected by the database.
+ */
+export function httpsUrl(raw: unknown) {
+  if (typeof raw !== "string") return null;
+  const url = normalizeHttpUrl(raw);
+  return url && url.startsWith("https://") ? url : null;
+}
+
+export function instanceSettingsSchema(value: unknown) {
+  // Each validator returns the cleaned value, or null when the input is
+  // rejected. The footer sections and socials are arrays, so an empty one —
+  // the owner dropping those columns or icons — has to survive the check
+  // below, which is why results are compared against null rather than tested
+  // for truthiness.
+  const fields = {
+    name: (raw: unknown) => text(raw, 80),
+    productName: (raw: unknown) => text(raw, 120),
+    tagline: (raw: unknown) => text(raw, 80),
+    description: (raw: unknown) => text(raw, 400),
+    monogram: (raw: unknown) =>
+      typeof raw === "string" && [...raw.trim()].length === 1
+        ? raw.trim()
+        : null,
+    accentColor: color,
+    logoPath: (raw: unknown) =>
+      typeof raw === "string" &&
+      (/^\/[^/]/.test(raw) || /^https:\/\/[^\s]+$/.test(raw))
+        ? raw
+        : null,
+    footerVariant: (raw: unknown) =>
+      typeof raw === "string" &&
+      (footerVariants as readonly string[]).includes(raw)
+        ? raw
+        : null,
+    footerSubtitle: (raw: unknown) => text(raw, 80),
+    footerSections: footerSections,
+    footerSocials: footerSocials,
+    creditPrefix: (raw: unknown) => text(raw, 80),
+    creditLabel: (raw: unknown) => text(raw, 80),
+    creditUrl: httpsUrl,
+    creditSuffix: (raw: unknown) => text(raw, 80),
+    ogAlt: (raw: unknown) => text(raw, 200),
+    ogHeadline: (raw: unknown) => text(raw, 60),
+    ogTagline: (raw: unknown) => text(raw, 120),
+    ogMotto: (raw: unknown) => text(raw, 120),
+  } as const;
+
+  // Any setting may be sent as null. For `logoPath` and the socials that means
+  // "render nothing"; for the rest it means "drop the stored override and go
+  // back to the build-time default". `resolveInstanceSettings` draws that
+  // distinction from `nullableInstanceSettings`, so the API does not need to.
+  const body = objectWithKeys(value, Object.keys(fields));
+  if (!body) return null;
+
+  const parsed: Record<string, unknown> = {};
+  for (const [key, validate] of Object.entries(fields)) {
+    const raw = body[key];
+    if (raw === undefined) continue;
+    if (raw === null) {
+      parsed[key] = null;
+      continue;
+    }
+    const result = (validate as (input: unknown) => unknown)(raw);
+    if (result === null || result === undefined || result === "") return null;
+    parsed[key] = result;
+  }
+  return Object.keys(parsed).length ? parsed : null;
 }

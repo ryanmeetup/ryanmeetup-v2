@@ -17,6 +17,8 @@ import {
 import {
   FiBriefcase,
   FiChevronDown,
+  FiChevronsDown,
+  FiChevronsUp,
   FiEdit2,
   FiInstagram,
   FiLoader,
@@ -26,7 +28,7 @@ import {
   FiSearch,
   FiTrash2,
 } from "react-icons/fi";
-import { WorkspacePageShell } from "@/components/global";
+import { CountBadge, WorkspacePageShell } from "@/components/global";
 import { createClient } from "@/lib/supabase/client";
 import {
   CONTACT_GROUPS,
@@ -156,6 +158,20 @@ export function ContactsPageClient({
       }),
     [columnCount, sortedContacts],
   );
+  const allExpanded =
+    sortedContacts.length > 0 &&
+    collapsedGroupIds.size === 0 &&
+    sortedContacts.every((contact) => expandedPeopleIds.has(contact.id));
+
+  function toggleAll() {
+    if (allExpanded) {
+      setCollapsedGroupIds(new Set(contactGroups.map((group) => group.id)));
+      setExpandedPeopleIds(new Set());
+      return;
+    }
+    setCollapsedGroupIds(new Set());
+    setExpandedPeopleIds(new Set(sortedContacts.map((contact) => contact.id)));
+  }
 
   async function saveContact(draft: ContactDraft, imageFile: File | null) {
     setSaving(true);
@@ -269,32 +285,56 @@ export function ContactsPageClient({
         <Modal
           open
           setIsOpen={() => undefined}
-          title="Contacts"
+          title={
+            <>
+              Contacts{" "}
+              <CountBadge size="lg">{sortedContacts.length}</CountBadge>
+            </>
+          }
           description="Browse the brands, venues, sponsors, teams, and groups we know, with the right people listed under each one."
           actions={
-            previewing ? (
-              <Tooltip content="Exit access preview to change contacts">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="w-full sm:w-auto"
+                leftIcon={
+                  allExpanded ? (
+                    <FiChevronsUp aria-hidden />
+                  ) : (
+                    <FiChevronsDown aria-hidden />
+                  )
+                }
+                onClick={toggleAll}
+                disabled={sortedContacts.length === 0}
+              >
+                {allExpanded ? "Collapse All" : "Expand All"}
+              </Button>
+              {previewing ? (
+                <Tooltip content="Exit access preview to change contacts">
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="w-full sm:w-auto"
+                    leftIcon={<FiPlus aria-hidden />}
+                    disabled
+                  >
+                    New Contact
+                  </Button>
+                </Tooltip>
+              ) : (
                 <Button
                   type="button"
                   size="sm"
                   className="w-full sm:w-auto"
                   leftIcon={<FiPlus aria-hidden />}
-                  disabled
+                  onClick={() => setEditing(null)}
                 >
                   New Contact
                 </Button>
-              </Tooltip>
-            ) : (
-              <Button
-                type="button"
-                size="sm"
-                className="w-full sm:w-auto"
-                leftIcon={<FiPlus aria-hidden />}
-                onClick={() => setEditing(null)}
-              >
-                New Contact
-              </Button>
-            )
+              )}
+            </div>
           }
           hideActions
           size="xl"

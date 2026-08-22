@@ -32,6 +32,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { useSidebarSections } from "@/hooks/useSidebarSections";
 import { withAccessPreview } from "@/lib/access/access-preview";
+import { InstanceWordmark, useInstance } from "@/components/global";
 
 function SidebarItemLabel({ children }: { children: string }) {
   const labelRef = useRef<HTMLSpanElement>(null);
@@ -76,6 +77,7 @@ export function TasksSidebar({
   onCreateCategory: () => void;
   onCreateProject: () => void;
 }) {
+  const { tagline } = useInstance();
   const isOwner =
     !data.accessPreview &&
     (demoMode || data.currentProfile.app_role === "owner");
@@ -175,10 +177,10 @@ export function TasksSidebar({
           <p
             className={`whitespace-nowrap font-cooper uppercase ${mobile ? "text-xl" : "text-2xl"}`}
           >
-            Ryan Meetup
+            <InstanceWordmark />
           </p>
           <p className="text-[9px] font-semibold uppercase tracking-[0.28em] text-black/45 dark:text-white/45">
-            Task tracker
+            {tagline}
           </p>
         </Link>
         {mobile && (

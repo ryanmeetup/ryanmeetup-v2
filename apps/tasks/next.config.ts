@@ -23,6 +23,19 @@ const nextConfig: NextConfig = {
     "@ryanmeetup/ui",
     "@ryanmeetup/utils",
   ],
+  // Owner-only tools moved under /admin; keep bookmarks and shared
+  // access-group links working.
+  async redirects() {
+    return [
+      { source: "/access", destination: "/admin/access", permanent: true },
+      {
+        source: "/access/:slug",
+        destination: "/admin/access/:slug",
+        permanent: true,
+      },
+      { source: "/usage", destination: "/admin/usage", permanent: true },
+    ];
+  },
   async headers() {
     return [
       {

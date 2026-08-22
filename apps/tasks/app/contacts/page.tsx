@@ -13,10 +13,11 @@ import {
   loadWorkspacePage,
 } from "@/lib/server/workspace-page-loader";
 import { requireQueryData } from "@/lib/server/workspace-loader";
+import { pageTitle } from "@/lib/server/instance-settings";
 
-export const metadata: Metadata = {
-  title: { absolute: "Contacts | Ryan Meetup Tasks" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: { absolute: await pageTitle("Contacts") } };
+}
 
 export default async function ContactsPage({
   searchParams,

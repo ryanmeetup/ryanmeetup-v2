@@ -26,10 +26,11 @@ import {
 } from "@/lib/server/google-calendar";
 import type { GoogleCalendarEvent } from "@/lib/calendar/google-calendar-types";
 import type { AccessPreview } from "@/lib/workspace/workspace-types";
+import { pageTitle } from "@/lib/server/instance-settings";
 
-export const metadata: Metadata = {
-  title: { absolute: "Calendar | Ryan Meetup Tasks" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: { absolute: await pageTitle("Calendar") } };
+}
 
 const demoEvents: CalendarEvent[] = [
   {

@@ -6,7 +6,10 @@ import {
   googleAttachments,
   googleConferenceEntries,
   googleEventDescription,
+  googleEventPlace,
+  googleEventRelativeWhen,
   googleEventWhen,
+  googleNoteBlocks,
   googleResponseCounts,
   linkedTextParts,
   meetingProviderLabel,
@@ -140,7 +143,7 @@ describe("Google event guests", () => {
   });
 
   it("caps the list but still reports the real head count", () => {
-    const result = googleAttendees(attendees, 2);
+    const result = googleAttendees(attendees, { limit: 2 });
     expect(result.attendees).toHaveLength(2);
     expect(result.attendeeCount).toBe(5);
   });
@@ -216,5 +219,160 @@ describe("Linking description text", () => {
     expect(linkedTextParts("Bring the deck")).toEqual([
       { key: "text:0", text: "Bring the deck" },
     ]);
+  });
+});
+
+// The invite Teams writes when a meeting organized outside Workspace is
+// mirrored onto a Google calendar: no conference data, everything in the body.
+const teamsInvite = [
+  "<div>____________________________________________________________</div>",
+  "<div>Microsoft Teams meeting</div>",
+  '<div>Join: <a href="https://teams.microsoft.com/meet/271183?p=IxtZY6">https://teams.microsoft.com/meet/271183?p=IxtZY6</a></div>',
+  "<div>Meeting ID: 271 183 035 097 153</div>",
+  "<div>Passcode: Mp7fD3KE</div>",
+  "<div>______________________________</div>",
+  '<div><a href="https://aka.ms/JoinTeamsMeeting">Need help?</a></div>',
+  "<div>Dial in by phone</div>",
+  '<div><a href="tel:+19292295233,,545797412">+1 929-229-5233,,545797412#</a> United States</div>',
+  '<div><a href="https://dialin.teams.microsoft.com/x">Find a local number</a></div>',
+].join("");
+
+describe("Google event descriptions written by a meeting provider", () => {
+  it("keeps the address of a link whose label does not spell it out", () => {
+    const text = flattenGoogleHtml(teamsInvite);
+    expect(text).toContain("Need help? (https://aka.ms/JoinTeamsMeeting)");
+    expect(text).toContain("Find a local number (https://dialin.teams.microsoft.com/x)");
+    // The label already is the address, so it is not repeated beside itself.
+    expect(text).toContain("Join: https://teams.microsoft.com/meet/271183?p=IxtZY6");
+    expect(text).not.toContain("271183?p=IxtZY6 (https://");
+    // An address the dialog would refuse to link leaves its label behind.
+    expect(text).toContain("+1 929-229-5233,,545797412# United States");
+    expect(text).not.toContain("tel:");
+  });
+
+  it("turns a typed-out rule into a separator and drops a trailing one", () => {
+    expect(googleNoteBlocks("Agenda\n_____________\nVenue\n_____________")).toEqual([
+      { key: "text:1", kind: "text", text: "Agenda" },
+      { key: "rule:1", kind: "rule" },
+      { key: "text:3", kind: "text", text: "Venue" },
+    ]);
+    // A rule leading the description separates it from nothing.
+    expect(googleNoteBlocks("=======\nNotes")).toEqual([
+      { key: "text:13", kind: "text", text: "Notes" },
+    ]);
+    expect(googleNoteBlocks("Just notes")).toEqual([
+      { key: "text:10", kind: "text", text: "Just notes" },
+    ]);
+  });
+
+  it("lifts the room out of the body when Google filed no conference data", () => {
+    expect(
+      googleConferenceEntries({
+        location: "Microsoft Teams Meeting; 2N-PAC",
+        description: teamsInvite,
+      }),
+    ).toEqual([
+      {
+        kind: "video",
+        label: "Microsoft Teams",
+        uri: "https://teams.microsoft.com/meet/271183?p=IxtZY6",
+        meetingCode: "271 183 035 097 153",
+        pin: "Mp7fD3KE",
+      },
+      {
+        kind: "phone",
+        label: "+1 929-229-5233,,545797412#",
+        uri: "tel:+1929-229-5233,,545797412#",
+      },
+    ]);
+  });
+
+  it("leaves an ordinary description alone", () => {
+    expect(
+      googleConferenceEntries({
+        description: "<div>Agenda at <a href='https://ryanmeetup.com/x'>the doc</a>.</div>",
+      }),
+    ).toEqual([]);
+    // A number in prose is not a dial-in when there is no room to dial into.
+    expect(
+      googleConferenceEntries({ description: "Call Ryan on +1 929-229-5233 if late" }),
+    ).toEqual([]);
+  });
+
+  it("prefers what Google filed over what the body says", () => {
+    expect(
+      googleConferenceEntries({
+        hangoutLink: "https://meet.google.com/abc-defg-hij",
+        description: teamsInvite,
+      }).map((entry) => entry.uri),
+    ).toEqual(["https://meet.google.com/abc-defg-hij"]);
+  });
+});
+
+describe("Google event rooms", () => {
+  const invite = [
+    { email: "kbateman1@darden.com", displayName: "Kelly Bateman", organizer: true },
+    { email: "2n-pac@darden.com", displayName: "2N-PAC" },
+    { email: "room@resource.calendar.google.com", displayName: "Studio" },
+  ];
+  const location = "Microsoft Teams Meeting; 2N-PAC";
+
+  it("reads a room the organization booked on its own domain as a room", () => {
+    const result = googleAttendees(invite, { location });
+    expect(
+      result.attendees?.map((attendee) => [attendee.email, attendee.resource]),
+    ).toEqual([
+      ["kbateman1@darden.com", undefined],
+      ["2n-pac@darden.com", true],
+      ["room@resource.calendar.google.com", true],
+    ]);
+    // The head count a reader means by "guests" leaves the rooms out of it.
+    expect(result.attendeeCount).toBe(3);
+    expect(result.guestCount).toBe(1);
+  });
+
+  it("does not mistake a guest for a room because the address names them", () => {
+    const result = googleAttendees([{ email: "ryan@ryanmeetup.com", displayName: "Ryan" }], {
+      location: "The Ryan Bar, Brooklyn",
+    });
+    expect(result.attendees?.[0]?.resource).toBeUndefined();
+  });
+
+  it("takes the rooms back out of the location so they print once", () => {
+    expect(googleEventPlace(location, [{ name: "2N-PAC" }])).toBe(
+      "Microsoft Teams Meeting",
+    );
+    // A location that was only its room has nothing left to say.
+    expect(googleEventPlace("2N-PAC", [{ name: "2N-PAC" }])).toBeUndefined();
+    expect(googleEventPlace("The Ryan Bar, Brooklyn", [])).toBe("The Ryan Bar, Brooklyn");
+    expect(googleEventPlace(undefined, [])).toBeUndefined();
+  });
+});
+
+describe("Google event timing", () => {
+  const day = (start: string, end = start) => ({ start, end });
+
+  it("says which side of today the event falls on", () => {
+    expect(googleEventRelativeWhen(day("2026-08-21"), "2026-08-21")).toEqual({
+      label: "Today",
+      past: false,
+    });
+    // An event that started before today and has not ended is still today.
+    expect(
+      googleEventRelativeWhen(day("2026-08-19", "2026-08-23"), "2026-08-21"),
+    ).toEqual({ label: "Today", past: false });
+    expect(googleEventRelativeWhen(day("2026-08-22"), "2026-08-21").label).toBe(
+      "Tomorrow",
+    );
+    expect(googleEventRelativeWhen(day("2026-08-14"), "2026-08-21")).toEqual({
+      label: "7 days ago",
+      past: true,
+    });
+    expect(googleEventRelativeWhen(day("2026-09-11"), "2026-08-21").label).toBe(
+      "In 3 weeks",
+    );
+    expect(googleEventRelativeWhen(day("2026-01-21"), "2026-08-21").label).toBe(
+      "7 months ago",
+    );
   });
 });

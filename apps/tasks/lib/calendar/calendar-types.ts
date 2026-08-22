@@ -1,4 +1,5 @@
 import type { Category, Project } from "@/lib/resources/resource-types";
+import { taskPath } from "@/lib/tasks/task-key";
 import type { Task } from "@/lib/tasks/task-types";
 import type { Profile } from "@/lib/workspace/workspace-types";
 import type { GoogleCalendarEvent } from "./google-calendar-types";
@@ -162,7 +163,7 @@ export function calendarItems(
         end: task.due_date,
         allDay: !task.due_time,
         color: task.priority === "urgent" ? "#dc2626" : "#c026d3",
-        href: `/task/RMT-${task.task_number}`,
+        href: taskPath(task),
         task,
         meta: project?.name ?? "Task deadline",
       },

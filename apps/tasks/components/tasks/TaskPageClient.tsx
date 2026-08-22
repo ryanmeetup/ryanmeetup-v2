@@ -31,7 +31,10 @@ import {
   FiUser,
   FiUserCheck,
 } from "react-icons/fi";
-import { WorkspacePageShell } from "@/components/global";
+import {
+  useInstancePageTitle,
+  WorkspacePageShell,
+} from "@/components/global";
 import { useWorkspaceData } from "@/hooks/useWorkspaceData";
 import { withAccessPreview } from "@/lib/access/access-preview";
 import {
@@ -47,6 +50,7 @@ import { TaskDetails } from "./TaskDetails";
 import { TaskDueDate } from "./TaskDueDate";
 import { TaskEditor } from "./TaskEditor";
 import { TaskPriorityBadge } from "./TaskPriorityBadge";
+
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", { dateStyle: "medium" });
 
@@ -74,13 +78,14 @@ export function TaskPageClient({
   const [taskDeleting, setTaskDeleting] = useState(false);
   const conversationTopRef = useRef<HTMLDivElement>(null);
   const [conversationHeight, setConversationHeight] = useState<number>();
+  const pageTitle = useInstancePageTitle();
   const task =
     data.tasks.find((item) => item.id === taskId) ??
     initialData.tasks.find((item) => item.id === taskId)!;
 
   useEffect(() => {
-    document.title = `${taskKey(task)}: ${task.title} | Ryan Meetup Tasks`;
-  }, [task]);
+    document.title = pageTitle(`${taskKey(task)}: ${task.title}`);
+  }, [pageTitle, task]);
 
   const status = data.statuses.find((item) => item.id === task.status_id);
   const project = data.projects.find((item) => item.id === task.project_id);

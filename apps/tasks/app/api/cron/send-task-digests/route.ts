@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { apiError, databaseFailure } from "@/lib/server/api-response";
 import { getAdminClient } from "@/lib/server/admin-client";
 import { sendTaskDigestEmail } from "@/lib/server/task-digest-email";
+import { getInstanceSettings } from "@/lib/server/instance-settings";
 import { buildTaskDigest, taskDigestCount } from "@/lib/tasks/task-digest";
 
 export const runtime = "nodejs";
@@ -80,6 +81,8 @@ export async function GET(request: Request) {
       { error: "Task digests could not be processed." },
     );
 
+  // Resolved once: every digest in this run shares the same branding.
+  const instance = await getInstanceSettings();
   const digestDate = currentDigestDate();
   const scheduledAt = new Date(
     Date.now() + reviewMinutes() * 60 * 1000,
@@ -113,6 +116,7 @@ export async function GET(request: Request) {
     try {
       await sendTaskDigestEmail({
         digest,
+        instance,
         digestDate,
         profileId: profile.id,
         recipientName: profile.full_name,

@@ -104,7 +104,7 @@ export function TaskWorkspaceHeader({
         </p>
         <Heading size="h1" className="text-2xl sm:text-4xl">
           {viewTitle}&nbsp;
-          <CountBadge className="align-middle">{taskCount}</CountBadge>
+          <CountBadge size="lg">{taskCount}</CountBadge>
         </Heading>
         {scopeDescription && (
           <p className="mt-2 text-sm text-black/70 dark:text-white/70 sm:text-base">

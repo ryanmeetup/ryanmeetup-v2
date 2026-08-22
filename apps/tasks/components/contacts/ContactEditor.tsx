@@ -369,7 +369,7 @@ export function ContactEditor({
               type="button"
               variant="secondary"
               size="sm"
-              className="w-full sm:w-auto"
+              className="w-full whitespace-nowrap sm:w-auto sm:shrink-0"
               leftIcon={<FiPlus />}
               disabled={activePersonIndex !== null || saving}
               onClick={() => {

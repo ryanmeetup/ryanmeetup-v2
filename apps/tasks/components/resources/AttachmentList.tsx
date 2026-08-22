@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useId } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
 import type { DragEndEvent } from "@dnd-kit/core";
@@ -31,6 +32,9 @@ export function AttachmentList({ items, type, loading, disabled, onEdit, onRemov
   onRemove: (item: ResourceAttachmentDraft) => void;
   onReorder?: (item: ResourceAttachmentDraft, targetId: string | undefined, edge: DropEdge) => void;
 }) {
+  // See ResourceLinksFields: an explicit id keeps dnd-kit's aria-describedby
+  // stable across the server render and hydration.
+  const dndId = useId();
   const reorderable = Boolean(onReorder) && !disabled && items.length > 1;
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -45,7 +49,7 @@ export function AttachmentList({ items, type, loading, disabled, onEdit, onRemov
     if (draggedItem && toIndex >= 0) onReorder?.(draggedItem, items[toIndex]?.id, fromIndex < toIndex ? "after" : "before");
   }
 
-  return <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={finishReorder}>
+  return <DndContext id={dndId} sensors={sensors} collisionDetection={closestCenter} onDragEnd={finishReorder}>
   <SortableContext items={items.map((item) => item.id)} strategy={verticalListSortingStrategy}>
   <div className={items.length ? "max-h-[min(18rem,35dvh)] space-y-2 overflow-y-auto overscroll-contain pr-1" : undefined} aria-busy={loading}>
     {loading && <p className="text-xs text-black/55 dark:text-white/55">Loading {type === "note" ? "notes" : "attachments"}...</p>}

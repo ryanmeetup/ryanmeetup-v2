@@ -620,7 +620,15 @@ export function CategoriesModal({
         open={open && !editingId}
         maxHeight="min(42rem, calc(100dvh - 2rem))"
         setIsOpen={setOpen}
-        title={createOnly ? "New Category" : "Categories"}
+        title={
+          createOnly ? (
+            "New Category"
+          ) : (
+            <>
+              Categories <CountBadge size="lg">{categories.length}</CountBadge>
+            </>
+          )
+        }
         description={
           embedded
             ? "Categories make work easier to scan and filter across projects."

@@ -8,10 +8,11 @@ import {
 import { WorkspaceLoadError } from "@/lib/server/workspace-loader";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import type { Metadata } from "next";
+import { pageTitle } from "@/lib/server/instance-settings";
 
-export const metadata: Metadata = {
-  title: { absolute: "Profile | Ryan Meetup Tasks" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: { absolute: await pageTitle("Profile") } };
+}
 
 export default async function ProfilePage() {
   const demoMode = isWorkspaceDemo();

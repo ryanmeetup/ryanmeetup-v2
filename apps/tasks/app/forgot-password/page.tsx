@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { ForgotPasswordForm } from "@/components/auth";
+import { pageTitle } from "@/lib/server/instance-settings";
 
-export const metadata: Metadata = {
-  title: { absolute: "Forgot Password | Ryan Meetup Tasks" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: { absolute: await pageTitle("Forgot Password") } };
+}
 
 export default function ForgotPasswordPage() {
   return <ForgotPasswordForm />;

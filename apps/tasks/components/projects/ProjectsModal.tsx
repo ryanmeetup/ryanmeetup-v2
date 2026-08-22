@@ -408,7 +408,15 @@ export function ProjectsModal({
         open={open && !editProjectId}
         maxHeight="min(42rem, calc(100dvh - 2rem))"
         setIsOpen={setOpen}
-        title={createOnly ? "New Project" : "Projects"}
+        title={
+          createOnly ? (
+            "New Project"
+          ) : (
+            <>
+              Projects <CountBadge size="lg">{projects.length}</CountBadge>
+            </>
+          )
+        }
         description={
           embedded
             ? "Projects collect related work across categories. Owners show who is driving each work stream; project access is still managed separately through groups."

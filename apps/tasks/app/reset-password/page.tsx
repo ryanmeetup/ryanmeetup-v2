@@ -4,10 +4,11 @@ import { Card, Heading } from "@ryanmeetup/ui";
 import { PasswordForm } from "@/components/auth";
 import { ThemeToggle } from "@/components/global";
 import { createClient } from "@/lib/supabase/server";
+import { pageTitle } from "@/lib/server/instance-settings";
 
-export const metadata: Metadata = {
-  title: { absolute: "Reset Password | Ryan Meetup Tasks" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: { absolute: await pageTitle("Reset Password") } };
+}
 
 export default async function ResetPasswordPage() {
   const { data } = await (await createClient()).auth.getUser();

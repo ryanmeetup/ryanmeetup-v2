@@ -345,7 +345,7 @@ export function googleCalendarEventDetails(event: GoogleEvent) {
   const attachments = googleAttachments(event.attachments);
   return {
     ...googleEventDescription(event.description),
-    ...googleAttendees(event.attendees),
+    ...googleAttendees(event.attendees, { location: event.location }),
     location: event.location?.trim() || undefined,
     tentative: event.status === "tentative" || undefined,
     organizer:

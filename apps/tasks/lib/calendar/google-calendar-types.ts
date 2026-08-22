@@ -59,6 +59,9 @@ export type GoogleCalendarEventDetails = {
   attendees?: GoogleCalendarAttendee[];
   // The full head count, which stays right when the list itself is capped.
   attendeeCount?: number;
+  // The same count without the rooms and equipment in it, which is the number
+  // a reader means by "guests".
+  guestCount?: number;
   conference?: GoogleCalendarConferenceEntry[];
   attachments?: GoogleCalendarAttachment[];
 };

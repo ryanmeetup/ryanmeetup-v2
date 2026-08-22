@@ -1,4 +1,5 @@
 import { tasksAppUrl } from "@/lib/app-url";
+import { instanceDefaults, type InstanceSettings } from "@/lib/instance";
 import { taskKey, taskPath } from "@/lib/tasks/task-key";
 import type { DigestTask, TaskDigest } from "@/lib/tasks/task-digest";
 import { taskDigestCount } from "@/lib/tasks/task-digest";
@@ -85,10 +86,11 @@ export function renderTaskDigestEmail(
   digest: TaskDigest,
   recipientName: string,
   sentAt = new Date(),
+  instance: InstanceSettings = instanceDefaults,
 ) {
   const boardUrl = escapeHtml(tasksAppUrl("/board"));
   const count = taskDigestCount(digest);
-  return `<!doctype html><html><body style="margin:0;background:#e7e9e8;color:#111827"><div style="display:none;max-height:0;overflow:hidden">${count} task${count === 1 ? "" : "s"} in your Ryan Meetup workload rundown.</div><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#e7e9e8;font-family:Inter,Arial,sans-serif"><tr><td align="center" style="padding:32px 12px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background:#f1f2ef;border:1px solid #cfd3d1;border-radius:20px;overflow:hidden;box-shadow:0 8px 24px rgba(17,24,39,.12)"><tr><td style="background:#ffffff;color:#111827;padding:28px;border-top:6px solid #ee1a25;border-bottom:1px solid #d9dcda"><div style="font-family:Cooper Black,Georgia,serif;font-size:23px;font-weight:900;line-height:1;letter-spacing:.02em;color:#111827;white-space:nowrap">RYAN MEETUP TASKS</div><h1 style="margin:24px 0 0;font-family:Cooper Black,Georgia,serif;font-size:30px;line-height:1.15">Your workload rundown</h1><p style="margin:12px 0 0;color:#555b63;font-size:14px;line-height:1.6">Good ${timeOfDay(sentAt)}, ${escapeHtml(recipientName)}. Here’s what deserves a look.</p></td></tr>${section("🚨", "#fee2e2", "Overdue", "Past the finish line and still open.", digest.overdue)}${section("📅", "#dbeafe", "Due today", "The work landing today.", digest.dueToday)}${section("⏳", "#fef3c7", "Coming up", "Due within the next three days.", digest.upcoming)}${section("🔥", "#ffedd5", "High priority", "Important work that still needs a deadline.", digest.highPriority)}${section("✨", "#ede9fe", "Recently updated", "Assigned work changed in the last three days.", digest.recentlyUpdated, true)}<tr><td align="center" style="padding:20px 28px 32px"><a href="${boardUrl}" style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;font-size:14px;font-weight:750;border-radius:12px;padding:14px 24px;box-shadow:0 2px 4px rgba(17,24,39,.18)">Open your task board&nbsp; →</a></td></tr></table></td></tr></table></body></html>`;
+  return `<!doctype html><html><body style="margin:0;background:#e7e9e8;color:#111827"><div style="display:none;max-height:0;overflow:hidden">${count} task${count === 1 ? "" : "s"} in your ${escapeHtml(instance.name)} workload rundown.</div><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#e7e9e8;font-family:Inter,Arial,sans-serif"><tr><td align="center" style="padding:32px 12px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background:#f1f2ef;border:1px solid #cfd3d1;border-radius:20px;overflow:hidden;box-shadow:0 8px 24px rgba(17,24,39,.12)"><tr><td style="background:#ffffff;color:#111827;padding:28px;border-top:6px solid ${instance.accentColor};border-bottom:1px solid #d9dcda"><div style="font-family:Cooper Black,Georgia,serif;font-size:23px;font-weight:900;line-height:1;letter-spacing:.02em;color:#111827;white-space:nowrap">${escapeHtml(instance.productName.toUpperCase())}</div><h1 style="margin:24px 0 0;font-family:Cooper Black,Georgia,serif;font-size:30px;line-height:1.15">Your workload rundown</h1><p style="margin:12px 0 0;color:#555b63;font-size:14px;line-height:1.6">Good ${timeOfDay(sentAt)}, ${escapeHtml(recipientName)}. Here’s what deserves a look.</p></td></tr>${section("🚨", "#fee2e2", "Overdue", "Past the finish line and still open.", digest.overdue)}${section("📅", "#dbeafe", "Due today", "The work landing today.", digest.dueToday)}${section("⏳", "#fef3c7", "Coming up", "Due within the next three days.", digest.upcoming)}${section("🔥", "#ffedd5", "High priority", "Important work that still needs a deadline.", digest.highPriority)}${section("✨", "#ede9fe", "Recently updated", "Assigned work changed in the last three days.", digest.recentlyUpdated, true)}<tr><td align="center" style="padding:20px 28px 32px"><a href="${boardUrl}" style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;font-size:14px;font-weight:750;border-radius:12px;padding:14px 24px;box-shadow:0 2px 4px rgba(17,24,39,.18)">Open your task board&nbsp; →</a></td></tr></table></td></tr></table></body></html>`;
 }
 
 export function timeOfDay(date = new Date()) {
@@ -112,6 +114,7 @@ export async function sendTaskDigestEmail({
   to,
   idempotencyKey,
   scheduledAt,
+  instance = instanceDefaults,
 }: {
   digest: TaskDigest;
   digestDate: string;
@@ -120,6 +123,7 @@ export async function sendTaskDigestEmail({
   to: string;
   idempotencyKey?: string;
   scheduledAt?: string;
+  instance?: InstanceSettings;
 }) {
   const apiKey = process.env.RESEND_API_KEY;
   const from =
@@ -133,6 +137,7 @@ export async function sendTaskDigestEmail({
     digest,
     recipientName,
     scheduledAt ? new Date(scheduledAt) : new Date(),
+    instance,
   );
   const plainTextTasks = Object.entries(digest)
     .filter(([, tasks]) => tasks.length)
@@ -157,9 +162,9 @@ export async function sendTaskDigestEmail({
     body: JSON.stringify({
       from,
       to: [to],
-      subject: `${count} task${count === 1 ? "" : "s"} in your Ryan Meetup rundown`,
+      subject: `${count} task${count === 1 ? "" : "s"} in your ${instance.name} rundown`,
       html,
-      text: `Your Ryan Meetup Tasks rundown\n\n${plainTextTasks}\n\nOpen your board: ${tasksAppUrl("/board")}`,
+      text: `Your ${instance.productName} rundown\n\n${plainTextTasks}\n\nOpen your board: ${tasksAppUrl("/board")}`,
       ...(scheduledAt ? { scheduled_at: scheduledAt } : {}),
     }),
   });

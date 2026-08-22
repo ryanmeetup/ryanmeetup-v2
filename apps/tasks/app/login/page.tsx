@@ -2,10 +2,11 @@ import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
+import { pageTitle } from "@/lib/server/instance-settings";
 
-export const metadata: Metadata = {
-  title: { absolute: "Sign In | Ryan Meetup Tasks" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: { absolute: await pageTitle("Sign In") } };
+}
 
 export default async function LoginPage() {
   if (

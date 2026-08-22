@@ -6,6 +6,11 @@ import { filterPanelsExpandedPreferenceKey } from "@/lib/user-preferences";
 import { CategoryFilterMenu } from "./CategoryFilterMenu";
 import { InclusionFilterMenu } from "./InclusionFilterMenu";
 import { profileDisplayName } from "@/lib/presentation";
+import { sortFavoriteProjectsFirst } from "@/lib/resources/project-sort";
+import {
+  favoriteProjectsGroupLabel,
+  projectOptionGroup,
+} from "@/components/projects";
 import { categoryTagFilterValue } from "@/lib/tasks/task-filter-values";
 
 const priorities: Priority[] = ["low", "medium", "high", "urgent"];
@@ -24,6 +29,7 @@ type InclusionSelection = { included: string[]; excluded: string[] };
 export type TaskFilterOptions = {
   categories: Category[];
   currentProfileId: string;
+  favoriteProjectIds: string[];
   profiles: Profile[];
   projects: Project[];
   statuses: Status[];
@@ -53,6 +59,7 @@ export function TaskFilters({
 }) {
   const { categories, currentProfileId, profiles, projects, statuses } =
     options;
+  const favoriteProjectIds = new Set(options.favoriteProjectIds);
   const {
     count,
     visibility,
@@ -159,9 +166,18 @@ export function TaskFilters({
       <InclusionFilterMenu
         label="Project"
         anyLabel="All projects"
+        proximityGroup={favoriteProjectsGroupLabel}
         options={[
-          { label: "No project", value: "none" },
-          ...projects.map((item) => ({
+          {
+            group: projectOptionGroup(false),
+            label: "No project",
+            value: "none",
+          },
+          ...sortFavoriteProjectsFirst(
+            projects,
+            options.favoriteProjectIds,
+          ).map((item) => ({
+            group: projectOptionGroup(favoriteProjectIds.has(item.id)),
             label: `${item.name}${item.archived_at ? " (archived)" : ""}`,
             value: item.id,
           })),

@@ -1,5 +1,5 @@
 ---
-version: RMT v2
+version: 2
 slug: v2-team-tool
 author: Ryan Le
 date: "2026-08-05"

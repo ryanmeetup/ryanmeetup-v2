@@ -228,6 +228,7 @@ describe("Google event details", () => {
         },
       ],
       attendeeCount: 2,
+      guestCount: 2,
       conference: [
         {
           kind: "video",
@@ -239,6 +240,43 @@ describe("Google event details", () => {
         { title: "Walkthrough notes", url: "https://docs.google.com/document/d/1" },
       ],
     });
+  });
+
+  // An invite mirrored from Teams: Google files no conference data for it, so
+  // everything the dialog leads with has to be read back out of the body and
+  // the room it booked arrives looking like one more guest.
+  it("recovers the room and the head count from an invite Google did not file", () => {
+    const details = googleCalendarEventDetails({
+      id: "google-3",
+      summary: "Ryan Meetup x Yard House Intro Call",
+      location: "Microsoft Teams Meeting; 2N-PAC",
+      description: [
+        "<div>Microsoft Teams meeting</div>",
+        '<div>Join: <a href="https://teams.microsoft.com/meet/271183?p=IxtZY6">https://teams.microsoft.com/meet/271183?p=IxtZY6</a></div>',
+        "<div>Passcode: Mp7fD3KE</div>",
+      ].join(""),
+      attendees: [
+        { email: "ryan@ryanmeetup.com", self: true },
+        { email: "kbateman1@darden.com", displayName: "Kelly Bateman", organizer: true, responseStatus: "accepted" },
+        { email: "2n-pac@darden.com", displayName: "2N-PAC" },
+        { email: "baliberti@darden.com", displayName: "Brandon Aliberti" },
+      ],
+    });
+    expect(details.conference).toEqual([
+      {
+        kind: "video",
+        label: "Microsoft Teams",
+        uri: "https://teams.microsoft.com/meet/271183?p=IxtZY6",
+        meetingCode: undefined,
+        pin: "Mp7fD3KE",
+      },
+    ]);
+    expect(details.attendeeCount).toBe(4);
+    expect(details.guestCount).toBe(3);
+    expect(
+      details.attendees?.find((attendee) => attendee.email === "2n-pac@darden.com")
+        ?.resource,
+    ).toBe(true);
   });
 
   // A bare busy block should not travel with a payload of empty fields.

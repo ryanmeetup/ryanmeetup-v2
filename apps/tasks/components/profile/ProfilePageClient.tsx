@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Heading, Modal } from "@ryanmeetup/ui";
-import { FiLock } from "react-icons/fi";
+import { Button, Modal } from "@ryanmeetup/ui";
+import { FiLock, FiUser } from "react-icons/fi";
 import { ProfileForm } from "./ProfileForm";
 import { PasswordForm } from "@/components/auth";
 import { CategoriesModal } from "@/components/categories";
-import { WorkspacePageShell } from "@/components/global";
+import { PageHeader, WorkspacePageShell } from "@/components/global";
 import { ProjectsModal } from "@/components/projects";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 
@@ -40,17 +40,16 @@ export function ProfilePageClient({
         contentClassName="p-4 sm:p-6 lg:p-8"
       >
         <div className="mx-auto max-w-3xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-black/50 dark:text-white/50">
-            {onboardingRequired ? "Welcome" : "Your account"}
-          </p>
-          <Heading size="h1" className="mt-2 text-4xl">
-            {onboardingRequired ? "Complete your profile" : "Profile"}
-          </Heading>
-          <p className="mt-2 text-sm text-black/65 dark:text-white/65">
-            {onboardingRequired
-              ? "Choose your sign-in password and confirm how your name appears before continuing."
-              : "Manage how teammates see you across the workspace."}
-          </p>
+          <PageHeader
+            kicker={onboardingRequired ? "Welcome" : "Your account"}
+            icon={FiUser}
+            title={onboardingRequired ? "Complete your profile" : "Profile"}
+            description={
+              onboardingRequired
+                ? "Choose your sign-in password and confirm how your name appears before continuing."
+                : "Manage how teammates see you across the workspace."
+            }
+          />
           <div className="mt-10 border-t border-black/10 pt-8 dark:border-white/10">
             <ProfileForm
               profile={data.currentProfile}

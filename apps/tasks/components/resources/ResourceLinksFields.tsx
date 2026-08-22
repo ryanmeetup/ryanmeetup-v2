@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import type { CSSProperties, Dispatch, ReactNode, SetStateAction } from "react";
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
 import type { DragEndEvent } from "@dnd-kit/core";
@@ -28,12 +29,31 @@ export function ResourceLinksFields({
   setLinks,
   disabled,
   namePrefix,
+  className = "rounded-xl border border-black/10 bg-black/[0.015] p-3 dark:border-white/10 dark:bg-white/[0.025]",
+  title = "Useful links",
+  hint = "Attach docs, designs, folders, or any other helpful web page.",
+  addLabel = "Add link",
+  labelPlaceholder = "Design file",
+  urlPlaceholder = "ryanmeetup.com",
 }: {
   links: ResourceLink[];
   setLinks: Dispatch<SetStateAction<ResourceLink[]>>;
   disabled: boolean;
   namePrefix: string;
+  /** Surface styling, so an editor nested inside another card can drop its
+   *  own background rather than stacking a second border inside the first. */
+  className?: string;
+  /** Copy overrides so non-resource surfaces — the footer link group on
+   *  /admin/settings — can reuse this editor without borrowing task wording. */
+  title?: string;
+  hint?: string;
+  addLabel?: string;
+  labelPlaceholder?: string;
+  urlPlaceholder?: string;
 }) {
+  // dnd-kit derives its aria-describedby id from a module counter, which drifts
+  // between the server and the browser once a page renders more than one list.
+  const dndId = useId();
   const reorderable = !disabled && links.length > 1;
   const itemIds = links.map((_, index) => `${namePrefix}-link-${index}`);
   const sensors = useSensors(
@@ -60,13 +80,13 @@ export function ResourceLinksFields({
     <DisclosureCard
       defaultOpen
       collapsible={links.length > 0}
-      className="rounded-xl border border-black/10 bg-black/[0.015] p-3 dark:border-white/10 dark:bg-white/[0.025]"
+      className={className}
       buttonClassName="flex w-fit items-center gap-2 text-left"
       panelClassName="pt-3"
       iconClassName="h-3.5 w-3.5"
       description={
         <p className="pr-2 text-xs leading-relaxed text-black/55 dark:text-white/55">
-          Attach docs, designs, folders, or any other helpful web page.
+          {hint}
         </p>
       }
       actions={
@@ -81,18 +101,18 @@ export function ResourceLinksFields({
             setLinks((current) => [...current, { label: "", url: "" }])
           }
         >
-          Add link
+          {addLabel}
         </Button>
       }
       actionsClassName="mt-3 w-full [&>*]:w-full"
       summary={
         <span className="flex items-center gap-3 pb-1 text-sm font-semibold">
-          Useful links
+          {title}
           {links.length > 0 && <CountBadge>{links.length}</CountBadge>}
         </span>
       }
     >
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={finishReorder}>
+      <DndContext id={dndId} sensors={sensors} collisionDetection={closestCenter} onDragEnd={finishReorder}>
       <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
       <div className={links.length > 0 ? "max-h-[min(18rem,35dvh)] space-y-2 overflow-y-auto overscroll-contain pr-1" : undefined}>
         {links.map((link, index) => (
@@ -123,7 +143,7 @@ export function ResourceLinksFields({
               label="Label"
               name={`${namePrefix}-link-label-${index}`}
               value={link.label}
-              placeholder="Design file"
+              placeholder={labelPlaceholder}
               maxLength={80}
               required
               disabled={disabled}
@@ -137,7 +157,7 @@ export function ResourceLinksFields({
               autoCapitalize="none"
               autoCorrect="off"
               value={link.url}
-              placeholder="ryanmeetup.com"
+              placeholder={urlPlaceholder}
               required
               disabled={disabled}
               onChange={(event) => update(index, "url", event.target.value)}

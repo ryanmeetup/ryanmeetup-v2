@@ -33,7 +33,7 @@ import {
   FiUserX,
   FiX,
 } from "react-icons/fi";
-import { WorkspacePageShell } from "@/components/global";
+import { CountBadge, WorkspacePageShell } from "@/components/global";
 import { GoogleEventModal } from "./GoogleEventModal";
 import {
   TaskCategoryBadge,
@@ -639,7 +639,7 @@ export function CalendarPageClient({
         <Modal
           open
           setIsOpen={() => undefined}
-          title="Calendar"
+          title={<>Calendar <CountBadge size="lg">{monthItems.length}</CountBadge></>}
           description="Deadlines, important dates, meetings, and time away—one place to see what the Ryans have coming up."
           embedded
           size="2xl"

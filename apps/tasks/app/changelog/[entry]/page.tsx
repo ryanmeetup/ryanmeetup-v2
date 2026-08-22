@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ChangelogEntryPageClient } from "@/components/changelog";
 import { changelog, findChangelogRelease } from "@/lib/server/changelog";
 import { loadChangelogPage } from "@/lib/server/changelog-page-loader";
+import { pageTitle } from "@/lib/server/instance-settings";
 
 export async function generateMetadata({
   params,
@@ -13,7 +14,7 @@ export async function generateMetadata({
   return release
     ? {
         title: {
-          absolute: `${release.version}: ${release.title} | Ryan Meetup Tasks`,
+          absolute: await pageTitle(`${release.version}: ${release.title}`),
         },
         description: release.summary,
       }

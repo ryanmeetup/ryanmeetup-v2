@@ -13,10 +13,11 @@ import {
 } from "@/lib/server/workspace-page-loader";
 import type { Metadata } from "next";
 import { parseTaskKey } from "@/lib/tasks/task-key";
+import { pageTitle } from "@/lib/server/instance-settings";
 
-export const metadata: Metadata = {
-  title: { absolute: "Task Board | Ryan Meetup Tasks" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: { absolute: await pageTitle("Task Board") } };
+}
 
 export default async function BoardPage({
   searchParams,

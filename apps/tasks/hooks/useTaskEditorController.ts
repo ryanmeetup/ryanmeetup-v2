@@ -114,7 +114,7 @@ export function useTaskEditorController({
   function openCreate(statusId = defaults.statusId) {
     setMessage("");
     setEditing(null);
-    setDetailsOpen(false);
+    setDetailsOpen(data.currentProfile.task_details_open_by_default);
     setCreateAnother(false);
     draftId.current = null;
     setDetails(emptyNewTaskDetails());

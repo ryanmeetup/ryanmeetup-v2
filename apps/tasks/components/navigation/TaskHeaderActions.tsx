@@ -13,19 +13,18 @@ import {
   Tooltip,
 } from "@ryanmeetup/ui";
 import {
-  FiCheck,
   FiLogOut,
   FiMenu,
   FiMoon,
   FiPlus,
-  FiShield,
+  FiSliders,
   FiSun,
-  FiTrendingUp,
   FiUser,
 } from "react-icons/fi";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { ThemeToggle, useTheme } from "@/components/global";
-import { NewTaskModal, StatusSettingsModal } from "@/components/tasks";
+import { NewTaskModal } from "@/components/tasks";
+import { ADMIN_ROOT } from "@/lib/admin/admin-routes";
 import { HeaderProfileControls } from "./HeaderProfileControls";
 import { createClient } from "@/lib/supabase/client";
 import { profileDisplayName } from "@/lib/presentation";
@@ -41,7 +40,6 @@ export function TaskHeaderActions({
   demoMode: boolean;
   onNewTask?: () => void;
 }) {
-  const [statusesOpen, setStatusesOpen] = useState(false);
   const [newTaskOpen, setNewTaskOpen] = useState(false);
   const router = useRouter();
   const { theme, setTheme } = useTheme();
@@ -53,31 +51,14 @@ export function TaskHeaderActions({
     <>
       <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-3">
         {isOwner && (
-          <span className="hidden items-center gap-3 xl:flex">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              leftIcon={<FiCheck />}
-              onClick={() => setStatusesOpen(true)}
-            >
-              Statuses
-            </Button>
+          <span className="hidden items-center gap-3 sm:flex">
             <Button.Link
-              href="/access"
+              href={ADMIN_ROOT}
               variant="secondary"
               size="sm"
-              leftIcon={<FiShield />}
+              leftIcon={<FiSliders />}
             >
-              Access
-            </Button.Link>
-            <Button.Link
-              href="/usage"
-              variant="secondary"
-              size="sm"
-              leftIcon={<FiTrendingUp />}
-            >
-              Usage
+              Admin
             </Button.Link>
           </span>
         )}
@@ -149,14 +130,8 @@ export function TaskHeaderActions({
                     Admin
                   </div>
                   <div role="group" aria-labelledby="mobile-account-menu-admin">
-                    <DropdownMenuItem onClick={() => setStatusesOpen(true)}>
-                      <FiCheck aria-hidden /> Statuses
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => router.push("/access")}>
-                      <FiShield aria-hidden /> Access
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => router.push("/usage")}>
-                      <FiTrendingUp aria-hidden /> Usage
+                    <DropdownMenuItem onClick={() => router.push(ADMIN_ROOT)}>
+                      <FiSliders aria-hidden /> Admin
                     </DropdownMenuItem>
                   </div>
                 </>
@@ -186,30 +161,6 @@ export function TaskHeaderActions({
             </DropdownMenuItems>
           </DropdownMenu>
         </span>
-        {isOwner && (
-          <span className="hidden sm:inline-flex xl:hidden">
-            <DropdownMenu>
-              <DropdownMenuButton
-                unstyled
-                aria-label="Open workspace settings"
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-black/10 text-black transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:border-white/10 dark:text-white dark:hover:bg-white/10 dark:focus-visible:ring-white/30"
-              >
-                <FiMenu aria-hidden />
-              </DropdownMenuButton>
-              <DropdownMenuItems align="end">
-                <DropdownMenuItem onClick={() => setStatusesOpen(true)}>
-                  <FiCheck aria-hidden /> Statuses
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push("/access")}>
-                  <FiShield aria-hidden /> Access
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push("/usage")}>
-                  <FiTrendingUp aria-hidden /> Usage
-                </DropdownMenuItem>
-              </DropdownMenuItems>
-            </DropdownMenu>
-          </span>
-        )}
         {isPreviewing ? (
           <Tooltip content="Exit access preview to create a new task">
             <Button
@@ -254,15 +205,6 @@ export function TaskHeaderActions({
           />
         </span>
       </div>
-      {isOwner && (
-        <StatusSettingsModal
-          open={statusesOpen}
-          setOpen={setStatusesOpen}
-          data={data}
-          setData={setData}
-          demoMode={demoMode}
-        />
-      )}
       {!onNewTask && !isPreviewing && (
         <NewTaskModal
           data={data}

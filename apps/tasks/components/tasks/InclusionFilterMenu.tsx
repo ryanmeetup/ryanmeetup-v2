@@ -1,7 +1,7 @@
 "use client";
 
 import { Popover, PopoverButton, PopoverPanel } from "@headlessui/react";
-import { Fragment } from "react";
+import { Fragment, type ReactNode } from "react";
 import { FiCheck, FiChevronDown, FiMinus, FiPlus } from "react-icons/fi";
 import {
   Avatar,
@@ -12,7 +12,7 @@ import {
 
 export type InclusionFilterOption = {
   avatar?: AvatarProps;
-  group?: { color?: string | null; label: string };
+  group?: { color?: string | null; icon?: ReactNode; label: string };
   label: string;
   value: string;
   markerColor?: string | null;
@@ -26,6 +26,7 @@ export function InclusionFilterMenu({
   excludedValues,
   onIncludedChange,
   onExcludedChange,
+  proximityGroup,
   proximityValue,
   stackLabelOnMobile = false,
 }: {
@@ -36,12 +37,14 @@ export function InclusionFilterMenu({
   excludedValues: string[];
   onIncludedChange: (values: string[]) => void;
   onExcludedChange: (values: string[]) => void;
+  proximityGroup?: string;
   proximityValue?: string;
   stackLabelOnMobile?: boolean;
 }) {
   const { orderedOptions, setAnchorElement } = useProximityOptions(
     options,
     proximityValue,
+    proximityGroup,
   );
   const included = new Set(includedValues);
   const excluded = new Set(excludedValues);
@@ -114,6 +117,7 @@ export function InclusionFilterMenu({
               <Fragment key={option.value}>
                 {showGroup && (
                   <div className="mb-1 mt-2 flex items-center gap-2 border-b border-black/10 px-2 pb-2 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-black/55 first:mt-0 dark:border-white/10 dark:text-white/55">
+                    {option.group?.icon}
                     {option.group?.color && (
                       <i
                         aria-hidden

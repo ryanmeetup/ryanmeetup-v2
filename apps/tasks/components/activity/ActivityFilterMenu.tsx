@@ -8,9 +8,11 @@ import {
   useProximityOptions,
 } from "@ryanmeetup/ui";
 import { FiCheck, FiChevronDown, FiMinus, FiPlus } from "react-icons/fi";
+import { Fragment, type ReactNode } from "react";
 
 export type ActivityFilterOption = {
   avatar?: AvatarProps;
+  group?: { color?: string | null; icon?: ReactNode; label: string };
   label: string;
   value: string;
 };
@@ -22,6 +24,7 @@ export function ActivityFilterMenu({
   onExcludedChange,
   onIncludedChange,
   options,
+  proximityGroup,
   proximityValue,
   stackLabelOnMobile = false,
 }: {
@@ -31,12 +34,14 @@ export function ActivityFilterMenu({
   onExcludedChange: (values: string[]) => void;
   onIncludedChange: (values: string[]) => void;
   options: ActivityFilterOption[];
+  proximityGroup?: string;
   proximityValue?: string;
   stackLabelOnMobile?: boolean;
 }) {
   const { orderedOptions, setAnchorElement } = useProximityOptions(
     options,
     proximityValue,
+    proximityGroup,
   );
   const included = new Set(includedValues);
   const excluded = new Set(excludedValues);
@@ -98,35 +103,56 @@ export function ActivityFilterMenu({
           <span className="w-16 text-center">Exclude</span>
         </div>
         <div className="max-h-64 overflow-y-auto">
-          {orderedOptions.map((option) => (
-            <div
-              key={option.value}
-              className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-black/5 dark:hover:bg-white/10"
-            >
-              {option.avatar && <Avatar {...option.avatar} size="sm" />}
-              <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                {option.label}
-              </span>
-              <button
-                type="button"
-                aria-label={`${included.has(option.value) ? "Stop including" : "Include"} ${option.label}`}
-                aria-pressed={included.has(option.value)}
-                onClick={() => include(option.value)}
-                className="grid h-8 w-16 place-items-center rounded-md border border-transparent text-black/45 transition hover:bg-black/10 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 aria-pressed:border-emerald-500/30 aria-pressed:bg-emerald-500/15 aria-pressed:text-emerald-700 dark:text-white/45 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:ring-white/30 dark:aria-pressed:text-emerald-300"
-              >
-                {included.has(option.value) ? <FiCheck /> : <FiPlus />}
-              </button>
-              <button
-                type="button"
-                aria-label={`${excluded.has(option.value) ? "Stop excluding" : "Exclude"} ${option.label}`}
-                aria-pressed={excluded.has(option.value)}
-                onClick={() => exclude(option.value)}
-                className="grid h-8 w-16 place-items-center rounded-md border border-transparent text-black/45 transition hover:bg-black/10 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 aria-pressed:border-red-500/30 aria-pressed:bg-red-500/15 aria-pressed:text-red-700 dark:text-white/45 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:ring-white/30 dark:aria-pressed:text-red-300"
-              >
-                <FiMinus />
-              </button>
-            </div>
-          ))}
+          {orderedOptions.map((option, index) => {
+            const showGroup =
+              option.group &&
+              option.group.label !== orderedOptions[index - 1]?.group?.label;
+            const accessibleLabel = option.group
+              ? `${option.group.label}: ${option.label}`
+              : option.label;
+
+            return (
+              <Fragment key={option.value}>
+                {showGroup && (
+                  <div className="mb-1 mt-2 flex items-center gap-2 border-b border-black/10 px-2 pb-2 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-black/55 first:mt-0 dark:border-white/10 dark:text-white/55">
+                    {option.group?.icon}
+                    {option.group?.color && (
+                      <i
+                        aria-hidden
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: option.group.color }}
+                      />
+                    )}
+                    <span className="truncate">{option.group?.label}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-black/5 dark:hover:bg-white/10">
+                  {option.avatar && <Avatar {...option.avatar} size="sm" />}
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                    {option.label}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label={`${included.has(option.value) ? "Stop including" : "Include"} ${accessibleLabel}`}
+                    aria-pressed={included.has(option.value)}
+                    onClick={() => include(option.value)}
+                    className="grid h-8 w-16 place-items-center rounded-md border border-transparent text-black/45 transition hover:bg-black/10 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 aria-pressed:border-emerald-500/30 aria-pressed:bg-emerald-500/15 aria-pressed:text-emerald-700 dark:text-white/45 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:ring-white/30 dark:aria-pressed:text-emerald-300"
+                  >
+                    {included.has(option.value) ? <FiCheck /> : <FiPlus />}
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`${excluded.has(option.value) ? "Stop excluding" : "Exclude"} ${accessibleLabel}`}
+                    aria-pressed={excluded.has(option.value)}
+                    onClick={() => exclude(option.value)}
+                    className="grid h-8 w-16 place-items-center rounded-md border border-transparent text-black/45 transition hover:bg-black/10 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 aria-pressed:border-red-500/30 aria-pressed:bg-red-500/15 aria-pressed:text-red-700 dark:text-white/45 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:ring-white/30 dark:aria-pressed:text-red-300"
+                  >
+                    <FiMinus />
+                  </button>
+                </div>
+              </Fragment>
+            );
+          })}
         </div>
       </PopoverPanel>
     </Popover>

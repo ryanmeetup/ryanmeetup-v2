@@ -18,7 +18,8 @@ import {
   FiMail,
   FiRefreshCw,
 } from "react-icons/fi";
-import { WorkspacePageShell } from "@/components/global";
+import { AdminPageShell } from "@/components/admin";
+import { PageHeader } from "@/components/global";
 import type { ResendQuota, ResendUsage } from "@/lib/usage/resend-usage-types";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { RecentEmailTable } from "./RecentEmailTable";
@@ -141,24 +142,18 @@ export function UsagePageClient({
   }, [refreshing, usage.message, usage.status]);
 
   return (
-    <WorkspacePageShell
+    <AdminPageShell
       data={data}
       demoMode={demoMode}
       sidebarOpen={sidebarOpen}
       setSidebarOpen={setSidebarOpen}
       setData={setData}
-      contentClassName="p-4 sm:p-6 lg:p-8"
     >
-      <div className="mx-auto max-w-6xl space-y-8">
-        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <Heading size="h1" className="flex items-center gap-2 text-4xl">
-              <FiActivity aria-hidden /> Usage
-            </Heading>
-            <Text className="mt-1 text-sm">
-              Keep an eye on the services powering the workspace.
-            </Text>
-          </div>
+      <PageHeader
+        icon={FiActivity}
+        title="Usage"
+        description="Keep an eye on the services powering the workspace."
+        actions={
           <Button
             variant="secondary"
             size="sm"
@@ -171,59 +166,59 @@ export function UsagePageClient({
           >
             {refreshing ? "Refreshing" : "Refresh usage"}
           </Button>
+        }
+      />
+
+      <section aria-labelledby="resend-heading" className="space-y-5">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-black text-white dark:bg-white dark:text-black">
+            <FiMail aria-hidden />
+          </span>
+          <div>
+            <Heading
+              id="resend-heading"
+              size="h2"
+              variant="normal"
+              bold
+              className="text-xl"
+            >
+              Resend
+            </Heading>
+            <p className="text-sm text-black/60 dark:text-white/60">
+              Transactional email
+            </p>
+          </div>
+          {usage.status === "available" ? (
+            <span className="ml-auto inline-flex items-center gap-2 rounded-full border border-emerald-500/35 bg-emerald-500/15 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800 dark:text-emerald-200">
+              <FiCheckCircle aria-hidden className="h-4 w-4" /> Connected
+            </span>
+          ) : (
+            <Pill size="sm" variant="subtle" className="ml-auto">
+              {statusLabel}
+            </Pill>
+          )}
         </div>
 
-        <section aria-labelledby="resend-heading" className="space-y-5">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-black text-white dark:bg-white dark:text-black">
-              <FiMail aria-hidden />
-            </span>
-            <div>
-              <Heading
-                id="resend-heading"
-                size="h2"
-                variant="normal"
-                bold
-                className="text-xl"
-              >
-                Resend
-              </Heading>
-              <p className="text-sm text-black/60 dark:text-white/60">
-                Transactional email
-              </p>
-            </div>
-            {usage.status === "available" ? (
-              <span className="ml-auto inline-flex items-center gap-2 rounded-full border border-emerald-500/35 bg-emerald-500/15 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800 dark:text-emerald-200">
-                <FiCheckCircle aria-hidden className="h-4 w-4" /> Connected
-              </span>
-            ) : (
-              <Pill size="sm" variant="subtle" className="ml-auto">
-                {statusLabel}
-              </Pill>
-            )}
+        {usage.message && (
+          <div
+            className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-100"
+            role="status"
+          >
+            {usage.message}
           </div>
+        )}
 
-          {usage.message && (
-            <div
-              className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-100"
-              role="status"
-            >
-              {usage.message}
-            </div>
-          )}
+        <div className="grid gap-4 md:grid-cols-2">
+          <QuotaCard label="Last 24 hours" quota={usage.daily} />
+          <QuotaCard label="This month" quota={usage.monthly} />
+        </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <QuotaCard label="Last 24 hours" quota={usage.daily} />
-            <QuotaCard label="This month" quota={usage.monthly} />
-          </div>
-
-          <RecentEmailTable emails={usage.recentEmails} />
-          <p className="text-xs text-black/50 dark:text-white/50">
-            Last checked {dateTimeFormatter.format(new Date(usage.checkedAt))}.
-            Resend counts every To, CC, and BCC recipient toward email quota.
-          </p>
-        </section>
-      </div>
-    </WorkspacePageShell>
+        <RecentEmailTable emails={usage.recentEmails} />
+        <p className="text-xs text-black/50 dark:text-white/50">
+          Last checked {dateTimeFormatter.format(new Date(usage.checkedAt))}.
+          Resend counts every To, CC, and BCC recipient toward email quota.
+        </p>
+      </section>
+    </AdminPageShell>
   );
 }

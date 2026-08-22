@@ -1,5 +1,5 @@
 ---
-version: RMT v1
+version: 1
 slug: v1-first-working-workspace
 author: Ryan Le
 date: "2026-08-02"

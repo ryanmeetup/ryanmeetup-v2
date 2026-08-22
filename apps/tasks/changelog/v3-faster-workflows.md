@@ -1,5 +1,5 @@
 ---
-version: RMT v3
+version: 3
 slug: v3-faster-workflows
 author: Ryan Le
 date: "2026-08-09"

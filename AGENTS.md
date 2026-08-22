@@ -249,6 +249,12 @@ Rules:
 
 - Use the shared field components so labels, required markers, focus rings,
   placeholders, errors, and theme behavior remain consistent.
+- Every single-choice control must be `DropdownSelect`. A native `<select>`
+  cannot be styled consistently across platforms and ignores the theme, so the
+  native `Select` primitive was removed from `packages/ui`; do not reintroduce
+  one, in an app or in the package. Use `variant="field"` for a labelled form
+  field and `variant="compact"` for a toolbar or filter control. Reach for
+  `MultiSelect` when more than one value may be chosen.
 - All search inputs must use the shared debounced search behavior established by
   the task board. Update the input value immediately, debounce filtering and URL
   state, show a loading spinner in the input while the query is pending, and

@@ -17,19 +17,25 @@ import { CountBadge, WorkspacePageShell } from "@/components/global";
 import { NewTaskModal } from "@/components/tasks";
 import { ProjectsModal } from "@/components/projects";
 import {
+  applyNoteDraft,
   filterNotes,
   groupNotesByCategory,
   linkNoteToProject,
   noteConversionDraft,
   noteConversionProjectDraft,
 } from "@/lib/resources/notes";
-import type { Note, NoteComment, Project } from "@/lib/resources/resource-types";
+import type {
+  Note,
+  NoteComment,
+  Project,
+} from "@/lib/resources/resource-types";
 import type { Task } from "@/lib/tasks/task-types";
 import { taskPath } from "@/lib/tasks/task-key";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { mutate } from "@/lib/mutation-client";
 import { archiveFilter } from "@/lib/resources/resource-management";
 import { NoteCard } from "./NoteCard";
+import { NoteModal } from "./NoteModal";
 export function NotesPageClient({
   initialData,
   initialNotes,
@@ -58,6 +64,8 @@ export function NotesPageClient({
     "all",
   );
   const showArchived = archiveFilter(noteStatusParam) === "archived";
+  const [openNoteId, setOpenNoteId] = useState<string | null>(null);
+  const [editingNote, setEditingNote] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Note | null>(null);
   const [convertTarget, setConvertTarget] = useState<Note | null>(null);
   const [convertProjectTarget, setConvertProjectTarget] = useState<Note | null>(
@@ -101,6 +109,40 @@ export function NotesPageClient({
     } finally {
       setCreating(false);
     }
+  }
+
+  async function saveNote(note: Note, title: string, body: string) {
+    try {
+      const updated = demoMode
+        ? applyNoteDraft(note, title, body)
+        : (
+            await mutate<{ note: Note }>("/api/notes", {
+              method: "PATCH",
+              body: JSON.stringify({
+                id: note.id,
+                title: title.trim() || null,
+                body,
+              }),
+            })
+          ).note;
+      setNotes((current) =>
+        current.map((item) => (item.id === updated.id ? updated : item)),
+      );
+      toast.success("Note saved.");
+      return true;
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "The note could not be saved.",
+      );
+      return false;
+    }
+  }
+
+  function toggleArchived(note: Note) {
+    void updateNote({
+      ...note,
+      archived_at: note.archived_at ? null : new Date().toISOString(),
+    });
   }
 
   async function updateNote(next: Note) {
@@ -159,6 +201,7 @@ export function NotesPageClient({
     }
   }
 
+  const openNote = notes.find((note) => note.id === openNoteId) ?? null;
   const activeNotes = filterNotes(notes, showArchived);
   const noteGroups = groupNotesByCategory(activeNotes, data.categories);
   const selectedGroup = noteGroups.find((group) => {
@@ -246,7 +289,11 @@ export function NotesPageClient({
         <Modal
           open
           setIsOpen={() => undefined}
-          title="Notes"
+          title={
+            <>
+              Notes <CountBadge size="lg">{activeNotes.length}</CountBadge>
+            </>
+          }
           description="Catch quick thoughts before they escape. When an idea becomes real work, turn it into a task."
           actions={
             <Button
@@ -373,43 +420,45 @@ export function NotesPageClient({
                 </div>
 
                 {visibleNotes.length ? (
-                  <div className="grid items-start gap-4 xl:grid-cols-3">
+                  <div className="columns-1 gap-4 xl:columns-3">
                     {visibleNotes.map((note) => (
-                      <NoteCard
-                        key={note.id}
-                        note={note}
-                        category={
-                          data.categories.find(
-                            (category) => category.id === note.category_id,
-                          ) ?? null
-                        }
-                        profiles={data.profiles}
-                        demoMode={demoMode}
-                        previewing={previewing}
-                        canConvertToProject={canConvertToProject}
-                        onChange={(next) => void updateNote(next)}
-                        onConvert={setConvertTarget}
-                        onConvertToProject={setConvertProjectTarget}
-                        onDelete={setDeleteTarget}
-                        convertedTask={data.tasks.find(
-                          (task) => task.id === note.converted_task_id,
-                        )}
-                        convertedProject={data.projects.find(
-                          (project) => project.id === note.converted_project_id,
-                        )}
-                        comments={comments.filter(
-                          (comment) => comment.note_id === note.id,
-                        )}
-                        currentProfileId={data.currentProfile.id}
-                        onCommentsChange={(next) =>
-                          setComments((current) => [
-                            ...current.filter(
-                              (comment) => comment.note_id !== note.id,
-                            ),
-                            ...next,
-                          ])
-                        }
-                      />
+                      <div key={note.id} className="mb-4 break-inside-avoid">
+                        <NoteCard
+                          note={note}
+                          category={
+                            data.categories.find(
+                              (category) => category.id === note.category_id,
+                            ) ?? null
+                          }
+                          profiles={data.profiles}
+                          previewing={previewing}
+                          canConvertToProject={canConvertToProject}
+                          commentCount={
+                            comments.filter(
+                              (comment) => comment.note_id === note.id,
+                            ).length
+                          }
+                          convertedTask={data.tasks.find(
+                            (task) => task.id === note.converted_task_id,
+                          )}
+                          convertedProject={data.projects.find(
+                            (project) =>
+                              project.id === note.converted_project_id,
+                          )}
+                          onOpen={(next) => {
+                            setEditingNote(false);
+                            setOpenNoteId(next.id);
+                          }}
+                          onEdit={(next) => {
+                            setEditingNote(true);
+                            setOpenNoteId(next.id);
+                          }}
+                          onArchive={toggleArchived}
+                          onConvert={setConvertTarget}
+                          onConvertToProject={setConvertProjectTarget}
+                          onDelete={setDeleteTarget}
+                        />
+                      </div>
                     ))}
                   </div>
                 ) : (
@@ -444,6 +493,44 @@ export function NotesPageClient({
           </section>
         </Modal>
       </WorkspacePageShell>
+
+      {openNote && (
+        <NoteModal
+          key={openNote.id}
+          note={openNote}
+          category={
+            data.categories.find(
+              (category) => category.id === openNote.category_id,
+            ) ?? null
+          }
+          profiles={data.profiles}
+          demoMode={demoMode}
+          previewing={previewing}
+          editing={editingNote && !previewing && !openNote.archived_at}
+          setEditing={setEditingNote}
+          convertedTask={data.tasks.find(
+            (task) => task.id === openNote.converted_task_id,
+          )}
+          convertedProject={data.projects.find(
+            (project) => project.id === openNote.converted_project_id,
+          )}
+          comments={comments.filter(
+            (comment) => comment.note_id === openNote.id,
+          )}
+          currentProfileId={data.currentProfile.id}
+          onCommentsChange={(next) =>
+            setComments((current) => [
+              ...current.filter((comment) => comment.note_id !== openNote.id),
+              ...next,
+            ])
+          }
+          onSave={(title, body) => saveNote(openNote, title, body)}
+          onClose={() => {
+            setEditingNote(false);
+            setOpenNoteId(null);
+          }}
+        />
+      )}
 
       <ConfirmationDialog
         open={Boolean(deleteTarget)}

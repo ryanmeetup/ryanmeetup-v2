@@ -1,7 +1,7 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
-import { FiLock, FiStar } from "react-icons/fi";
+import { FiLock } from "react-icons/fi";
 import {
   DropdownSelect,
   Input,
@@ -15,6 +15,10 @@ import type { Profile } from "@/lib/workspace/workspace-types";
 import type { TaskDraft } from "@/lib/tasks/task-mutations";
 import { profileDisplayName } from "@/lib/presentation";
 import { sortFavoriteProjectsFirst } from "@/lib/resources/project-sort";
+import {
+  favoriteProjectsGroupLabel,
+  projectOptionGroup,
+} from "@/components/projects";
 
 const priorities: Priority[] = ["low", "medium", "high", "urgent"];
 
@@ -178,28 +182,22 @@ export function TaskFields({
           <DropdownSelect
             variant="field"
             label="Project"
-            proximityGroup="Favorites"
+            proximityGroup={favoriteProjectsGroupLabel}
             value={draft.project_id ?? ""}
             onChange={(project_id) => patch({ project_id: project_id || null })}
             options={[
-              { label: "No project", value: "" },
+              {
+                group: projectOptionGroup(false),
+                label: "No project",
+                value: "",
+              },
               ...sortFavoriteProjectsFirst(
                 options.projects.filter(
                   (item) => !item.archived_at || item.id === draft.project_id,
                 ),
                 options.favoriteProjectIds,
               ).map((item) => ({
-                group: favoriteProjectIds.has(item.id)
-                  ? {
-                      icon: (
-                        <FiStar
-                          aria-hidden
-                          className="h-3 w-3 shrink-0 fill-yellow-400 text-yellow-500 dark:fill-yellow-300 dark:text-yellow-400"
-                        />
-                      ),
-                      label: "Favorites",
-                    }
-                  : { label: "Projects" },
+                group: projectOptionGroup(favoriteProjectIds.has(item.id)),
                 label: `${item.name}${item.archived_at ? " (archived)" : ""}`,
                 value: item.id,
               })),

@@ -7,6 +7,7 @@ import {
   linkNoteToTask,
   noteConversionDraft,
   noteConversionProjectDraft,
+  noteLinks,
   noteTaskDescription,
   noteTitle,
   paginateNotes,
@@ -73,7 +74,10 @@ describe("workspace notes", () => {
   });
 
   it("builds a project conversion draft from the note's title and body", () => {
-    const titled = { title: "Launch thought", body: "Keep all of this context." };
+    const titled = {
+      title: "Launch thought",
+      body: "Keep all of this context.",
+    };
     expect(noteConversionProjectDraft(titled)).toEqual({
       name: "Launch thought",
       description: "Keep all of this context.",
@@ -102,7 +106,34 @@ describe("workspace notes", () => {
     });
   });
 
-  it("normalizes autosave drafts", () => {
+  it("collects note links with readable labels", () => {
+    const note = {
+      body: [
+        "Venue shortlist: https://example.com/venues/list?city=nyc.",
+        "See [the run of show](https://docs.example.com/run-of-show) too.",
+        "Mirror at www.example.com and https://example.com/venues/list?city=nyc again.",
+      ].join("\n"),
+    };
+    expect(noteLinks(note)).toEqual([
+      {
+        label: "the run of show",
+        url: "https://docs.example.com/run-of-show",
+      },
+      {
+        label: "example.com/venues/list?city=nyc",
+        url: "https://example.com/venues/list?city=nyc",
+      },
+      { label: "example.com", url: "https://www.example.com/" },
+    ]);
+  });
+
+  it("ignores note text that is not a link", () => {
+    expect(
+      noteLinks({ body: "Ask Ryan about note.body and e.g. seating." }),
+    ).toEqual([]);
+  });
+
+  it("normalizes drafts saved from the note editor", () => {
     const note = { title: null, body: "Old", updated_at: "old" } as never;
     expect(applyNoteDraft(note, "  Title ", " Body ", "new")).toMatchObject({
       title: "Title",
@@ -164,11 +195,9 @@ describe("workspace notes", () => {
       [uncategorized, designNote, backendNote],
       [design, backend],
     );
-    expect(groups.map((group) => group.category?.name ?? "Uncategorized")).toEqual([
-      "Backend",
-      "Design",
-      "Uncategorized",
-    ]);
+    expect(
+      groups.map((group) => group.category?.name ?? "Uncategorized"),
+    ).toEqual(["Backend", "Design", "Uncategorized"]);
     expect(groups[0].notes).toEqual([backendNote]);
     expect(groups[2].notes).toEqual([uncategorized]);
   });
