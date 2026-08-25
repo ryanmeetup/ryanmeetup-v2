@@ -43,6 +43,8 @@ test("customer can open store support and enter order details", async ({ page })
   await expect(page.getByRole("heading", { name: "Let’s sort out your order." })).toBeVisible();
   await expect(page.getByLabel("First name")).toHaveAttribute("required", "");
   await expect(page.getByLabel("Order number")).not.toHaveAttribute("required", "");
+  await expect(page.getByLabel("Product name")).toHaveCount(0);
+  await expect(page.getByText("Required fields are marked *", { exact: true })).toHaveCount(0);
   await page.getByLabel("First name").fill("Ryan");
   await page.getByLabel("Order number").fill("RM-1234");
   await expect(page.getByRole("button", { name: "Send to customer service" })).toBeVisible();

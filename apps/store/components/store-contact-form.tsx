@@ -9,7 +9,6 @@ import {
   ErrorCallout,
   FormActions,
   Input,
-  RequiredFieldsNote,
   SuccessCallout,
   Textarea,
 } from "@ryanmeetup/ui";
@@ -21,7 +20,6 @@ type StoreContactFields = {
   topic: string;
   orderNumber: string;
   orderEmail: string;
-  product: string;
   resolution: string;
   message: string;
 };
@@ -33,7 +31,6 @@ const initialFields: StoreContactFields = {
   topic: "order-status",
   orderNumber: "",
   orderEmail: "",
-  product: "",
   resolution: "information",
   message: "",
 };
@@ -92,7 +89,6 @@ export function StoreContactForm() {
           `Topic: ${topic}`,
           `Order number: ${orderReference}`,
           `Email used for order: ${fields.orderEmail.trim() || "Same as contact email"}`,
-          `Product: ${fields.product.trim() || "Not provided"}`,
           `Preferred resolution: ${resolution}`,
           "",
           "Customer message:",
@@ -126,8 +122,6 @@ export function StoreContactForm() {
         <Input label="Email used for the order" name="orderEmail" type="email" placeholder="If different from above" value={fields.orderEmail} onChange={update("orderEmail")} />
       </div>
 
-      <Input label="Product name" name="product" placeholder="Official Ryan Meetup Tee" value={fields.product} onChange={update("product")} />
-
       <Textarea id="message" label="How can we help?" name="message" placeholder="Tell us what happened and what would make it right." required rows={7} value={fields.message} onChange={update("message")} />
 
       {status === "success" && (
@@ -136,7 +130,6 @@ export function StoreContactForm() {
       {status === "error" && <ErrorCallout>{errorMessage}</ErrorCallout>}
 
       <FormActions>
-        <RequiredFieldsNote>Required fields are marked *</RequiredFieldsNote>
         <Button type="submit" leftIcon={<FiSend aria-hidden />} loading={status === "sending"} loadingText="Sending..." className="w-full sm:w-auto sm:min-w-48">
           Send to customer service
         </Button>
