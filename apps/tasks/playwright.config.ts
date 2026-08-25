@@ -2,6 +2,8 @@ import { defineConfig, devices } from "@playwright/test";
 
 const port = Number(process.env.PLAYWRIGHT_PORT ?? 3100);
 const origin = `http://127.0.0.1:${port}`;
+const supabasePort = Number(process.env.PLAYWRIGHT_SUPABASE_PORT ?? 54329);
+const supabaseOrigin = `http://127.0.0.1:${supabasePort}`;
 
 /**
  * The suite runs against a production server rather than `next dev`.
@@ -27,22 +29,31 @@ export default defineConfig({
   },
   webServer: process.env.PLAYWRIGHT_SKIP_WEBSERVER
     ? undefined
-    : {
-        command: `npm run build && npm run start -- --hostname 127.0.0.1 --port ${port}`,
-        url: `${origin}/login`,
-        reuseExistingServer: !process.env.CI,
-        // A cold run builds first, which does not fit the 60s default.
-        timeout: 300_000,
-        env: {
-          ...process.env,
-          // These are inlined at build time, so they must be set for the build
-          // step above, not just for the server it starts.
-          NEXT_PUBLIC_SUPABASE_URL:
-            process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321",
-          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
-            process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-            "sb_publishable_test",
+    : [
+        {
+          command: "node tests/e2e/mock-supabase.mjs",
+          url: `${supabaseOrigin}/health`,
+          reuseExistingServer: !process.env.CI,
+          timeout: 30_000,
+          env: {
+            ...process.env,
+            PLAYWRIGHT_SUPABASE_PORT: String(supabasePort),
+          },
         },
-      },
+        {
+          command: `npm run build && npm run start -- --hostname 127.0.0.1 --port ${port}`,
+          url: `${origin}/login`,
+          reuseExistingServer: !process.env.CI,
+          // A cold run builds first, which does not fit the 60s default.
+          timeout: 300_000,
+          env: {
+            ...process.env,
+            // These are inlined at build time, so they must be set for the build
+            // step above, not just for the server it starts.
+            NEXT_PUBLIC_SUPABASE_URL: supabaseOrigin,
+            NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test",
+          },
+        },
+      ],
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
 });
