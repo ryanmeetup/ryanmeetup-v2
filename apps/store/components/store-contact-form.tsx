@@ -82,6 +82,12 @@ export function StoreContactForm() {
         firstName: fields.firstName,
         lastName: fields.lastName,
         email: fields.email,
+        topic,
+        topicValue: fields.topic,
+        detail: resolution,
+        detailValue: fields.resolution,
+        routeTo: "ryan@ryanmeetup.com",
+        source: "store-contact",
         subject: `[Store: ${topic}] ${fields.orderNumber.trim() || `${fields.firstName} ${fields.lastName}`}`,
         message: [
           "Ryan General Store customer service request",
