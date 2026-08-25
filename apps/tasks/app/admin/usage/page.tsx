@@ -7,6 +7,10 @@ import {
   loadWorkspacePage,
 } from "@/lib/server/workspace-page-loader";
 import { pageTitle } from "@/lib/server/instance-settings";
+import {
+  getDigestRuns,
+  getDigestSettings,
+} from "@/lib/server/digest-settings";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: { absolute: await pageTitle("Usage") } };
@@ -18,6 +22,8 @@ export default async function UsagePage() {
       <UsagePageClient
         initialData={demoData}
         demoMode
+        digestSettings={await getDigestSettings()}
+        digestRuns={[]}
         usage={{
           status: "available",
           daily: { used: 34, limit: 100, estimated: true },
@@ -33,6 +39,18 @@ export default async function UsagePage() {
     ["profiles", "statuses", "categories", "projects"],
     { owner: true },
   );
-  const usage = await getResendUsage();
-  return <UsagePageClient initialData={data} demoMode={false} usage={usage} />;
+  const [usage, digestSettings, digestRuns] = await Promise.all([
+    getResendUsage(),
+    getDigestSettings(),
+    getDigestRuns(),
+  ]);
+  return (
+    <UsagePageClient
+      initialData={data}
+      demoMode={false}
+      usage={usage}
+      digestSettings={digestSettings}
+      digestRuns={digestRuns}
+    />
+  );
 }

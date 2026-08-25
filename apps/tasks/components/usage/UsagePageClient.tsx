@@ -21,7 +21,11 @@ import {
 import { AdminPageShell } from "@/components/admin";
 import { PageHeader } from "@/components/global";
 import type { ResendQuota, ResendUsage } from "@/lib/usage/resend-usage-types";
+import type { DigestRun } from "@/lib/usage/digest-run-types";
+import type { DigestSettings } from "@/lib/digest/digest-settings";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
+import { DigestRunLedger } from "./DigestRunLedger";
+import { DigestSettingsCard } from "./DigestSettingsCard";
 import { RecentEmailTable } from "./RecentEmailTable";
 
 const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
@@ -113,12 +117,17 @@ export function UsagePageClient({
   initialData,
   demoMode,
   usage,
+  digestSettings,
+  digestRuns,
 }: {
   initialData: WorkspaceData;
   demoMode: boolean;
   usage: ResendUsage;
+  digestSettings: DigestSettings;
+  digestRuns: DigestRun[];
 }) {
   const [data, setData] = useState(initialData);
+  const [settings, setSettings] = useState(digestSettings);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [refreshing, startRefresh] = useTransition();
   const wasRefreshing = useRef(false);
@@ -212,6 +221,14 @@ export function UsagePageClient({
           <QuotaCard label="Last 24 hours" quota={usage.daily} />
           <QuotaCard label="This month" quota={usage.monthly} />
         </div>
+
+        <DigestSettingsCard
+          settings={settings}
+          setSettings={setSettings}
+          demoMode={demoMode}
+        />
+
+        <DigestRunLedger runs={digestRuns} />
 
         <RecentEmailTable emails={usage.recentEmails} />
         <p className="text-xs text-black/50 dark:text-white/50">

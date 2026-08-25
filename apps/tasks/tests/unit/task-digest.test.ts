@@ -9,6 +9,20 @@ import {
   sendTaskDigestEmail,
   timeOfDay,
 } from "@/lib/server/task-digest-email";
+import {
+  digestDefaults,
+  type DigestSectionKey,
+} from "@/lib/digest/digest-settings";
+
+/** The digest is an ordered list; tests read it by key. */
+const sectionTasks = (
+  digest: ReturnType<typeof buildTaskDigest>,
+  key: DigestSectionKey,
+) => digest.find((section) => section.key === key)?.tasks ?? [];
+
+const onlySection = (key: DigestSectionKey, tasks: DigestTask[]) => [
+  { key, tasks },
+];
 
 const task = (
   values: Partial<DigestTask> &
@@ -64,14 +78,22 @@ describe("task workload digests", () => {
         }),
       ],
       "2026-08-20",
-      3,
+      digestDefaults,
       new Date("2026-08-20T12:00:00.000Z"),
     );
 
-    expect(digest.overdue.map((item) => item.id)).toEqual(["1"]);
-    expect(digest.dueToday.map((item) => item.id)).toEqual(["2"]);
-    expect(digest.upcoming.map((item) => item.id)).toEqual(["3"]);
-    expect(digest.highPriority.map((item) => item.id)).toEqual(["4"]);
+    expect(sectionTasks(digest, "overdue").map((item) => item.id)).toEqual([
+      "1",
+    ]);
+    expect(sectionTasks(digest, "dueToday").map((item) => item.id)).toEqual([
+      "2",
+    ]);
+    expect(sectionTasks(digest, "upcoming").map((item) => item.id)).toEqual([
+      "3",
+    ]);
+    expect(sectionTasks(digest, "highPriority").map((item) => item.id)).toEqual(
+      ["4"],
+    );
     expect(taskDigestCount(digest)).toBe(4);
   });
 
@@ -87,12 +109,12 @@ describe("task workload digests", () => {
         }),
       ],
       "2026-08-20",
-      3,
+      digestDefaults,
       new Date("2026-08-20T12:00:00.000Z"),
     );
 
-    expect(digest.dueToday).toHaveLength(1);
-    expect(digest.recentlyUpdated).toHaveLength(1);
+    expect(sectionTasks(digest, "dueToday")).toHaveLength(1);
+    expect(sectionTasks(digest, "recentlyUpdated")).toHaveLength(1);
     expect(taskDigestCount(digest)).toBe(1);
   });
 
@@ -108,13 +130,7 @@ describe("task workload digests", () => {
       status: { name: "Backlog", color: "#64748b" },
     });
     const html = renderTaskDigestEmail(
-      {
-        overdue: [item],
-        dueToday: [],
-        upcoming: [],
-        highPriority: [],
-        recentlyUpdated: [],
-      },
+      onlySection("overdue", [item]),
       "Ryan",
       new Date("2026-08-20T13:00:00.000Z"),
     );
@@ -138,13 +154,9 @@ describe("task workload digests", () => {
     const scheduledAt = "2026-08-21T13:30:00.000Z";
 
     await sendTaskDigestEmail({
-      digest: {
-        overdue: [task({ id: "1", task_number: 1, title: "Review me" })],
-        dueToday: [],
-        upcoming: [],
-        highPriority: [],
-        recentlyUpdated: [],
-      },
+      digest: onlySection("overdue", [
+        task({ id: "1", task_number: 1, title: "Review me" }),
+      ]),
       digestDate: "2026-08-21",
       profileId: "profile-1",
       recipientName: "Ryan",

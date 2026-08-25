@@ -3,6 +3,11 @@ import { instanceDefaults, type InstanceSettings } from "@/lib/instance";
 import { taskKey, taskPath } from "@/lib/tasks/task-key";
 import type { DigestTask, TaskDigest } from "@/lib/tasks/task-digest";
 import { taskDigestCount } from "@/lib/tasks/task-digest";
+import {
+  DIGEST_SECTION_META,
+  digestDefaults,
+  type DigestSectionKey,
+} from "@/lib/digest/digest-settings";
 
 const escapeHtml = (value: string) =>
   value.replace(
@@ -25,13 +30,13 @@ function displayDate(value: string) {
   }).format(new Date(`${value}T12:00:00Z`));
 }
 
-function displayUpdatedAt(value: string) {
+function displayUpdatedAt(value: string, timeZone: string) {
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
-    timeZone: "America/New_York",
+    timeZone,
   }).format(new Date(value));
 }
 
@@ -45,7 +50,7 @@ function priorityStyle(priority: DigestTask["priority"]) {
   return "border-color:#cbd5e1;background:#f1f5f9;color:#334155";
 }
 
-function taskRow(task: DigestTask, recent = false) {
+function taskRow(task: DigestTask, recent: boolean, timeZone: string) {
   const url = escapeHtml(tasksAppUrl(taskPath(task)));
   const description = task.description
     ?.replace(/[#_*`>\[\]()~-]/g, " ")
@@ -63,23 +68,16 @@ function taskRow(task: DigestTask, recent = false) {
       ? `<span style="display:inline-block;margin:10px 14px 0 0;white-space:nowrap">📅&nbsp; Due ${displayDate(task.due_date)}${task.due_time ? ` at ${escapeHtml(task.due_time.slice(0, 5))}` : ""}</span>`
       : "",
     recent
-      ? `<span style="display:inline-block;margin:10px 14px 0 0;white-space:nowrap">✨&nbsp; Updated ${displayUpdatedAt(task.updated_at)}</span>`
+      ? `<span style="display:inline-block;margin:10px 14px 0 0;white-space:nowrap">✨&nbsp; Updated ${displayUpdatedAt(task.updated_at, timeZone)}</span>`
       : "",
   ].filter(Boolean);
   return `<tr><td style="padding:0 0 14px"><a href="${url}" style="display:block;text-decoration:none;color:#111827;background:#ffffff;border:1px solid #d7dadc;border-radius:16px;padding:20px;box-shadow:0 2px 5px rgba(17,24,39,.08)"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td valign="middle"><span style="display:inline-block;border:1px solid #c9cdd1;border-radius:7px;padding:5px 9px;color:#62676d;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px;font-weight:800;line-height:1;letter-spacing:.08em">${escapeHtml(taskKey(task))}</span></td><td valign="middle" align="right"><span style="display:inline-block;border:1px solid;border-radius:999px;padding:5px 10px;font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;${priorityStyle(task.priority)}">${escapeHtml(task.priority)}</span></td></tr></table><div style="margin-top:14px;font-size:18px;font-weight:750;line-height:1.4;color:#111827">${escapeHtml(task.title)}</div>${description ? `<p style="margin:10px 0 0;color:#5f6368;font-size:13px;line-height:1.65">${escapeHtml(description)}${task.description!.length > 180 ? "…" : ""}</p>` : ""}<div style="margin-top:16px;padding-top:6px;border-top:1px solid #e5e7eb;color:#555b63;font-size:12px;font-weight:650;line-height:1.8">${metadata.join("")}<span style="display:inline-block;float:right;margin-top:10px;color:#374151;font-weight:750;white-space:nowrap">View task&nbsp; →</span></div></a></td></tr>`;
 }
 
-function section(
-  emoji: string,
-  iconBackground: string,
-  title: string,
-  description: string,
-  tasks: DigestTask[],
-  recent = false,
-) {
-  return tasks.length
-    ? `<tr><td style="padding:18px 28px 2px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:14px"><tr><td valign="top" width="48"><span style="display:block;width:38px;height:38px;border-radius:10px;background:${iconBackground};font-size:19px;line-height:38px;text-align:center">${emoji}</span></td><td valign="middle"><h2 style="font-size:17px;line-height:1.3;margin:0;color:#111827">${title} <span style="color:#6b7280;font-size:13px">(${tasks.length})</span></h2><p style="font-size:13px;line-height:1.5;color:#62676d;margin:3px 0 0">${description}</p></td></tr></table><table role="presentation" width="100%" cellspacing="0" cellpadding="0">${tasks.map((task) => taskRow(task, recent)).join("")}</table></td></tr>`
-    : "";
+function section({ key, tasks }: TaskDigest[number], timeZone: string) {
+  const meta = DIGEST_SECTION_META[key];
+  const recent = key === "recentlyUpdated";
+  return `<tr><td style="padding:18px 28px 2px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:14px"><tr><td valign="top" width="48"><span style="display:block;width:38px;height:38px;border-radius:10px;background:${meta.iconBackground};font-size:19px;line-height:38px;text-align:center">${meta.emoji}</span></td><td valign="middle"><h2 style="font-size:17px;line-height:1.3;margin:0;color:#111827">${meta.label} <span style="color:#6b7280;font-size:13px">(${tasks.length})</span></h2><p style="font-size:13px;line-height:1.5;color:#62676d;margin:3px 0 0">${meta.description}</p></td></tr></table><table role="presentation" width="100%" cellspacing="0" cellpadding="0">${tasks.map((task) => taskRow(task, recent, timeZone)).join("")}</table></td></tr>`;
 }
 
 export function renderTaskDigestEmail(
@@ -87,18 +85,22 @@ export function renderTaskDigestEmail(
   recipientName: string,
   sentAt = new Date(),
   instance: InstanceSettings = instanceDefaults,
+  timeZone = digestDefaults.timeZone,
 ) {
   const boardUrl = escapeHtml(tasksAppUrl("/board"));
   const count = taskDigestCount(digest);
-  return `<!doctype html><html><body style="margin:0;background:#e7e9e8;color:#111827"><div style="display:none;max-height:0;overflow:hidden">${count} task${count === 1 ? "" : "s"} in your ${escapeHtml(instance.name)} workload rundown.</div><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#e7e9e8;font-family:Inter,Arial,sans-serif"><tr><td align="center" style="padding:32px 12px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background:#f1f2ef;border:1px solid #cfd3d1;border-radius:20px;overflow:hidden;box-shadow:0 8px 24px rgba(17,24,39,.12)"><tr><td style="background:#ffffff;color:#111827;padding:28px;border-top:6px solid ${instance.accentColor};border-bottom:1px solid #d9dcda"><div style="font-family:Cooper Black,Georgia,serif;font-size:23px;font-weight:900;line-height:1;letter-spacing:.02em;color:#111827;white-space:nowrap">${escapeHtml(instance.productName.toUpperCase())}</div><h1 style="margin:24px 0 0;font-family:Cooper Black,Georgia,serif;font-size:30px;line-height:1.15">Your workload rundown</h1><p style="margin:12px 0 0;color:#555b63;font-size:14px;line-height:1.6">Good ${timeOfDay(sentAt)}, ${escapeHtml(recipientName)}. Here’s what deserves a look.</p></td></tr>${section("🚨", "#fee2e2", "Overdue", "Past the finish line and still open.", digest.overdue)}${section("📅", "#dbeafe", "Due today", "The work landing today.", digest.dueToday)}${section("⏳", "#fef3c7", "Coming up", "Due within the next three days.", digest.upcoming)}${section("🔥", "#ffedd5", "High priority", "Important work that still needs a deadline.", digest.highPriority)}${section("✨", "#ede9fe", "Recently updated", "Assigned work changed in the last three days.", digest.recentlyUpdated, true)}<tr><td align="center" style="padding:20px 28px 32px"><a href="${boardUrl}" style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;font-size:14px;font-weight:750;border-radius:12px;padding:14px 24px;box-shadow:0 2px 4px rgba(17,24,39,.18)">Open your task board&nbsp; →</a></td></tr></table></td></tr></table></body></html>`;
+  return `<!doctype html><html><body style="margin:0;background:#e7e9e8;color:#111827"><div style="display:none;max-height:0;overflow:hidden">${count} task${count === 1 ? "" : "s"} in your ${escapeHtml(instance.name)} workload rundown.</div><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#e7e9e8;font-family:Inter,Arial,sans-serif"><tr><td align="center" style="padding:32px 12px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background:#f1f2ef;border:1px solid #cfd3d1;border-radius:20px;overflow:hidden;box-shadow:0 8px 24px rgba(17,24,39,.12)"><tr><td style="background:#ffffff;color:#111827;padding:28px;border-top:6px solid ${instance.accentColor};border-bottom:1px solid #d9dcda"><div style="font-family:Cooper Black,Georgia,serif;font-size:23px;font-weight:900;line-height:1;letter-spacing:.02em;color:#111827;white-space:nowrap">${escapeHtml(instance.productName.toUpperCase())}</div><h1 style="margin:24px 0 0;font-family:Cooper Black,Georgia,serif;font-size:30px;line-height:1.15">Your workload rundown</h1><p style="margin:12px 0 0;color:#555b63;font-size:14px;line-height:1.6">Good ${timeOfDay(sentAt, timeZone)}, ${escapeHtml(recipientName)}. Here’s what deserves a look.</p></td></tr>${digest.map((entry) => section(entry, timeZone)).join("")}<tr><td align="center" style="padding:20px 28px 32px"><a href="${boardUrl}" style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;font-size:14px;font-weight:750;border-radius:12px;padding:14px 24px;box-shadow:0 2px 4px rgba(17,24,39,.18)">Open your task board&nbsp; →</a></td></tr></table></td></tr></table></body></html>`;
 }
 
-export function timeOfDay(date = new Date()) {
+export function timeOfDay(
+  date = new Date(),
+  timeZone = digestDefaults.timeZone,
+) {
   const hour = Number(
     new Intl.DateTimeFormat("en-US", {
       hour: "numeric",
       hourCycle: "h23",
-      timeZone: "America/New_York",
+      timeZone,
     }).format(date),
   );
   if (hour < 12) return "morning";
@@ -115,6 +117,7 @@ export async function sendTaskDigestEmail({
   idempotencyKey,
   scheduledAt,
   instance = instanceDefaults,
+  timeZone = digestDefaults.timeZone,
 }: {
   digest: TaskDigest;
   digestDate: string;
@@ -124,6 +127,7 @@ export async function sendTaskDigestEmail({
   idempotencyKey?: string;
   scheduledAt?: string;
   instance?: InstanceSettings;
+  timeZone?: string;
 }) {
   const apiKey = process.env.RESEND_API_KEY;
   const from =
@@ -138,12 +142,12 @@ export async function sendTaskDigestEmail({
     recipientName,
     scheduledAt ? new Date(scheduledAt) : new Date(),
     instance,
+    timeZone,
   );
-  const plainTextTasks = Object.entries(digest)
-    .filter(([, tasks]) => tasks.length)
+  const plainTextTasks = digest
     .map(
-      ([title, tasks]) =>
-        `${title}\n${tasks
+      ({ key, tasks }) =>
+        `${DIGEST_SECTION_META[key as DigestSectionKey].label}\n${tasks
           .map(
             (task) =>
               `- ${taskKey(task)}: ${task.title} — ${tasksAppUrl(taskPath(task))}`,

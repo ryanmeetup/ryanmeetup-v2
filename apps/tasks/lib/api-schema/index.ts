@@ -2,6 +2,7 @@ import type { ProjectLink } from "@/lib/resources/resource-types";
 import { footerVariants, socialPlatforms } from "@/lib/instance";
 import { normalizeHttpUrl } from "@ryanmeetup/utils";
 export { taskMoveSchema, taskSaveSchema } from "./task";
+export { digestSettingsSchema } from "./digest";
 
 type JsonObject = Record<string, unknown>;
 

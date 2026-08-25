@@ -2,6 +2,10 @@ import "server-only";
 
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import {
+  APPLY_MIGRATIONS_HINT,
+  isMissingRelation,
+} from "@/lib/server/supabase-errors";
 import { isWorkspaceDemo } from "@/lib/server/workspace-page-loader";
 import {
   instanceDefaults,
@@ -81,8 +85,8 @@ export function overridesFromRow(row: SettingsRow): InstanceSettingsOverrides {
  * The stored branding overrides, or `null` when the table has not been created
  * yet. Missing-relation is tolerated on purpose so the app keeps serving its
  * build-time defaults in the window between deploying this code and applying
- * `supabase/migrations/20260822000000_instance_settings.sql`. Every other
- * failure propagates rather than being silently swallowed.
+ * the migration that creates the table. Every other failure propagates rather
+ * than being silently swallowed.
  */
 async function readOverrides(): Promise<InstanceSettingsOverrides | null> {
   if (isWorkspaceDemo()) return null;
@@ -93,10 +97,9 @@ async function readOverrides(): Promise<InstanceSettingsOverrides | null> {
     .maybeSingle<SettingsRow>();
 
   if (error) {
-    // 42P01 undefined_table, PGRST205 unknown table in the PostgREST schema cache.
-    if (error.code === "42P01" || error.code === "PGRST205") {
+    if (isMissingRelation(error.code)) {
       console.warn(
-        "instance_settings is missing; serving build-time branding defaults. Apply supabase/migrations/20260822000000_instance_settings.sql.",
+        `instance_settings is missing; serving build-time branding defaults. ${APPLY_MIGRATIONS_HINT}`,
       );
       return null;
     }
