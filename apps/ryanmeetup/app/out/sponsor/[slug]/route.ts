@@ -2,7 +2,7 @@ import { track } from "@vercel/analytics/server";
 import { NextResponse } from "next/server";
 
 type RouteContext = {
-  params: Promise<{ slug: string }> | { slug: string };
+  params: Promise<{ slug: string }>;
 };
 
 const getSearchParam = (request: Request, key: string) => {
@@ -10,7 +10,7 @@ const getSearchParam = (request: Request, key: string) => {
 };
 
 export async function GET(request: Request, context: RouteContext) {
-  const { slug } = await Promise.resolve(context.params);
+  const { slug } = await context.params;
   const destination = getSearchParam(request, "to");
   const sponsorName = getSearchParam(request, "name") ?? slug;
   const placement = getSearchParam(request, "placement") ?? "unknown";

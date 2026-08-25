@@ -44,11 +44,12 @@ export const metadata = buildPageMetadata({
 const ChaptersPage = async ({
   searchParams,
 }: {
-  searchParams?: { fixture?: string };
+  searchParams?: Promise<{ fixture?: string }>;
 }) => {
+  const resolvedSearchParams = await searchParams;
   const fixture =
     process.env.E2E_TESTS === "true"
-      ? getChaptersFixture(searchParams?.fixture)
+      ? getChaptersFixture(resolvedSearchParams?.fixture)
       : null;
 
   const faqs = fixture?.faqs ?? (await fetchFAQs());

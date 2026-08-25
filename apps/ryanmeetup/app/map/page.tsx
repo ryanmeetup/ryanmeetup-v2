@@ -38,7 +38,7 @@ export const metadata = buildPageMetadata({
 });
 
 type MapPageProps = {
-  searchParams?: Record<string, string | string[] | undefined>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 const parseBooleanParam = (
@@ -62,17 +62,27 @@ const parseBooleanParam = (
 };
 
 const MapPage = async ({ searchParams }: MapPageProps) => {
+  const resolvedSearchParams = await searchParams;
   const locations =
     process.env.E2E_TESTS === "true"
       ? getMapFixtures()
       : await fetchLocations();
 
-  const showLegend = parseBooleanParam(searchParams?.legend, true);
-  const showMeetups = parseBooleanParam(searchParams?.meetups, true);
-  const showRyans = parseBooleanParam(searchParams?.hubs, true);
-  const showNamedBusinesses = parseBooleanParam(searchParams?.named, true);
-  const showOwnedBusinesses = parseBooleanParam(searchParams?.owned, true);
-  const showChapters = parseBooleanParam(searchParams?.chapters, true);
+  const showLegend = parseBooleanParam(resolvedSearchParams?.legend, true);
+  const showMeetups = parseBooleanParam(resolvedSearchParams?.meetups, true);
+  const showRyans = parseBooleanParam(resolvedSearchParams?.hubs, true);
+  const showNamedBusinesses = parseBooleanParam(
+    resolvedSearchParams?.named,
+    true,
+  );
+  const showOwnedBusinesses = parseBooleanParam(
+    resolvedSearchParams?.owned,
+    true,
+  );
+  const showChapters = parseBooleanParam(
+    resolvedSearchParams?.chapters,
+    true,
+  );
 
   return (
     <Layout fullscreen>

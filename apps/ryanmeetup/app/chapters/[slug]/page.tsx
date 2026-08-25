@@ -1,7 +1,6 @@
 // Components
 import { Layout } from "@/components/navigation";
 import { Breadcrumbs, PageNotFound } from "@/components/global";
-import { Heading } from "@ryanmeetup/ui";
 import { ChapterInfo } from "@/components/chapters";
 import { EventsContainer } from "@/components/events";
 import { FaCity as City } from "react-icons/fa";
@@ -30,9 +29,9 @@ const isContentfulImage = (value: unknown): value is ContentfulImage => {
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug: string }> | { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const resolvedParams = await Promise.resolve(params);
+  const resolvedParams = await params;
   const fixture =
     process.env.E2E_TESTS === "true"
       ? getChapterSlugFixture(resolvedParams.slug)
@@ -75,11 +74,11 @@ const ChapterPage = async ({
   params,
   searchParams,
 }: {
-  params: Promise<{ slug: string }> | { slug: string };
-  searchParams?: Promise<{ fixture?: string }> | { fixture?: string };
+  params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ fixture?: string }>;
 }) => {
-  const resolvedParams = await Promise.resolve(params);
-  const resolvedSearchParams = await Promise.resolve(searchParams);
+  const resolvedParams = await params;
+  const resolvedSearchParams = await searchParams;
   const fixture =
     process.env.E2E_TESTS === "true"
       ? getChapterSlugFixture(

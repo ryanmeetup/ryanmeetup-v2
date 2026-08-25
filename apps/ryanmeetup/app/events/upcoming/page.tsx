@@ -28,11 +28,12 @@ export const metadata = buildPageMetadata({
 const UpcomingPage = async ({
   searchParams,
 }: {
-  searchParams?: { fixture?: string };
+  searchParams?: Promise<{ fixture?: string }>;
 }) => {
+  const resolvedSearchParams = await searchParams;
   const events =
     process.env.E2E_TESTS === "true"
-      ? getTestEvents(searchParams?.fixture)
+      ? getTestEvents(resolvedSearchParams?.fixture)
       : await fetchEvents();
 
   const iconStyle = "mr-2 fill-black h-4 w-4 shrink-0 dark:fill-white";

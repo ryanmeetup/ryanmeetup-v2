@@ -73,11 +73,12 @@ export const metadata = buildPageMetadata({
 const EventsPage = async ({
   searchParams,
 }: {
-  searchParams?: { fixture?: string };
+  searchParams?: Promise<{ fixture?: string }>;
 }) => {
+  const resolvedSearchParams = await searchParams;
   const events =
     process.env.E2E_TESTS === "true"
-      ? getTestEvents(searchParams?.fixture)
+      ? getTestEvents(resolvedSearchParams?.fixture)
       : await fetchEvents();
 
   const eventSchema = (events as RyanEvent[]).map((event) => ({
