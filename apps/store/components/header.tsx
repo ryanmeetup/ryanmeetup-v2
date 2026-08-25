@@ -12,6 +12,7 @@ const links = [
   { href: "/collections/all", label: "Shop all" },
   { href: "/collections/apparel", label: "Apparel" },
   { href: "/collections/accessories", label: "Accessories" },
+  { href: "/contact", label: "Contact" },
 ];
 
 export function Header() {

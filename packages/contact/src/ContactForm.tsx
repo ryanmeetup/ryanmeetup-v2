@@ -1,6 +1,5 @@
 "use client";
 
-import emailjs from "@emailjs/browser";
 import {
   Button,
   ErrorCallout,
@@ -16,6 +15,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast, { Toaster } from "react-hot-toast";
 import { BiMailSend as Send } from "react-icons/bi";
+import { sendContactMessage } from "./sendContactMessage";
 
 export type ContactFormFields = {
   firstName: string;
@@ -90,14 +90,7 @@ const ContactForm = ({
   const send = async (form: ContactFormFields) => {
     setLoading(true);
     try {
-      if (process.env.NEXT_PUBLIC_E2E_TESTS !== "true") {
-        await emailjs.send(
-          process.env.NEXT_PUBLIC_EMAIL_SERVICE_ID as string,
-          process.env.NEXT_PUBLIC_EMAIL_TEMPLATE_ID as string,
-          form,
-          process.env.NEXT_PUBLIC_EMAIL_USER_ID as string,
-        );
-      }
+      await sendContactMessage(form);
       notifySuccess();
       reset(defaultValues);
     } catch (error) {

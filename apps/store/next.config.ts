@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@ryanmeetup/ui"],
+  transpilePackages: ["@ryanmeetup/contact", "@ryanmeetup/ui"],
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "cdn.shopify.com" },

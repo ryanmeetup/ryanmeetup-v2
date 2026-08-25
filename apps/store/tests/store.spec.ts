@@ -23,6 +23,20 @@ test("customer can switch between the Ryan Meetup light and dark themes", async 
   await page.screenshot({ path: "/private/tmp/store-light.png", fullPage: true });
 });
 
+test("customer can open store support and enter order details", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/contact");
+  await expect(page.getByRole("heading", { name: "Let’s sort out your order." })).toBeVisible();
+  await expect(page.getByLabel("First name")).toHaveAttribute("required", "");
+  await expect(page.getByLabel("Order number")).not.toHaveAttribute("required", "");
+  await page.getByLabel("First name").fill("Ryan");
+  await page.getByLabel("Order number").fill("RM-1234");
+  await expect(page.getByRole("button", { name: "Send to customer service" })).toBeVisible();
+  await page.screenshot({ path: "/private/tmp/store-contact-dark.png", fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: "/private/tmp/store-contact-mobile.png", fullPage: true });
+});
+
 for (const viewport of [
   { name: "mobile", width: 390, height: 844 },
   { name: "tablet", width: 1024, height: 900 },

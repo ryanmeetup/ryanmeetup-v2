@@ -48,7 +48,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 ] },
                 { title: "Ryan Meetup", links: [
                   { href: "https://ryanmeetup.com", label: "Main site" },
-                  { href: "https://ryanmeetup.com/contact", label: "Contact" },
+                  { href: "/contact", label: "Store support" },
+                  { href: "https://ryanmeetup.com/contact", label: "General contact" },
                   { href: "https://ryanmeetup.com/faqs", label: "FAQs" },
                 ] },
               ]}
