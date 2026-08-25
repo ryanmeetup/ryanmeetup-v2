@@ -16,12 +16,14 @@
     "build:tasks": "npm run build --workspace=@ryanmeetup/tasks",
     "build:store": "npm run build --workspace=@ryanmeetup/store",
     "build": "npm run build --workspaces --if-present",
-    "lint:fix": "npm run lint:fix --workspaces --if-present"
+    "lint:fix": "npm run lint:fix --workspaces --if-present",
+    "postinstall": "patch-package"
   },
   "engines": {
     "node": ">=20.9.0"
   },
   "devDependencies": {
+    "patch-package": "^8.0.1",
     "vercel": "^54.0.0"
   }
 }

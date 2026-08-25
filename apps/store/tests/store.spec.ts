@@ -15,11 +15,24 @@ test("customer can browse a product and manage the preview cart", async ({ page 
 });
 
 test("customer can switch between the Ryan Meetup light and dark themes", async ({ page }) => {
+  const themeScriptErrors: string[] = [];
+  page.on("console", (message) => {
+    if (
+      message.type() === "error" &&
+      message.text().includes("Encountered a script tag while rendering React component")
+    ) {
+      themeScriptErrors.push(message.text());
+    }
+  });
+
   await page.goto("/");
   await expect(page.locator("html")).toHaveClass(/dark/);
   await page.getByRole("button", { name: "Change to Light Mode" }).click();
   await expect(page.locator("html")).toHaveClass(/light/);
   await expect(page.getByRole("button", { name: "Change to Dark Mode" })).toBeVisible();
+  await page.reload();
+  await expect(page.locator("html")).toHaveClass(/light/);
+  expect(themeScriptErrors).toEqual([]);
   await page.screenshot({ path: "/private/tmp/store-light.png", fullPage: true });
 });
 
