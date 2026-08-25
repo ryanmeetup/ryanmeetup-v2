@@ -2,33 +2,56 @@
 
 import {
   Button,
+  DropdownSelect,
   ErrorCallout,
   FieldError,
   FormActions,
   Input,
   RequiredFieldsNote,
   SuccessCallout,
+  Text,
   Textarea,
 } from "@ryanmeetup/ui";
 import { validateEmail } from "@ryanmeetup/utils";
-import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import toast, { Toaster } from "react-hot-toast";
 import { BiMailSend as Send } from "react-icons/bi";
 import { sendContactMessage } from "./sendContactMessage";
+import {
+  buildContactSubject,
+  findContactTopic,
+  findContactTopicDetail,
+  type ContactTopic,
+  type ContactTopicDetailOption,
+} from "./topics";
 
 export type ContactFormFields = {
   firstName: string;
   lastName: string;
   email: string;
+  topic: string;
+  detail: string;
   subject: string;
   message: string;
 };
 export type ContactFormProps = {
+  /** Reasons a visitor can pick from, in the order they should be listed. */
+  topics: ContactTopic[];
+  /** Topic slug from the `topic` query param. */
+  initialTopic?: string;
+  /** Detail slug from the `detail` query param. */
+  initialDetail?: string;
   initialSubject?: string;
   initialMessage?: string;
+  /** Page the visitor clicked through from, from the `source` query param. */
+  source?: string;
+  /** Inbox used for topics that do not name one of their own. */
+  defaultRouteTo: string;
   layout?: "compact" | "wide";
   messagePlaceholder?: string;
+  topicLabel?: string;
+  placeholderLabel?: string;
 };
 
 const requiredMessages: Partial<Record<keyof ContactFormFields, string>> = {
@@ -39,34 +62,82 @@ const requiredMessages: Partial<Record<keyof ContactFormFields, string>> = {
 };
 
 const ContactForm = ({
+  topics,
+  initialTopic = "",
+  initialDetail = "",
   initialSubject = "",
   initialMessage = "",
+  source = "",
+  defaultRouteTo,
   layout = "wide",
   messagePlaceholder = "What Ryan business brings you here?",
+  topicLabel = "What can we help with?",
+  placeholderLabel = "Choose a reason",
 }: ContactFormProps) => {
-  const defaultValues = useMemo<ContactFormFields>(
-    () => ({
+  const defaultValues = useMemo<ContactFormFields>(() => {
+    const topic = findContactTopic(topics, initialTopic);
+    const detail = findContactTopicDetail(topic, initialDetail);
+
+    return {
       firstName: "",
       lastName: "",
       email: "",
-      subject: initialSubject,
-      message: initialMessage,
-    }),
-    [initialMessage, initialSubject],
-  );
+      topic: topic?.value ?? "",
+      detail: detail?.value ?? "",
+      subject: initialSubject || buildContactSubject(topic, detail),
+      message: initialMessage || topic?.message || "",
+    };
+  }, [initialDetail, initialMessage, initialSubject, initialTopic, topics]);
   const {
+    control,
     register,
     handleSubmit,
     reset,
+    getValues,
+    setValue,
+    watch,
     formState: { errors },
     setError,
     clearErrors,
   } = useForm<ContactFormFields>({ defaultValues });
   const [loading, setLoading] = useState(false);
+  // What the topic last wrote into subject/message, so picking another topic
+  // can replace its own copy without clobbering anything the visitor typed.
+  const seeded = useRef({
+    subject: defaultValues.subject,
+    message: defaultValues.message,
+  });
 
   useEffect(() => {
     reset(defaultValues);
+    seeded.current = {
+      subject: defaultValues.subject,
+      message: defaultValues.message,
+    };
   }, [defaultValues, reset]);
+
+  const selectedTopic = findContactTopic(topics, watch("topic"));
+  const detailGroup = selectedTopic?.detail;
+
+  const seedFromTopic = (
+    topic?: ContactTopic,
+    detail?: ContactTopicDetailOption,
+  ) => {
+    const nextSubject = buildContactSubject(topic, detail);
+    const nextMessage = topic?.message ?? "";
+    const currentSubject = getValues("subject");
+    const currentMessage = getValues("message");
+
+    if (currentSubject === "" || currentSubject === seeded.current.subject) {
+      setValue("subject", nextSubject);
+      if (nextSubject) clearErrors("subject");
+    }
+    if (currentMessage === "" || currentMessage === seeded.current.message) {
+      setValue("message", nextMessage);
+      if (nextMessage) clearErrors("message");
+    }
+    seeded.current = { subject: nextSubject, message: nextMessage };
+  };
 
   const required = (name: keyof ContactFormFields) => ({
     onBlur: (
@@ -79,7 +150,7 @@ const ContactForm = ({
 
   const notifySuccess = () =>
     toast.custom(() => (
-      <SuccessCallout>
+      <SuccessCallout className="!bg-emerald-50 shadow-xl dark:!bg-emerald-950">
         <strong className="block">Email sent!</strong>
         <span className="block font-normal">
           Expect an email back from Ryan soon!
@@ -89,24 +160,54 @@ const ContactForm = ({
 
   const send = async (form: ContactFormFields) => {
     setLoading(true);
+    const topic = findContactTopic(topics, form.topic);
+    const detail = findContactTopicDetail(topic, form.detail);
     try {
-      await sendContactMessage(form);
+      await sendContactMessage({
+        firstName: form.firstName,
+        lastName: form.lastName,
+        email: form.email,
+        topic: topic?.label ?? "",
+        topicValue: topic?.value ?? "",
+        detail: detail?.label ?? "",
+        detailValue: detail?.value ?? "",
+        routeTo: topic?.routeTo || defaultRouteTo,
+        source,
+        subject: form.subject,
+        message: form.message,
+      });
       notifySuccess();
       reset(defaultValues);
+      seeded.current = {
+        subject: defaultValues.subject,
+        message: defaultValues.message,
+      };
     } catch (error) {
       const message =
         error instanceof Error
           ? error.message
           : "The message could not be sent. Please try again.";
-      toast.custom(() => <ErrorCallout>{message}</ErrorCallout>, {
-        duration: 6000,
-      });
+      toast.custom(
+        () => (
+          <ErrorCallout className="!bg-red-50 shadow-xl dark:!bg-red-950">
+            {message}
+          </ErrorCallout>
+        ),
+        { duration: 6000 },
+      );
     } finally {
       setLoading(false);
     }
   };
 
   const fieldClass = layout === "compact" ? "col-span-2 sm:col-span-1" : "";
+  const fullClass = layout === "compact" ? "col-span-2" : "2xl:col-span-2";
+  // The placeholder is only offered until a reason is picked, so it cannot be
+  // reselected once the form has a valid topic.
+  const topicOptions = [
+    ...(selectedTopic ? [] : [{ label: placeholderLabel, value: "" }]),
+    ...topics.map((topic) => ({ label: topic.label, value: topic.value })),
+  ];
   return (
     <>
       <form
@@ -117,6 +218,72 @@ const ContactForm = ({
             : "grid w-full grid-cols-1 gap-6 2xl:grid-cols-2"
         }
       >
+        <div className={fullClass}>
+          <Controller
+            control={control}
+            name="topic"
+            rules={{ required: "Error: must choose a reason for reaching out" }}
+            render={({ field }) => (
+              <DropdownSelect
+                label={topicLabel}
+                variant="field"
+                required
+                value={field.value}
+                options={topicOptions}
+                onChange={(value) => {
+                  const topic = findContactTopic(topics, value);
+                  field.onChange(value);
+                  setValue("detail", "");
+                  clearErrors("detail");
+                  seedFromTopic(topic);
+                }}
+              />
+            )}
+          />
+          <FieldError>{errors.topic?.message}</FieldError>
+          {selectedTopic?.description && (
+            <Text className="mt-2 text-sm text-black/60 dark:text-white/60">
+              {selectedTopic.description}
+            </Text>
+          )}
+        </div>
+        {detailGroup && (
+          <div className={fullClass}>
+            <Controller
+              control={control}
+              name="detail"
+              rules={{
+                validate: (value) =>
+                  value !== "" || "Error: must choose an option",
+              }}
+              render={({ field }) => (
+                <DropdownSelect
+                  label={detailGroup.label}
+                  variant="field"
+                  required
+                  value={field.value}
+                  options={[
+                    ...(field.value
+                      ? []
+                      : [{ label: placeholderLabel, value: "" }]),
+                    ...detailGroup.options.map((option) => ({
+                      label: option.label,
+                      value: option.value,
+                    })),
+                  ]}
+                  onChange={(value) => {
+                    field.onChange(value);
+                    seedFromTopic(
+                      selectedTopic,
+                      findContactTopicDetail(selectedTopic, value),
+                    );
+                  }}
+                />
+              )}
+            />
+            <FieldError>{errors.detail?.message}</FieldError>
+          </div>
+        )}
         <div className={fieldClass}>
           <Input
             label="First Name"
@@ -158,18 +325,16 @@ const ContactForm = ({
             {...register("subject", required("subject"))}
           />
         </div>
-        <div className={layout === "compact" ? "col-span-2" : "2xl:col-span-2"}>
+        <div className={fullClass}>
           <Textarea
             id="message"
             label="Message"
-            placeholder={messagePlaceholder}
+            placeholder={selectedTopic?.messagePlaceholder ?? messagePlaceholder}
             required
             {...register("message", required("message"))}
           />
         </div>
-        <FormActions
-          className={layout === "compact" ? "col-span-2" : "2xl:col-span-2"}
-        >
+        <FormActions className={fullClass}>
           <RequiredFieldsNote />
           <Button
             type="submit"

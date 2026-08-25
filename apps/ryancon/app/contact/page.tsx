@@ -4,23 +4,26 @@ import { Layout } from "@/components/navigation";
 import { ContactForm, FollowUs } from "@/components/contact";
 import { Card, Heading, Pill, Text } from "@ryanmeetup/ui";
 
-type ContactPageProps = {
-  searchParams?: Promise<{
-    subject?: string | string[];
-    message?: string | string[];
-  }>;
+// Utilities
+import { contactTopics, DEFAULT_INBOX } from "@/utils/contact";
+
+type ContactSearchParams = {
+  topic?: string | string[];
+  detail?: string | string[];
+  source?: string | string[];
+  subject?: string | string[];
+  message?: string | string[];
 };
+
+type ContactPageProps = {
+  searchParams?: Promise<ContactSearchParams>;
+};
+
+const firstValue = (value?: string | string[]) =>
+  typeof value === "string" ? value : "";
 
 const ContactPage = async ({ searchParams }: ContactPageProps) => {
   const resolvedSearchParams = await searchParams;
-  const initialSubject =
-    typeof resolvedSearchParams?.subject === "string"
-      ? resolvedSearchParams.subject
-      : "";
-  const initialMessage =
-    typeof resolvedSearchParams?.message === "string"
-      ? resolvedSearchParams.message
-      : "";
 
   return (
     <Layout className="space-y-12">
@@ -38,9 +41,10 @@ const ContactPage = async ({ searchParams }: ContactPageProps) => {
                 Contact RyanCon
               </Heading>
               <Text className="text-lg text-black/80 dark:text-white/80">
-                Questions about attending, sponsorships, programming, press,
-                volunteering, or RyanCon logistics? Send the RyanCon team a note
-                and one of our Ryans will get back to you soon.
+                Pick what you&apos;re writing about &mdash; attending,
+                sponsorships, programming, press, volunteering, or RyanCon
+                logistics &mdash; and one of our Ryans will get back to you
+                soon.
               </Text>
             </div>
 
@@ -63,8 +67,13 @@ const ContactPage = async ({ searchParams }: ContactPageProps) => {
             <div className="mt-6 xl:border-t xl:border-black/10 xl:pt-6 dark:xl:border-white/10">
               <Suspense fallback={null}>
                 <ContactForm
-                  initialSubject={initialSubject}
-                  initialMessage={initialMessage}
+                  topics={contactTopics}
+                  defaultRouteTo={DEFAULT_INBOX}
+                  initialTopic={firstValue(resolvedSearchParams?.topic)}
+                  initialDetail={firstValue(resolvedSearchParams?.detail)}
+                  source={firstValue(resolvedSearchParams?.source)}
+                  initialSubject={firstValue(resolvedSearchParams?.subject)}
+                  initialMessage={firstValue(resolvedSearchParams?.message)}
                 />
               </Suspense>
             </div>

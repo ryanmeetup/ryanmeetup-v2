@@ -5,15 +5,24 @@ import { Layout } from "@/components/navigation";
 import { Card, Heading, Pill, Text } from "@ryanmeetup/ui";
 import { ContactForm, FollowUs } from "@/components/contact";
 
-// Types
+// Utilities
+import { contactTopics, DEFAULT_INBOX } from "@/utils/contact";
 import { buildPageMetadata } from "@/utils/metadata";
 
-type ContactPageProps = {
-  searchParams?: Promise<{
-    subject?: string | string[];
-    message?: string | string[];
-  }>;
+type ContactSearchParams = {
+  topic?: string | string[];
+  detail?: string | string[];
+  source?: string | string[];
+  subject?: string | string[];
+  message?: string | string[];
 };
+
+type ContactPageProps = {
+  searchParams?: Promise<ContactSearchParams>;
+};
+
+const firstValue = (value?: string | string[]) =>
+  typeof value === "string" ? value : "";
 
 export const metadata = buildPageMetadata({
   title: "Ryan Meetup - Contact Us",
@@ -40,14 +49,6 @@ export const metadata = buildPageMetadata({
 
 const ContactPage = async ({ searchParams }: ContactPageProps) => {
   const resolvedSearchParams = await searchParams;
-  const initialSubject =
-    typeof resolvedSearchParams?.subject === "string"
-      ? resolvedSearchParams.subject
-      : "";
-  const initialMessage =
-    typeof resolvedSearchParams?.message === "string"
-      ? resolvedSearchParams.message
-      : "";
 
   return (
     <Layout className="space-y-12">
@@ -65,9 +66,9 @@ const ContactPage = async ({ searchParams }: ContactPageProps) => {
                 Contact the Ryans
               </Heading>
               <Text className="text-lg text-black/80 dark:text-white/80">
-                Reach out about events, local chapters, press, partnerships, or
-                any other official Ryan business. One of our Ryans will get back
-                to you as soon as we can.
+                Pick what you&apos;re writing about and we&apos;ll get your
+                note to the right Ryan &mdash; events, local chapters, press,
+                partnerships, or any other official Ryan business.
               </Text>
             </div>
 
@@ -85,13 +86,19 @@ const ContactPage = async ({ searchParams }: ContactPageProps) => {
               Send a message
             </Heading>
             <Text className="mt-2 max-w-xl text-sm text-black/70 dark:text-white/70 xl:text-base">
-              We read every note, even if a Ryan takes a moment to reply.
+              Tell us why you&apos;re reaching out and we read every note, even
+              if a Ryan takes a moment to reply.
             </Text>
             <div className="mt-6 xl:border-t xl:border-black/10 xl:pt-6 dark:xl:border-white/10">
               <Suspense fallback={null}>
                 <ContactForm
-                  initialSubject={initialSubject}
-                  initialMessage={initialMessage}
+                  topics={contactTopics}
+                  defaultRouteTo={DEFAULT_INBOX}
+                  initialTopic={firstValue(resolvedSearchParams?.topic)}
+                  initialDetail={firstValue(resolvedSearchParams?.detail)}
+                  source={firstValue(resolvedSearchParams?.source)}
+                  initialSubject={firstValue(resolvedSearchParams?.subject)}
+                  initialMessage={firstValue(resolvedSearchParams?.message)}
                 />
               </Suspense>
             </div>

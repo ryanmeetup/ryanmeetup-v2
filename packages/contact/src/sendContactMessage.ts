@@ -4,6 +4,17 @@ export type ContactMessage = {
   firstName: string;
   lastName: string;
   email: string;
+  /** Human label of the chosen topic, e.g. "Sponsorships & partnerships". */
+  topic: string;
+  /** Topic slug, for filters and routing rules. */
+  topicValue: string;
+  /** Human label of the follow-up dropdown, empty when the topic has none. */
+  detail: string;
+  detailValue: string;
+  /** Inbox this topic should land in. Never empty. */
+  routeTo: string;
+  /** Page the visitor clicked through from, empty when they came in cold. */
+  source: string;
   subject: string;
   message: string;
 };

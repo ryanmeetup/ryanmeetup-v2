@@ -1,3 +1,4 @@
+import { contactHrefs } from "@/utils/contact";
 import { Button, Card, IconBadge, Text } from "@ryanmeetup/ui";
 import { BiMailSend as Send } from "react-icons/bi";
 import { GoSponsorTiers as SponsorDetails } from "react-icons/go";
@@ -110,7 +111,7 @@ const PartnershipPerks = ({
         </Button.Link>
       )}
       <Button.Link
-        href="/contact?subject=RyanCon%20Sponsorship"
+        href={contactHrefs.sponsorship}
         leftIcon={<Send className="h-4 w-4" />}
         variant="primary"
         size="md"

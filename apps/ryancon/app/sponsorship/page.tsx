@@ -2,6 +2,9 @@
 import { Layout } from "@/components/navigation";
 import { Button, Card, Divider, Heading, Pill, Text } from "@ryanmeetup/ui";
 
+// Utilities
+import { contactHrefs } from "@/utils/contact";
+
 const tiers = [
   {
     name: "Contributing Partner",
@@ -97,7 +100,11 @@ const SponsorshipPage = () => {
           Sponsorships fund the world‑record attempt and give brands a front‑row
           seat with a community that loves to show up.
         </Text>
-        <Button.Link href="/contact" variant="primary" size="lg">
+        <Button.Link
+          href={contactHrefs.sponsorship}
+          variant="primary"
+          size="lg"
+        >
           Request the sponsorship deck
         </Button.Link>
       </div>
@@ -209,7 +216,11 @@ const SponsorshipPage = () => {
               Let’s build a sponsorship plan that works for your brand.
             </Text>
           </div>
-          <Button.Link href="/contact" variant="primary" size="lg">
+          <Button.Link
+            href={contactHrefs.sponsorship}
+            variant="primary"
+            size="lg"
+          >
             Contact sponsorships
           </Button.Link>
         </div>

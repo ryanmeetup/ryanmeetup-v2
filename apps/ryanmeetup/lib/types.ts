@@ -212,6 +212,8 @@ type ContactFormFields = {
   firstName: string;
   lastName: string;
   email: string;
+  topic: string;
+  detail: string;
   subject: string;
   message: string;
 };
