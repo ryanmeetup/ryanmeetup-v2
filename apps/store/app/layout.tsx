@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/react";
 import { SiteFooter } from "@ryanmeetup/ui";
+import { ThemeProvider } from "next-themes";
 import { CartProvider } from "@/components/cart-provider";
 import { Header } from "@/components/header";
 import { isShopifyConfigured } from "@/lib/shopify";
@@ -23,21 +24,22 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const commerceConfigured = isShopifyConfigured();
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth">
       <body className="antialiased">
-        <CartProvider commerceConfigured={commerceConfigured}>
-          {!commerceConfigured && (
-            <div className="bg-nametag px-4 py-2 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-white">
-              Store preview · Connect Shopify to enable live checkout
-            </div>
-          )}
-          <Header />
-          {children}
-          <div className="store-container">
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+          <CartProvider commerceConfigured={commerceConfigured}>
+            {!commerceConfigured && (
+              <div className="store-container border-b border-[#f6c500]/40 bg-nametag py-2 text-center font-cooper text-xs tracking-wide text-white sm:text-sm">
+                Store preview · Connect Shopify to enable live checkout
+              </div>
+            )}
+            <Header />
+            {children}
             <SiteFooter
               title="RYAN"
               subtitle="General Store"
               homeHref="/"
+              className="store-container"
               sections={[
                 { title: "Shop", links: [
                   { href: "/collections/all", label: "All goods" },
@@ -52,9 +54,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               ]}
               credit={{ href: "https://ryanmeetup.com", label: "Ryan Meetup", prefix: "Official goods by ", suffix: "." }}
             />
-          </div>
-          <Analytics />
-        </CartProvider>
+            <Analytics />
+          </CartProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

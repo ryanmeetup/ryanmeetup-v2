@@ -10,8 +10,8 @@ export default async function HomePage() {
   const [collections, products] = await Promise.all([getCollections(), getFeaturedProducts()]);
   return (
     <main>
-      <section className="store-container py-10 sm:py-16 lg:py-20">
-        <div className="relative overflow-hidden rounded-[2rem] border border-black/10 bg-[#e72a33] px-5 py-16 text-white shadow-xl sm:px-10 sm:py-22 lg:px-16 lg:py-28 dark:border-white/10">
+      <section className="store-container py-8 sm:py-12 lg:py-16">
+        <div className="relative overflow-hidden rounded-[2rem] border border-black/10 bg-nametag px-5 py-16 text-white shadow-xl sm:px-10 sm:py-22 lg:px-16 lg:py-28 dark:border-white/10">
           <div aria-hidden className="absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_center,white_1px,transparent_1.5px)] [background-size:18px_18px]" />
           <div className="relative max-w-4xl">
             <Kicker className="!text-white/80">Official Ryan provisions</Kicker>

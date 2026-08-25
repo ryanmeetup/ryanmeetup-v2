@@ -4,15 +4,8 @@
 @source "../../../packages/ui/src";
 
 :root {
-  --background: #f8f4ec;
-  --foreground: #171512;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #11100e;
-    --foreground: #f7f3ea;
-  }
+  --background: #ffffff;
+  --foreground: #000000;
 }
 
 * {
@@ -25,11 +18,14 @@ html {
 
 body {
   min-height: 100vh;
-  background:
-    radial-gradient(circle at 8% 0%, rgba(238, 26, 37, 0.08), transparent 24rem),
-    var(--background);
+  background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+.dark body {
+  --background: #000000;
+  --foreground: #ffffff;
 }
 
 ::selection {
@@ -39,7 +35,7 @@ body {
 
 @layer components {
   .store-container {
-    @apply mx-auto w-full max-w-[1480px] px-4 sm:px-6 lg:px-8;
+    @apply w-full px-4 lg:px-32 2xl:px-56 3xl:px-[320px];
   }
 
   .quantity-button {

@@ -14,6 +14,15 @@ test("customer can browse a product and manage the preview cart", async ({ page 
   await expect(page.getByRole("button", { name: "Connect Shopify to checkout" })).toBeDisabled();
 });
 
+test("customer can switch between the Ryan Meetup light and dark themes", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("html")).toHaveClass(/dark/);
+  await page.getByRole("button", { name: "Change to Light Mode" }).click();
+  await expect(page.locator("html")).toHaveClass(/light/);
+  await expect(page.getByRole("button", { name: "Change to Dark Mode" })).toBeVisible();
+  await page.screenshot({ path: "/private/tmp/store-light.png", fullPage: true });
+});
+
 for (const viewport of [
   { name: "mobile", width: 390, height: 844 },
   { name: "tablet", width: 1024, height: 900 },
