@@ -12,7 +12,9 @@ export function ThemeToggle() {
   );
   const { resolvedTheme, setTheme } = useTheme();
 
-  const isDark = resolvedTheme !== "light";
+  // Keep the server and first client render identical. The persisted theme is
+  // only available in the browser, so do not use it for markup until mounted.
+  const isDark = !mounted || resolvedTheme !== "light";
 
   return (
     <button

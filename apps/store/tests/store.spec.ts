@@ -15,13 +15,14 @@ test("customer can browse a product and manage the preview cart", async ({ page 
 });
 
 test("customer can switch between the Ryan Meetup light and dark themes", async ({ page }) => {
-  const themeScriptErrors: string[] = [];
+  const themeErrors: string[] = [];
   page.on("console", (message) => {
     if (
       message.type() === "error" &&
-      message.text().includes("Encountered a script tag while rendering React component")
+      (message.text().includes("Encountered a script tag while rendering React component") ||
+        message.text().includes("Hydration failed because the server rendered HTML didn't match the client"))
     ) {
-      themeScriptErrors.push(message.text());
+      themeErrors.push(message.text());
     }
   });
 
@@ -32,7 +33,7 @@ test("customer can switch between the Ryan Meetup light and dark themes", async 
   await expect(page.getByRole("button", { name: "Change to Dark Mode" })).toBeVisible();
   await page.reload();
   await expect(page.locator("html")).toHaveClass(/light/);
-  expect(themeScriptErrors).toEqual([]);
+  expect(themeErrors).toEqual([]);
   await page.screenshot({ path: "/private/tmp/store-light.png", fullPage: true });
 });
 
