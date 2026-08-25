@@ -10,9 +10,11 @@
     "dev:ryanmeetup": "npm run dev --workspace=@ryanmeetup/ryanmeetup",
     "dev:ryancon": "npm run dev --workspace=@ryanmeetup/ryancon",
     "dev:tasks": "npm run dev --workspace=@ryanmeetup/tasks",
+    "dev:store": "npm run dev --workspace=@ryanmeetup/store",
     "build:ryanmeetup": "npm run build --workspace=@ryanmeetup/ryanmeetup",
     "build:ryancon": "npm run build --workspace=@ryanmeetup/ryancon",
     "build:tasks": "npm run build --workspace=@ryanmeetup/tasks",
+    "build:store": "npm run build --workspace=@ryanmeetup/store",
     "build": "npm run build --workspaces --if-present",
     "lint:fix": "npm run lint:fix --workspaces --if-present"
   },
