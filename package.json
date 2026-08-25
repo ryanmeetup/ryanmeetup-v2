@@ -22,8 +22,10 @@
   "engines": {
     "node": ">=20.9.0"
   },
+  "dependencies": {
+    "patch-package": "^8.0.1"
+  },
   "devDependencies": {
-    "patch-package": "^8.0.1",
     "vercel": "^54.0.0"
   }
 }
