@@ -960,7 +960,9 @@ export function CategoriesModal({
                               content={`${taskCount} ${taskCount === 1 ? "task" : "tasks"} in this category`}
                               placement="top"
                             >
-                              <CountBadge>{taskCount}</CountBadge>
+                              <CountBadge label="task" className="shrink-0">
+                                {taskCount}
+                              </CountBadge>
                             </Tooltip>
                           </span>
                         </ManagementCardTitle>

@@ -19,6 +19,12 @@ import { resolveAccessPreview } from "@/lib/server/access-preview";
 import { parseTaskKey } from "@/lib/tasks/task-key";
 import { deleteTask, moveTask, saveTask } from "@/lib/server/tasks/mutations";
 import {
+  loadTaskChangeSnapshot,
+  savedTaskSnapshot,
+} from "@/lib/server/tasks/task-change-activity";
+import { summarizeTaskChanges } from "@/lib/activity/task-change-summary";
+import { recordTaskChangeActivity } from "@/lib/server/privileged-api";
+import {
   parseTaskListQuery,
   TASK_EXACT_FILTERS,
 } from "@/lib/server/tasks/list-query";
@@ -386,6 +392,9 @@ export async function POST(request: Request): Promise<NextResponse> {
   if ("response" in parsed) return parsed.response;
   const authorization = await authorize();
   if ("response" in authorization) return authorization.response;
+  const previous = parsed.data.id
+    ? await loadTaskChangeSnapshot(authorization.supabase, parsed.data.id)
+    : null;
   const { data, error } = await saveTask(authorization.supabase, parsed.data);
   if (error)
     return databaseFailure(request, "task.save", error, {
@@ -393,6 +402,14 @@ export async function POST(request: Request): Promise<NextResponse> {
       conflictError:
         "This task conflicts with a recent change. Refresh and try again.",
     });
+  if (previous)
+    await recordTaskChangeActivity(
+      data.task.id,
+      summarizeTaskChanges(
+        previous,
+        savedTaskSnapshot(data.task, parsed.data.categoryIds),
+      ),
+    );
   return NextResponse.json(data);
 }
 

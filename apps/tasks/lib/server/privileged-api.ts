@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { User } from "@supabase/supabase-js";
+import type { TaskChange } from "@/lib/activity/task-change-summary";
 import { getAdminClient } from "@/lib/server/admin-client";
 import { authorize, type Authorization } from "@/lib/server/auth";
 import { apiError } from "@/lib/server/api-response";
@@ -136,4 +137,46 @@ export async function consumeInviteLimit(
     return null;
   }
   return Boolean(data);
+}
+
+/**
+ * Attaches the field-level diff of a save to the activity record the
+ * `save_task` transaction wrote, so history reads as the fields that changed
+ * rather than an unqualified "updated the task". The content write has already
+ * succeeded and been audited by this point: a failure here degrades the record
+ * to its generic form and must never fail the save.
+ */
+export async function recordTaskChangeActivity(
+  taskId: string,
+  changes: TaskChange[],
+) {
+  if (!changes.length) return false;
+  const admin = getAdminClient();
+  if (!admin) return false;
+  const recent = await admin
+    .from("task_activity")
+    .select("id,details")
+    .eq("task_id", taskId)
+    .eq("action", "updated the task")
+    .gte("created_at", new Date(Date.now() - 60_000).toISOString())
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  // No row means the save recorded no update event; never describe an older one.
+  if (recent.error || !recent.data) return false;
+  const details = (recent.data.details ?? {}) as Record<string, unknown>;
+  if (Array.isArray(details.changes)) return false;
+  const { error } = await admin
+    .from("task_activity")
+    .update({ details: { ...details, changes } })
+    .eq("id", recent.data.id);
+  if (error) {
+    console.error("Task change activity write failed", {
+      taskId,
+      code: error.code,
+    });
+    return false;
+  }
+  return true;
 }

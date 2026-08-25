@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  Avatar,
   Card,
   DropdownSelect,
   EmptyState,
@@ -29,15 +28,20 @@ import { sortFavoriteProjectsFirst } from "@/lib/resources/project-sort";
 import { withAccessPreview } from "@/lib/access/access-preview";
 import { useQueryParamState } from "@ryanmeetup/hooks";
 import { usePagination } from "@/hooks/usePagination";
-import type { TaskActivity } from "@/lib/activity/activity-types";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { taskPath } from "@/lib/tasks/task-key";
 import { TaskKeyBadge } from "@/components/tasks";
 import { ActivityFilterMenu } from "./ActivityFilterMenu";
+import { ActivityActorAvatar } from "./ActivityActorAvatar";
+import {
+  ActivityChangeList,
+  activityChangeSummary,
+  StatusLabel,
+} from "./ActivityChangeList";
 import { profileDisplayName, splitCommaSeparated } from "@/lib/presentation";
 import {
-  describeActivity,
   resolveActivityRows,
+  type ActivityPresentationRow,
 } from "@/lib/activity/activity-presentation";
 import {
   activityFilterCount,
@@ -49,28 +53,23 @@ const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
   timeStyle: "short",
 });
 
-function StatusLabel({
-  status,
-}: {
-  status: WorkspaceData["statuses"][number];
-}) {
-  return (
-    <span className="inline-flex items-center gap-1.5 whitespace-nowrap font-semibold">
-      <span
-        aria-hidden
-        className="h-2.5 w-2.5 shrink-0 rounded-full"
-        style={{ backgroundColor: status.color }}
-      />
-      {status.name}
-    </span>
-  );
-}
-
 function activityDescription(
-  item: TaskActivity,
-  statuses: WorkspaceData["statuses"],
+  row: ActivityPresentationRow,
+  { compact = false }: { compact?: boolean } = {},
 ) {
-  const description = describeActivity(item, statuses);
+  const { description } = row;
+  if (description.kind === "changes") {
+    // The sentences already say what happened, so the generic "Task updated"
+    // label would only eat width in the truncated table cell.
+    return compact ? (
+      activityChangeSummary(description.changes)
+    ) : (
+      <div className="space-y-1">
+        <p>{description.label}</p>
+        <ActivityChangeList changes={description.changes} />
+      </div>
+    );
+  }
   if (description.kind === "status") {
     const { from: fromStatus, to: toStatus } = description;
 
@@ -326,7 +325,7 @@ export function ActivityPageClient({
             icon={FiClock}
             title="Activity"
             badge={
-              <CountBadge size="lg">
+              <CountBadge size="lg" label="event">
                 {data.activityPage?.totalCount ?? data.activity.length}
               </CountBadge>
             }
@@ -446,6 +445,7 @@ export function ActivityPageClient({
               </div>
               <div className="divide-y divide-black/10 dark:divide-white/10">
                 {data.activity.map((item) => {
+                  const row = rowsById.get(item.id)!;
                   const {
                     task,
                     actor: profile,
@@ -453,20 +453,14 @@ export function ActivityPageClient({
                     category,
                     resourceName,
                     resourceHref,
-                  } = rowsById.get(item.id)!;
+                  } = row;
 
                   const content = (
                     <article className="space-y-3 p-4">
                       <div className="flex items-start justify-between gap-3">
                         <span className="flex min-w-0 items-center gap-2 font-semibold">
-                          <Avatar
-                            name={profile?.full_name ?? "System"}
-                            src={profile?.avatar_url}
-                            size="sm"
-                          />
-                          <span className="truncate">
-                            {profile?.full_name ?? "System"}
-                          </span>
+                          <ActivityActorAvatar profile={profile} />
+                          <span className="truncate">{row.actorName}</span>
                         </span>
                         <time
                           dateTime={item.created_at}
@@ -476,7 +470,7 @@ export function ActivityPageClient({
                         </time>
                       </div>
                       <div className="text-sm">
-                        {activityDescription(item, data.statuses)}
+                        {activityDescription(row)}
                       </div>
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
                         {task ? (
@@ -569,6 +563,7 @@ export function ActivityPageClient({
                 </thead>
                 <tbody className="divide-y divide-black/10 dark:divide-white/10">
                   {data.activity.map((item) => {
+                    const row = rowsById.get(item.id)!;
                     const {
                       task,
                       actor: profile,
@@ -576,7 +571,7 @@ export function ActivityPageClient({
                       category,
                       resourceName,
                       resourceHref,
-                    } = rowsById.get(item.id)!;
+                    } = row;
                     const href = task
                       ? withAccessPreview(taskPath(task), data.accessPreview)
                       : resourceHref;
@@ -601,17 +596,13 @@ export function ActivityPageClient({
                         </td>
                         <td className="whitespace-nowrap px-4 py-3">
                           <span className="flex items-center gap-2 font-semibold">
-                            <Avatar
-                              name={profile?.full_name ?? "System"}
-                              src={profile?.avatar_url}
-                              size="sm"
-                            />
-                            {profile?.full_name ?? "System"}
+                            <ActivityActorAvatar profile={profile} />
+                            {row.actorName}
                           </span>
                         </td>
                         <td className="px-4 py-3">
                           <div className="truncate">
-                            {activityDescription(item, data.statuses)}
+                            {activityDescription(row, { compact: true })}
                           </div>
                         </td>
                         <td className="px-4 py-3 font-semibold">

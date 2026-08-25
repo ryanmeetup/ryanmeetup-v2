@@ -639,7 +639,7 @@ export function CalendarPageClient({
         <Modal
           open
           setIsOpen={() => undefined}
-          title={<>Calendar <CountBadge size="lg">{monthItems.length}</CountBadge></>}
+          title={<>Calendar <CountBadge size="lg" label="event">{monthItems.length}</CountBadge></>}
           description="Deadlines, important dates, meetings, and time away—one place to see what the Ryans have coming up."
           embedded
           size="2xl"

@@ -805,9 +805,9 @@ export function TaskDetails({ task, workspace, display }: TaskDetailsProps) {
             conversationHeight={conversationHeight}
             hasMore={hasMoreActivity}
             loading={detailsLoading}
+            lookups={data}
             onLoadMore={() => void loadDetails(activityPage + 1)}
             pageLayout={pageLayout}
-            profiles={data.profiles}
           />
         </DetailGroup>
       )}

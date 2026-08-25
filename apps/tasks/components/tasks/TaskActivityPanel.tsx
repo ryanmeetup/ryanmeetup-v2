@@ -1,7 +1,12 @@
-import { Avatar, Button, DisclosureCard } from "@ryanmeetup/ui";
+import { Button, DisclosureCard } from "@ryanmeetup/ui";
+import { FiClock } from "react-icons/fi";
+import { ActivityActorAvatar, ActivityChangeList } from "@/components/activity";
 import { CountBadge } from "@/components/global";
 import { profileDisplayName } from "@/lib/presentation";
-import type { Profile } from "@/lib/workspace/workspace-types";
+import {
+  taskActivityChanges,
+  type TaskChangeLookups,
+} from "@/lib/activity/task-change-presentation";
 import type { TaskActivity } from "@/lib/activity/activity-types";
 
 const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
@@ -14,17 +19,17 @@ export function TaskActivityPanel({
   conversationHeight,
   hasMore,
   loading,
+  lookups,
   onLoadMore,
   pageLayout,
-  profiles,
 }: {
   activity: TaskActivity[];
   conversationHeight?: number;
   hasMore: boolean;
   loading: boolean;
+  lookups: TaskChangeLookups;
   onLoadMore: () => void;
   pageLayout: boolean;
-  profiles: Profile[];
 }) {
   return (
     <DisclosureCard
@@ -58,22 +63,32 @@ export function TaskActivityPanel({
         }
       >
         {activity.map((item) => {
-          const profile = profiles.find((entry) => entry.id === item.actor_id);
+          const profile = lookups.profiles.find(
+            (entry) => entry.id === item.actor_id,
+          );
           const name = profileDisplayName(profile, "System");
+          const changes = taskActivityChanges(item, lookups);
           return (
             <div
               key={item.id}
               className="flex items-start gap-2 border-l-2 border-black/10 pl-3 text-sm dark:border-white/10"
             >
-              <Avatar name={name} size="sm" src={profile?.avatar_url} />
-              <span className="min-w-0 flex-1">
-                <span className="block">
+              <ActivityActorAvatar profile={profile} />
+              <div className="min-w-0 flex-1">
+                <p>
                   <strong>{name}</strong> {item.action}
-                </span>
-                <time className="text-xs text-black/45 dark:text-white/45">
-                  {dateTimeFormatter.format(new Date(item.created_at))}
-                </time>
-              </span>
+                </p>
+                <ActivityChangeList changes={changes} className="mt-1" />
+                <p className="mt-1 flex items-start gap-2 text-xs text-black/45 dark:text-white/45">
+                  <FiClock
+                    aria-hidden
+                    className="mt-0.5 h-3.5 w-3.5 shrink-0 text-black/30 dark:text-white/30"
+                  />
+                  <time dateTime={item.created_at}>
+                    {dateTimeFormatter.format(new Date(item.created_at))}
+                  </time>
+                </p>
+              </div>
             </div>
           );
         })}

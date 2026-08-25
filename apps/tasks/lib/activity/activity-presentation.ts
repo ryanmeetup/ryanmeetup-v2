@@ -1,5 +1,9 @@
 import { profileDisplayName } from "@/lib/presentation";
 import { taskActivityLabel, taskStatusChange } from "./task-activity";
+import {
+  taskActivityChanges,
+  type TaskChangeDetail,
+} from "./task-change-presentation";
 import type { Profile } from "@/lib/workspace/workspace-types";
 import type { Category, Project } from "@/lib/resources/resource-types";
 import type { Status, Task } from "@/lib/tasks/task-types";
@@ -7,7 +11,8 @@ import type { TaskActivity } from "./activity-types";
 
 export type ActivityDescription =
   | { kind: "text"; label: string }
-  | { kind: "status"; from?: Status; to?: Status };
+  | { kind: "status"; from?: Status; to?: Status }
+  | { kind: "changes"; label: string; changes: TaskChangeDetail[] };
 
 export type ActivityPresentationRow = {
   item: TaskActivity;
@@ -18,6 +23,7 @@ export type ActivityPresentationRow = {
   category?: Category;
   resourceName?: string;
   resourceHref?: string;
+  changes: TaskChangeDetail[];
   description: ActivityDescription;
 };
 
@@ -30,9 +36,14 @@ export type ActivityPresentationGroup = {
 export function describeActivity(
   item: TaskActivity,
   statuses: Status[],
+  changes: TaskChangeDetail[] = [],
 ): ActivityDescription {
-  if (item.action !== "moved task")
-    return { kind: "text", label: taskActivityLabel(item.action) };
+  if (item.action !== "moved task") {
+    const label = taskActivityLabel(item.action);
+    return changes.length
+      ? { kind: "changes", label, changes }
+      : { kind: "text", label };
+  }
   const { from, to } = taskStatusChange(item, statuses);
   if (!from && !to) return { kind: "text", label: "Task moved" };
   return { kind: "status", from, to };
@@ -59,6 +70,7 @@ export function resolveActivityRows(
     data.categories.map((category) => [category.id, category]),
   );
   return activity.map((item) => {
+    const changes = taskActivityChanges(item, data);
     const task = item.task_id ? tasks.get(item.task_id) : undefined;
     const actor = item.actor_id ? profiles.get(item.actor_id) : undefined;
     const category = item.action.startsWith("category.")
@@ -82,7 +94,8 @@ export function resolveActivityRows(
       category,
       resourceName: item.details.resource_name,
       resourceHref: item.details.resource_href,
-      description: describeActivity(item, data.statuses),
+      changes,
+      description: describeActivity(item, data.statuses, changes),
     };
   });
 }

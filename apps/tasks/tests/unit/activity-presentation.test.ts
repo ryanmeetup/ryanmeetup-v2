@@ -87,6 +87,44 @@ describe("activity presentation", () => {
     ).toEqual({ kind: "text", label: "Task moved" });
   });
 
+  it("describes a task save by the fields it changed", () => {
+    const item = activity("save", "2026-08-13T12:00:00Z", {
+      changes: [{ field: "status", from: "todo", to: "done" }],
+    });
+    item.action = "updated the task";
+    const statuses = [
+      { id: "todo", name: "To do", color: "#888888" },
+      { id: "done", name: "Done", color: "#16a34a" },
+    ] as Status[];
+    const [row] = resolveActivityRows([item], {
+      tasks: [],
+      profiles: [],
+      projects: [],
+      categories: [],
+      statuses,
+    });
+    expect(row?.description).toMatchObject({
+      kind: "changes",
+      label: "Task updated",
+    });
+    expect(row?.changes).toMatchObject([
+      { field: "status", from: "To do", to: "Done" },
+    ]);
+  });
+
+  it("keeps a save without recorded changes on its generic label", () => {
+    const item = activity("bare", "2026-08-13T12:00:00Z");
+    item.action = "updated the task";
+    const [row] = resolveActivityRows([item], {
+      tasks: [],
+      profiles: [],
+      projects: [],
+      categories: [],
+      statuses: [],
+    });
+    expect(row?.description).toEqual({ kind: "text", label: "Task updated" });
+  });
+
   it("groups rows on calendar dates in the requested timezone", () => {
     const rows = [
       { item: activity("1", "2026-08-14T01:00:00Z") },

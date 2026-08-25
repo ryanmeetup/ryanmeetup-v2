@@ -1,3 +1,5 @@
+import type { TaskChange } from "./task-change-summary";
+
 export type TaskActivity = {
   id: string;
   task_id: string | null;
@@ -9,6 +11,8 @@ export type TaskActivity = {
     resource_name?: string;
     resource_href?: string;
     project_id?: string;
+    /** Field-level diff recorded alongside a task save. */
+    changes?: TaskChange[];
     [key: string]: unknown;
   };
   created_at: string;

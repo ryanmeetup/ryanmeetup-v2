@@ -117,8 +117,7 @@ export function NoteCard({
         </time>
         <span className="inline-flex items-center gap-1.5">
           <FiMessageSquare className="shrink-0" aria-hidden />
-          <span className="sr-only">Comments</span>
-          <CountBadge>{commentCount}</CountBadge>
+          <CountBadge label="comment">{commentCount}</CountBadge>
         </span>
       </div>
 

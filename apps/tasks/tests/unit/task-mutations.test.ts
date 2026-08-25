@@ -61,6 +61,67 @@ describe("task mutations", () => {
     ]);
   });
 
+  it("records the changed fields when a demo save edits a task", async () => {
+    const task = {
+      id: "task-1",
+      title: "Chapter request",
+      status_id: "todo",
+      project_id: null,
+      assignee_id: null,
+      reported_by: "profile-1",
+      description: null,
+      start_date: null,
+      due_date: null,
+      due_time: null,
+      reminder_at: null,
+      priority: "medium",
+      category_tags: {},
+    } as unknown as Task;
+    let data = {
+      currentProfile: { id: "profile-1" },
+      statuses: [
+        { id: "todo", is_completed: false },
+        { id: "doing", is_completed: false },
+      ],
+      tasks: [task],
+      activity: [],
+      taskAssignees: [],
+      taskCategories: [{ task_id: task.id, category_id: "events" }],
+    } as unknown as WorkspaceData;
+    const service = createTaskMutationService({
+      demoMode: true,
+      getData: () => data,
+      setData: (update) => {
+        data = typeof update === "function" ? update(data) : update;
+      },
+    });
+
+    await service.save(
+      {
+        ...task,
+        title: "Chapter request",
+        status_id: "doing",
+        category_ids: ["events", "ops"],
+        category_tags: {},
+      } as unknown as TaskDraft,
+      task,
+    );
+
+    expect(data.activity).toMatchObject([
+      {
+        task_id: task.id,
+        actor_id: "profile-1",
+        action: "updated the task",
+        details: {
+          changes: [
+            { field: "status", from: "todo", to: "doing" },
+            { field: "categories", added: ["ops"], removed: [] },
+          ],
+        },
+      },
+    ]);
+  });
+
   it("keeps the submitted assignee when the save response omits it", async () => {
     const assigneeId = "profile-1";
     const task = {

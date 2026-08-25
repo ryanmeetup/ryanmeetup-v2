@@ -1,5 +1,12 @@
+import type { ReactNode } from "react";
+
 export type AvatarProps = {
   className?: string;
+  /**
+   * Glyph shown in place of initials when there is no image, for actors that
+   * are not people — automation, a system account, an unclaimed seat.
+   */
+  icon?: ReactNode;
   name?: string | null;
   size?: "xs" | "sm" | "md" | "lg";
   src?: string | null;
@@ -21,14 +28,14 @@ function initials(name?: string | null) {
     .toUpperCase();
 }
 
-const Avatar = ({ className, name, size = "md", src }: AvatarProps) => (
+const Avatar = ({ className, icon, name, size = "md", src }: AvatarProps) => (
   <span
     aria-label={name || "Teammate"}
     role="img"
     style={src ? { backgroundImage: `url(${JSON.stringify(src)})` } : undefined}
     className={`inline-grid shrink-0 place-items-center rounded-full border border-black/10 bg-black bg-cover bg-center font-bold text-white dark:border-white/20 dark:bg-white dark:text-black ${sizeClasses[size]} ${className ?? ""}`}
   >
-    {!src && <span aria-hidden>{initials(name)}</span>}
+    {!src && <span aria-hidden>{icon ?? initials(name)}</span>}
   </span>
 );
 

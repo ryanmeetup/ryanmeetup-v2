@@ -422,7 +422,7 @@ export function AccessPageClient({
         <PageHeader
           icon={FiShield}
           title="Access"
-          badge={<CountBadge size="lg">{groups.length}</CountBadge>}
+          badge={<CountBadge size="lg" label="group">{groups.length}</CountBadge>}
           description="Decide who belongs to each group and which projects that group can see."
         />
 

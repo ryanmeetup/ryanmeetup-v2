@@ -1,5 +1,9 @@
 import type { Dispatch, SetStateAction } from "react";
 import { mutate } from "@/lib/mutation-client";
+import {
+  summarizeTaskChanges,
+  taskChangeSnapshot,
+} from "@/lib/activity/task-change-summary";
 import type {
   Status,
   Task,
@@ -94,6 +98,38 @@ export function createTaskMutationService(context: MutationContext) {
               created_at: now,
               updated_at: now,
             };
+        const changes = editing
+          ? summarizeTaskChanges(
+              taskChangeSnapshot({
+                ...editing,
+                category_ids: snapshot.taskCategories
+                  .filter((item) => item.task_id === editing.id)
+                  .map((item) => item.category_id),
+                category_tags: editing.category_tags ?? {},
+              }),
+              taskChangeSnapshot({
+                ...task,
+                category_ids: categoryIds,
+                category_tags: task.category_tags ?? {},
+              }),
+            )
+          : [];
+        // Demo mode has no save transaction, so it records its own audit row
+        // to keep the activity panel aligned with the server-backed path.
+        context.setData((current) => ({
+          ...current,
+          activity: [
+            {
+              id: crypto.randomUUID(),
+              task_id: task.id,
+              actor_id: current.currentProfile.id,
+              action: editing ? "updated the task" : "created the task",
+              details: changes.length ? { changes } : {},
+              created_at: now,
+            },
+            ...current.activity,
+          ],
+        }));
         return {
           task,
           assignees: task.assignee_id

@@ -376,6 +376,8 @@ export function NotesPageClient({
                   >
                     All
                     <CountBadge
+                      label="note"
+                      hideLabel
                       className={
                         noteCategoryParam === "all"
                           ? "bg-white/20 text-white dark:bg-black/15 dark:text-black"
@@ -406,6 +408,8 @@ export function NotesPageClient({
                         />
                         {label}
                         <CountBadge
+                          label="note"
+                          hideLabel
                           className={
                             active
                               ? "bg-white/20 text-white dark:bg-black/15 dark:text-black"
