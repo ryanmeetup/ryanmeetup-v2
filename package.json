@@ -17,7 +17,7 @@
     "build:store": "npm run build --workspace=@ryanmeetup/store",
     "build": "npm run build --workspaces --if-present",
     "lint:fix": "npm run lint:fix --workspaces --if-present",
-    "postinstall": "patch-package"
+    "postinstall": "node scripts/apply-patches.cjs"
   },
   "engines": {
     "node": ">=20.9.0"
