@@ -2,7 +2,7 @@
 
 import Marquee from "react-fast-marquee";
 import { LogoCard } from "./LogoCard";
-import type { LogoCardProps } from "./LogoCard";
+import type { LogoCardProps, LogoCardVariant } from "./LogoCard";
 
 export type LogoMarqueeItem = Omit<LogoCardProps, "className"> & {
   key?: string;
@@ -12,6 +12,7 @@ export type LogoMarqueeProps = {
   speed?: number;
   direction?: "left" | "right";
   itemClassName?: string;
+  itemVariant?: LogoCardVariant;
   wrapperClassName?: string;
 };
 
@@ -20,6 +21,7 @@ const LogoMarquee = ({
   speed = 50,
   direction = "left",
   itemClassName,
+  itemVariant,
   wrapperClassName,
 }: LogoMarqueeProps) => (
   <Marquee
@@ -30,7 +32,7 @@ const LogoMarquee = ({
   >
     {items.map(({ key, ...item }, index) => (
       <div key={key ?? `${item.alt}-${index}`} className="py-4">
-        <LogoCard {...item} className={itemClassName} />
+        <LogoCard variant={itemVariant} {...item} className={itemClassName} />
       </div>
     ))}
   </Marquee>

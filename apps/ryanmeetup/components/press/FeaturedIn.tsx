@@ -33,7 +33,8 @@ const FeaturedIn = (props: FeaturedInProps) => {
           width: 300,
           height: 80,
         }))}
-        itemClassName="mx-8 border-0 bg-transparent hover:scale-105 dark:border-0 dark:bg-transparent"
+        itemVariant="plain"
+        itemClassName="mx-8"
       />
     </div>
   );
