@@ -4,6 +4,7 @@ import { Breadcrumbs } from "@ryanmeetup/ui";
 import { ProductDetail } from "@/components/product-detail";
 import { Reviews } from "@/components/reviews";
 import { formatMoney } from "@/lib/money";
+import { StoreCollectionIcon, StoreHomeIcon, StoreProductIcon } from "@/lib/navigation";
 import { getReviews } from "@/lib/reviews";
 import { getProduct, getProductHandles } from "@/lib/shopify";
 
@@ -47,7 +48,7 @@ export default async function ProductPage({ params }: Props) {
   return (
     <main className="store-container py-8 sm:py-12">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema).replace(/</g, "\\u003c") }} />
-      <Breadcrumbs variant="compact" crumbs={[{ href: "/", title: "Store" }, { href: "/collections/all", title: "All goods" }, { href: `/products/${product.handle}`, title: product.title, current: true }]} />
+      <Breadcrumbs variant="compact" crumbs={[{ href: "/", title: "Store", icon: <StoreHomeIcon aria-hidden className="shrink-0" /> }, { href: "/collections/all", title: "All goods", icon: <StoreCollectionIcon aria-hidden className="shrink-0" /> }, { href: `/products/${product.handle}`, title: product.title, current: true, icon: <StoreProductIcon aria-hidden className="shrink-0" /> }]} />
       <div className="mt-8"><ProductDetail product={product} /></div>
       <Reviews data={reviews} productId={product.id} />
       <p className="sr-only">Price: {formatMoney(product.priceRange.minVariantPrice)}</p>

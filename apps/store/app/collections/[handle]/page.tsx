@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Breadcrumbs, Button, SectionHeader } from "@ryanmeetup/ui";
 import { FiArrowRight } from "react-icons/fi";
 import { CollectionGrid } from "@/components/collection-grid";
+import { getStoreCollectionIcon, StoreHomeIcon } from "@/lib/navigation";
 import { getCollection, getCollections } from "@/lib/shopify";
 
 type Props = { params: Promise<{ handle: string }>; searchParams: Promise<{ after?: string }> };
@@ -25,7 +26,7 @@ export default async function CollectionPage({ params, searchParams }: Props) {
   if (!result) notFound();
   return (
     <main className="store-container py-10 sm:py-14">
-      <Breadcrumbs variant="compact" crumbs={[{ href: "/", title: "Store" }, { href: `/collections/${handle}`, title: result.collection.title, current: true }]} />
+      <Breadcrumbs variant="compact" crumbs={[{ href: "/", title: "Store", icon: <StoreHomeIcon aria-hidden className="shrink-0" /> }, { href: `/collections/${handle}`, title: result.collection.title, current: true, icon: getStoreCollectionIcon(handle) }]} />
       <SectionHeader className="mt-8" headingLevel="h1" title={result.collection.title} description={result.collection.description} meta={`${result.products.length} item${result.products.length === 1 ? "" : "s"}`} headingClassName="text-4xl sm:text-6xl" />
       <div className="mt-10"><CollectionGrid products={result.products} /></div>
       {result.pageInfo.hasNextPage && result.pageInfo.endCursor && (
