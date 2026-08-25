@@ -28,6 +28,13 @@ body {
   --foreground: #ffffff;
 }
 
+.light body {
+  background-color: #ffffff;
+  background-image: url("/crumbled.png");
+  background-repeat: repeat;
+  background-size: cover;
+}
+
 ::selection {
   background: #ee1a25;
   color: white;
