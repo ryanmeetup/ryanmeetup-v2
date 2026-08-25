@@ -50,8 +50,17 @@ Code is organized by responsibility:
   page padding, and content width so tabs never shift between screens; admin
   clients must not set those themselves. New owner-only tools belong here and
   in `lib/admin/admin-routes.ts`, not as another control in the header.
-- The linked Supabase project is the database and authorization source of truth.
-  Historical migrations are not retained in this repository.
+- Schema changes are migrations in `supabase/migrations`, applied with
+  `supabase db push`. `20260731000000_baseline_schema.sql` reproduces the whole
+  database, and `supabase/seed.sql` seeds the rows a workspace needs; verify a
+  change with `supabase db reset` then `supabase db diff --linked`. Never change
+  the schema only in the dashboard, and never delete an applied migration file —
+  doing that is what left 67 orphaned history rows and no baseline until now.
+  See `docs/MULTI_INSTANCE.md`.
+- Code that reads a table added by an unapplied migration may tolerate a
+  missing relation through `isMissingRelation` in `lib/server/supabase-errors.ts`
+  and fall back to defaults, so deploy order does not matter. That tolerance is
+  only ever for a missing table; every other database failure must propagate.
 
 Use `@/` for app-owned absolute imports. Prefer domain-owned types such as
 `lib/tasks/task-types.ts`, `lib/workspace/workspace-types.ts`,

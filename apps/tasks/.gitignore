@@ -7,5 +7,8 @@
 *.tsbuildinfo
 next-env.d.ts
 .env*
+# The template carries no secrets and is the only durable record of the
+# variable surface, so it must survive a fresh clone.
+!.env.example
 .DS_Store
 .vercel
