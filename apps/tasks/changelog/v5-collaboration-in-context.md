@@ -8,6 +8,7 @@ title: Collaboration, connected resources, and faster task flows
 summary: Tasks, notes, contacts, and workspace resources now work together more naturally, with richer collaboration and quicker everyday editing.
 overview:
   - A shared calendar for deadlines, important dates, and time away
+  - A neutral, reusable first-run demo workspace
   - Collaborative notes, comments, and linked task references
   - Faster task editing, filters, and searchable dropdowns
   - Richer project resources and contact organization
@@ -48,6 +49,10 @@ Comments now support nested replies, making it clear which message a teammate is
 
 ## Improved
 
+### A cleaner first look
+
+The zero-configuration demo now opens as a neutral team workspace with sample teammates, projects, tasks, and calendar dates that fit any organization. Demo mode skips the production beta notice and uses a compact footer, which is also the default footer treatment on sign-in and account-recovery screens.
+
 ### Notes that read like notes
 
 The notes board now presents each note as a finished card: its title, formatted text, author, and comment count at a glance. Links written inside a note appear as chips you can follow, alongside the task or project the note became.
@@ -83,6 +88,8 @@ Tasks also remain visible on category-filtered boards when their project is chan
 ### Richer resource management
 
 Supporting links, notes, and attachments are easier to reorder on touch, pointer, and keyboard devices, and supporting notes now include rich Markdown formatting.
+
+Project and category create and edit dialogs now include access-group visibility controls, so owners can choose who can view, edit, or manage new work from the start.
 
 Modal headers and action bars stay in place while longer content scrolls between them.
 

@@ -2,6 +2,7 @@
 
 import {
   useMemo,
+  useEffect,
   useState,
   type Dispatch,
   type FormEvent,
@@ -33,6 +34,8 @@ import {
 } from "react-icons/fi";
 import { useQueryParamState, useSearchFilter } from "@ryanmeetup/hooks";
 import { withAccessPreview } from "@/lib/access/access-preview";
+import { accessMutation } from "@/lib/access/access-mutations";
+import { mutate } from "@/lib/mutation-client";
 import {
   CountBadge,
   ManagementCard,
@@ -54,6 +57,25 @@ import {
   resourceSearchText,
   sameIds,
 } from "@/lib/resources/resource-management";
+import {
+  ProjectAccessFields,
+  type ProjectAccessGrant,
+  type ProjectAccessGroup,
+} from "./ProjectAccessFields";
+
+function sameAccessGrants(
+  first: ProjectAccessGrant[],
+  second: ProjectAccessGrant[],
+) {
+  if (first.length !== second.length) return false;
+  return first.every((grant) =>
+    second.some(
+      (candidate) =>
+        candidate.groupId === grant.groupId &&
+        candidate.permission === grant.permission,
+    ),
+  );
+}
 
 export type ProjectsModalProps = {
   modal: {
@@ -108,6 +130,17 @@ export function ProjectsModal({
   const { name, description, links, attachments, ownerIds: newOwnerIds } = createState.draft;
   const { setName, setDescription, setLinks, setAttachments, setOwnerIds: setNewOwnerIds } = createState.changes;
   const { creating, setCreating, detailsOpen: createDetailsOpen, setDetailsOpen: setCreateDetailsOpen } = createState;
+  const [accessGroups, setAccessGroups] = useState<ProjectAccessGroup[]>([]);
+  const [newAccessGrants, setNewAccessGrants] = useState<ProjectAccessGrant[]>(
+    [],
+  );
+  const [editingAccessGrants, setEditingAccessGrants] = useState<
+    ProjectAccessGrant[]
+  >([]);
+  const [savedAccessGrants, setSavedAccessGrants] = useState<
+    ProjectAccessGrant[]
+  >([]);
+  const [accessLoaded, setAccessLoaded] = useState(demoMode);
   const [projectStatusParam, setProjectStatus] = useQueryParamState(
     "project-status",
     "active",
@@ -133,6 +166,81 @@ export function ProjectsModal({
     buildHaystack: resourceSearchText,
     queryParam: "project-search",
   });
+
+  async function loadProjectAccess(projectId?: string) {
+    if (demoMode || data.currentProfile.app_role !== "owner") return;
+    setAccessLoaded(false);
+    try {
+      const result = await mutate<{
+        groups: ProjectAccessGroup[];
+        grants: ProjectAccessGrant[];
+      }>(
+        projectId
+          ? `/api/project-access?projectId=${encodeURIComponent(projectId)}`
+          : "/api/project-access",
+        { method: "GET" },
+      );
+      setAccessGroups(result.groups);
+      if (projectId) {
+        setEditingAccessGrants(result.grants);
+        setSavedAccessGrants(result.grants);
+      }
+      setAccessLoaded(true);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Project access settings could not be loaded.",
+      );
+    }
+  }
+
+  useEffect(() => {
+    if (!open || data.currentProfile.app_role !== "owner") return;
+    const projectId = directEditProject?.id;
+    // This effect synchronizes the editor with its external access API. The
+    // loader intentionally marks that request pending before it fetches.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadProjectAccess(projectId);
+    // The direct-edit target is fixed for the lifetime of this modal.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [directEditProject?.id, open]);
+
+  async function saveProjectAccess(
+    projectId: string,
+    previous: ProjectAccessGrant[],
+    next: ProjectAccessGrant[],
+    replaceAll = false,
+  ) {
+    const previousByGroup = new Map(
+      previous.map((grant) => [grant.groupId, grant.permission]),
+    );
+    const nextByGroup = new Map(
+      next.map((grant) => [grant.groupId, grant.permission]),
+    );
+    const changedGroupIds = accessGroups
+      .map((group) => group.id)
+      .filter(
+        (groupId) =>
+          replaceAll ||
+          previousByGroup.get(groupId) !== nextByGroup.get(groupId),
+      );
+    await Promise.all(
+      changedGroupIds.map((groupId) => {
+        const permission = nextByGroup.get(groupId);
+        return accessMutation(
+          permission
+            ? {
+                action: "grant.set",
+                groupId,
+                projectId,
+                permission,
+              }
+            : { action: "grant.delete", groupId, projectId },
+        );
+      }),
+    );
+  }
 
   async function addProject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -165,6 +273,19 @@ export function ProjectsModal({
             },
           )
         ).project!;
+      if (!demoMode && data.currentProfile.app_role === "owner") {
+        try {
+          // New-project triggers may add creator-group viewer grants, so remove
+          // every unselected direct grant while applying the chosen access.
+          await saveProjectAccess(project.id, [], newAccessGrants, true);
+        } catch (error) {
+          toast.error(
+            error instanceof Error
+              ? `${project.name} was created, but its access could not be fully saved: ${error.message}`
+              : `${project.name} was created, but its access could not be fully saved.`,
+          );
+        }
+      }
       if (!demoMode && attachments.length > 0) {
         const failedAttachments = await resourceMutations.uploadDrafts(attachments, project.id);
         if (failedAttachments > 0)
@@ -184,6 +305,7 @@ export function ProjectsModal({
         ],
       }));
       createState.reset();
+      setNewAccessGrants([]);
       toast.success(`${project.name} created.`);
       await onCreated?.(project);
       if (createOnly) setOpen(false);
@@ -222,6 +344,12 @@ export function ProjectsModal({
             ...(ownersChanged ? { ownerIds: editingOwnerIds } : {}),
           },
         );
+      if (!demoMode && data.currentProfile.app_role === "owner")
+        await saveProjectAccess(
+          project.id,
+          savedAccessGrants,
+          editingAccessGrants,
+        );
       const updatedProject = {
         ...project,
         name: nextName,
@@ -247,6 +375,7 @@ export function ProjectsModal({
           : current.projectOwners,
       }));
       toast.success(`${nextName} updated.`);
+      setSavedAccessGrants(editingAccessGrants);
       setSupportingDetailsChanged(false);
       setEditingProjectId(null);
       if (editProjectId) setOpen(false);
@@ -254,7 +383,7 @@ export function ProjectsModal({
       toast.error(
         error instanceof Error
           ? error.message
-          : "The project could not be renamed.",
+          : "The project changes could not all be saved.",
       );
     } finally {
       setRenaming(false);
@@ -268,6 +397,10 @@ export function ProjectsModal({
         .filter((item) => item.project_id === project.id)
         .map((item) => item.profile_id),
     );
+    setEditingAccessGrants([]);
+    setSavedAccessGrants([]);
+    setAccessLoaded(demoMode);
+    void loadProjectAccess(project.id);
   }
 
   function closeEditor() {
@@ -389,7 +522,17 @@ export function ProjectsModal({
       values={{ name, description, ownerIds: newOwnerIds, links, attachments }}
       changes={{ setName, setDescription, setOwnerIds: setNewOwnerIds, setLinks, setAttachments }}
       editor={{ disabled: creating, demoMode, currentUserId: data.currentProfile.id, profiles: data.profiles }}
-      copy={{ nameLabel: "New Project", namePlaceholder: "RyanCon 2027", descriptionPlaceholder: "What is this project working toward?" }}
+      copy={{ nameLabel: "New Project", namePlaceholder: "Website refresh", descriptionPlaceholder: "What is this project working toward?" }}
+      primarySlot={
+        <ProjectAccessFields
+          groups={accessGroups}
+          grants={newAccessGrants}
+          onChange={setNewAccessGrants}
+          disabled={creating || !accessLoaded}
+          loaded={accessLoaded}
+          owner={data.currentProfile.app_role === "owner"}
+        />
+      }
     />
   );
   const createProjectSecondaryFields = (
@@ -399,7 +542,7 @@ export function ProjectsModal({
       values={{ name, description, ownerIds: newOwnerIds, links, attachments }}
       changes={{ setName, setDescription, setOwnerIds: setNewOwnerIds, setLinks, setAttachments }}
       editor={{ disabled: creating, demoMode, currentUserId: data.currentProfile.id, profiles: data.profiles }}
-      copy={{ nameLabel: "New Project", namePlaceholder: "RyanCon 2027", descriptionPlaceholder: "What is this project working toward?" }}
+      copy={{ nameLabel: "New Project", namePlaceholder: "Website refresh", descriptionPlaceholder: "What is this project working toward?" }}
     />
   );
   return (
@@ -419,7 +562,7 @@ export function ProjectsModal({
         }
         description={
           embedded
-            ? "Projects collect related work across categories. Owners show who is driving each work stream; project access is still managed separately through groups."
+            ? "Projects collect related work across categories. Set owners and access groups while creating or editing each work stream."
             : undefined
         }
         actions={
@@ -509,8 +652,8 @@ export function ProjectsModal({
             onSubmit={addProject}
           >
             <p className="text-sm text-black/60 dark:text-white/60">
-              Give the work a clear home. Assign access groups from Access &
-              permissions afterward.
+              Give the work a clear home and choose who can use it from the
+              start.
             </p>
             <ExpandableResourceEditor
               expanded={createDetailsOpen}
@@ -524,8 +667,8 @@ export function ProjectsModal({
             {!embedded && (
               <p className="mb-5 text-sm text-black/60 dark:text-white/60">
                 Projects collect related work across categories. Owners show who
-                is driving each work stream; project access is still managed
-                separately through groups.
+                is driving each work stream, and access groups control who can
+                view or change it.
               </p>
             )}
             <div className="sticky top-0 z-20 -mx-1 mb-4 grid gap-3 bg-white px-1 pb-3 dark:bg-[#181818] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
@@ -806,7 +949,8 @@ export function ProjectsModal({
             JSON.stringify(editingLinks) !==
               JSON.stringify(project.links ?? []) ||
             supportingDetailsChanged ||
-            !sameIds(savedOwnerIds, editingOwnerIds);
+            !sameIds(savedOwnerIds, editingOwnerIds) ||
+            !sameAccessGrants(savedAccessGrants, editingAccessGrants);
           return (
             <Modal
               maxHeight="min(42rem, calc(100dvh - 2rem))"
@@ -858,7 +1002,7 @@ export function ProjectsModal({
                 <ExpandableResourceEditor
                   expanded={editDetailsOpen}
                   setExpanded={setEditDetailsOpen}
-                  primary={<ResourceFields section="primary" resource={{ kind: "project", id: project.id }} values={{ name: editingName, description: editingDescription, ownerIds: editingOwnerIds, links: editingLinks }} changes={{ setName: setEditingName, setDescription: setEditingDescription, setOwnerIds: setEditingOwnerIds, setLinks: setEditingLinks }} editor={{ disabled: renaming, demoMode, currentUserId: data.currentProfile.id, profiles: data.profiles }} copy={{ nameLabel: "Project name", namePlaceholder: "Project name", descriptionPlaceholder: "What is this project working toward?" }} />}
+                  primary={<ResourceFields section="primary" resource={{ kind: "project", id: project.id }} values={{ name: editingName, description: editingDescription, ownerIds: editingOwnerIds, links: editingLinks }} changes={{ setName: setEditingName, setDescription: setEditingDescription, setOwnerIds: setEditingOwnerIds, setLinks: setEditingLinks }} editor={{ disabled: renaming, demoMode, currentUserId: data.currentProfile.id, profiles: data.profiles }} copy={{ nameLabel: "Project name", namePlaceholder: "Project name", descriptionPlaceholder: "What is this project working toward?" }} primarySlot={<ProjectAccessFields groups={accessGroups} grants={editingAccessGrants} onChange={setEditingAccessGrants} disabled={renaming || !accessLoaded} loaded={accessLoaded} owner={data.currentProfile.app_role === "owner"} />} />}
                   secondary={<ResourceFields section="supporting" resource={{ kind: "project", id: project.id }} values={{ name: editingName, description: editingDescription, ownerIds: editingOwnerIds, links: editingLinks }} changes={{ setName: setEditingName, setDescription: setEditingDescription, setOwnerIds: setEditingOwnerIds, setLinks: setEditingLinks }} editor={{ disabled: renaming, demoMode, currentUserId: data.currentProfile.id, profiles: data.profiles, onSupportingMutation: () => setSupportingDetailsChanged(true) }} copy={{ nameLabel: "Project name", namePlaceholder: "Project name", descriptionPlaceholder: "What is this project working toward?" }} />}
                 />
               </form>
