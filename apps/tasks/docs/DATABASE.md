@@ -41,13 +41,13 @@ every migration from here forward exists as a committed file.
 `supabase/migrations/20260731000000_baseline_schema.sql`, roughly 4,200 lines,
 in dependency order:
 
-| Part | Why it needs to be there |
-| --- | --- |
-| Public schema | 34 tables, 54 functions, 74 policies, 30 triggers, 5 enums, 27 indexes. RLS is enabled on all 34 tables and 38 functions are `security definer` |
+| Part                        | Why it needs to be there                                                                                                                                                                                                                                              |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Public schema               | 34 tables, 54 functions, 74 policies, 30 triggers, 5 enums, 27 indexes. RLS is enabled on all 34 tables and 38 functions are `security definer`                                                                                                                       |
 | `auth_user_profile` trigger | Fires `public.handle_new_user()` on insert into `auth.users`. **A public-schema dump does not include it.** `app/api/team/route.ts` calls `inviteUserByEmail` and never inserts a profile itself, so without this trigger every invited user silently gets no profile |
-| Storage buckets | Six `insert into storage.buckets` rows. Buckets are *data*, so no schema dump carries them |
-| Storage policies | 15 policies on `storage.objects`. They call public-schema functions such as `can_view_task`, which is why they come last |
-| Grant corrections | Explicit revokes on three privileged tables — see "What verification caught" |
+| Storage buckets             | Six `insert into storage.buckets` rows. Buckets are _data_, so no schema dump carries them                                                                                                                                                                            |
+| Storage policies            | 15 policies on `storage.objects`. They call public-schema functions such as `can_view_task`, which is why they come last                                                                                                                                              |
+| Grant corrections           | Explicit revokes on three privileged tables — see "What verification caught"                                                                                                                                                                                          |
 
 The authorization model lives almost entirely in SQL: `is_app_owner`,
 `can_view_task`, `can_edit_project`, `can_access_category`,
@@ -59,14 +59,14 @@ is why the baseline is generated rather than written.
 
 ### Storage buckets
 
-| Bucket | Public | Size limit | MIME types |
-| --- | --- | --- | --- |
-| `profile-avatars` | yes | 5 MB | jpeg, png, webp |
-| `instance-assets` | yes | 2 MB | png, jpeg, svg+xml, webp |
-| `organization-images` | yes | 5 MB | jpeg, png, webp |
-| `task-attachments` | no | 10 MB | pdf, jpeg, png, webp, text/plain |
-| `project-attachments` | no | 10 MB | pdf, jpeg, png, webp, text/plain |
-| `category-attachments` | no | 10 MB | pdf, jpeg, png, webp, text/plain |
+| Bucket                 | Public | Size limit | MIME types                       |
+| ---------------------- | ------ | ---------- | -------------------------------- |
+| `profile-avatars`      | yes    | 5 MB       | jpeg, png, webp                  |
+| `instance-assets`      | yes    | 2 MB       | png, jpeg, svg+xml, webp         |
+| `organization-images`  | yes    | 5 MB       | jpeg, png, webp                  |
+| `task-attachments`     | no     | 10 MB      | pdf, jpeg, png, webp, text/plain |
+| `project-attachments`  | no     | 10 MB      | pdf, jpeg, png, webp, text/plain |
+| `category-attachments` | no     | 10 MB      | pdf, jpeg, png, webp, text/plain |
 
 `public` set wrong on any of the three attachment buckets would expose every
 uploaded file.
@@ -77,14 +77,14 @@ uploaded file.
 least one status is unusable: the board has no columns and no task can be
 created.
 
-| Name | Color | Order | Completes tasks |
-| --- | --- | --- | --- |
-| Backlog | `#64748b` | 0 | no |
-| Todo | `#2563eb` | 1 | no |
-| In Progress | `#d97706` | 2 | no |
-| In Review | `#7c3aed` | 3 | no |
-| Done | `#059669` | 4 | **yes** |
-| Will Not Do | `#f51b2b` | 5 | no |
+| Name        | Color     | Order | Completes tasks |
+| ----------- | --------- | ----- | --------------- |
+| Backlog     | `#64748b` | 0     | no              |
+| Todo        | `#2563eb` | 1     | no              |
+| In Progress | `#d97706` | 2     | no              |
+| In Review   | `#7c3aed` | 3     | no              |
+| Done        | `#059669` | 4     | **yes**         |
+| Will Not Do | `#f51b2b` | 5     | no              |
 
 It is guarded with `where not exists (select 1 from public.statuses)` rather
 than `on conflict`. The unique constraint on `statuses` is deferrable, and
@@ -123,7 +123,7 @@ baseline keeps exactly one trigger, and from `storage` exactly the 15 policies.
 ```sh
 supabase db reset                          # baseline + later migrations + seed, from empty
 supabase db diff --linked --schema public  # compare the result against production
-npm test && npm run test:e2e               # confirm the app runs against it
+npm test                                   # unit and route tests
 ```
 
 `db diff` should report only migrations production has not received yet, plus
@@ -131,8 +131,19 @@ occasional cosmetic policy role reordering (migra normalises `TO
 "authenticated", "anon"` to `to anon, authenticated`). Anything else is real
 drift.
 
-A clean e2e run with no `instance_settings is missing` warning means the app is
-talking to a database built entirely from this repository.
+**The e2e suite does not verify the database.** It runs against
+`tests/e2e/mock-supabase.mjs`, a small stub server, so it is hermetic and passes
+regardless of what any real database contains. That is deliberate — it keeps
+e2e from depending on a running Supabase stack — but it means a green
+`npm run test:e2e` says nothing about a schema change. `db diff` is the check
+that matters.
+
+To exercise the app against a database built from this repository, point a dev
+server at the local stack after `supabase db reset` and use it by hand:
+
+```sh
+supabase status   # read API_URL and PUBLISHABLE_KEY for the local stack
+```
 
 ### What verification caught
 
@@ -142,7 +153,7 @@ production found a fault that reading the file would never have shown.
 **Supabase's default privileges grant `anon` and `authenticated` on every newly
 created table in schema `public`, and a dump's explicit
 `GRANT ... TO service_role` does not take them away.** A database built from the
-baseline was therefore *more permissive than the one it was captured from*, on
+baseline was therefore _more permissive than the one it was captured from_, on
 `privileged_audit_events`, `privileged_rate_limits`, and
 `workspace_google_calendar_integrations`.
 
@@ -172,7 +183,7 @@ like.
    latest one.
 2. `supabase db reset` to apply it from empty, then `supabase db diff --linked`
    to see exactly what it changes relative to production.
-3. Run `npm test` and `npm run test:e2e`.
+3. Run `npm test`. (`npm run test:e2e` is hermetic and will not exercise it.)
 4. Commit the file. This is the step that was being skipped.
 5. `supabase db push` to apply it to each instance's project.
 

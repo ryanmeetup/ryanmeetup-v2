@@ -15,7 +15,7 @@ Two approaches were considered and rejected:
 - **A permission flag inside the existing database.** Personal data would live
   in the Ryan Meetup database under its RLS surface, and every table and policy
   would need a tenant discriminator retrofitted onto the working access-group
-  model in `lib/access` and `docs/access-control-spec.md`.
+  model in `lib/access` and the SQL that backs it.
 - **A fork.** Every feature would be written twice or merged by hand forever.
 
 ## Status
@@ -62,109 +62,30 @@ begin without it.
 
 ### What you are reproducing
 
-The live Ryan Meetup database, as of this writing, contains **34 tables** and
-**35 RPC functions**, plus row-level security policies on all of them and six
-storage buckets. Enumerated from the linked project:
+Everything below is the work outside the database. The database itself — 34
+tables, 54 functions, 74 policies, RLS on every table, six storage buckets, and
+the trigger that turns an invited user into a profile — is reproduced by the
+committed baseline. `docs/DATABASE.md` is the reference for that half.
 
-- Tables include `tasks`, `profiles`, `projects`, `statuses`, `notes`,
-  `contacts`, `calendar_events`, the `access_group*` and `*_grants` permission
-  tables, the `*_attachments` tables, `task_activity`, `privileged_audit_events`,
-  `privileged_rate_limits`, `instance_settings`, and
-  `workspace_google_calendar_integrations`.
-- Functions include the whole authorization surface — `is_app_owner`,
-  `can_view_task`, `can_edit_project`, `can_access_category`,
-  `project_permission_for`, `member_has_group_access` and their siblings — plus
-  the transactional writers `save_task`, `move_task`, `delete_task`,
-  `create_status`, `reorder_statuses`, `save_contact`, and
-  `set_category_access`.
-- Storage buckets, with their exact configuration:
+### 1. The schema baseline (done)
 
-  | Bucket                 | Public | Size limit | MIME types                       |
-  | ---------------------- | ------ | ---------- | -------------------------------- |
-  | `profile-avatars`      | yes    | 5 MB       | jpeg, png, webp                  |
-  | `instance-assets`      | yes    | 2 MB       | png, jpeg, svg+xml, webp         |
-  | `organization-images`  | yes    | 5 MB       | jpeg, png, webp                  |
-  | `task-attachments`     | no     | 10 MB      | pdf, jpeg, png, webp, text/plain |
-  | `project-attachments`  | no     | 10 MB      | pdf, jpeg, png, webp, text/plain |
-  | `category-attachments` | no     | 10 MB      | pdf, jpeg, png, webp, text/plain |
+`supabase/migrations/20260731000000_baseline_schema.sql` reproduces the whole
+database, and `supabase/seed.sql` seeds the six default statuses. Both are
+committed, so a new project is built with `supabase db push` and the seed file
+rather than by hand.
 
-This is why hand-rebuilding is not an option: the authorization model in
-`docs/access-control-spec.md` lives almost entirely in SQL, and a policy missed
-during a manual rebuild is a silent data leak rather than a visible error.
+**`docs/DATABASE.md` is the reference for all of it** — what the baseline
+contains, why it was captured with `db dump` rather than `db pull`, the three
+things a schema dump silently omits, and how to verify a change. Read it before
+touching the schema.
 
-### 1. The schema baseline (done — read this to maintain it)
+Two items are still outstanding there and are worth clearing before you create a
+second project, because both are about the first one:
 
-`supabase/migrations/20260731000000_baseline_schema.sql` is the whole database
-as one starting point, and `supabase/seed.sql` seeds the default statuses.
-Nothing here needs redoing; this section records how it was built and what it
-covers, so the next person can trust it or repair it.
-
-**It was captured with `supabase db dump`, not `supabase db pull`.** Pull
-reconciles the remote migration history, and this project has 67 orphaned
-history rows it would have tried to rewrite — on production. `db dump` is
-read-only `pg_dump`.
-
-```sh
-supabase db dump --linked                 -f public.sql   # 34 tables, 54 functions
-supabase db dump --linked --schema auth   -f auth.sql     # the profiles trigger
-supabase db dump --linked --schema storage -f storage.sql # 15 object policies
-```
-
-The baseline is those three, assembled in dependency order, with two things a
-dump cannot give you. **Only app-owned objects were taken from the auth and
-storage dumps** — Supabase provisions its own 23 `auth` and 8 `storage` tables,
-and re-creating them breaks a new project.
-
-What it contains, and why each part matters:
-
-| Part                        | Detail                                                                                                                                                                                                                                                    |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Public schema               | 34 tables, 54 functions, 74 policies, 30 triggers, 5 enums, 27 indexes. RLS enabled on all 34 tables; 38 functions are `security definer`                                                                                                                 |
-| `auth_user_profile` trigger | Fires `public.handle_new_user()` on `auth.users` insert. **A public-schema dump does not include it.** `app/api/team/route.ts` calls `inviteUserByEmail` and never inserts a profile, so without this trigger every invited user silently gets no profile |
-| Storage buckets             | Six `insert into storage.buckets` rows. Buckets are _data_, so no schema dump carries them                                                                                                                                                                |
-| Storage policies            | 15 policies on `storage.objects`, which depend on public-schema functions like `can_view_task` — hence the ordering                                                                                                                                       |
-| Grant corrections           | Supabase's default privileges grant `anon` and `authenticated` on every new table in `public`, which a dump's explicit `GRANT ... TO service_role` does not undo. Three privileged tables needed explicit revokes                                         |
-
-That last row is the one worth remembering: it is invisible in the dump and only
-appeared when the baseline was applied to an empty database and diffed back
-against production. **Verification is not optional for this kind of file.**
-
-**How it was verified, and how to re-verify after changing it:**
-
-```sh
-supabase db reset                          # baseline + digest + seed, from empty
-supabase db diff --linked --schema public  # compare the result to production
-```
-
-The diff should report only the digest tables (production has not received that
-migration yet) and cosmetic policy role reordering. Anything else is real drift.
-Then confirm the app runs against it:
-
-```sh
-npm test && npm run test:e2e
-```
-
-A clean run with no `instance_settings is missing` warning means the app is
-talking to a database built entirely from this repository.
-
-### 1b. Keeping the baseline honest
-
-The 67 orphaned history rows exist because migration files were deleted after
-being applied. If that continues, this baseline rots the same way and the next
-person is back where this started.
-
-- Commit every migration. A schema change that exists only in the dashboard or
-  only on one laptop cannot be applied to a second instance.
-- Never delete an applied migration file.
-- To bring the **existing** project's history in line with the baseline without
-  re-running it:
-
-  ```sh
-  supabase migration repair --status applied 20260731000000
-  ```
-
-  The 67 orphaned rows can stay; they are harmless history. What matters is that
-  every migration from here forward exists as a file.
+- Mark the baseline applied on production:
+  `supabase migration repair --status applied 20260731000000`
+- Apply the digest migration: `supabase db push`. `digest_settings` and
+  `digest_runs` return 404 on the live project today.
 
 ### 2. Parameterize `supabase/config.toml`
 
@@ -375,7 +296,7 @@ value wins, and `/admin/settings` is the easier place to change it.
 | `NEXT_PUBLIC_INSTANCE_PRODUCT_NAME`    | `<name> Tasks`                                                                          |
 | `NEXT_PUBLIC_INSTANCE_TAGLINE`         | `Task tracker`                                                                          |
 | `NEXT_PUBLIC_INSTANCE_DESCRIPTION`     | `The private workspace for the <name> core team to plan projects and keep work moving.` |
-| `NEXT_PUBLIC_TASK_KEY_PREFIX`          | `RMT` — 1-10 alphanumerics starting with a letter                                       |
+| `NEXT_PUBLIC_TASK_KEY_PREFIX`          | `RMT` when configured; `TASK` in demo — 1-10 alphanumerics starting with a letter        |
 | `NEXT_PUBLIC_CHANGELOG_VERSION_PREFIX` | the task key prefix                                                                     |
 | `NEXT_PUBLIC_INSTANCE_ACCENT`          | `#ee1a25` — six-digit hex                                                               |
 | `NEXT_PUBLIC_INSTANCE_LOGO_PATH`       | none; root-relative path in `public/`                                                   |
@@ -442,10 +363,11 @@ Notes on the design:
 
 ## Known rough edges
 
-- **Demo mode content is Ryan Meetup flavored.** `lib/workspace/demo-data.ts`
-  contains RMT projects and people. Any instance running without Supabase
-  credentials shows that fixture. Fine for now; parameterize if demo mode
-  becomes something a second instance actually uses.
+- **Demo mode is intentionally neutral.** A workspace running without Supabase
+  credentials uses the generic identity in `lib/instance.ts`, the sample team
+  and projects in `lib/workspace/demo-data.ts`, `TASK-` task keys, and a minimal
+  footer. Keep this path free of deployment-specific branding because it is
+  also the app's zero-configuration first impression.
 - **The brand theme is shared.** `packages/brand/theme.css` provides Cooper
   Black and the nametag red to every app in the monorepo. A second instance
   currently inherits the Ryan Meetup look apart from
