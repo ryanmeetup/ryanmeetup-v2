@@ -24,6 +24,35 @@ describe("instanceSettingsSchema", () => {
     expect(instanceSettingsSchema({ githubUrl: "not a url" })).toBeNull();
   });
 
+  it("accepts an https page or a mailto address as the feedback link", () => {
+    expect(
+      instanceSettingsSchema({ feedbackUrl: " https://acme.example/bugs " }),
+    ).toEqual({ feedbackUrl: "https://acme.example/bugs" });
+    expect(
+      instanceSettingsSchema({ feedbackUrl: "mailto:team@acme.example" }),
+    ).toEqual({ feedbackUrl: "mailto:team@acme.example" });
+    expect(instanceSettingsSchema({ feedbackUrl: "acme.example" })).toBeNull();
+    expect(
+      instanceSettingsSchema({ feedbackUrl: "javascript:alert(1)" }),
+    ).toBeNull();
+    // Clearing it is how an instance offers no link at all.
+    expect(instanceSettingsSchema({ feedbackUrl: null })).toEqual({
+      feedbackUrl: null,
+    });
+  });
+
+  it("keeps the banner switches off when they are set to false", () => {
+    // `false` is a value, not an absent field: it is how an instance hides the
+    // banner or declines to collect feedback as its own tasks.
+    expect(
+      instanceSettingsSchema({
+        betaBannerEnabled: false,
+        feedbackInWorkspace: false,
+      }),
+    ).toEqual({ betaBannerEnabled: false, feedbackInWorkspace: false });
+    expect(instanceSettingsSchema({ betaBannerEnabled: "yes" })).toBeNull();
+  });
+
   it("keeps emptied footer lists rather than reading them as no change", () => {
     expect(
       instanceSettingsSchema({ footerSections: [], footerSocials: [] }),

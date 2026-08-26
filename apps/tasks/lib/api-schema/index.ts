@@ -1,5 +1,9 @@
 import type { ProjectLink } from "@/lib/resources/resource-types";
-import { footerVariants, socialPlatforms } from "@/lib/instance";
+import {
+  footerVariants,
+  isFeedbackHref,
+  socialPlatforms,
+} from "@/lib/instance";
 import { normalizeHttpUrl } from "@ryanmeetup/utils";
 export { taskMoveSchema, taskSaveSchema } from "./task";
 export { digestSettingsSchema } from "./digest";
@@ -388,6 +392,16 @@ export function instanceSettingsSchema(value: unknown) {
       typeof raw === "string" &&
       (/^\/[^/]/.test(raw) || /^https:\/\/[^\s]+$/.test(raw))
         ? raw
+        : null,
+    betaBannerEnabled: (raw: unknown) =>
+      typeof raw === "boolean" ? raw : null,
+    feedbackInWorkspace: (raw: unknown) =>
+      typeof raw === "boolean" ? raw : null,
+    feedbackUrl: (raw: unknown) =>
+      typeof raw === "string" &&
+      isFeedbackHref(raw.trim()) &&
+      raw.length <= 2048
+        ? raw.trim()
         : null,
     footerVariant: (raw: unknown) =>
       typeof raw === "string" &&

@@ -3,6 +3,8 @@
 import { useSyncExternalStore } from "react";
 import { Banner, IconButton } from "@ryanmeetup/ui";
 import { FiInfo, FiX } from "react-icons/fi";
+import { betaBannerSegments } from "@/lib/beta-banner";
+import { useInstance } from "./InstanceProvider";
 
 const dismissalKey = "ryanmeetup.tasks.beta-banner.dismissed.v1";
 const dismissalEvent = "ryanmeetup:beta-banner-dismissed";
@@ -21,10 +23,15 @@ function isVisible() {
   return localStorage.getItem(dismissalKey) !== "true";
 }
 
+/**
+ * Whether this banner appears at all, and where it sends people, belong to the
+ * instance — see `lib/beta-banner.ts`. Nothing here names a deployment.
+ */
 export function BetaBanner() {
-  const visible = useSyncExternalStore(subscribe, isVisible, () => true);
+  const segments = betaBannerSegments(useInstance());
+  const dismissed = !useSyncExternalStore(subscribe, isVisible, () => true);
 
-  if (!visible) return null;
+  if (!segments || dismissed) return null;
 
   function dismiss() {
     localStorage.setItem(dismissalKey, "true");
@@ -49,8 +56,23 @@ export function BetaBanner() {
       }
     >
       <p>
-        Tasks is in beta. Found an issue or have an idea? Contact Ryan or file
-        a task in <code>tasks.ryanmeetup.com</code>.
+        {segments.map((segment, index) =>
+          segment.kind === "link" ? (
+            <a
+              key={index}
+              href={segment.href}
+              // A mailto hands off to a mail client, which must not be asked
+              // to open in a new tab.
+              target={segment.href.startsWith("mailto:") ? undefined : "_blank"}
+              rel="noreferrer"
+              className="font-semibold underline underline-offset-2 hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            >
+              {segment.value}
+            </a>
+          ) : (
+            <span key={index}>{segment.value}</span>
+          ),
+        )}
       </p>
     </Banner>
   );

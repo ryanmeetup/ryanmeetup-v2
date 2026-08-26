@@ -15,6 +15,7 @@ import {
   footerTextFields,
   logoKey,
   previewFields,
+  bannerKeys,
   storedText,
   type InstanceTextKey,
 } from "@/lib/admin/instance-settings-fields";
@@ -27,6 +28,8 @@ import {
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { AccentEmailPreview } from "./AccentEmailPreview";
 import { AdminPageShell } from "./AdminPageShell";
+import { BannerSettingsModal } from "./BannerSettingsModal";
+import { BetaBannerPreview } from "./BetaBannerPreview";
 import { EmailSettingsModal } from "./EmailSettingsModal";
 import { FooterPreview } from "./FooterPreview";
 import { FooterSettingsModal } from "./FooterSettingsModal";
@@ -34,7 +37,7 @@ import { IdentitySettingsModal } from "./IdentitySettingsModal";
 import { InstanceLinkPreview } from "./InstanceLinkPreview";
 import { LinkPreviewSettingsModal } from "./LinkPreviewSettingsModal";
 
-type Dialog = "identity" | "footer" | "preview" | "email";
+type Dialog = "identity" | "banner" | "footer" | "preview" | "email";
 
 /** Which text keys each dialog owns, for the "N customized" counts. */
 const dialogKeys: Record<Dialog, InstanceTextKey[]> = {
@@ -44,6 +47,9 @@ const dialogKeys: Record<Dialog, InstanceTextKey[]> = {
   ),
   preview: previewFields.map((field) => field.key),
   email: [accentField.key],
+  // The banner's settings are two switches and a link, none of them plain
+  // text, so they are counted from the stored row rather than from a draft.
+  banner: [],
 };
 
 /**
@@ -132,6 +138,11 @@ export function AdminSettingsPageClient({
 
   const countFor = (name: Dialog) =>
     dialogKeys[name].filter((key) => storedText(stored, key)).length +
+    (name === "banner"
+      ? bannerKeys.filter(
+          (key) => stored?.[key] !== null && stored?.[key] !== undefined,
+        ).length
+      : 0) +
     (name === "footer"
       ? [
           stored?.footerVariant,
@@ -210,6 +221,16 @@ export function AdminSettingsPageClient({
               {settings.description}
             </dd>
           </dl>
+        </SettingsCard>
+
+        <SettingsCard
+          title="Beta banner"
+          description="The notice above the workspace, and where it sends someone with a bug or an idea. Only the workspace whose team builds this product should collect that as tasks of its own."
+          customized={countFor("banner")}
+          onEdit={() => setDialog("banner")}
+          editLabel="Edit banner"
+        >
+          <BetaBannerPreview settings={settings} />
         </SettingsCard>
 
         <SettingsCard
@@ -301,6 +322,14 @@ export function AdminSettingsPageClient({
           the server last confirmed rather than a stale draft. */}
       {dialog === "identity" && (
         <IdentitySettingsModal
+          key={JSON.stringify(stored)}
+          open
+          setOpen={(open) => !open && setDialog(null)}
+          {...dialogProps}
+        />
+      )}
+      {dialog === "banner" && (
+        <BannerSettingsModal
           key={JSON.stringify(stored)}
           open
           setOpen={(open) => !open && setDialog(null)}

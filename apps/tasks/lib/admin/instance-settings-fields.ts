@@ -1,11 +1,19 @@
-import { instanceDefaults, type InstanceSettings } from "@/lib/instance";
+import {
+  instanceDefaults,
+  isFeedbackHref,
+  type InstanceSettings,
+} from "@/lib/instance";
 import { normalizeHttpUrl } from "@ryanmeetup/utils";
 
 /** Every setting edited as free text. The structured footer values — the
  *  variant, its sections, and its socials — get their own controls. */
 export type InstanceTextKey = Exclude<
   keyof InstanceSettings,
-  "footerSections" | "footerSocials" | "footerVariant"
+  | "footerSections"
+  | "footerSocials"
+  | "footerVariant"
+  | "betaBannerEnabled"
+  | "feedbackInWorkspace"
 >;
 
 /** Draft values keyed by setting. `""` means "inherit the default". */
@@ -52,6 +60,19 @@ export const identityFields: InstanceFieldSpec[] = [
     hint: "Shown when someone pastes a link to this workspace into Slack or Messages.",
   },
 ];
+
+/**
+ * The beta banner's settings. Unlike the branding fields above, these are
+ * edited as explicit values rather than as overrides of a compiled default:
+ * "no feedback link" is a real choice an instance makes, and a blank input
+ * cannot mean both that and "inherit". `BannerSettingsModal` seeds its inputs
+ * from the resolved settings and writes only what actually changes.
+ */
+export const bannerKeys = [
+  "betaBannerEnabled",
+  "feedbackInWorkspace",
+  "feedbackUrl",
+] as const satisfies readonly (keyof InstanceSettings)[];
 
 export const footerTextFields: InstanceFieldSpec[] = [
   {
@@ -206,6 +227,9 @@ export function validateTextFields(
       found[spec.key] = `Keep this to ${spec.maxLength} characters or fewer.`;
     else if (urlKeys.has(spec.key) && !httpsOrNull(value))
       found[spec.key] = "Enter a full https:// address.";
+    else if (spec.key === "feedbackUrl" && !isFeedbackHref(value))
+      found[spec.key] =
+        "Enter a full https:// address or a mailto: email link.";
     else if (spec.key === "monogram" && [...value].length !== 1)
       found[spec.key] = "Use exactly one character.";
     else if (spec.key === "accentColor" && !hexPattern.test(value))

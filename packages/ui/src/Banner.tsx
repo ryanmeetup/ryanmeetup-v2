@@ -39,7 +39,7 @@ export function Banner({
       className={`border-b font-medium shadow-sm ${variantClasses[variant]} ${compact ? "px-2 py-1 text-xs" : "px-4 py-3 text-sm sm:px-6 lg:px-8"} ${className ?? ""}`}
     >
       <div
-        className={`flex w-full ${mobileInline ? "flex-row items-start justify-between gap-2" : "flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"} ${contentClassName ?? ""}`}
+        className={`flex w-full ${mobileInline ? "flex-row items-center justify-between gap-3" : "flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"} ${contentClassName ?? ""}`}
       >
         <div className="flex min-w-0 items-center gap-2 text-left">
           {icon && <span className="shrink-0">{icon}</span>}
@@ -50,7 +50,7 @@ export function Banner({
         </div>
         {action && (
           <div
-            className={`shrink-0 ${mobileInline ? "self-start" : "self-end sm:self-auto"}`}
+            className={`shrink-0 ${mobileInline ? "self-center" : "self-end sm:self-auto"}`}
           >
             {action}
           </div>

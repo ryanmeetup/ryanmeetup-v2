@@ -269,11 +269,80 @@ describe("runtime instance overrides", () => {
   });
 });
 
-describe("instance footer composition", () => {
-  it("ships the stack column and author credit as the default branded footer", async () => {
+describe("instance feedback destination", () => {
+  it("points at the maintainer until an instance says otherwise", async () => {
     const { instanceDefaults } = await loadInstance();
 
-    expect(instanceDefaults.footerVariant).toBe("branded");
+    // Like the build credit, this names who maintains the software rather
+    // than whose workspace this is, so it holds for every deployment except
+    // the one where the product is built.
+    expect(instanceDefaults.betaBannerEnabled).toBe(true);
+    expect(instanceDefaults.feedbackInWorkspace).toBe(false);
+    expect(instanceDefaults.feedbackUrl).toBe("mailto:ryan@ryanmeetup.com");
+  });
+
+  it("neither claims a channel nor publishes an address in the demo", async () => {
+    const { demoInstanceSettings } = await loadInstance();
+
+    expect(demoInstanceSettings.betaBannerEnabled).toBe(false);
+    expect(demoInstanceSettings.feedbackInWorkspace).toBe(false);
+    expect(demoInstanceSettings.feedbackUrl).toBeNull();
+  });
+
+  it("takes an https page or a mailto address", async () => {
+    const page = await loadInstance({
+      NEXT_PUBLIC_INSTANCE_FEEDBACK_URL: "https://acme.example/feedback",
+    });
+    expect(page.instanceDefaults.feedbackUrl).toBe(
+      "https://acme.example/feedback",
+    );
+
+    const inbox = await loadInstance({
+      NEXT_PUBLIC_INSTANCE_FEEDBACK_URL: "mailto:team@acme.example",
+    });
+    expect(inbox.instanceDefaults.feedbackUrl).toBe("mailto:team@acme.example");
+  });
+
+  it("rejects anything that is not a linkable destination", async () => {
+    await expect(
+      loadInstance({ NEXT_PUBLIC_INSTANCE_FEEDBACK_URL: "acme.example" }),
+    ).rejects.toThrow(/FEEDBACK_URL/);
+    await expect(
+      loadInstance({
+        NEXT_PUBLIC_INSTANCE_FEEDBACK_URL: "javascript:alert(1)",
+      }),
+    ).rejects.toThrow(/FEEDBACK_URL/);
+  });
+
+  it("lets the dogfooding instance take feedback as its own tasks", async () => {
+    const { instanceDefaults } = await loadInstance({
+      NEXT_PUBLIC_INSTANCE_FEEDBACK_IN_WORKSPACE: "true",
+      NEXT_PUBLIC_INSTANCE_BETA_BANNER: "false",
+    });
+
+    expect(instanceDefaults.feedbackInWorkspace).toBe(true);
+    expect(instanceDefaults.betaBannerEnabled).toBe(false);
+  });
+
+  it("lets a stored row turn the banner off and drop the link", async () => {
+    const { resolveInstanceSettings } = await loadInstance();
+    const resolved = resolveInstanceSettings({
+      betaBannerEnabled: false,
+      feedbackUrl: null,
+    });
+
+    expect(resolved.betaBannerEnabled).toBe(false);
+    expect(resolved.feedbackUrl).toBeNull();
+  });
+});
+
+describe("instance footer composition", () => {
+  it("ships a minimal footer carrying the stack column and author credit", async () => {
+    const { instanceDefaults } = await loadInstance();
+
+    // The marketing-scale `branded` layout is opt-in: an instance that has not
+    // named itself has no wordmark worth setting six lines tall.
+    expect(instanceDefaults.footerVariant).toBe("minimal");
     expect(instanceDefaults.footerSections).toHaveLength(1);
     expect(instanceDefaults.footerSections[0].title).toBe("Built with");
     expect(
@@ -292,16 +361,16 @@ describe("instance footer composition", () => {
     expect(instanceDefaults.creditSuffix).toBe(". All Rights Reserved.");
   });
 
-  it("lets an instance choose a simpler footer and its own credit sentence", async () => {
+  it("lets an instance opt up to the branded footer and its own credit sentence", async () => {
     const { resolveInstanceSettings } = await loadInstance();
     const resolved = resolveInstanceSettings({
-      footerVariant: "minimal",
+      footerVariant: "branded",
       creditPrefix: "Built by ",
       creditLabel: "Acme",
       creditSuffix: ".",
     });
 
-    expect(resolved.footerVariant).toBe("minimal");
+    expect(resolved.footerVariant).toBe("branded");
     expect(resolved.creditPrefix).toBe("Built by ");
     expect(resolved.creditSuffix).toBe(".");
   });
@@ -342,6 +411,6 @@ describe("instance footer composition", () => {
       NEXT_PUBLIC_INSTANCE_FOOTER_VARIANT: "enormous",
     });
 
-    expect(instanceDefaults.footerVariant).toBe("branded");
+    expect(instanceDefaults.footerVariant).toBe("minimal");
   });
 });

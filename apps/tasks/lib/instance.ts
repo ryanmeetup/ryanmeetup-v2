@@ -34,6 +34,13 @@ function optionalText(raw: string | undefined) {
   return trimmed ? trimmed : null;
 }
 
+function flag(raw: string | undefined, fallback: boolean) {
+  const trimmed = raw?.trim().toLowerCase();
+  if (trimmed === "true") return true;
+  if (trimmed === "false") return false;
+  return fallback;
+}
+
 function keyPrefix(raw: string | undefined, fallback: string) {
   const candidate = text(raw, fallback).toUpperCase();
   // The prefix is interpolated into task-key regular expressions, so it must be
@@ -91,22 +98,26 @@ export type InstanceFooterSocial = {
 /**
  * How much footer an instance wants.
  *
- * `branded` is a generalized marketing footer — an oversized wordmark with a
- * subtitle, titled link columns, social icons, and a credit sentence. Every
- * part of it is data, so it is a shape any deployment can fill rather than a
- * reproduction of one organization's footer; the Ryan Meetup values below are
- * simply this build's defaults. `minimal` is the same content at a quieter
- * scale — a small wordmark, the section links inline, socials, and the
- * credit — and `none` removes the footer entirely.
+ * `minimal` is the default: a small wordmark, the section links inline,
+ * socials, and the credit. It is the honest baseline for a deployment that has
+ * said nothing about itself, because an unconfigured instance has no wordmark
+ * worth setting six lines tall.
+ *
+ * `branded` is the same content as a marketing footer — an oversized wordmark
+ * with a subtitle, titled link columns, social icons, and a credit sentence.
+ * Every part of it is data, so it is a shape any deployment can fill rather
+ * than a reproduction of one organization's footer, but it only pays off once
+ * an instance has filled it in, so it is opt-in. `none` removes the footer
+ * entirely.
  */
 export const footerVariants = ["branded", "minimal", "none"] as const;
 export type InstanceFooterVariant = (typeof footerVariants)[number];
 
 function footerVariant(raw: string | undefined): InstanceFooterVariant {
-  const candidate = text(raw, "branded");
+  const candidate = text(raw, "minimal");
   return (footerVariants as readonly string[]).includes(candidate)
     ? (candidate as InstanceFooterVariant)
-    : "branded";
+    : "minimal";
 }
 
 function assetPath(raw: string | undefined) {
@@ -117,6 +128,31 @@ function assetPath(raw: string | undefined) {
   if (!candidate.startsWith("/") || candidate.startsWith("//")) {
     throw new Error(
       "NEXT_PUBLIC_INSTANCE_LOGO_PATH must be a root-relative path such as /logo.svg.",
+    );
+  }
+  return candidate;
+}
+
+/** Shared with the settings form and the API so all three agree. */
+export function isFeedbackHref(value: string) {
+  return (
+    /^https:\/\/[^\s]+$/.test(value) || /^mailto:[^\s@]+@[^\s@]+$/.test(value)
+  );
+}
+
+/**
+ * Where the beta banner sends someone with a bug or an idea. An instance may
+ * point anywhere -- a tracker, a form, a shared inbox -- so the only thing the
+ * codebase can assert is the shape: an https page or a mailto address.
+ * Anything else is a misconfiguration worth failing loudly on, since the value
+ * is rendered as a link users are invited to click.
+ */
+function feedbackHref(raw: string | undefined, fallback: string | null) {
+  const candidate = optionalText(raw) ?? fallback;
+  if (!candidate) return null;
+  if (!isFeedbackHref(candidate)) {
+    throw new Error(
+      "NEXT_PUBLIC_INSTANCE_FEEDBACK_URL must be an https:// address or a mailto: link.",
     );
   }
   return candidate;
@@ -174,6 +210,19 @@ export type InstanceSettings = {
   accentColor: string;
   /** Root-relative path or public URL of an image wordmark. Null uses `name`. */
   logoPath: string | null;
+  /** Whether the "this is a beta" notice appears above the workspace. */
+  betaBannerEnabled: boolean;
+  /**
+   * Whether this workspace takes its own feedback as tasks. True only where
+   * the product is being dogfooded by the people who build it; everywhere else
+   * a bug report filed here would land in a stranger's backlog.
+   */
+  feedbackInWorkspace: boolean;
+  /**
+   * Where the banner sends people instead: an https page or a mailto address.
+   * Null shows no link.
+   */
+  feedbackUrl: string | null;
   /** How much footer to render. See `footerVariants`. */
   footerVariant: InstanceFooterVariant;
   /** Second line under the wordmark. Shown by `branded` and `minimal`. */
@@ -210,6 +259,21 @@ export const instanceDefaults: InstanceSettings = {
   ).charAt(0),
   accentColor: hexColor(process.env.NEXT_PUBLIC_INSTANCE_ACCENT, "#ee1a25"),
   logoPath: assetPath(process.env.NEXT_PUBLIC_INSTANCE_LOGO_PATH),
+  betaBannerEnabled: flag(process.env.NEXT_PUBLIC_INSTANCE_BETA_BANNER, true),
+  // Off by default. Filing feedback as a task only reaches anyone in the
+  // workspace where this product is being built; every other deployment's
+  // backlog belongs to its own team.
+  feedbackInWorkspace: flag(
+    process.env.NEXT_PUBLIC_INSTANCE_FEEDBACK_IN_WORKSPACE,
+    false,
+  ),
+  // Like the build credit below, this names the person who maintains the
+  // software rather than whoever the workspace belongs to, so it is the right
+  // default for every deployment except the one where the product is built.
+  feedbackUrl: feedbackHref(
+    process.env.NEXT_PUBLIC_INSTANCE_FEEDBACK_URL,
+    "mailto:ryan@ryanmeetup.com",
+  ),
   footerVariant: footerVariant(process.env.NEXT_PUBLIC_INSTANCE_FOOTER_VARIANT),
   // Nothing by default: the subtitle sits directly under the wordmark, and an
   // unnamed build has nothing to say there.
@@ -279,6 +343,11 @@ export const demoInstanceSettings: InstanceSettings = {
   monogram: "W",
   accentColor: "#2563eb",
   logoPath: null,
+  // The demo replaces the beta notice with its own banner, and it is a public
+  // showcase, so it neither claims a feedback channel nor publishes an address.
+  betaBannerEnabled: false,
+  feedbackInWorkspace: false,
+  feedbackUrl: null,
   footerVariant: "minimal",
   footerSubtitle: "Team task tracker",
   footerSections: [],
@@ -296,6 +365,7 @@ export const demoInstanceSettings: InstanceSettings = {
 /** Which `InstanceSettings` keys may be cleared back to their default. */
 export const nullableInstanceSettings = [
   "logoPath",
+  "feedbackUrl",
 ] as const satisfies readonly (keyof InstanceSettings)[];
 
 type NullableKey = (typeof nullableInstanceSettings)[number];

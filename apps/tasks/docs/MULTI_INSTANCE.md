@@ -261,9 +261,12 @@ request. `app/layout.tsx` seeds `InstanceProvider` so client components read the
 resolved values synchronously through `useInstance()`.
 
 The compiled defaults are unbranded. A deployment that sets nothing and has no
-stored row presents as an unnamed **Workspace**, with no footer subtitle and no
-social links, rather than borrowing another deployment's identity — so a new
-instance is never mistaken for Ryan Meetup before its owner has configured it.
+stored row presents as an unnamed **Workspace**, with a **minimal** footer, no
+footer subtitle, and no social links, rather than borrowing another
+deployment's identity — so a new instance is never mistaken for Ryan Meetup
+before its owner has configured it. The larger `branded` footer is opt-in for
+the same reason: it is a marketing layout that only reads well once an instance
+has a wordmark, columns, and socials worth showing at that scale.
 Ryan Meetup is an instance like any other: it names itself through the variables
 below or `/admin/settings`, and a Ryan Meetup deployment that sets neither will
 render as `Workspace`. `tests/unit/instance.test.ts` covers defaults, env
@@ -297,6 +300,7 @@ The table below is the durable reference.
 | Footer composition, socials, credit       | `components/navigation/TasksFooter.tsx`, `packages/ui/src/SiteFooter.tsx`                    |
 | Social platform icons and labels          | `lib/instance-socials.tsx`                                                                   |
 | Accent color outside Tailwind tokens      | `NEXT_PUBLIC_INSTANCE_ACCENT`                                                                |
+| Beta banner and where feedback goes       | `/admin/settings` → Beta banner; `lib/beta-banner.ts` composes the sentence                  |
 
 ### Environment variables
 
@@ -316,11 +320,14 @@ value wins, and `/admin/settings` is the easier place to change it.
 | `NEXT_PUBLIC_INSTANCE_ACCENT`          | `#ee1a25` — six-digit hex                                                               |
 | `NEXT_PUBLIC_INSTANCE_LOGO_PATH`       | none; root-relative path in `public/`                                                   |
 | `NEXT_PUBLIC_INSTANCE_MONOGRAM`        | first letter of the name                                                                |
+| `NEXT_PUBLIC_INSTANCE_BETA_BANNER`     | `true` — `false` hides the beta notice                                                  |
+| `NEXT_PUBLIC_INSTANCE_FEEDBACK_IN_WORKSPACE` | `false` — `true` invites feedback as tasks in this workspace                       |
+| `NEXT_PUBLIC_INSTANCE_FEEDBACK_URL`    | `mailto:ryan@ryanmeetup.com` — an `https://` page or a `mailto:` address                |
 | `NEXT_PUBLIC_INSTANCE_OG_ALT`          | `<product name> — private team workspace`                                               |
 | `NEXT_PUBLIC_INSTANCE_OG_HEADLINE`     | `Tasks`                                                                                 |
 | `NEXT_PUBLIC_INSTANCE_OG_TAGLINE`      | `Private workspace for the core team`                                                   |
 | `NEXT_PUBLIC_INSTANCE_OG_MOTTO`        | `Plan it. Assign it. Get it done.`                                                      |
-| `NEXT_PUBLIC_INSTANCE_FOOTER_VARIANT`  | `branded` — one of `branded`, `minimal`, `none`                                         |
+| `NEXT_PUBLIC_INSTANCE_FOOTER_VARIANT`  | `minimal` — one of `branded`, `minimal`, `none`                                         |
 | `NEXT_PUBLIC_INSTANCE_FOOTER_SUBTITLE` | none — Ryan Meetup's own deployment sets `NO BRYANS ALLOWED`                            |
 | `NEXT_PUBLIC_INSTANCE_CREDIT_PREFIX`   | `Website designed and developed by `                                                    |
 | `NEXT_PUBLIC_INSTANCE_CREDIT_LABEL`    | `Ryan Le`                                                                               |
@@ -349,6 +356,19 @@ Notes on the design:
   release history, so every instance shows the same entries under its own
   prefix. If an instance should have its own entries, scope
   `changelogDirectory` in `lib/server/changelog.ts` per instance.
+- **The beta banner is the one place the maintainer is named, and that is
+  deliberate.** Its default destination is `mailto:ryan@ryanmeetup.com` for the
+  same reason the build credit is: it names who wrote and maintains the
+  software, which is true of every deployment, rather than who the workspace
+  belongs to. `feedbackInWorkspace` is the opposite — it is off everywhere
+  except `tasks.ryanmeetup.com`, where this product is dogfooded, because a
+  bug report filed as a task in anyone else's workspace lands in a backlog
+  nobody who can fix it reads. Both, plus the link and whether the banner
+  appears at all, are edited under **Beta banner** on `/admin/settings`.
+- The banner's three settings are the exception to "blank means inherit". They
+  are seeded from the resolved value and written explicitly, because an
+  unticked box and an empty link are choices in their own right; only values
+  that actually change are sent, so an untouched dialog still inherits.
 - `footerSections` and `footerSocials` are lists, and NULL versus `[]` matters:
   NULL means "no override stored", so the compiled default content stands,
   while an empty array is the owner deliberately dropping the columns or the
@@ -357,9 +377,9 @@ Notes on the design:
   a generalized shape — oversized wordmark and subtitle, up to three titled
   link columns, social icons, and a credit sentence — with every part supplied
   by the caller. Nothing in the renderer knows about Ryan Meetup; the "Built
-  with" column and the two social accounts are simply this build's default
-  content, and another instance replaces them from `/admin/settings` or picks
-  `minimal` / `none`. Do not reintroduce instance-specific strings into
+  with" column is simply this build's default content, and an instance replaces
+  it from `/admin/settings`. `minimal` is the default variant, so opting *up*
+  to `branded` is the deliberate act, not opting down. Do not reintroduce instance-specific strings into
   `TasksFooter` or `SiteFooter`; add a setting instead.
 - **Socials are a list keyed by platform**, not a column per network, so the
   four Ryan Meetup happens to use do not read as the only ones that exist.
