@@ -8,8 +8,8 @@ import {
   overridesFromDraft,
 } from "@/lib/admin/instance-settings-fields";
 import {
-  instanceDefaults,
   resolveInstanceSettings,
+  type InstanceSettings,
   type InstanceSettingsOverrides,
 } from "@/lib/instance";
 import { AccentEmailPreview } from "./AccentEmailPreview";
@@ -23,12 +23,14 @@ export function EmailSettingsModal({
   setOpen,
   overrides,
   demoMode,
+  baseSettings,
   onSaved,
 }: {
   open: boolean;
   setOpen: (open: boolean) => void;
   overrides: InstanceSettingsOverrides | null;
   demoMode: boolean;
+  baseSettings: InstanceSettings;
   onSaved: (overrides: InstanceSettingsOverrides) => void;
 }) {
   const { draft, setField, errors, saving, submit } = useInstanceSettingsForm({
@@ -38,10 +40,13 @@ export function EmailSettingsModal({
     onSaved,
   });
 
-  const preview = resolveInstanceSettings({
-    ...overrides,
-    ...overridesFromDraft(draft),
-  });
+  const preview = resolveInstanceSettings(
+    {
+      ...overrides,
+      ...overridesFromDraft(draft),
+    },
+    baseSettings,
+  );
   const accent = draft.accentColor;
 
   return (
@@ -86,6 +91,7 @@ export function EmailSettingsModal({
         />
         <InstanceSettingField
           spec={accentField}
+          defaults={baseSettings}
           value={accent}
           error={errors.accentColor}
           overridden={Boolean(accent.trim())}
@@ -99,7 +105,7 @@ export function EmailSettingsModal({
               disabled={saving}
               className="color-input !h-7 !w-7 rounded-md border border-black/15 dark:border-white/20"
               value={
-                hexPattern.test(accent) ? accent : instanceDefaults.accentColor
+                hexPattern.test(accent) ? accent : baseSettings.accentColor
               }
               onChange={(event) => setField("accentColor", event.target.value)}
             />

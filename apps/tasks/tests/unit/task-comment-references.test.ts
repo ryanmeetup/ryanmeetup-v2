@@ -10,18 +10,18 @@ const tasks = [
 describe("task comment references", () => {
   it("identifies existing ticket references while preserving comment text", () => {
     expect(
-      taskCommentSegments("Blocked by RMT-123 and rmt-456.", tasks),
+      taskCommentSegments("Blocked by TASK-123 and task-456.", tasks),
     ).toEqual([
       { kind: "text", value: "Blocked by " },
-      { kind: "task", task: tasks[0], value: "RMT-123" },
+      { kind: "task", task: tasks[0], value: "TASK-123" },
       { kind: "text", value: " and " },
-      { kind: "task", task: tasks[1], value: "rmt-456" },
+      { kind: "task", task: tasks[1], value: "task-456" },
       { kind: "text", value: "." },
     ]);
   });
 
   it("leaves missing and malformed ticket references as plain text", () => {
-    const body = "Try RMT-999, XRMT-123, and RMT-123abc.";
+    const body = "Try TASK-999, XTASK-123, and TASK-123abc.";
     expect(taskCommentSegments(body, tasks)).toEqual([
       { kind: "text", value: body },
     ]);

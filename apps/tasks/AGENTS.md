@@ -56,7 +56,7 @@ Code is organized by responsibility:
   change with `supabase db reset` then `supabase db diff --linked`. Never change
   the schema only in the dashboard, and never delete an applied migration file —
   doing that is what left 67 orphaned history rows and no baseline until now.
-  See `docs/MULTI_INSTANCE.md`.
+  See `docs/DATABASE.md`.
 - Code that reads a table added by an unapplied migration may tolerate a
   missing relation through `isMissingRelation` in `lib/server/supabase-errors.ts`
   and fall back to defaults, so deploy order does not matter. That tolerance is
@@ -87,7 +87,8 @@ directly rather than expanding a barrel solely for internal use.
   and await it before reading values.
 - Public task references use readable `<prefix>-<number>` keys built by
   `lib/tasks/task-key.ts`, where the prefix is per-instance and defaults to
-  `RMT`. Never hardcode the prefix. UUIDs remain internal identifiers and must
+  `RMT` for configured deployments and `TASK` in the zero-configuration demo.
+  Never hardcode the prefix. UUIDs remain internal identifiers and must
   not replace task keys in navigation or shared URLs.
 
 `useWorkspaceData` owns the live client workspace. Demo persistence,

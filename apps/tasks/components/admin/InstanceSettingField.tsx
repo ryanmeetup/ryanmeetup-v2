@@ -2,15 +2,15 @@
 
 import type { ReactNode } from "react";
 import { Input, Textarea } from "@ryanmeetup/ui";
-import { instanceDefaults } from "@/lib/instance";
+import type { InstanceSettings } from "@/lib/instance";
 import type {
   InstanceFieldSpec,
   InstanceTextKey,
 } from "@/lib/admin/instance-settings-fields";
 
 /** What this build falls back to, trimmed to something that fits one line. */
-function inheritedValue(key: InstanceTextKey) {
-  const fallback = instanceDefaults[key];
+function inheritedValue(key: InstanceTextKey, defaults: InstanceSettings) {
+  const fallback = defaults[key];
   if (typeof fallback !== "string" || !fallback) return null;
   return fallback.length > 56 ? `${fallback.slice(0, 55)}…` : fallback;
 }
@@ -26,6 +26,7 @@ function inheritedValue(key: InstanceTextKey) {
  */
 export function InstanceSettingField({
   spec,
+  defaults,
   value,
   error,
   overridden,
@@ -35,6 +36,7 @@ export function InstanceSettingField({
   trailingAction,
 }: {
   spec: InstanceFieldSpec;
+  defaults: InstanceSettings;
   value: string;
   error?: string;
   overridden: boolean;
@@ -43,7 +45,7 @@ export function InstanceSettingField({
   onReset: () => void;
   trailingAction?: ReactNode;
 }) {
-  const inherited = inheritedValue(spec.key);
+  const inherited = inheritedValue(spec.key, defaults);
 
   return (
     <div className="space-y-2">

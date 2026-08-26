@@ -17,15 +17,15 @@ afterEach(() => {
 });
 
 describe("instance identity", () => {
-  it("keeps the Ryan Meetup defaults when nothing is configured", async () => {
+  it("keeps the production identity defaults while demo keys stay neutral", async () => {
     const { instanceBuild, instanceDefaults, instancePageTitle } =
       await loadInstance();
     const instance = instanceDefaults;
 
     expect(instance.name).toBe("Ryan Meetup");
     expect(instance.productName).toBe("Ryan Meetup Tasks");
-    expect(instanceBuild.taskKeyPrefix).toBe("RMT");
-    expect(instanceBuild.changelogVersionPrefix).toBe("RMT");
+    expect(instanceBuild.taskKeyPrefix).toBe("TASK");
+    expect(instanceBuild.changelogVersionPrefix).toBe("TASK");
     expect(instance.accentColor).toBe("#ee1a25");
     expect(instance.monogram).toBe("R");
     expect(instance.logoPath).toBeNull();
@@ -53,6 +53,16 @@ describe("instance identity", () => {
     expect(instancePageTitle(instance, "Notes")).toBe("Notes | Ryan Le Tasks");
   });
 
+  it("keeps RMT keys for a configured deployment", async () => {
+    const { instanceBuild } = await loadInstance({
+      NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",
+    });
+
+    expect(instanceBuild.taskKeyPrefix).toBe("RMT");
+    expect(instanceBuild.changelogVersionPrefix).toBe("RMT");
+  });
+
   it("lets an instance override every derived value", async () => {
     const { instanceDefaults: instance } = await loadInstance({
       NEXT_PUBLIC_INSTANCE_NAME: "Ryan Le",
@@ -70,6 +80,22 @@ describe("instance identity", () => {
     expect(instance.accentColor).toBe("#0f766e");
     expect(instance.logoPath).toBe("/instance-logo.svg");
     expect(instance.tagline).toBe("Personal tracker");
+  });
+
+  it("provides neutral branding for the zero-configuration demo", async () => {
+    const { demoInstanceSettings } = await loadInstance();
+
+    expect(demoInstanceSettings).toMatchObject({
+      name: "Workspace",
+      productName: "Team Tasks",
+      tagline: "Team task tracker",
+      footerVariant: "minimal",
+      footerSections: [],
+      footerSocials: [],
+    });
+    expect(JSON.stringify(demoInstanceSettings)).not.toMatch(
+      /ryan meetup|ryancon/i,
+    );
   });
 
   it("rejects configuration that would corrupt a pattern, style, or asset URL", async () => {
@@ -158,10 +184,17 @@ describe("runtime instance overrides", () => {
   });
 
   it("falls back to the default when no row is stored", async () => {
-    const { instanceDefaults, resolveInstanceSettings } = await loadInstance();
+    const {
+      demoInstanceSettings,
+      instanceDefaults,
+      resolveInstanceSettings,
+    } = await loadInstance();
 
     expect(resolveInstanceSettings(null)).toEqual(instanceDefaults);
     expect(resolveInstanceSettings({})).toEqual(instanceDefaults);
+    expect(resolveInstanceSettings(null, demoInstanceSettings)).toEqual(
+      demoInstanceSettings,
+    );
   });
 
   it("honours an explicit null only for values that may be empty", async () => {

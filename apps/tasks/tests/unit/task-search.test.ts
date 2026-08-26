@@ -50,10 +50,10 @@ describe("task search", () => {
 
   it("gives exact task keys precedence and ignores short queries", () => {
     const tasks = [
-      task("title", 1, "RMT-42 plan"),
+      task("title", 1, "TASK-42 plan"),
       task("key", 42, "Unrelated"),
     ];
-    expect(rankTaskSearchResults({ tasks, query: "rmt-42" })[0]?.id).toBe(
+    expect(rankTaskSearchResults({ tasks, query: "task-42" })[0]?.id).toBe(
       "key",
     );
     expect(rankTaskSearchResults({ tasks, query: "rm" })).toEqual([]);
@@ -99,7 +99,7 @@ describe("task search", () => {
   it("builds task, all-results, filter, and fallback navigation targets", () => {
     const preview = { accessPreview: "group one" };
     expect(taskSearchResultHref(task("x", 42, "Task"), preview)).toBe(
-      "/task/RMT-42?accessPreview=group+one",
+      "/task/TASK-42?accessPreview=group+one",
     );
     expect(taskSearchAllHref("alpha beta", preview)).toBe(
       "/board?view=list&q=alpha+beta&accessPreview=group+one",

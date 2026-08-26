@@ -8,6 +8,7 @@ import {
 } from "@/lib/admin/instance-settings-fields";
 import {
   resolveInstanceSettings,
+  type InstanceSettings,
   type InstanceSettingsOverrides,
 } from "@/lib/instance";
 import { InstanceLinkPreview } from "./InstanceLinkPreview";
@@ -20,12 +21,14 @@ export function LinkPreviewSettingsModal({
   setOpen,
   overrides,
   demoMode,
+  baseSettings,
   onSaved,
 }: {
   open: boolean;
   setOpen: (open: boolean) => void;
   overrides: InstanceSettingsOverrides | null;
   demoMode: boolean;
+  baseSettings: InstanceSettings;
   onSaved: (overrides: InstanceSettingsOverrides) => void;
 }) {
   const { draft, setField, errors, saving, submit } = useInstanceSettingsForm({
@@ -37,10 +40,13 @@ export function LinkPreviewSettingsModal({
 
   // The identity values are not editable here, so they come from the stored
   // row rather than this dialog's draft.
-  const preview = resolveInstanceSettings({
-    ...overrides,
-    ...overridesFromDraft(draft),
-  });
+  const preview = resolveInstanceSettings(
+    {
+      ...overrides,
+      ...overridesFromDraft(draft),
+    },
+    baseSettings,
+  );
 
   return (
     <Modal
@@ -83,6 +89,7 @@ export function LinkPreviewSettingsModal({
           <InstanceSettingField
             key={spec.key}
             spec={spec}
+            defaults={baseSettings}
             value={draft[spec.key]}
             error={errors[spec.key]}
             overridden={Boolean(draft[spec.key].trim())}

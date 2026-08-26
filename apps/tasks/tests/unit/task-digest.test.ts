@@ -137,7 +137,7 @@ describe("task workload digests", () => {
 
     expect(html).toContain("background:#e7e9e8");
     expect(html).toContain("background:#fee2e2");
-    expect(html).toContain("RMT-53");
+    expect(html).toContain("TASK-53");
     expect(html).toContain("📁&nbsp; tasks.ryanmeetup.com");
     expect(html).toContain("📅&nbsp; Due Aug 20");
     expect(html).not.toContain("&nbsp; · &nbsp;");

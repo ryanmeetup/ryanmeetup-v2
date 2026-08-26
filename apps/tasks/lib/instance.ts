@@ -120,21 +120,28 @@ function assetPath(raw: string | undefined) {
   return candidate;
 }
 
+export const isDemoBuild =
+  !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
 const name = text(process.env.NEXT_PUBLIC_INSTANCE_NAME, "Ryan Meetup");
 const productName = text(
   process.env.NEXT_PUBLIC_INSTANCE_PRODUCT_NAME,
   `${name} Tasks`,
 );
-const taskKeyPrefix = keyPrefix(process.env.NEXT_PUBLIC_TASK_KEY_PREFIX, "RMT");
+const taskKeyPrefix = keyPrefix(
+  process.env.NEXT_PUBLIC_TASK_KEY_PREFIX,
+  isDemoBuild ? "TASK" : "RMT",
+);
 
 /**
  * Build-time tier. These compose identifiers, so they are compiled in and shown
  * read-only on the settings page alongside the variable that changes them.
  */
 export const instanceBuild = {
-  /** Prefix for readable public task keys, e.g. the RMT in RMT-142. */
+  /** Prefix for readable public task keys, e.g. RMT-142 or demo TASK-142. */
   taskKeyPrefix,
-  /** Prefix for changelog release versions, e.g. the RMT in "RMT v5". */
+  /** Prefix for changelog versions, e.g. "RMT v5" or demo "TASK v5". */
   changelogVersionPrefix: text(
     process.env.NEXT_PUBLIC_CHANGELOG_VERSION_PREFIX,
     taskKeyPrefix,
@@ -244,6 +251,34 @@ export const instanceDefaults: InstanceSettings = {
   ),
 };
 
+/**
+ * Neutral presentation for the zero-configuration local demo. Demo mode is
+ * often the first view of the product, so it should demonstrate a reusable
+ * team workspace rather than inherit one deployment's identity.
+ */
+export const demoInstanceSettings: InstanceSettings = {
+  name: "Workspace",
+  productName: "Team Tasks",
+  tagline: "Team task tracker",
+  description:
+    "A shared workspace for planning projects, assigning tasks, and keeping work moving.",
+  monogram: "W",
+  accentColor: "#2563eb",
+  logoPath: null,
+  footerVariant: "minimal",
+  footerSubtitle: "",
+  footerSections: [],
+  footerSocials: [],
+  creditPrefix: "",
+  creditLabel: "Team Tasks",
+  creditUrl: "/",
+  creditSuffix: "",
+  ogAlt: "Team Tasks — shared team workspace",
+  ogHeadline: "Tasks",
+  ogTagline: "Shared workspace for your team",
+  ogMotto: "Plan it. Assign it. Get it done.",
+};
+
 /** Which `InstanceSettings` keys may be cleared back to their default. */
 export const nullableInstanceSettings = [
   "logoPath",
@@ -263,11 +298,12 @@ export type InstanceSettingsOverrides = Partial<{
  */
 export function resolveInstanceSettings(
   overrides: InstanceSettingsOverrides | null | undefined,
+  defaults: InstanceSettings = instanceDefaults,
 ): InstanceSettings {
-  if (!overrides) return instanceDefaults;
-  const resolved = { ...instanceDefaults };
+  if (!overrides) return defaults;
+  const resolved = { ...defaults };
   for (const key of Object.keys(
-    instanceDefaults,
+    defaults,
   ) as (keyof InstanceSettings)[]) {
     const override = overrides[key];
     if (override === undefined) continue;

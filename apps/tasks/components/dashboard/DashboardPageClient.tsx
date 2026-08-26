@@ -197,10 +197,12 @@ export function DashboardPageClient({
           className="pointer-events-none absolute left-1/3 top-80 h-96 w-96 rounded-full bg-blue-300/10 blur-3xl dark:bg-blue-400/[0.05]"
         />
         <div className="relative mx-auto max-w-7xl space-y-6">
-          <LatestChangelogCard
-            preview={data.accessPreview}
-            release={latestChangelogRelease}
-          />
+          {!demoMode && (
+            <LatestChangelogCard
+              preview={data.accessPreview}
+              release={latestChangelogRelease}
+            />
+          )}
 
           <div className="grid grid-cols-3 gap-2 sm:gap-4">
             {[

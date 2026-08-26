@@ -6,10 +6,9 @@ import {
   requireQueryData,
   type WorkspaceCollection,
 } from "@/lib/server/workspace-loader";
+import { isDemoBuild } from "@/lib/instance";
 
-export const isWorkspaceDemo = () =>
-  !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-  !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+export const isWorkspaceDemo = () => isDemoBuild;
 
 export async function loadWorkspacePage(
   collections: readonly WorkspaceCollection[],

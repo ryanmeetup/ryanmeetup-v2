@@ -9,13 +9,13 @@ import { changelogReleasePath } from "@/lib/changelog";
 describe("changelog", () => {
   it("keeps the approved versions in newest-first order", () => {
     expect(changelog.map((release) => release.version)).toEqual([
-      "RMT v5",
-      "RMT v4",
-      "RMT v3",
-      "RMT v2",
-      "RMT v1",
+      "TASK v5",
+      "TASK v4",
+      "TASK v3",
+      "TASK v2",
+      "TASK v1",
     ]);
-    expect(latestChangelogRelease.version).toBe("RMT v5");
+    expect(latestChangelogRelease.version).toBe("TASK v5");
     expect(changelog.every((release) => release.author === "Ryan Le")).toBe(
       true,
     );

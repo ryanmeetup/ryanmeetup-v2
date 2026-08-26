@@ -183,7 +183,7 @@ export function calendarItems(
         : category?.color ?? (project ? "#7c3aed" : "#059669");
     const owner =
       event.kind === "away"
-        ? `${profileMap.get(event.profile_id ?? "")?.full_name ?? "A Ryan"} · Away`
+        ? `${profileMap.get(event.profile_id ?? "")?.full_name ?? "A teammate"} · Away`
         : project?.name ?? category?.name;
     const sameDay = datePart(event.starts_at) === datePart(event.ends_at);
     return occurrencesInRange(

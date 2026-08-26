@@ -12,6 +12,7 @@ import {
 } from "@/lib/admin/instance-settings-fields";
 import {
   resolveInstanceSettings,
+  type InstanceSettings,
   type InstanceSettingsOverrides,
 } from "@/lib/instance";
 import { InstanceSettingField } from "./InstanceSettingField";
@@ -24,12 +25,14 @@ export function IdentitySettingsModal({
   setOpen,
   overrides,
   demoMode,
+  baseSettings,
   onSaved,
 }: {
   open: boolean;
   setOpen: (open: boolean) => void;
   overrides: InstanceSettingsOverrides | null;
   demoMode: boolean;
+  baseSettings: InstanceSettings;
   onSaved: (overrides: InstanceSettingsOverrides) => void;
 }) {
   const { draft, setField, errors, saving, submit } = useInstanceSettingsForm({
@@ -41,10 +44,13 @@ export function IdentitySettingsModal({
   const [logo, setLogo] = useState(() => storedText(overrides, logoKey) ?? "");
   const [uploading, setUploading] = useState(false);
 
-  const preview = resolveInstanceSettings({
-    ...overridesFromDraft(draft),
-    logoPath: logo.trim() || null,
-  });
+  const preview = resolveInstanceSettings(
+    {
+      ...overridesFromDraft(draft),
+      logoPath: logo.trim() || null,
+    },
+    baseSettings,
+  );
 
   async function uploadLogo(file: File) {
     setUploading(true);
@@ -130,6 +136,7 @@ export function IdentitySettingsModal({
           <InstanceSettingField
             key={spec.key}
             spec={spec}
+            defaults={baseSettings}
             value={draft[spec.key]}
             error={errors[spec.key]}
             overridden={Boolean(draft[spec.key].trim())}

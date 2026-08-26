@@ -102,7 +102,7 @@ describe("calendar view models", () => {
       range,
     );
     expect(items.map((item) => item.source)).toEqual(["task", "away"]);
-    expect(items[0].href).toBe("/task/RMT-12");
+    expect(items[0].href).toBe("/task/TASK-12");
     expect(items[0].task?.title).toBe("Book the venue");
   });
 

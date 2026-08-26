@@ -18,11 +18,11 @@ import {
   overridesFromDraft,
 } from "@/lib/admin/instance-settings-fields";
 import {
-  instanceDefaults,
   resolveInstanceSettings,
   type InstanceFooterSection,
   type InstanceFooterSocial,
   type InstanceFooterVariant,
+  type InstanceSettings,
   type InstanceSettingsOverrides,
 } from "@/lib/instance";
 import { FooterPreview } from "./FooterPreview";
@@ -70,12 +70,14 @@ export function FooterSettingsModal({
   setOpen,
   overrides,
   demoMode,
+  baseSettings,
   onSaved,
 }: {
   open: boolean;
   setOpen: (open: boolean) => void;
   overrides: InstanceSettingsOverrides | null;
   demoMode: boolean;
+  baseSettings: InstanceSettings;
   onSaved: (overrides: InstanceSettingsOverrides) => void;
 }) {
   const { draft, setField, errors, saving, submit } = useInstanceSettingsForm({
@@ -96,17 +98,20 @@ export function FooterSettingsModal({
     Array.isArray(overrides?.footerSocials) ? overrides.footerSocials : null,
   );
 
-  const resolvedVariant = variant || instanceDefaults.footerVariant;
-  const resolvedSections = sections ?? instanceDefaults.footerSections;
-  const resolvedSocials = socials ?? instanceDefaults.footerSocials;
+  const resolvedVariant = variant || baseSettings.footerVariant;
+  const resolvedSections = sections ?? baseSettings.footerSections;
+  const resolvedSocials = socials ?? baseSettings.footerSocials;
 
-  const preview = resolveInstanceSettings({
-    ...overrides,
-    ...overridesFromDraft(draft),
-    ...(variant ? { footerVariant: variant } : {}),
-    ...(sections ? { footerSections: sections } : {}),
-    ...(socials ? { footerSocials: socials } : {}),
-  });
+  const preview = resolveInstanceSettings(
+    {
+      ...overrides,
+      ...overridesFromDraft(draft),
+      ...(variant ? { footerVariant: variant } : {}),
+      ...(sections ? { footerSections: sections } : {}),
+      ...(socials ? { footerSocials: socials } : {}),
+    },
+    baseSettings,
+  );
 
   /**
    * The list editors accept partial rows while they are being filled in, so
@@ -153,6 +158,7 @@ export function FooterSettingsModal({
     <InstanceSettingField
       key={spec.key}
       spec={spec}
+      defaults={baseSettings}
       value={draft[spec.key]}
       error={errors[spec.key]}
       overridden={Boolean(draft[spec.key].trim())}

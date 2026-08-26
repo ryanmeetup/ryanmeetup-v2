@@ -19,6 +19,8 @@ import {
   type InstanceTextKey,
 } from "@/lib/admin/instance-settings-fields";
 import {
+  demoInstanceSettings,
+  instanceDefaults,
   resolveInstanceSettings,
   type InstanceSettingsOverrides,
 } from "@/lib/instance";
@@ -125,7 +127,8 @@ export function AdminSettingsPageClient({
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const router = useRouter();
 
-  const settings = resolveInstanceSettings(stored);
+  const baseSettings = demoMode ? demoInstanceSettings : instanceDefaults;
+  const settings = resolveInstanceSettings(stored, baseSettings);
 
   const countFor = (name: Dialog) =>
     dialogKeys[name].filter((key) => storedText(stored, key)).length +
@@ -145,6 +148,7 @@ export function AdminSettingsPageClient({
   const dialogProps = {
     overrides: stored,
     demoMode,
+    baseSettings,
     onSaved: saved,
   };
 

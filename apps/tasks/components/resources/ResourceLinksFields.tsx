@@ -34,7 +34,7 @@ export function ResourceLinksFields({
   hint = "Attach docs, designs, folders, or any other helpful web page.",
   addLabel = "Add link",
   labelPlaceholder = "Design file",
-  urlPlaceholder = "ryanmeetup.com",
+  urlPlaceholder = "example.com",
 }: {
   links: ResourceLink[];
   setLinks: Dispatch<SetStateAction<ResourceLink[]>>;

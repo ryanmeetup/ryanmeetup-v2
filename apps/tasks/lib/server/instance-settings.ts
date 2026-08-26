@@ -8,6 +8,7 @@ import {
 } from "@/lib/server/supabase-errors";
 import { isWorkspaceDemo } from "@/lib/server/workspace-page-loader";
 import {
+  demoInstanceSettings,
   instanceDefaults,
   instancePageTitle,
   resolveInstanceSettings,
@@ -113,8 +114,10 @@ async function readOverrides(): Promise<InstanceSettingsOverrides | null> {
  * page metadata, and OG image share a single query.
  */
 export const getInstanceSettings = cache(
-  async (): Promise<InstanceSettings> =>
-    resolveInstanceSettings(await readOverrides()),
+  async (): Promise<InstanceSettings> => {
+    if (isWorkspaceDemo()) return demoInstanceSettings;
+    return resolveInstanceSettings(await readOverrides());
+  },
 );
 
 /** Raw overrides for the settings form, so it can show what is stored vs default. */

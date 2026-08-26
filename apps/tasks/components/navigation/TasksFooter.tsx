@@ -13,7 +13,7 @@ const publicRoutes = new Set(["/forgot-password", "/login", "/reset-password"]);
  * not a reproduction of one organization's footer, so an instance fills it
  * with its own content or picks `minimal`/`none` instead.
  */
-export function TasksFooter() {
+export function TasksFooter({ demoMode }: { demoMode: boolean }) {
   const instance = useInstance();
   const pathname = usePathname();
 
@@ -28,10 +28,12 @@ export function TasksFooter() {
   );
   const hasSidebar =
     !publicRoutes.has(pathname) && !pathname.startsWith("/auth/");
+  const minimal =
+    demoMode || !hasSidebar || instance.footerVariant === "minimal";
 
   return (
     <SiteFooter
-      variant={instance.footerVariant === "minimal" ? "minimal" : "branded"}
+      variant={minimal ? "minimal" : "branded"}
       title={instance.name.toUpperCase()}
       subtitle={instance.footerSubtitle}
       className={`tasks-footer px-4 sm:px-6 lg:px-8 ${hasSidebar ? "lg:ml-64" : ""}`}
@@ -44,12 +46,16 @@ export function TasksFooter() {
         })),
       }))}
       socialLinks={socialLinks}
-      credit={{
-        href: instance.creditUrl,
-        label: instance.creditLabel,
-        prefix: instance.creditPrefix,
-        suffix: instance.creditSuffix,
-      }}
+      credit={
+        demoMode
+          ? undefined
+          : {
+              href: instance.creditUrl,
+              label: instance.creditLabel,
+              prefix: instance.creditPrefix,
+              suffix: instance.creditSuffix,
+            }
+      }
     />
   );
 }

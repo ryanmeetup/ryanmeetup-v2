@@ -12,7 +12,8 @@ import { subscribeToWorkspace } from "@/lib/workspace/workspace-realtime";
 import { restoreWorkspace } from "@/lib/workspace/workspace-state";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 
-const STORAGE_KEY = "ryanmeetup.tasks.workspace";
+// Versioned so fixture changes do not restore stale demo branding and content.
+const STORAGE_KEY = "ryanmeetup.tasks.workspace.v2";
 
 export function useWorkspaceData(
   initialData: WorkspaceData,

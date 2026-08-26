@@ -65,7 +65,7 @@ export function InviteTeammateModal({
           name="invite-name"
           value={name}
           onChange={(event) => onNameChange(event.target.value)}
-          placeholder="New Ryan"
+          placeholder="New teammate"
           disabled={pending}
         />
         <Input
