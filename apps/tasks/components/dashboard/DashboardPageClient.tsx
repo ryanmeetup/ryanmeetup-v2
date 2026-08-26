@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Button,
@@ -33,6 +33,7 @@ import {
   taskDraftsChangedEvent,
   type StoredTaskDraft,
 } from "@/lib/tasks/task-drafts";
+import { demoTaskDrafts } from "@/lib/workspace/demo-drafts";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { taskPath } from "@/lib/tasks/task-key";
 import { profileDisplayName } from "@/lib/presentation";
@@ -80,11 +81,19 @@ export function DashboardPageClient({
   );
   const [draftPendingDelete, setDraftPendingDelete] =
     useState<StoredTaskDraft | null>(null);
+  // Demo builds have no browser storage to read from, so the widget runs on
+  // fixtures instead and a deletion only has to hold for the session.
+  const discardedDemoDrafts = useRef(new Set<string>());
   const refreshDrafts = useCallback(() => {
-    if (!data.accessPreview) {
-      setDrafts(readTaskDrafts(data.currentProfile.id));
-    }
-  }, [data.accessPreview, data.currentProfile.id]);
+    if (data.accessPreview) return;
+    setDrafts(
+      demoMode
+        ? demoTaskDrafts.filter(
+            (item) => !discardedDemoDrafts.current.has(item.id),
+          )
+        : readTaskDrafts(data.currentProfile.id),
+    );
+  }, [data.accessPreview, data.currentProfile.id, demoMode]);
 
   useEffect(() => {
     const initialRefresh = window.setTimeout(refreshDrafts, 0);
@@ -641,7 +650,9 @@ export function DashboardPageClient({
         destructive
         onConfirm={() => {
           if (!draftPendingDelete) return;
-          deleteTaskDraft(data.currentProfile.id, draftPendingDelete.id);
+          if (demoMode) discardedDemoDrafts.current.add(draftPendingDelete.id);
+          else deleteTaskDraft(data.currentProfile.id, draftPendingDelete.id);
+          refreshDrafts();
           setDraftPendingDelete(null);
         }}
       />

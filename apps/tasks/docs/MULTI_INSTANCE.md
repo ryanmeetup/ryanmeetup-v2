@@ -367,7 +367,10 @@ Notes on the design:
   credentials uses the generic identity in `lib/instance.ts`, the sample team
   and projects in `lib/workspace/demo-data.ts`, `TASK-` task keys, and a minimal
   footer. Keep this path free of deployment-specific branding because it is
-  also the app's zero-configuration first impression.
+  also the app's zero-configuration first impression. The `/admin` section is
+  hidden there — `app/admin/layout.tsx` redirects to `/`, and the header drops
+  its Admin entry points — because none of those screens can persist a change
+  without a database.
 - **The brand theme is shared.** `packages/brand/theme.css` provides Cooper
   Black and the nametag red to every app in the monorepo. A second instance
   currently inherits the Ryan Meetup look apart from

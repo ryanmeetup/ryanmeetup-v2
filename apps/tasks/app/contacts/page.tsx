@@ -6,7 +6,7 @@ import {
   USER_ACCESS_PREVIEW_PARAM,
 } from "@/lib/access/access-preview";
 import { resolveAccessPreview } from "@/lib/server/access-preview";
-import { demoData } from "@/lib/workspace/demo-data";
+import { demoContacts, demoData } from "@/lib/workspace/demo-data";
 import { loadContacts } from "@/lib/server/contacts";
 import {
   isWorkspaceDemo,
@@ -38,7 +38,7 @@ export default async function ContactsPage({
     return (
       <ContactsPageClient
         initialData={demoData}
-        initialContacts={[]}
+        initialContacts={demoContacts}
         demoMode
       />
     );

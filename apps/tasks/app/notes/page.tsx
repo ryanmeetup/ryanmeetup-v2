@@ -7,7 +7,11 @@ import {
   USER_ACCESS_PREVIEW_PARAM,
 } from "@/lib/access/access-preview";
 import { resolveAccessPreview } from "@/lib/server/access-preview";
-import { demoData } from "@/lib/workspace/demo-data";
+import {
+  demoData,
+  demoNoteComments,
+  demoNotes,
+} from "@/lib/workspace/demo-data";
 import { noteColumns, noteCommentColumns } from "@/lib/resources/notes";
 import { requireQueryData } from "@/lib/server/workspace-loader";
 import {
@@ -39,8 +43,8 @@ export default async function NotesPage({
     return (
       <NotesPageClient
         initialData={demoData}
-        initialNotes={[]}
-        initialComments={[]}
+        initialNotes={demoNotes}
+        initialComments={demoNoteComments}
         demoMode
       />
     );

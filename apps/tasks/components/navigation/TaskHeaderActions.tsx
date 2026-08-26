@@ -44,8 +44,9 @@ export function TaskHeaderActions({
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const isPreviewing = Boolean(data.accessPreview);
+  // Demo builds hide /admin entirely, so the entry points go with it.
   const isOwner =
-    !isPreviewing && (demoMode || data.currentProfile.app_role === "owner");
+    !isPreviewing && !demoMode && data.currentProfile.app_role === "owner";
   const profileName = profileDisplayName(data.currentProfile);
   return (
     <>
@@ -122,7 +123,7 @@ export function TaskHeaderActions({
               )}
               {isOwner && (
                 <>
-                  {!demoMode && <DropdownMenuSeparator />}
+                  <DropdownMenuSeparator />
                   <div
                     id="mobile-account-menu-admin"
                     className="px-3 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-widest text-black/45 dark:text-white/45"
