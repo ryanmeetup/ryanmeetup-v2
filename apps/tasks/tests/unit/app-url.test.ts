@@ -1,10 +1,17 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  developmentFallbackOrigin,
   isAllowedTasksRequestOrigin,
-  productionTasksAppOrigin,
+  metadataOrigin,
   tasksAppOrigin,
   tasksAppUrl,
 } from "@/lib/app-url";
+
+/**
+ * A deployment's canonical origin. Any real domain does; this one is only a
+ * stand-in for "the operator configured TASKS_APP_URL".
+ */
+const productionTasksAppOrigin = "https://tasks.example.com";
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -22,7 +29,7 @@ describe("Tasks app canonical URLs", () => {
   it("keeps the production origin explicit rather than universal", () => {
     vi.stubEnv("TASKS_APP_URL", productionTasksAppOrigin);
 
-    expect(tasksAppOrigin()).toBe("https://tasks.ryanmeetup.com");
+    expect(tasksAppOrigin()).toBe(productionTasksAppOrigin);
   });
 
   it("allows loopback request origins outside production", () => {
@@ -95,5 +102,78 @@ describe("Tasks app canonical URLs", () => {
     vi.stubEnv("TASKS_APP_URL", productionTasksAppOrigin);
 
     expect(() => tasksAppUrl("//attacker.example/path")).toThrow();
+  });
+});
+
+describe("metadata origin", () => {
+  const clearConfiguration = () => {
+    vi.stubEnv("TASKS_APP_URL", "");
+    vi.stubEnv("NEXT_PUBLIC_TASKS_APP_URL", "");
+    vi.stubEnv("VERCEL_PROJECT_PRODUCTION_URL", "");
+  };
+
+  it("prefers the configured origin over everything it could infer", () => {
+    vi.stubEnv("TASKS_APP_URL", productionTasksAppOrigin);
+    vi.stubEnv("VERCEL_PROJECT_PRODUCTION_URL", "ignored.vercel.app");
+
+    expect(
+      metadataOrigin(new Headers({ "x-forwarded-host": "ignored.example" })),
+    ).toBe(productionTasksAppOrigin);
+  });
+
+  it("describes an unconfigured deployment by the domain serving it", () => {
+    clearConfiguration();
+
+    expect(
+      metadataOrigin(
+        new Headers({
+          "x-forwarded-host": "projects.example.dev",
+          "x-forwarded-proto": "https",
+        }),
+      ),
+    ).toBe("https://projects.example.dev");
+  });
+
+  it("reads the first entry of a proxy chain", () => {
+    clearConfiguration();
+
+    expect(
+      metadataOrigin(
+        new Headers({
+          "x-forwarded-host": "projects.example.dev, internal.example",
+          "x-forwarded-proto": "https, http",
+        }),
+      ),
+    ).toBe("https://projects.example.dev");
+  });
+
+  it("assumes https for a forwarded host that states no protocol", () => {
+    clearConfiguration();
+
+    expect(
+      metadataOrigin(new Headers({ host: "projects.example.dev" })),
+    ).toBe("https://projects.example.dev");
+    expect(metadataOrigin(new Headers({ host: "localhost:3000" }))).toBe(
+      "http://localhost:3000",
+    );
+  });
+
+  it("falls back to the production domain when no request is in hand", () => {
+    clearConfiguration();
+    vi.stubEnv("VERCEL_PROJECT_PRODUCTION_URL", "projects.example.dev");
+
+    // Static metadata has no request, and VERCEL_URL is deliberately unused
+    // because it names the deployment rather than the project.
+    vi.stubEnv("VERCEL_URL", "tasks-abc123-xyz.vercel.app");
+    expect(metadataOrigin()).toBe("https://projects.example.dev");
+  });
+
+  it("never advertises another deployment's domain when nothing resolves", () => {
+    clearConfiguration();
+
+    const origin = metadataOrigin();
+
+    expect(origin).toBe(developmentFallbackOrigin);
+    expect(origin).not.toMatch(/ryanmeetup/i);
   });
 });

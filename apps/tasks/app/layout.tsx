@@ -28,8 +28,12 @@ try {
 
 export async function generateMetadata(): Promise<Metadata> {
   const instance = await getInstanceSettings();
+  // `headers()` is request-scoped and deduplicated, so reading it here costs
+  // nothing beyond what the layout below already pays for the CSP nonce. It
+  // lets an unconfigured deployment describe itself by the domain it is
+  // actually served from rather than guessing at one.
   return {
-    metadataBase: new URL(metadataOrigin()),
+    metadataBase: new URL(metadataOrigin(await headers())),
     title: {
       default: instance.productName,
       template: `%s | ${instance.productName}`,

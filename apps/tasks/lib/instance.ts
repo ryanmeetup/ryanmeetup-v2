@@ -5,7 +5,7 @@
  * There are two tiers.
  *
  * `instanceBuild` is fixed at build time because its values compose
- * identifiers. The task key prefix appears in URLs (`/task/RMT-142`) and is
+ * identifiers. The task key prefix appears in URLs (`/task/TASK-142`) and is
  * consumed by pure synchronous modules, so it cannot vary per request and
  * editing it at runtime would break every existing link.
  *
@@ -13,9 +13,10 @@
  * runtime from the `instance_settings` table via /admin/settings. The values
  * here are the defaults used when no row or no column value exists.
  *
- * Every value falls back to the Ryan Meetup original, so a deployment that sets
- * none of these behaves exactly as it did before this module existed. A second
- * instance overrides only what actually differs.
+ * The compiled defaults are deliberately unbranded: a build that configures
+ * nothing presents as an unnamed workspace rather than wearing another
+ * deployment's identity. Ryan Meetup is an instance like any other and names
+ * itself through the variables below or /admin/settings.
  *
  * Each variable is read as a literal `process.env.NEXT_PUBLIC_*` member
  * expression because Next.js inlines client-visible variables at build time by
@@ -125,24 +126,32 @@ export const isDemoBuild =
   !process.env.NEXT_PUBLIC_SUPABASE_URL ||
   !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-const name = text(process.env.NEXT_PUBLIC_INSTANCE_NAME, "Ryan Meetup");
+/**
+ * A configured name also seeds the description sentence below. Left unset the
+ * build has no organization to name, so it takes a neutral wordmark and a
+ * description that does not claim one.
+ */
+const configuredName = optionalText(process.env.NEXT_PUBLIC_INSTANCE_NAME);
+const name = configuredName ?? "Workspace";
 const productName = text(
   process.env.NEXT_PUBLIC_INSTANCE_PRODUCT_NAME,
   `${name} Tasks`,
 );
-const taskKeyPrefix = keyPrefix(
-  process.env.NEXT_PUBLIC_TASK_KEY_PREFIX,
-  isDemoBuild ? "TASK" : "RMT",
-);
+// Neutral for every build, demo or configured. The prefix composes public task
+// keys and changelog versions, so a deployment that has not chosen one should
+// not ship another deployment's initials. An instance sets its own at first
+// deploy, before any keys are shared -- changing it later renames every
+// existing `/task/<key>` link.
+const taskKeyPrefix = keyPrefix(process.env.NEXT_PUBLIC_TASK_KEY_PREFIX, "TASK");
 
 /**
  * Build-time tier. These compose identifiers, so they are compiled in and shown
  * read-only on the settings page alongside the variable that changes them.
  */
 export const instanceBuild = {
-  /** Prefix for readable public task keys, e.g. RMT-142 or demo TASK-142. */
+  /** Prefix for readable public task keys, e.g. TASK-142 or RMT-142. */
   taskKeyPrefix,
-  /** Prefix for changelog versions, e.g. "RMT v5" or demo "TASK v5". */
+  /** Prefix for changelog versions, e.g. "TASK v5" or "RMT v5". */
   changelogVersionPrefix: text(
     process.env.NEXT_PUBLIC_CHANGELOG_VERSION_PREFIX,
     taskKeyPrefix,
@@ -191,7 +200,9 @@ export const instanceDefaults: InstanceSettings = {
   tagline: text(process.env.NEXT_PUBLIC_INSTANCE_TAGLINE, "Task tracker"),
   description: text(
     process.env.NEXT_PUBLIC_INSTANCE_DESCRIPTION,
-    `The private workspace for the ${name} core team to plan projects and keep work moving.`,
+    configuredName
+      ? `The private workspace for the ${name} core team to plan projects and keep work moving.`
+      : "A shared workspace for planning projects, assigning tasks, and keeping work moving.",
   ),
   monogram: text(
     process.env.NEXT_PUBLIC_INSTANCE_MONOGRAM,
@@ -200,13 +211,12 @@ export const instanceDefaults: InstanceSettings = {
   accentColor: hexColor(process.env.NEXT_PUBLIC_INSTANCE_ACCENT, "#ee1a25"),
   logoPath: assetPath(process.env.NEXT_PUBLIC_INSTANCE_LOGO_PATH),
   footerVariant: footerVariant(process.env.NEXT_PUBLIC_INSTANCE_FOOTER_VARIANT),
-  footerSubtitle: text(
-    process.env.NEXT_PUBLIC_INSTANCE_FOOTER_SUBTITLE,
-    "NO BRYANS ALLOWED",
-  ),
-  // This build's content for the branded shape: the stack credit Ryan Meetup
-  // shows across its apps. Another instance replaces or empties these from
-  // /admin/settings; neither is special-cased anywhere in the renderer.
+  // Nothing by default: the subtitle sits directly under the wordmark, and an
+  // unnamed build has nothing to say there.
+  footerSubtitle: text(process.env.NEXT_PUBLIC_INSTANCE_FOOTER_SUBTITLE, ""),
+  // The stack this app is built on, which holds for every deployment of it.
+  // An instance replaces or empties these from /admin/settings; nothing here
+  // is special-cased anywhere in the renderer.
   footerSections: [
     {
       title: "Built with",
@@ -220,10 +230,8 @@ export const instanceDefaults: InstanceSettings = {
       ],
     },
   ],
-  footerSocials: [
-    { platform: "instagram", url: "https://www.instagram.com/ryanmeetup/" },
-    { platform: "youtube", url: "https://www.youtube.com/@ryanmeetup" },
-  ],
+  // Social accounts belong to an instance, never to the codebase.
+  footerSocials: [],
   creditPrefix: text(
     process.env.NEXT_PUBLIC_INSTANCE_CREDIT_PREFIX,
     "Website designed and developed by ",

@@ -18,7 +18,8 @@ test("login exposes accessible credentials and validates missing input", async (
   await page.goto("/login");
   // The wordmark is instance-configurable and can be overridden at runtime from
   // /admin/settings, so assert that it rendered rather than what it says.
-  // Pinning the literal here would fail on any instance that is not Ryan Meetup.
+  // Pinning the literal would fail on any instance that has named itself, and
+  // on an unconfigured build it would only pin the neutral fallback.
   const wordmark = page.getByRole("heading", { level: 1 });
   await expect(wordmark).toBeVisible();
   await expect(wordmark).not.toBeEmpty();

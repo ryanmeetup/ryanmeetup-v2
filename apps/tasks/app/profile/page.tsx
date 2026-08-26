@@ -24,7 +24,7 @@ export default async function ProfilePage() {
   try {
     const result = await loadWorkspacePage(
       ["profiles", "statuses", "categories", "categoryOwners", "projects"],
-      { requireOnboarding: false },
+      { requireOnboarding: false, onLoadError: "throw" },
     );
     data = result.data;
     email = result.user.email ?? "";
@@ -35,14 +35,17 @@ export default async function ProfilePage() {
     const supabase = await createClient();
     const { data: auth, error: authError } = await supabase.auth.getUser();
     if (authError || !auth.user) redirect("/login");
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select(
         "id,full_name,avatar_url,onboarding_completed,task_details_open_by_default,favorite_project_ids,app_role",
       )
       .eq("id", auth.user.id)
       .maybeSingle();
-    if (!profile) redirect("/login?error=profile");
+    // Bouncing to /login would loop: the visitor is signed in, so /login sends
+    // them back to /, which sends them here again. Surface the error instead.
+    if (profileError || !profile)
+      throw new WorkspaceLoadError("current profile", profileError);
 
     data = {
       currentProfile: profile,

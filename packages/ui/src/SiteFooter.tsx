@@ -159,9 +159,11 @@ export function SiteFooter({
             >
               {title}
             </Heading>
-            <p className="title mt-[2px] text-center font-cooper text-xl uppercase sm:text-2xl md:text-3xl">
-              {subtitle}
-            </p>
+            {subtitle && (
+              <p className="title mt-[2px] text-center font-cooper text-xl uppercase sm:text-2xl md:text-3xl">
+                {subtitle}
+              </p>
+            )}
           </Link>
         </div>
 

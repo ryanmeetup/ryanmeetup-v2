@@ -17,29 +17,59 @@ afterEach(() => {
 });
 
 describe("instance identity", () => {
-  it("keeps the production identity defaults while demo keys stay neutral", async () => {
+  it("presents as an unnamed workspace when nothing is configured", async () => {
     const { instanceBuild, instanceDefaults, instancePageTitle } =
       await loadInstance();
     const instance = instanceDefaults;
 
-    expect(instance.name).toBe("Ryan Meetup");
-    expect(instance.productName).toBe("Ryan Meetup Tasks");
+    expect(instance.name).toBe("Workspace");
+    expect(instance.productName).toBe("Workspace Tasks");
     expect(instanceBuild.taskKeyPrefix).toBe("TASK");
     expect(instanceBuild.changelogVersionPrefix).toBe("TASK");
     expect(instance.accentColor).toBe("#ee1a25");
-    expect(instance.monogram).toBe("R");
+    expect(instance.monogram).toBe("W");
     expect(instance.logoPath).toBeNull();
     expect(instance.description).toBe(
-      "The private workspace for the Ryan Meetup core team to plan projects and keep work moving.",
+      "A shared workspace for planning projects, assigning tasks, and keeping work moving.",
     );
-    expect(instance.ogAlt).toBe("Ryan Meetup Tasks — private team workspace");
-    expect(instance.footerSubtitle).toBe("NO BRYANS ALLOWED");
-    expect(instance.footerSocials.map((social) => social.platform)).toEqual([
-      "instagram",
-      "youtube",
-    ]);
+    expect(instance.ogAlt).toBe("Workspace Tasks — private team workspace");
+    // No organization is named, so there is nothing to put under the wordmark
+    // and no accounts to link.
+    expect(instance.footerSubtitle).toBe("");
+    expect(instance.footerSocials).toEqual([]);
     expect(instancePageTitle(instance, "Dashboard")).toBe(
-      "Dashboard | Ryan Meetup Tasks",
+      "Dashboard | Workspace Tasks",
+    );
+  });
+
+  it("carries no Ryan Meetup identity in the compiled defaults", async () => {
+    const { instanceDefaults } = await loadInstance();
+    const identity = [
+      instanceDefaults.name,
+      instanceDefaults.productName,
+      instanceDefaults.description,
+      instanceDefaults.footerSubtitle,
+      instanceDefaults.ogAlt,
+      ...instanceDefaults.footerSocials.map((social) => social.url),
+    ].join(" ");
+
+    expect(identity).not.toMatch(/ryan meetup|bryans|ryanmeetup/i);
+  });
+
+  it("wears the Ryan Meetup identity only when configured to", async () => {
+    const instance = (
+      await loadInstance({
+        NEXT_PUBLIC_INSTANCE_NAME: "Ryan Meetup",
+        NEXT_PUBLIC_INSTANCE_FOOTER_SUBTITLE: "NO BRYANS ALLOWED",
+      })
+    ).instanceDefaults;
+
+    expect(instance.name).toBe("Ryan Meetup");
+    expect(instance.productName).toBe("Ryan Meetup Tasks");
+    expect(instance.monogram).toBe("R");
+    expect(instance.footerSubtitle).toBe("NO BRYANS ALLOWED");
+    expect(instance.description).toBe(
+      "The private workspace for the Ryan Meetup core team to plan projects and keep work moving.",
     );
   });
 
@@ -53,12 +83,24 @@ describe("instance identity", () => {
     expect(instancePageTitle(instance, "Notes")).toBe("Notes | Ryan Le Tasks");
   });
 
-  it("keeps RMT keys for a configured deployment", async () => {
+  it("keeps neutral task keys for a configured deployment", async () => {
     const { instanceBuild } = await loadInstance({
       NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",
     });
 
+    // Configuring Supabase says nothing about who the instance is, so the
+    // prefix stays neutral until the instance names one.
+    expect(instanceBuild.taskKeyPrefix).toBe("TASK");
+    expect(instanceBuild.changelogVersionPrefix).toBe("TASK");
+  });
+
+  it("takes the instance's own key prefix when it sets one", async () => {
+    const { instanceBuild } = await loadInstance({
+      NEXT_PUBLIC_TASK_KEY_PREFIX: "rmt",
+    });
+
+    // Upper-cased on the way in, and the changelog follows it by default.
     expect(instanceBuild.taskKeyPrefix).toBe("RMT");
     expect(instanceBuild.changelogVersionPrefix).toBe("RMT");
   });
@@ -194,7 +236,7 @@ describe("runtime instance overrides", () => {
       accentColor: "#0f766e",
       // Untouched keys keep the compiled default, including derived ones.
       productName: instanceDefaults.productName,
-      footerSubtitle: "NO BRYANS ALLOWED",
+      footerSubtitle: instanceDefaults.footerSubtitle,
     });
   });
 
@@ -228,7 +270,7 @@ describe("runtime instance overrides", () => {
 });
 
 describe("instance footer composition", () => {
-  it("ships the Ryan Meetup content as this build's default branded footer", async () => {
+  it("ships the stack column and author credit as the default branded footer", async () => {
     const { instanceDefaults } = await loadInstance();
 
     expect(instanceDefaults.footerVariant).toBe("branded");

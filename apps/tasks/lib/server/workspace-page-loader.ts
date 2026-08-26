@@ -38,7 +38,17 @@ export async function loadWorkspacePage(
   {
     owner = false,
     requireOnboarding = true,
-  }: { owner?: boolean; requireOnboarding?: boolean } = {},
+    onLoadError = "redirect",
+  }: {
+    owner?: boolean;
+    requireOnboarding?: boolean;
+    /**
+     * How to handle a failed workspace query. The default sends the visitor to
+     * /profile, which can recover with a minimal profile — but /profile itself
+     * must pass "throw", or the redirect points at the failing page and loops.
+     */
+    onLoadError?: "redirect" | "throw";
+  } = {},
 ) {
   const supabase = await createClient();
   const { data: auth, error: authError } = await supabase.auth.getUser();
@@ -55,7 +65,7 @@ export async function loadWorkspacePage(
   try {
     data = await loadWorkspace(supabase, auth.user.id, collections);
   } catch (error) {
-    if (error instanceof WorkspaceLoadError) {
+    if (error instanceof WorkspaceLoadError && onLoadError === "redirect") {
       redirect("/profile");
     }
     throw error;

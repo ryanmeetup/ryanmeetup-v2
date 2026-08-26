@@ -86,8 +86,8 @@ directly rather than expanding a barrel solely for internal use.
 - `searchParams` is asynchronous in this Next.js version. Type it as a promise
   and await it before reading values.
 - Public task references use readable `<prefix>-<number>` keys built by
-  `lib/tasks/task-key.ts`, where the prefix is per-instance and defaults to
-  `RMT` for configured deployments and `TASK` in the zero-configuration demo.
+  `lib/tasks/task-key.ts`, where the prefix is per-instance and defaults to the
+  neutral `TASK` for every build until an instance sets its own.
   Never hardcode the prefix. UUIDs remain internal identifiers and must
   not replace task keys in navigation or shared URLs.
 

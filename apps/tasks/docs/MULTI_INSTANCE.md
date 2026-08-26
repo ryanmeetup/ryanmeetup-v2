@@ -260,10 +260,25 @@ singleton, layers it over the compiled defaults, and caches the result per
 request. `app/layout.tsx` seeds `InstanceProvider` so client components read the
 resolved values synchronously through `useInstance()`.
 
-Every value falls back to the Ryan Meetup original, so a deployment that sets
-nothing and has no stored row behaves exactly as before.
-`tests/unit/instance.test.ts` covers defaults, env overrides, the stored-override
-merge, and the validation rules.
+The compiled defaults are unbranded. A deployment that sets nothing and has no
+stored row presents as an unnamed **Workspace**, with no footer subtitle and no
+social links, rather than borrowing another deployment's identity — so a new
+instance is never mistaken for Ryan Meetup before its owner has configured it.
+Ryan Meetup is an instance like any other: it names itself through the variables
+below or `/admin/settings`, and a Ryan Meetup deployment that sets neither will
+render as `Workspace`. `tests/unit/instance.test.ts` covers defaults, env
+overrides, the stored-override merge, and the validation rules, and asserts that
+no Ryan Meetup identity survives in the compiled defaults.
+
+One Ryan Meetup value is deliberately still a default, because neutralizing it
+is not free: `NEXT_PUBLIC_INSTANCE_ACCENT` defaults to `#ee1a25`, the nametag
+red, which also reaches email HTML. It is a color rather than a mark, so it is
+not recognizable as Ryan Meetup on its own.
+
+`metadataOrigin()` in `lib/app-url.ts` names no deployment either. With
+`TASKS_APP_URL` unset it degrades through the origin of the request being
+served, then `VERCEL_PROJECT_PRODUCTION_URL`, then `http://localhost:3000`, so
+an unconfigured build's `og:url` points at itself rather than at Ryan Meetup.
 
 The local `.env.example` also lists these, but note it is **gitignored** by the
 `.env*` rule in `apps/tasks/.gitignore`, so it does not survive a fresh clone.
@@ -276,8 +291,8 @@ The table below is the durable reference.
 | Fallback logo                             | `NEXT_PUBLIC_INSTANCE_LOGO_PATH`, a root-relative path in `public/`                          |
 | Page titles                               | `pageTitle()` from `lib/server/instance-settings.ts`; `useInstancePageTitle()` on the client |
 | Root metadata and Open Graph card         | `app/layout.tsx`, `app/opengraph-image.tsx`                                                  |
-| Task key prefix (`RMT-142`)               | `NEXT_PUBLIC_TASK_KEY_PREFIX`, consumed by `lib/tasks/task-key.ts`                           |
-| Changelog version format (`RMT v5`)       | `NEXT_PUBLIC_CHANGELOG_VERSION_PREFIX`, defaults to the task key prefix                      |
+| Task key prefix (`TASK-142`)              | `NEXT_PUBLIC_TASK_KEY_PREFIX`, consumed by `lib/tasks/task-key.ts`                           |
+| Changelog version format (`TASK v5`)      | `NEXT_PUBLIC_CHANGELOG_VERSION_PREFIX`, defaults to the task key prefix                      |
 | Digest email branding                     | `lib/server/task-digest-email.ts`                                                            |
 | Footer composition, socials, credit       | `components/navigation/TasksFooter.tsx`, `packages/ui/src/SiteFooter.tsx`                    |
 | Social platform icons and labels          | `lib/instance-socials.tsx`                                                                   |
@@ -292,11 +307,11 @@ value wins, and `/admin/settings` is the easier place to change it.
 
 | Variable                               | Default                                                                                 |
 | -------------------------------------- | --------------------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_INSTANCE_NAME`            | `Ryan Meetup`                                                                           |
+| `NEXT_PUBLIC_INSTANCE_NAME`            | `Workspace` — Ryan Meetup's own deployment sets this to `Ryan Meetup`                   |
 | `NEXT_PUBLIC_INSTANCE_PRODUCT_NAME`    | `<name> Tasks`                                                                          |
 | `NEXT_PUBLIC_INSTANCE_TAGLINE`         | `Task tracker`                                                                          |
-| `NEXT_PUBLIC_INSTANCE_DESCRIPTION`     | `The private workspace for the <name> core team to plan projects and keep work moving.` |
-| `NEXT_PUBLIC_TASK_KEY_PREFIX`          | `RMT` when configured; `TASK` in demo — 1-10 alphanumerics starting with a letter        |
+| `NEXT_PUBLIC_INSTANCE_DESCRIPTION`     | derived from a configured name; otherwise a generic shared-workspace sentence           |
+| `NEXT_PUBLIC_TASK_KEY_PREFIX`          | `TASK` — 1-10 alphanumerics starting with a letter; Ryan Meetup sets `RMT`               |
 | `NEXT_PUBLIC_CHANGELOG_VERSION_PREFIX` | the task key prefix                                                                     |
 | `NEXT_PUBLIC_INSTANCE_ACCENT`          | `#ee1a25` — six-digit hex                                                               |
 | `NEXT_PUBLIC_INSTANCE_LOGO_PATH`       | none; root-relative path in `public/`                                                   |
@@ -306,7 +321,7 @@ value wins, and `/admin/settings` is the easier place to change it.
 | `NEXT_PUBLIC_INSTANCE_OG_TAGLINE`      | `Private workspace for the core team`                                                   |
 | `NEXT_PUBLIC_INSTANCE_OG_MOTTO`        | `Plan it. Assign it. Get it done.`                                                      |
 | `NEXT_PUBLIC_INSTANCE_FOOTER_VARIANT`  | `branded` — one of `branded`, `minimal`, `none`                                         |
-| `NEXT_PUBLIC_INSTANCE_FOOTER_SUBTITLE` | `NO BRYANS ALLOWED`                                                                     |
+| `NEXT_PUBLIC_INSTANCE_FOOTER_SUBTITLE` | none — Ryan Meetup's own deployment sets `NO BRYANS ALLOWED`                            |
 | `NEXT_PUBLIC_INSTANCE_CREDIT_PREFIX`   | `Website designed and developed by `                                                    |
 | `NEXT_PUBLIC_INSTANCE_CREDIT_LABEL`    | `Ryan Le`                                                                               |
 | `NEXT_PUBLIC_INSTANCE_CREDIT_URL`      | `https://ryanle.dev/`                                                                   |
@@ -315,12 +330,17 @@ value wins, and `/admin/settings` is the easier place to change it.
 The footer link columns and social icons have no environment variables: they
 are lists rather than scalars, so the compiled defaults in `lib/instance.ts`
 are the only build-time values and `/admin/settings` is where an instance
-changes them.
+changes them. The default sections describe the stack the app is built on,
+which is true of every deployment; the default socials list is **empty**,
+because accounts belong to an instance rather than to the codebase.
 
 Notes on the design:
 
 - The task key prefix is **display-only**. `task_number` is a database column;
   changing the prefix renames what users see and does not touch stored data.
+  It does, however, change every `/task/<key>` URL, so an existing deployment
+  that was relying on the old `RMT` default must set
+  `NEXT_PUBLIC_TASK_KEY_PREFIX=RMT` to keep its shared links resolving.
 - The prefix, accent color, and logo path are validated at module load and throw
   on malformed input, because they are interpolated into regular expressions,
   inline email styles, and an image URL respectively.
