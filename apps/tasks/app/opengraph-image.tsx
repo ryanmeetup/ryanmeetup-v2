@@ -1,11 +1,9 @@
 import { ImageResponse } from "next/og";
-import { instanceDefaults } from "@/lib/instance";
 import { getInstanceSettings } from "@/lib/server/instance-settings";
 
-// Metadata file exports must be static values. The runtime alt text reaches
-// the page through `openGraph.images` in app/layout.tsx, which takes precedence
-// over this fallback whenever the two differ.
-export const alt = instanceDefaults.ogAlt;
+// Metadata file exports must be static values, so keep this fallback neutral.
+// The image itself still reads the active instance settings below.
+export const alt = "Team task workspace";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
