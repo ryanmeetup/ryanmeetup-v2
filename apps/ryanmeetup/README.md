@@ -47,7 +47,7 @@ What started as flyers on city streets turned into a global Ryan community. The 
 3. Run the dev server
    - `npm run dev`
 
-4. Open http://localhost:3000
+4. Open http://localhost:3001
 
 ## Environment Variables
 

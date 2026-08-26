@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Playwright builds into its own directory so an e2e run never disturbs the
+  // `.next` a dev server is using.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   transpilePackages: ["@ryanmeetup/hooks", "@ryanmeetup/ui"],
   images: {
     remotePatterns: [

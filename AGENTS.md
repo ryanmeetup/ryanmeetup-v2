@@ -26,6 +26,12 @@ business logic into a generic package.
 The repository uses npm workspaces. Use the workspace scripts in the root
 `package.json` or run scripts from the relevant app directory.
 
+Each app's `dev` script pins its own port so two apps never race for one, and
+so a Playwright run never lands on whichever app happened to claim it first:
+tasks 3000 (its Supabase auth callbacks are registered there), ryanmeetup 3001,
+store 3002, ryancon 3003. End-to-end servers run higher and separately —
+tasks 3100, ryanmeetup 3101 — each overridable with `PLAYWRIGHT_PORT`.
+
 ## Before Making Changes
 
 1. Inspect the relevant app and shared packages before adding a component,
