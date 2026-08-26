@@ -1,5 +1,4 @@
 import { Banner as SharedBanner, Button } from "@ryanmeetup/ui";
-import { FiCalendar } from "react-icons/fi";
 
 export type BannerProps = {
   message: string;
@@ -13,10 +12,6 @@ export type BannerProps = {
  * upcoming event should be promoted.
  */
 
-// TODO: standardize this banner component even further to include:
-//  - optional classname on the global banner
-//  - no inline styles (use tailwind)
-//  - color props for the banner and button
 export function Banner({ 
   message, 
   href, 

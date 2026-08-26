@@ -4,8 +4,6 @@ import { GoSponsorTiers as SponsorDetails } from "react-icons/go";
 import { contactHrefs } from "@/utils/contact";
 import {
   FaBullhorn as Megaphone,
-  FaHandshake as Handshake,
-  FaChartLine as Growth,
   FaInstagram as Instagram,
   FaMapMarkedAlt as Footprint,
   FaMicrophoneAlt as Mic,

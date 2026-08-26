@@ -2,7 +2,13 @@
 import { Layout } from "@/components/navigation";
 import { AnchorNav } from "@/components/global";
 import { Divider, Heading, Pill, Text } from "@ryanmeetup/ui";
-import { FarthestRyan, Champion, Leaderboard } from "@/components/awards";
+import {
+  FarthestRyan,
+  Champion,
+  CollapsibleSection,
+  Leaderboard,
+} from "@/components/awards";
+import NextLink from "next/link";
 import { MdLeaderboard as Leader } from "react-icons/md";
 import { FaTrophy as Trophy, FaPlaneArrival as Plane } from "react-icons/fa";
 
@@ -15,8 +21,11 @@ import {
   fetchFarthestRyans,
   fetchChampionRyans,
   fetchRepeatRyans,
+  fetchEventTimeline,
 } from "@/actions/fetchContent";
 import { getAwardsFixture } from "@/lib/test-fixtures/awards";
+import { contactHrefs } from "@/utils/contact";
+import { MIN_EVENTS_TO_QUALIFY } from "@/utils/streaks";
 
 export const metadata = buildPageMetadata({
   title: "Ryan Meetup - Awards",
@@ -51,6 +60,7 @@ const AwardsPage = async () => {
   const farthest = fixture?.farthest ?? (await fetchFarthestRyans());
   const champs = fixture?.champs ?? (await fetchChampionRyans());
   const repeats = fixture?.repeats ?? (await fetchRepeatRyans());
+  const timeline = fixture?.timeline ?? (await fetchEventTimeline());
 
   const iconStyle = "h-5 w-5";
 
@@ -86,17 +96,13 @@ const AwardsPage = async () => {
             Honoring the Ryans who traveled the farthest, earned top titles, and
             showed up again and again.
           </Text>
-          <div id="farthest" />
         </section>
 
         <AnchorNav items={anchors} />
 
-        <Divider />
+        <Divider margins="xl" />
 
-        <section className="space-y-6">
-          <Heading className="text-center text-3xl title sm:text-4xl">
-            Farthest Traveling Ryans
-          </Heading>
+        <CollapsibleSection id="farthest" title="Farthest Traveling Ryans">
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
             {farthest?.map((ryan, index) => (
               <FarthestRyan
@@ -105,34 +111,68 @@ const AwardsPage = async () => {
               />
             ))}
           </div>
-          <div id="champions" />
-        </section>
+        </CollapsibleSection>
 
         <Divider margins="xl" />
 
-        <section className="space-y-6">
-          <div className="space-y-2 text-center">
-            <Heading className="text-3xl title sm:text-4xl">
-              Ryan Meetup Champions
-            </Heading>
+        <CollapsibleSection
+          id="champions"
+          title="Ryan Meetup Champions"
+          description={
             <Text className="text-base text-black/70 dark:text-white/70">
               Ryans that overcame great obstacles to take home the championship
               titles.
             </Text>
-          </div>
+          }
+        >
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
             {champs?.map((ryan, index) => (
               <Champion key={index} ryan={ryan as unknown as ChampionRyan} />
             ))}
           </div>
-          <div id="leaderboard" />
-        </section>
+        </CollapsibleSection>
 
         <Divider margins="xl" />
 
-        <section className="space-y-6">
-          <Leaderboard ryans={repeats as RepeatRyan[]} />
-        </section>
+        <CollapsibleSection
+          id="leaderboard"
+          title="Attendance Leaderboard"
+          description={
+            <Text className="text-sm text-black/70 dark:text-white/70">
+              <span className="font-semibold text-blue-700 dark:text-blue-500">
+                *
+              </span>
+              Ryans must attend at least {MIN_EVENTS_TO_QUALIFY} Ryan Meetups to
+              qualify. Longest streak is a Ryan&apos;s best run of consecutive
+              Ryan Meetups, not their current one. Tap a column heading to sort.
+            </Text>
+          }
+        >
+          <Leaderboard ryans={repeats as RepeatRyan[]} timeline={timeline} />
+
+          <div className="space-y-2 pt-10 pb-16 text-center">
+            <Heading className="text-3xl title sm:text-4xl">
+              Not seeing your name?
+            </Heading>
+            <Text className="text-base text-black/70 dark:text-white/70">
+              Get in contact through our{" "}
+              <NextLink
+                href={contactHrefs.awardsCorrection}
+                className="font-semibold text-blue-700 dark:text-blue-500 hover:cursor"
+              >
+                /contact
+              </NextLink>{" "}
+              page or shoot us an email at{" "}
+              <NextLink
+                className="font-semibold text-blue-700 dark:text-blue-500 hover:cursor"
+                href="mailto:ryan@ryanmeetup.com"
+              >
+                ryan@ryanmeetup.com
+              </NextLink>
+              .
+            </Text>
+          </div>
+        </CollapsibleSection>
       </div>
     </Layout>
   );

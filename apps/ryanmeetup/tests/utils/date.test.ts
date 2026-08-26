@@ -1,3 +1,5 @@
+import { expect, test } from "@playwright/test";
+
 import {
   formatEventCount,
   sortEventsByDate,
@@ -9,7 +11,7 @@ const createEvent = (date: string) =>
     date,
   }) as unknown as { date: string };
 
-describe("date utils", () => {
+test.describe("date utils", () => {
   test("formatEventCount pluralizes correctly", () => {
     expect(formatEventCount(1)).toBe("1 event");
     expect(formatEventCount(2)).toBe("2 events");

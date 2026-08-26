@@ -134,9 +134,27 @@ const fetchRepeatRyans = unstable_cache(
   async () => {
     const data = await client.getEntries({ content_type: "leaderboard" });
 
-    return data.items.map((entry) => entry.fields);
+    // Ryans share names often enough that the entry id has to come along as
+    // the row identity.
+    return data.items.map((entry) => ({ ...entry.fields, id: entry.sys.id }));
   },
   ["contentful-repeat-ryans"],
+  { revalidate: CMS_REVALIDATE_SECONDS },
+);
+
+// The `eventsAttended` checkbox options are maintained in chronological order,
+// which makes the content type's validation list the canonical event timeline.
+const fetchEventTimeline = unstable_cache(
+  async () => {
+    const contentType = await client.getContentType("leaderboard");
+    const field = contentType.fields.find(
+      (entry) => entry.id === "eventsAttended",
+    );
+    const ordered = field?.items?.validations.find((rule) => rule.in);
+
+    return ordered?.in ?? [];
+  },
+  ["contentful-event-timeline"],
   { revalidate: CMS_REVALIDATE_SECONDS },
 );
 
@@ -236,6 +254,7 @@ export {
   fetchFarthestRyans,
   fetchChampionRyans,
   fetchRepeatRyans,
+  fetchEventTimeline,
   fetchChapters,
   fetchSingleChapter,
   fetchSponsors,

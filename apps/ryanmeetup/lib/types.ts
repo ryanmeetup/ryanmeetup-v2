@@ -137,6 +137,9 @@ type ChampionRyan = {
 };
 
 type RepeatRyan = {
+  // The Contentful entry id, which is the only thing telling two Ryans with
+  // the same name apart.
+  id: string;
   fullName: string;
   headshot: ContentfulImage;
   basedIn: string;

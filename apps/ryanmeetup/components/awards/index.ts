@@ -1,4 +1,5 @@
 export * from "./Leaderboard";
 export * from "./FarthestRyan";
-export * from "./EventTag";
+export * from "./AttendanceStrip";
 export * from "./Champion";
+export * from "./CollapsibleSection";
