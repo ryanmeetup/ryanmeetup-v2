@@ -3,6 +3,10 @@ export type ContactTopicDetailOption = {
   value: string;
   /** Appended to the subject line so the inbox reads "Sponsorship: Event sponsor". */
   subject?: string;
+  /** Detail-specific message copy that replaces the broader topic seed. */
+  message?: string;
+  /** Detail-specific guidance for an otherwise empty message. */
+  messagePlaceholder?: string;
 };
 
 export type ContactTopic = {
@@ -31,7 +35,9 @@ const findContactTopic = (topics: ContactTopic[], value?: string) =>
   value ? topics.find((topic) => topic.value === value) : undefined;
 
 const findContactTopicDetail = (topic?: ContactTopic, value?: string) =>
-  value ? topic?.detail?.options.find((option) => option.value === value) : undefined;
+  value
+    ? topic?.detail?.options.find((option) => option.value === value)
+    : undefined;
 
 /** Subject line for a topic, suffixed with the detail when one is chosen. */
 const buildContactSubject = (
@@ -50,16 +56,28 @@ export type ContactHrefOptions = {
   source?: string;
   /** Contact route, for apps that do not serve it at `/contact`. */
   path?: string;
+  /** Overrides the subject the topic would otherwise seed. */
+  subject?: string;
+  /** Overrides the message body the topic or detail would otherwise seed. */
+  message?: string;
 };
 
 /** Link to the contact page with the reason for writing already chosen. */
 const buildContactHref = (
   topic: string,
-  { detail, source, path = "/contact" }: ContactHrefOptions = {},
+  {
+    detail,
+    source,
+    path = "/contact",
+    subject,
+    message,
+  }: ContactHrefOptions = {},
 ) => {
   const params = new URLSearchParams({ topic });
   if (detail) params.set("detail", detail);
   if (source) params.set("source", source);
+  if (subject) params.set("subject", subject);
+  if (message) params.set("message", message);
   return `${path}?${params.toString()}`;
 };
 

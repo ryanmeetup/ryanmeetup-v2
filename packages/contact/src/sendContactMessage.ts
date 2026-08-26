@@ -19,13 +19,48 @@ export type ContactMessage = {
   message: string;
 };
 
-export async function sendContactMessage(message: ContactMessage) {
-  if (process.env.NEXT_PUBLIC_E2E_TESTS === "true") return;
+const requiredEmailJsSetting = (name: string, value?: string) => {
+  const setting = value?.trim();
+  if (!setting) {
+    throw new Error(`EmailJS is missing ${name}.`);
+  }
+  return setting;
+};
 
-  await emailjs.send(
-    process.env.NEXT_PUBLIC_EMAIL_SERVICE_ID as string,
-    process.env.NEXT_PUBLIC_EMAIL_TEMPLATE_ID as string,
-    message,
-    process.env.NEXT_PUBLIC_EMAIL_USER_ID as string,
+export async function sendContactMessage(message: ContactMessage) {
+  if (process.env.NEXT_PUBLIC_E2E_TESTS === "true") {
+    return { status: 200, text: "E2E_TEST_MODE" };
+  }
+
+  const serviceId = requiredEmailJsSetting(
+    "NEXT_PUBLIC_EMAIL_SERVICE_ID",
+    process.env.NEXT_PUBLIC_EMAIL_SERVICE_ID,
   );
+  const templateId = requiredEmailJsSetting(
+    "NEXT_PUBLIC_EMAIL_TEMPLATE_ID",
+    process.env.NEXT_PUBLIC_EMAIL_TEMPLATE_ID,
+  );
+  const publicKey = requiredEmailJsSetting(
+    "NEXT_PUBLIC_EMAIL_USER_ID",
+    process.env.NEXT_PUBLIC_EMAIL_USER_ID,
+  );
+
+  if (!message.routeTo.trim()) {
+    throw new Error("EmailJS is missing a destination inbox.");
+  }
+
+  const response = await emailjs.send(
+    serviceId,
+    templateId,
+    message,
+    publicKey,
+  );
+
+  if (response.status < 200 || response.status >= 300) {
+    throw new Error(
+      `EmailJS did not accept the message (${response.status} ${response.text}).`,
+    );
+  }
+
+  return response;
 }

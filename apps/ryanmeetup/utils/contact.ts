@@ -1,5 +1,10 @@
 import { buildContactHref, type ContactTopic } from "@ryanmeetup/contact";
 
+import {
+  getMonthlyBackerTier,
+  type MonthlyBackerTierSlug,
+} from "@/lib/sponsorship-program";
+
 const DEFAULT_INBOX = "ryan@ryanmeetup.com";
 const CHAPTERS_INBOX = "chapters@ryanmeetup.com";
 
@@ -68,8 +73,18 @@ const contactTopics: ContactTopic[] = [
     detail: {
       label: "What kind of partnership?",
       options: [
-        { value: "event-sponsor", label: "Sponsor an event" },
-        { value: "brand-partnership", label: "Brand partnership" },
+        {
+          value: "monthly-backer",
+          label: "Become a Monthly Backer",
+          message: `${greeting}I'm interested in becoming a Monthly Backer.\n\nBrand/company:\nTier I'm considering ($100 / $250 / $500):\nWebsite:\nWhat we'd like to accomplish:\n`,
+          messagePlaceholder:
+            "Tell us about your brand, preferred tier, website, and what you would like the sponsorship to accomplish.",
+        },
+        { value: "event-sponsorship", label: "Sponsor an event" },
+        {
+          value: "brand-collaboration",
+          label: "Propose a custom brand collaboration",
+        },
         { value: "product-donation", label: "Product or venue donation" },
         { value: "media-collab", label: "Media collaboration" },
       ],
@@ -81,8 +96,7 @@ const contactTopics: ContactTopic[] = [
     subject: "Press Inquiry",
     description: "Interviews, filming requests, and media questions.",
     message: `${greeting}I'm reaching out with a press or media inquiry and would love to connect.\n`,
-    messagePlaceholder:
-      "What outlet are you with, and what's your deadline?",
+    messagePlaceholder: "What outlet are you with, and what's your deadline?",
     routeTo: DEFAULT_INBOX,
     detail: {
       label: "What kind of coverage?",
@@ -100,8 +114,7 @@ const contactTopics: ContactTopic[] = [
     subject: "Cards Order Support",
     description: "Include your order number if you have one.",
     message: `${greeting}I need help with a cards order and had a question about shipping, order details, or support.\n`,
-    messagePlaceholder:
-      "What's your order number, and what went wrong?",
+    messagePlaceholder: "What's your order number, and what went wrong?",
     routeTo: DEFAULT_INBOX,
     detail: {
       label: "What's the issue?",
@@ -144,10 +157,10 @@ const contactTopics: ContactTopic[] = [
     value: "awards",
     label: "Awards & Leaderboard",
     subject: "Awards / Leaderboard Update",
-    description: "Missing attendance, wrong streak, or a name that needs fixing.",
+    description:
+      "Missing attendance, wrong streak, or a name that needs fixing.",
     message: `${greeting}I think my awards or leaderboard information may need to be added or updated.\n`,
-    messagePlaceholder:
-      "Which Ryan and which meetups are we looking at?",
+    messagePlaceholder: "Which Ryan and which meetups are we looking at?",
     routeTo: DEFAULT_INBOX,
     detail: {
       label: "What needs updating?",
@@ -183,6 +196,22 @@ const contactTopics: ContactTopic[] = [
 const contactHrefs = {
   general: buildContactHref("general", { source: "general" }),
   sponsorship: buildContactHref("sponsorship", { source: "sponsors" }),
+  monthlyBacker: buildContactHref("sponsorship", {
+    detail: "monthly-backer",
+    source: "sponsors",
+  }),
+  partnershipsMonthlyBacker: buildContactHref("sponsorship", {
+    detail: "monthly-backer",
+    source: "partnerships",
+  }),
+  eventSponsorship: buildContactHref("sponsorship", {
+    detail: "event-sponsorship",
+    source: "partnerships",
+  }),
+  brandCollaboration: buildContactHref("sponsorship", {
+    detail: "brand-collaboration",
+    source: "partnerships",
+  }),
   press: buildContactHref("press", { source: "press" }),
   cardsSupport: buildContactHref("cards", { source: "cards" }),
   joinTeam: buildContactHref("join-team", { source: "contribute" }),
@@ -196,4 +225,29 @@ const contactHrefs = {
   mapUpdate: buildContactHref("map", { source: "map" }),
 };
 
-export { buildContactHref, contactHrefs, contactTopics, DEFAULT_INBOX };
+/**
+ * Contact link for one Monthly Backer tier, with the tier and its price
+ * already written into the subject and message so the visitor only has to
+ * fill in the parts we cannot know.
+ */
+const buildMonthlyBackerTierHref = (slug: MonthlyBackerTierSlug) => {
+  const tier = getMonthlyBackerTier(slug);
+  if (!tier) return contactHrefs.partnershipsMonthlyBacker;
+
+  const tierLabel = `${tier.name} ($${tier.price}/month)`;
+
+  return buildContactHref("sponsorship", {
+    detail: "monthly-backer",
+    source: `partnerships:${tier.slug}`,
+    subject: `Sponsorship Inquiry: ${tierLabel}`,
+    message: `${greeting}I'm interested in becoming a Monthly Backer at the ${tierLabel} tier.\n\nBrand/company:\nWebsite:\nWhat we'd like to accomplish:\n`,
+  });
+};
+
+export {
+  buildContactHref,
+  buildMonthlyBackerTierHref,
+  contactHrefs,
+  contactTopics,
+  DEFAULT_INBOX,
+};

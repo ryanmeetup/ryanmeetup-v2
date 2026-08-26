@@ -181,6 +181,8 @@ type Sponsor = {
   name: string;
   href: string;
   active?: boolean;
+  backerTier?: "community-backer" | "operations-partner" | "sustaining-partner";
+  backerDescription?: string;
   partnershipType?:
     | "Recurring Sponsor"
     | "Featured Brand Partner"

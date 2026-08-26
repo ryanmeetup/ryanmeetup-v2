@@ -3,3 +3,6 @@ export * from "./SponsorSection";
 export * from "./SponsorCarousel";
 export * from "./PartnershipPerks";
 export * from "./SponsorshipInfo";
+export * from "./MonthlyBackerTiers";
+export * from "./PartnershipInquiryForm";
+export * from "./ReachSnapshot";

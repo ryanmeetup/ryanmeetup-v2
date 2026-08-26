@@ -18,9 +18,11 @@ const contentRoutes = [
   { path: "/press" },
   { path: "/rsvp", expectText: "Ryan Meetup returns to California" },
   { path: "/sponsors" },
+  { path: "/sponsors/partnerships" },
 ];
 
 const redirectRoutes = [
+  { path: "/partnerships", location: "/sponsors/partnerships" },
   { path: "/discord", location: "https://discord.gg/8rPPQMtZCp" },
   {
     path: "/guidelines",

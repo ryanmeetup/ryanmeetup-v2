@@ -10,17 +10,17 @@ import { Button, Card, Heading, IconBadge, Kicker, Text } from "@ryanmeetup/ui";
 
 const sponsorshipTracks = [
   {
-    title: "Recurring Sponsorships",
-    price: "Starting at $250/month",
+    title: "Monthly Backers",
+    price: "Starting at $100/month",
     description:
       "Built for brands that want a consistent presence while helping fund Ryan Meetup activity on an ongoing basis.",
     icon: <Megaphone className="h-4 w-4" />,
   },
   {
-    title: "Event Sponsorships",
-    price: "Starting at $1,000/event",
+    title: "Brand Collaborations",
+    price: "Scoped and priced together",
     description:
-      "A fit for brands that want to support a specific meetup, city, chapter, or moment tied to a Ryan Meetup event.",
+      "A fit for brands that want to build a specific meetup, city, chapter, or Ryan moment with us.",
     icon: <Calendar className="h-4 w-4" />,
   },
 ];
@@ -34,10 +34,10 @@ const SponsorshipInfo = () => {
           Sponsorship options with room to customize
         </Heading>
         <Text className="text-base text-black/70 dark:text-white/70">
-          Ryan Meetup works with recurring sponsors and event sponsors. These
-          starting points help qualify the conversation, but the exact shape of
-          a partnership depends on fit, city, event scope, and how a brand wants
-          to show up.
+          Ryan Meetup works with monthly backers and brand collaborators.
+          Monthly backing is the simple, published way in; a collaboration is
+          shaped—and priced—around the idea, the city, the event scope, and how
+          a brand wants to show up.
         </Text>
       </div>
 
@@ -78,7 +78,7 @@ const SponsorshipInfo = () => {
           </div>
           <Text className="text-sm text-black/70 dark:text-white/70">
             Ryan Meetup can also bring digital visibility into the mix, with an
-            Instagram audience of 105k+ followers and 3M+ monthly views.
+            Instagram audience of 112k+ followers and 3M+ monthly views.
           </Text>
           <Button.Link
             href={contactHrefs.sponsorship}

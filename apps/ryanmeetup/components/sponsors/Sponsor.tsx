@@ -2,7 +2,7 @@
 
 // Components
 import NextImage from "next/image";
-import { Card } from "@ryanmeetup/ui";
+import { Card, Text } from "@ryanmeetup/ui";
 import { SponsorLink } from "@/components/sponsors/SponsorLink";
 
 // Types
@@ -22,8 +22,14 @@ type SponsorProps = {
 };
 
 const Sponsor = (props: SponsorProps) => {
-  const { name, darkModeImage, lightModeImage, href, partnershipType } =
-    props.sponsor;
+  const {
+    name,
+    darkModeImage,
+    lightModeImage,
+    href,
+    partnershipType,
+    backerDescription,
+  } = props.sponsor;
   const {
     className,
     imageWrapperClassName,
@@ -47,7 +53,7 @@ const Sponsor = (props: SponsorProps) => {
         variant="soft"
         size={size === "default" ? "md" : "sm"}
         hover
-        className="w-full text-center"
+        className="flex h-full w-full flex-col items-center justify-center gap-3 text-center"
       >
         <div
           className={`relative mx-auto w-full max-w-[660px] ${
@@ -70,6 +76,11 @@ const Sponsor = (props: SponsorProps) => {
             sizes="(min-width: 1280px) 660px, (min-width: 640px) 540px, 480px"
           />
         </div>
+        {partnershipType === "Recurring Sponsor" && backerDescription && (
+          <Text className="line-clamp-2 text-sm text-black/70 dark:text-white/70">
+            {backerDescription}
+          </Text>
+        )}
       </Card>
     </SponsorLink>
   );

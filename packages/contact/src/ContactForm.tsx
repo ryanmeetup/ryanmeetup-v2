@@ -85,7 +85,7 @@ const ContactForm = ({
       topic: topic?.value ?? "",
       detail: detail?.value ?? "",
       subject: initialSubject || buildContactSubject(topic, detail),
-      message: initialMessage || topic?.message || "",
+      message: initialMessage || detail?.message || topic?.message || "",
     };
   }, [initialDetail, initialMessage, initialSubject, initialTopic, topics]);
   const {
@@ -118,13 +118,14 @@ const ContactForm = ({
 
   const selectedTopic = findContactTopic(topics, watch("topic"));
   const detailGroup = selectedTopic?.detail;
+  const selectedDetail = findContactTopicDetail(selectedTopic, watch("detail"));
 
   const seedFromTopic = (
     topic?: ContactTopic,
     detail?: ContactTopicDetailOption,
   ) => {
     const nextSubject = buildContactSubject(topic, detail);
-    const nextMessage = topic?.message ?? "";
+    const nextMessage = detail?.message ?? topic?.message ?? "";
     const currentSubject = getValues("subject");
     const currentMessage = getValues("message");
 
@@ -151,9 +152,9 @@ const ContactForm = ({
   const notifySuccess = () =>
     toast.custom(() => (
       <SuccessCallout className="!bg-emerald-50 shadow-xl dark:!bg-emerald-950">
-        <strong className="block">Email sent!</strong>
+        <strong className="block">Message sent!</strong>
         <span className="block font-normal">
-          Expect an email back from Ryan soon!
+          Thanks for reaching out. Expect an email back from Ryan soon!
         </span>
       </SuccessCallout>
     ));
@@ -183,14 +184,18 @@ const ContactForm = ({
         message: defaultValues.message,
       };
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "The message could not be sent. Please try again.";
       toast.custom(
         () => (
           <ErrorCallout className="!bg-red-50 shadow-xl dark:!bg-red-950">
-            {message}
+            <strong className="block">Message not sent</strong>
+            <span className="block font-normal">
+              Please try again. If the problem continues, contact Ryan directly.
+            </span>
+            {error instanceof Error && error.message ? (
+              <span className="mt-1 block text-sm font-normal">
+                Details: {error.message}
+              </span>
+            ) : null}
           </ErrorCallout>
         ),
         { duration: 6000 },
@@ -329,7 +334,11 @@ const ContactForm = ({
           <Textarea
             id="message"
             label="Message"
-            placeholder={selectedTopic?.messagePlaceholder ?? messagePlaceholder}
+            placeholder={
+              selectedDetail?.messagePlaceholder ??
+              selectedTopic?.messagePlaceholder ??
+              messagePlaceholder
+            }
             required
             {...register("message", required("message"))}
           />

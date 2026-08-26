@@ -4,37 +4,43 @@ import { GoSponsorTiers as SponsorDetails } from "react-icons/go";
 import { contactHrefs } from "@/utils/contact";
 import {
   FaBullhorn as Megaphone,
+  FaEnvelopeOpenText as Newsletter,
   FaInstagram as Instagram,
-  FaMapMarkedAlt as Footprint,
-  FaMicrophoneAlt as Mic,
-  FaTshirt as Merch,
+  FaRegCalendarCheck as Calendar,
+  FaTshirt as Activation,
   FaVideo as Video,
 } from "react-icons/fa";
 
 const partnershipPerks = [
   {
     icon: <Megaphone className="h-4 w-4" />,
-    text: "Logo placement across Ryan Meetup web properties for consistent public-facing visibility.",
+    label: "Backer recognition",
+    text: "Logo placement in the Monthly Backers grid, from a standard listing up to a larger, first-row spot depending on tier.",
   },
   {
-    icon: <Merch className="h-4 w-4" />,
-    text: "On-site signage, branded materials, and merch opportunities to put your brand in front of event attendees.",
-  },
-  {
-    icon: <Footprint className="h-4 w-4" />,
-    text: "City and chapter-specific sponsorship that help build local brand awareness for your business.",
+    icon: <Newsletter className="h-4 w-4" />,
+    label: "Newsletter recognition",
+    text: "From plain-text mentions to full visual logo placement whenever we send a newsletter — new events, chapters, or big Ryan news.",
   },
   {
     icon: <Instagram className="h-4 w-4" />,
-    text: "Visibility across Ryan Meetup social channels, including 105k+ Instagram followers and more than 3M monthly views across Instagram and TikTok.",
+    label: "Instagram recognition",
+    text: "Periodic Instagram Stories recognition and rotating sponsor spotlights for Operations and Sustaining Partners.",
   },
   {
     icon: <Video className="h-4 w-4" />,
-    text: "Mentions in recap videos and post-event storytelling that extend visibility beyond the event itself.",
+    label: "Event-recap visibility",
+    text: "Logo inclusion in event-recap content, with expanded credits in National Event recap graphics for Sustaining Partners.",
   },
   {
-    icon: <Mic className="h-4 w-4" />,
-    text: "Sponsor mentions and live event recognition when the format makes sense.",
+    icon: <Activation className="h-4 w-4" />,
+    label: "On-site presence",
+    text: "Agreed signage, a verbal thank-you, and an on-site activation at a National Event for Sustaining Partners.",
+  },
+  {
+    icon: <Calendar className="h-4 w-4" />,
+    label: "Custom collaborations",
+    text: "Custom event and brand collaborations scoped around your specific idea — pricing discussed based on scope.",
   },
 ];
 
@@ -62,11 +68,14 @@ const PartnershipPerks = (props: PartnershipPerksProps) => {
             className="mt-4 grid w-full gap-4 text-left"
           >
             {partnershipPerks.map((item) => (
-              <Card key={item.text} variant="solid" size="sm">
+              <Card key={item.label} variant="solid" size="sm">
                 <div className="flex items-start gap-3">
                   <IconBadge size="sm">{item.icon}</IconBadge>
                   <Text className="text-sm text-black/70 dark:text-white/70">
-                    {item.text}
+                    <span className="font-semibold text-black dark:text-white">
+                      {item.label}
+                    </span>{" "}
+                    — {item.text}
                   </Text>
                 </div>
               </Card>
@@ -85,17 +94,20 @@ const PartnershipPerks = (props: PartnershipPerksProps) => {
           </Text>
         </div>
         {partnershipPerks.map((item) => (
-          <Card key={item.text} variant="solid" size="sm">
+          <Card key={item.label} variant="solid" size="sm">
             <div className="flex items-start gap-3">
               <IconBadge size="sm">{item.icon}</IconBadge>
               <Text className="text-sm text-black/70 dark:text-white/70">
-                {item.text}
+                <span className="font-semibold text-black dark:text-white">
+                  {item.label}
+                </span>{" "}
+                — {item.text}
               </Text>
             </div>
           </Card>
         ))}
       </Card>
-      <div className="flex flex-col justify-center gap-3 sm:flex-row">
+      <div className="grid gap-3 sm:grid-cols-2">
         {showDetailsLink && (
           <Button.Link
             href={detailsHref}
@@ -105,7 +117,7 @@ const PartnershipPerks = (props: PartnershipPerksProps) => {
             fullWidth
             newTab={false}
           >
-            View sponsorship details
+            View partnership details
           </Button.Link>
         )}
         <Button.Link

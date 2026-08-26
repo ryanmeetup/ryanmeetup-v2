@@ -17,6 +17,7 @@ const staticRoutes = [
   "/gallery",
   "/awards",
   "/sponsors",
+  "/sponsors/partnerships",
   "/charity",
   "/donate",
   "/contact",

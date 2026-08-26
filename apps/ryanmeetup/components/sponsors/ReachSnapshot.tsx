@@ -17,7 +17,7 @@ import { BiParty as Party } from "react-icons/bi";
 
 const reachSnapshot = [
   {
-    value: "105k+",
+    value: "112k+",
     label:
       "Followers on Instagram; and we're still consistently growing even bigger",
     href: "https://www.instagram.com/ryanmeetup/",
@@ -34,7 +34,7 @@ const reachSnapshot = [
     external: true,
   },
   {
-    value: "123k+",
+    value: "140k+",
     label: "Annual visitors to RyanMeetup.com",
     cta: "Site Traffic",
     icon: <Traffic className="h-4 w-4" />,
@@ -116,7 +116,7 @@ const ReachSnapshot = () => {
                   key={item.label}
                   type="button"
                   onClick={() => setShowTrafficModal(true)}
-                  className="group block text-left"
+                  className="group block cursor-pointer text-left"
                 >
                   {content}
                 </button>
@@ -172,10 +172,10 @@ const ReachSnapshot = () => {
 
           <div className="overflow-hidden rounded-2xl border border-black/10 dark:border-white/10">
             <Image
-              src="/stats.png"
+              src="/stats2.png"
               alt="Ryan Meetup website traffic snapshot"
-              width={2167}
-              height={918}
+              width={2902}
+              height={890}
               className="h-auto w-full"
               priority
             />

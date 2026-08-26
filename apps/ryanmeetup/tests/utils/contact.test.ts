@@ -1,6 +1,12 @@
 import { expect, test } from "@playwright/test";
 
-import { buildContactHref, contactHrefs, contactTopics } from "@/utils/contact";
+import {
+  buildContactHref,
+  buildMonthlyBackerTierHref,
+  contactHrefs,
+  contactTopics,
+} from "@/utils/contact";
+import { monthlyBackerTiers } from "@/lib/sponsorship-program";
 
 const findTopic = (value: string) =>
   contactTopics.find((topic) => topic.value === value);
@@ -49,6 +55,52 @@ test.describe("contact topics", () => {
           `unknown detail in ${href}`,
         ).toBe(true);
       }
+    }
+  });
+
+  test("sponsorship CTA links keep topic, detail, and source synchronized", () => {
+    expect(contactHrefs.monthlyBacker).toBe(
+      "/contact?topic=sponsorship&detail=monthly-backer&source=sponsors",
+    );
+    expect(contactHrefs.partnershipsMonthlyBacker).toBe(
+      "/contact?topic=sponsorship&detail=monthly-backer&source=partnerships",
+    );
+    expect(contactHrefs.eventSponsorship).toBe(
+      "/contact?topic=sponsorship&detail=event-sponsorship&source=partnerships",
+    );
+    expect(contactHrefs.brandCollaboration).toBe(
+      "/contact?topic=sponsorship&detail=brand-collaboration&source=partnerships",
+    );
+  });
+
+  test("Monthly Backer inquiries seed tier-specific form content", () => {
+    const sponsorship = findTopic("sponsorship");
+    const monthlyBacker = sponsorship?.detail?.options.find(
+      (option) => option.value === "monthly-backer",
+    );
+
+    expect(monthlyBacker?.message).toContain(
+      "Tier I'm considering ($100 / $250 / $500):",
+    );
+    expect(monthlyBacker?.messagePlaceholder).toContain("preferred tier");
+  });
+
+  test("each tier CTA prefills its own subject, message, and source", () => {
+    for (const tier of monthlyBackerTiers) {
+      const params = new URLSearchParams(
+        buildMonthlyBackerTierHref(tier.slug).split("?")[1],
+      );
+
+      expect(params.get("topic")).toBe("sponsorship");
+      expect(params.get("detail")).toBe("monthly-backer");
+      expect(params.get("source")).toBe(`partnerships:${tier.slug}`);
+      expect(params.get("subject")).toBe(
+        `Sponsorship Inquiry: ${tier.name} ($${tier.price}/month)`,
+      );
+      expect(params.get("message")).toContain(
+        `Monthly Backer at the ${tier.name} ($${tier.price}/month) tier.`,
+      );
+      expect(params.get("message")).toContain("Brand/company:");
     }
   });
 });
