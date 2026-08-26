@@ -34,10 +34,34 @@ export type SiteFooterProps = {
    * `branded` is the marquee shape: an oversized wordmark and subtitle, the
    * link sections, then credit and socials. Everything in it is supplied by
    * the caller, so it is a layout rather than any one organization's footer.
-   * `minimal` is one quiet row — credit and socials only.
+   * `minimal` is the same content at a quieter scale: a small wordmark, the
+   * section links flattened into one inline row, socials, and the credit.
    */
   variant?: "branded" | "minimal";
 };
+
+const focusRing =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/30";
+
+/**
+ * The credit sentence. Both variants show it, and it is the one line that must
+ * survive every layout, so it lives in one place rather than being written out
+ * per variant.
+ */
+function FooterCredit({ credit }: { credit: SiteFooterCredit }) {
+  return (
+    <span>
+      {credit.prefix ?? "Website designed and developed by "}
+      <Link
+        href={credit.href}
+        className={`rounded-sm font-semibold underline decoration-black/30 underline-offset-2 transition hover:decoration-current dark:decoration-white/30 ${focusRing}`}
+      >
+        {credit.label}
+      </Link>
+      {credit.suffix ?? ". All Rights Reserved."}
+    </span>
+  );
+}
 
 export function SiteFooter({
   title,
@@ -49,40 +73,56 @@ export function SiteFooter({
   className = "",
   variant = "branded",
 }: SiteFooterProps) {
-  if (variant === "minimal")
+  if (variant === "minimal") {
+    // The same links the branded variant stacks into titled columns, laid out
+    // as one inline row. Dropping them entirely was the old behavior and it
+    // made the section titles silently meaningless at this size.
+    const inlineLinks = sections.flatMap((section) => section.links);
+
     return (
       <footer
-        className={`relative flex flex-col items-center justify-between gap-3 border-t border-black/10 bg-white py-6 text-sm text-black/70 sm:flex-row dark:border-white/10 dark:bg-black/80 dark:text-white/70 ${className}`}
+        className={`relative border-t border-black/10 bg-white py-6 text-sm text-black/70 dark:border-white/10 dark:bg-black/80 dark:text-white/70 ${className}`}
       >
-        <Link
-          href={homeHref}
-          className="rounded-sm font-cooper uppercase tracking-wide focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/30"
-        >
-          {title}
-        </Link>
+        <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:items-start sm:justify-between sm:text-left">
+          <div className="flex flex-col items-center gap-1 sm:items-start">
+            <Link
+              href={homeHref}
+              className={`rounded-sm font-cooper text-lg uppercase leading-none tracking-wide text-black dark:text-white ${focusRing}`}
+            >
+              {title}
+            </Link>
+            {subtitle && (
+              <p className="text-[11px] font-semibold uppercase tracking-[0.28em]">
+                {subtitle}
+              </p>
+            )}
+          </div>
 
-        <div className="flex flex-col items-center gap-3 sm:flex-row sm:gap-6">
-          {credit && (
-            <span>
-              {credit.prefix ?? "Website designed and developed by "}
-              <Link
-                href={credit.href}
-                className="rounded-sm font-semibold underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/30"
-              >
-                {credit.label}
-              </Link>
-              {credit.suffix ?? ". All Rights Reserved."}
-            </span>
+          {inlineLinks.length > 0 && (
+            <nav aria-label="Footer">
+              <ul className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm font-medium sm:justify-start">
+                {inlineLinks.map((link) => (
+                  <li key={`${link.href}-${link.label}`}>
+                    <Link
+                      href={link.href}
+                      className={`rounded-sm hover:underline ${focusRing}`}
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
           )}
 
           {socialLinks.length > 0 && (
-            <ul className="flex flex-wrap gap-4">
+            <ul className="flex flex-wrap justify-center gap-1">
               {socialLinks.map((link) => (
                 <li key={`${link.href}-${link.label}`}>
                   <Link
                     href={link.href}
                     aria-label={link.label}
-                    className="inline-flex rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/30"
+                    className={`inline-flex rounded-full p-2 transition hover:bg-black/5 hover:text-black dark:hover:bg-white/10 dark:hover:text-white ${focusRing}`}
                   >
                     {link.icon ?? link.label}
                   </Link>
@@ -91,8 +131,15 @@ export function SiteFooter({
             </ul>
           )}
         </div>
+
+        {credit && (
+          <p className="mt-5 border-t border-black/10 pt-4 text-center text-xs sm:text-left dark:border-white/10">
+            <FooterCredit credit={credit} />
+          </p>
+        )}
       </footer>
     );
+  }
 
   return (
     <footer
@@ -104,7 +151,7 @@ export function SiteFooter({
         <div className="space-y-4 text-center">
           <Link
             href={homeHref}
-            className="flex flex-col items-center gap-1 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/30"
+            className={`flex flex-col items-center gap-1 rounded-sm ${focusRing}`}
           >
             <Heading
               className="title text-4xl sm:text-5xl md:text-6xl"
@@ -139,7 +186,7 @@ export function SiteFooter({
                   <li key={`${link.href}-${link.label}`}>
                     <Link
                       href={link.href}
-                      className="rounded-sm hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/30"
+                      className={`rounded-sm hover:underline ${focusRing}`}
                     >
                       {link.label}
                     </Link>
@@ -156,14 +203,7 @@ export function SiteFooter({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         {credit && (
           <span className="text-sm text-black/70 dark:text-white/70 sm:text-center">
-            {credit.prefix ?? "Website designed and developed by "}
-            <Link
-              href={credit.href}
-              className="rounded-sm font-semibold underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/30"
-            >
-              {credit.label}
-            </Link>
-            {credit.suffix ?? ". All Rights Reserved."}
+            <FooterCredit credit={credit} />
           </span>
         )}
 
@@ -174,7 +214,7 @@ export function SiteFooter({
                 <Link
                   href={link.href}
                   aria-label={link.label}
-                  className="inline-flex rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/30"
+                  className={`inline-flex rounded-sm ${focusRing}`}
                 >
                   {link.icon ?? link.label}
                 </Link>

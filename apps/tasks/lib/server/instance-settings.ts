@@ -90,7 +90,7 @@ export function overridesFromRow(row: SettingsRow): InstanceSettingsOverrides {
  * than being silently swallowed.
  */
 async function readOverrides(): Promise<InstanceSettingsOverrides | null> {
-  if (isWorkspaceDemo()) return null;
+  if (await isWorkspaceDemo()) return null;
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("instance_settings")
@@ -115,7 +115,7 @@ async function readOverrides(): Promise<InstanceSettingsOverrides | null> {
  */
 export const getInstanceSettings = cache(
   async (): Promise<InstanceSettings> => {
-    if (isWorkspaceDemo()) return demoInstanceSettings;
+    if (await isWorkspaceDemo()) return demoInstanceSettings;
     return resolveInstanceSettings(await readOverrides());
   },
 );

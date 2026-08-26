@@ -32,7 +32,7 @@ export default async function ActivityPage({
     typeof query[USER_ACCESS_PREVIEW_PARAM] === "string"
       ? query[USER_ACCESS_PREVIEW_PARAM]
       : undefined;
-  const demoMode = isWorkspaceDemo();
+  const demoMode = await isWorkspaceDemo();
   if (demoMode) return <ActivityPageClient initialData={demoData} demoMode />;
 
   const loaded = await loadWorkspacePage([

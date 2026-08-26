@@ -20,6 +20,9 @@ export function FooterPreview({ settings }: { settings: InstanceSettings }) {
       </div>
     );
 
+  const inlineLinks = settings.footerSections.flatMap(
+    (section) => section.links,
+  );
   const socials = settings.footerSocials.map(({ platform }) => (
     <span key={platform} aria-hidden className="text-black/60 dark:text-white/60">
       {socialIcons[platform]}
@@ -46,16 +49,32 @@ export function FooterPreview({ settings }: { settings: InstanceSettings }) {
       className="overflow-hidden rounded-xl border border-black/10 bg-black/[0.02] p-5 dark:border-white/10 dark:bg-white/[0.025]"
     >
       {settings.footerVariant === "minimal" ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] text-black/60 dark:text-white/60">
-          <span className="font-cooper uppercase tracking-wide">
-            {settings.name}
-          </span>
-          <div className="flex flex-wrap items-center gap-4">
-            {credit}
+        <div className="text-[11px] text-black/60 dark:text-white/60">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="font-cooper text-sm uppercase leading-none tracking-wide">
+                {settings.name}
+              </p>
+              {settings.footerSubtitle && (
+                <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.28em]">
+                  {settings.footerSubtitle}
+                </p>
+              )}
+            </div>
+            {inlineLinks.length > 0 && (
+              <ul className="flex flex-wrap gap-x-4 gap-y-1">
+                {inlineLinks.map((link, at) => (
+                  <li key={at}>{link.label || "Untitled link"}</li>
+                ))}
+              </ul>
+            )}
             {socials.length > 0 && (
               <span className="flex gap-3 text-sm">{socials}</span>
             )}
           </div>
+          <p className="mt-4 border-t border-black/10 pt-3 dark:border-white/10">
+            {credit}
+          </p>
         </div>
       ) : (
         <>

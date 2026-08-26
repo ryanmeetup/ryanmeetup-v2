@@ -12,8 +12,12 @@ const publicRoutes = new Set(["/forgot-password", "/login", "/reset-password"]);
  * variant is a layout — wordmark, subtitle, link columns, socials, credit —
  * not a reproduction of one organization's footer, so an instance fills it
  * with its own content or picks `minimal`/`none` instead.
+ *
+ * The demo workspace is not special-cased here: `demoInstanceSettings` already
+ * selects the `minimal` variant and supplies its own strings, so demo mode
+ * flows through the same settings path as any other instance.
  */
-export function TasksFooter({ demoMode }: { demoMode: boolean }) {
+export function TasksFooter() {
   const instance = useInstance();
   const pathname = usePathname();
 
@@ -28,8 +32,9 @@ export function TasksFooter({ demoMode }: { demoMode: boolean }) {
   );
   const hasSidebar =
     !publicRoutes.has(pathname) && !pathname.startsWith("/auth/");
-  const minimal =
-    demoMode || !hasSidebar || instance.footerVariant === "minimal";
+  // Signed-out routes have no sidebar to sit beside, so they always take the
+  // quiet variant regardless of what the instance chose for the workspace.
+  const minimal = !hasSidebar || instance.footerVariant === "minimal";
 
   return (
     <SiteFooter
@@ -46,16 +51,12 @@ export function TasksFooter({ demoMode }: { demoMode: boolean }) {
         })),
       }))}
       socialLinks={socialLinks}
-      credit={
-        demoMode
-          ? undefined
-          : {
-              href: instance.creditUrl,
-              label: instance.creditLabel,
-              prefix: instance.creditPrefix,
-              suffix: instance.creditSuffix,
-            }
-      }
+      credit={{
+        href: instance.creditUrl,
+        label: instance.creditLabel,
+        prefix: instance.creditPrefix,
+        suffix: instance.creditSuffix,
+      }}
     />
   );
 }

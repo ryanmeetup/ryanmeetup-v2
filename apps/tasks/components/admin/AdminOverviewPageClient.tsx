@@ -10,6 +10,7 @@ import { useWorkspaceData } from "@/hooks/useWorkspaceData";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import type { IntegrationCheck } from "@/lib/server/integration-health";
 import { AdminPageShell } from "./AdminPageShell";
+import { DemoPreviewCard } from "./DemoPreviewCard";
 import { IntegrationStatusList } from "./IntegrationStatusList";
 
 type AdminRoute = (typeof adminRoutes)[number];
@@ -101,6 +102,8 @@ export function AdminOverviewPageClient({
         </Text>
         <IntegrationStatusList integrations={integrations} />
       </section>
+
+      <DemoPreviewCard />
     </AdminPageShell>
   );
 }

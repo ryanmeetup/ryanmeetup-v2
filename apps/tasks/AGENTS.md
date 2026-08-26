@@ -188,7 +188,11 @@ security-sensitive behavior in the access-control specification.
 
 ## Demo mode
 
-Demo mode is a supported local product path, not test scaffolding. When a
+Demo mode is a supported local product path, not test scaffolding. It is also
+reachable from a configured deployment: an app owner can turn on demo preview
+from the Admin overview and leave it from the demo banner. Because of that
+`isWorkspaceDemo()` is async and owner-checked — await it, and never branch on
+`isDemoBuild` on the server when you mean "is this request a demo". When a
 workspace mutation is available in demo mode, keep its in-memory/local-storage
 semantics aligned with the server-backed path, including normalized task
 schedules, completion/archive lifecycle, relationships, and cleanup. Features

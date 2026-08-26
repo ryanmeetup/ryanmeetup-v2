@@ -98,6 +98,21 @@ describe("instance identity", () => {
     );
   });
 
+  it("keeps the build credit in the demo, where the organization goes neutral", async () => {
+    // Neutral branding is about whose workspace this is. The credit is about
+    // who wrote the software, which the demo does not change.
+    const { demoInstanceSettings, instanceDefaults } = await loadInstance();
+
+    expect(demoInstanceSettings.creditPrefix).toBe(
+      instanceDefaults.creditPrefix,
+    );
+    expect(demoInstanceSettings.creditLabel).toBe(instanceDefaults.creditLabel);
+    expect(demoInstanceSettings.creditUrl).toBe(instanceDefaults.creditUrl);
+    expect(demoInstanceSettings.creditSuffix).toBe(
+      instanceDefaults.creditSuffix,
+    );
+  });
+
   it("rejects configuration that would corrupt a pattern, style, or asset URL", async () => {
     await expect(
       loadInstance({ NEXT_PUBLIC_TASK_KEY_PREFIX: "rm-t" }),

@@ -370,7 +370,16 @@ Notes on the design:
   also the app's zero-configuration first impression. The `/admin` section is
   hidden there — `app/admin/layout.tsx` redirects to `/`, and the header drops
   its Admin entry points — because none of those screens can persist a change
-  without a database.
+  without a database. The one value demo mode keeps from this build is the
+  footer credit: it names who wrote the software rather than whose workspace
+  this is.
+
+  An owner of a configured deployment can enter the same demo from the Admin
+  overview. `POST /api/admin/demo-preview` sets an httpOnly cookie, and
+  `isWorkspaceDemo()` honors it only after `is_app_owner` confirms the caller,
+  so a forged cookie gets the real app. The preview is per-browser, writes
+  nothing, expires in four hours, and is left from the demo banner, since
+  entering it hides the admin section that turned it on.
 - **The brand theme is shared.** `packages/brand/theme.css` provides Cooper
   Black and the nametag red to every app in the monorepo. A second instance
   currently inherits the Ryan Meetup look apart from

@@ -15,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ProfilePage() {
-  const demoMode = isWorkspaceDemo();
+  const demoMode = await isWorkspaceDemo();
   if (demoMode) redirect("/");
 
   let data: WorkspaceData;

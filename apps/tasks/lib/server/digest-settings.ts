@@ -59,7 +59,7 @@ export async function readDigestSettings(
 
 /** Resolved cadence for this request, deduplicated across the page tree. */
 export const getDigestSettings = cache(async (): Promise<DigestSettings> => {
-  if (isWorkspaceDemo())
+  if (await isWorkspaceDemo())
     return { ...digestDefaults, sections: [...digestDefaults.sections] };
   return readDigestSettings(await createClient());
 });
@@ -83,7 +83,7 @@ const runFromRow = (row: Record<string, unknown>): DigestRun => ({
  * must not take the quota panels down with it.
  */
 export const getDigestRuns = cache(async (limit = 14): Promise<DigestRun[]> => {
-  if (isWorkspaceDemo()) return [];
+  if (await isWorkspaceDemo()) return [];
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("digest_runs")
