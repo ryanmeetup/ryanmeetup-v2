@@ -280,17 +280,20 @@ const Leaderboard = (props: LeaderboardProps) => {
                       >
                         {streak.length}
                       </span>
-                      {/* Sits where the attended column's `of N` caption
-                          sits, so the flame never crowds the number and an
-                          unflamed row keeps the same badge in the same
-                          place. The heading already says "longest streak",
-                          so the caption names the board, not the row. */}
-                      {holdsTopStreak && (
-                        <Text className="mt-1 text-[10px] font-semibold text-orange-700 dark:text-orange-300">
-                          <span aria-hidden>🔥</span> Hottest
-                          <span className="sr-only"> streak on the board</span>
-                        </Text>
-                      )}
+                      {/* This aligns with the attended column's `of N`
+                          caption and explains whether the number is the
+                          board-wide record or this Ryan's personal best. */}
+                      <Text
+                        className={`mt-1 text-[10px] ${holdsTopStreak ? "font-semibold text-orange-700 dark:text-orange-300" : "text-black/50 dark:text-white/50"}`}
+                      >
+                        {holdsTopStreak ? (
+                          <>
+                            <span aria-hidden>🔥</span> Streak leader
+                          </>
+                        ) : (
+                          "Personal best"
+                        )}
+                      </Text>
                     </td>
                     <td className="hidden py-3 pl-4 pr-3 md:table-cell md:w-full">
                       <div className="flex items-start gap-3">

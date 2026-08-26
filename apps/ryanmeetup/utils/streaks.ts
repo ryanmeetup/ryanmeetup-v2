@@ -109,9 +109,6 @@ const formatStreakRange = (streak: Streak) => {
   return `${streak.from} → ${streak.to}`;
 };
 
-// Rank is the standing the leaderboard is actually about: Ryan Meetups
-// attended. Two Ryans on the same count hold the same rank even when one of
-// them strung their meetups together better.
 const compareRank = (
   a: Pick<LeaderboardRow, "ryan">,
   b: Pick<LeaderboardRow, "ryan">,
@@ -174,15 +171,26 @@ const sortLeaderboardRows = (
   sort: LeaderboardSort,
 ): LeaderboardRow[] => {
   const factor = sort.direction === "asc" ? -1 : 1;
+  const getSortValue = (row: LeaderboardRow) =>
+    sort.column === "streak"
+      ? row.streak.length
+      : row.ryan.eventsAttended.length;
 
-  return [...rows].sort((a, b) => {
-    const primary =
-      sort.column === "streak"
-        ? b.streak.length - a.streak.length
-        : b.ryan.eventsAttended.length - a.ryan.eventsAttended.length;
+  // Rank follows the active measure, independent of display direction. Dense
+  // ranks keep ties together without leaving gaps, matching the default
+  // attendance standings when the visitor switches back from streaks.
+  const ranks = new Map<number, number>();
+  const values = [...new Set(rows.map(getSortValue))].sort((a, b) => b - a);
 
-    return factor * (primary || compareStandings(a, b)) || a.rank - b.rank;
-  });
+  values.forEach((value, index) => ranks.set(value, index + 1));
+
+  return [...rows]
+    .sort((a, b) => {
+      const primary = getSortValue(b) - getSortValue(a);
+
+      return factor * (primary || compareStandings(a, b)) || a.rank - b.rank;
+    })
+    .map((row) => ({ ...row, rank: ranks.get(getSortValue(row)) ?? row.rank }));
 };
 
 export {

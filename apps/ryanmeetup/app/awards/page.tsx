@@ -155,21 +155,14 @@ const AwardsPage = async () => {
               Not seeing your name?
             </Heading>
             <Text className="text-base text-black/70 dark:text-white/70">
-              Get in contact through our{" "}
+              Send the details through our prefilled{" "}
               <NextLink
                 href={contactHrefs.awardsCorrection}
                 className="font-semibold text-blue-700 dark:text-blue-500 hover:cursor"
               >
                 /contact
               </NextLink>{" "}
-              page or shoot us an email at{" "}
-              <NextLink
-                className="font-semibold text-blue-700 dark:text-blue-500 hover:cursor"
-                href="mailto:ryan@ryanmeetup.com"
-              >
-                ryan@ryanmeetup.com
-              </NextLink>
-              .
+              form.
             </Text>
           </div>
         </CollapsibleSection>

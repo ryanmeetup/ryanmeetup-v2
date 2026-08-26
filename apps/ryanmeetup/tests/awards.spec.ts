@@ -29,29 +29,41 @@ test.describe("attendance leaderboard", () => {
 
     await expect(streakHeader).toHaveAttribute("aria-sort", "descending");
     await expect(rows.first()).toContainText("Ryan Streak");
-    // Sorting reorders the table without renumbering the standings.
-    await expect(rows.first().locator("td").first()).toHaveText("2");
+    // The active longest-streak measure determines both order and rank.
+    await expect(rows.first().locator("td").first()).toHaveText("1");
 
     await streakHeader.getByRole("button").click();
 
     await expect(streakHeader).toHaveAttribute("aria-sort", "ascending");
     await expect(rows.first()).toContainText("Ryan Repeat");
+
+    const attendedHeader = page.getByRole("columnheader", {
+      name: /^attended/i,
+    });
+
+    await attendedHeader.getByRole("button").click();
+
+    await expect(attendedHeader).toHaveAttribute("aria-sort", "descending");
+    await expect(rows.first()).toContainText("Ryan Repeat");
+    await expect(rows.first().locator("td").first()).toHaveText("1");
   });
 
-  test("marks the board's longest streak with a flame", async ({ page }) => {
+  test("labels the streak leader and each Ryan's personal best", async ({
+    page,
+  }) => {
     await page.goto("/awards");
     await certifyNotABryan(page);
 
     const rows = page.locator("table tbody tr");
+    const streakLeader = rows.filter({ hasText: "Ryan Streak" }).first();
+    const personalBest = rows.filter({ hasText: "Ryan Repeat" }).first();
 
     // Ryan Streak holds the longest run on the board, so the flame is theirs
     // even though Ryan Repeat outranks them on meetups attended.
-    await expect(rows.filter({ hasText: "Ryan Streak" }).first()).toContainText(
-      "\u{1F525}",
-    );
-    await expect(
-      rows.filter({ hasText: "Ryan Repeat" }).first(),
-    ).not.toContainText("\u{1F525}");
+    await expect(streakLeader).toContainText("🔥 Streak leader");
+    await expect(streakLeader).not.toContainText("Personal best");
+    await expect(personalBest).toContainText("Personal best");
+    await expect(personalBest).not.toContainText("🔥");
   });
 
   test("names recent meetups and expands to the full roster", async ({

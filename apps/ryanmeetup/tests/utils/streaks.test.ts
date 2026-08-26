@@ -116,7 +116,7 @@ test.describe("leaderboard rows", () => {
     expect(tied.map((row) => row.rank)).toEqual([1, 1, 2, 2, 2]);
   });
 
-  test("sorts by streak without changing the ranks", () => {
+  test("sorts and reranks by streak", () => {
     const byStreak = sortLeaderboardRows(rows, {
       column: "streak",
       direction: "asc",
@@ -130,7 +130,7 @@ test.describe("leaderboard rows", () => {
       ["Ryan Runner", 4],
       ["Ryan Six", 6],
     ]);
-    expect(byStreak.map((row) => row.rank)).toEqual([2, 2, 2, 1]);
+    expect(byStreak.map((row) => row.rank)).toEqual([3, 3, 2, 1]);
   });
 
   test("marks every held meetup, attended or missed", () => {
@@ -183,5 +183,6 @@ test.describe("leaderboard rows", () => {
     expect(descending.map((row) => row.ryan.fullName)).toEqual(
       rows.map((row) => row.ryan.fullName),
     );
+    expect(descending.map((row) => row.rank)).toEqual([1, 2, 2, 2]);
   });
 });
