@@ -1,13 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Modal } from "@ryanmeetup/ui";
-import { FiLock, FiUser } from "react-icons/fi";
+import { useRouter } from "next/navigation";
+import { Button, Card, Modal } from "@ryanmeetup/ui";
+import { FiLock, FiLogOut, FiUser } from "react-icons/fi";
 import { ProfileForm } from "./ProfileForm";
 import { PasswordForm } from "@/components/auth";
 import { CategoriesModal } from "@/components/categories";
-import { PageHeader, WorkspacePageShell } from "@/components/global";
+import {
+  InstanceWordmark,
+  PageHeader,
+  ThemeToggle,
+  WorkspacePageShell,
+} from "@/components/global";
 import { ProjectsModal } from "@/components/projects";
+import { createClient } from "@/lib/supabase/client";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 
 export function ProfilePageClient({
@@ -19,6 +26,7 @@ export function ProfilePageClient({
   email: string;
   onboardingRequired: boolean;
 }) {
+  const router = useRouter();
   const [data, setData] = useState(initialData);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [categoryOpen, setCategoryOpen] = useState(false);
@@ -26,6 +34,49 @@ export function ProfilePageClient({
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
   const passwordFormId = "change-password-form";
+
+  // Onboarding is a gate, not a page inside the workspace: every other route
+  // redirects back here until the profile is complete, so showing the sidebar
+  // and header would only offer links that bounce straight back. Sign out is
+  // the one way forward other than finishing the form.
+  if (onboardingRequired)
+    return (
+      <main className="grid min-h-screen place-items-center bg-[#f1f2ef] px-4 py-12 text-black dark:bg-[#101010] dark:text-white">
+        <div className="fixed right-4 top-4 flex items-center gap-2 sm:right-6 sm:top-6">
+          <ThemeToggle />
+          <Button
+            variant="secondary"
+            leftIcon={<FiLogOut />}
+            onClick={async () => {
+              await createClient().auth.signOut();
+              router.push("/login");
+              router.refresh();
+            }}
+          >
+            Sign out
+          </Button>
+        </div>
+        <Card className="w-full max-w-lg" size="lg">
+          <p className="mb-6 text-center font-cooper text-2xl uppercase tracking-[0.08em] sm:text-3xl">
+            <InstanceWordmark />
+          </p>
+          <PageHeader
+            kicker="Welcome"
+            icon={FiUser}
+            title="Complete your profile"
+            description="Choose your sign-in password and confirm how your name appears before continuing."
+          />
+          <div className="mt-8 border-t border-black/10 pt-8 dark:border-white/10">
+            <ProfileForm
+              profile={data.currentProfile}
+              email={email}
+              onboardingRequired
+              onChangePassword={() => undefined}
+            />
+          </div>
+        </Card>
+      </main>
+    );
 
   return (
     <>
@@ -41,20 +92,16 @@ export function ProfilePageClient({
       >
         <div className="mx-auto max-w-3xl">
           <PageHeader
-            kicker={onboardingRequired ? "Welcome" : "Your account"}
+            kicker="Your account"
             icon={FiUser}
-            title={onboardingRequired ? "Complete your profile" : "Profile"}
-            description={
-              onboardingRequired
-                ? "Choose your sign-in password and confirm how your name appears before continuing."
-                : "Manage how teammates see you across the workspace."
-            }
+            title="Profile"
+            description="Manage how teammates see you across the workspace."
           />
           <div className="mt-10 border-t border-black/10 pt-8 dark:border-white/10">
             <ProfileForm
               profile={data.currentProfile}
               email={email}
-              onboardingRequired={onboardingRequired}
+              onboardingRequired={false}
               onChangePassword={() => setPasswordOpen(true)}
             />
           </div>

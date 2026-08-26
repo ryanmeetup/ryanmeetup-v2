@@ -1,15 +1,20 @@
 import { Spinner } from "@ryanmeetup/ui";
 
 /**
- * Without this boundary a slow server render streams the layout alone, so the
- * footer lands at the top of the empty content area until the page arrives.
+ * Cover the viewport while a route streams. The fixed position matters when a
+ * navigation starts from a scrolled page: a document-height fallback can leave
+ * the footer visible until Next resets the scroll position.
  */
 export default function Loading() {
   return (
-    <main className="grid min-h-screen place-items-center px-4 py-12 text-black dark:text-white">
+    <main
+      data-route-loading
+      aria-busy="true"
+      className="fixed inset-0 z-50 grid place-items-center bg-[#f1f2ef] px-4 py-12 text-black dark:bg-[#101010] dark:text-white"
+    >
       <Spinner
         size={28}
-        label="Loading"
+        label="Loading page"
         className="text-black/45 dark:text-white/45"
       />
     </main>

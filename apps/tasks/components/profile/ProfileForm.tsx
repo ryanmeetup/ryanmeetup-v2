@@ -130,8 +130,17 @@ export function ProfileForm({
           password,
         });
         if (passwordError) {
-          setMessage("Your password could not be set. Try a different password.");
+          // Supabase rejects a password identical to the current one, which
+          // here is the temporary password an owner set for this account. Say
+          // so plainly: the generic wording left people retyping the password
+          // they were given.
+          const passwordMessage =
+            passwordError.code === "same_password"
+              ? "That matches the temporary password you were given. Choose a new one so the old password stops working."
+              : "Your password could not be set. Try a different password.";
+          setMessage(passwordMessage);
           setHasError(true);
+          toast.error(passwordMessage);
           return;
         }
       }
@@ -144,7 +153,7 @@ export function ProfileForm({
             cacheControl: "3600",
             contentType: avatarFile.type,
             upsert: true,
-        });
+          });
         if (uploadError) throw uploadError;
       }
       const result = await mutate<{ profile: Profile }>("/api/profile", {
@@ -292,13 +301,19 @@ export function ProfileForm({
         <Button
           type="submit"
           leftIcon={<FiSave />}
-          className="w-full sm:w-auto"
+          className={onboardingRequired ? "w-full" : "w-full sm:w-auto"}
           loading={saving}
           loadingText="Saving..."
         >
-          {onboardingRequired ? "Continue to tasks" : "Save profile"}
+          {onboardingRequired ? "Save and continue" : "Save profile"}
         </Button>
       </div>
+      {onboardingRequired && (
+        <p className="-mt-2 text-center text-xs text-black/55 dark:text-white/55">
+          This saves your password, name, and photo, then takes you into the
+          workspace.
+        </p>
+      )}
       {!onboardingRequired && (
         <section className="space-y-5 border-t border-black/10 pt-8 dark:border-white/10">
           <div>

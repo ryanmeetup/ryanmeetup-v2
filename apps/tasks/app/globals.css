@@ -48,6 +48,12 @@ body:has([data-workspace-error]) .tasks-footer {
   display: none;
 }
 
+/* The footer is outside Next's route Suspense boundary. Keep it out of the
+   transient document while the full-viewport route fallback is active. */
+body:has([data-route-loading]) .tasks-footer {
+  display: none;
+}
+
 @layer components {
   .tasks-app-header {
     @apply sticky top-0 z-40 flex min-h-16 flex-wrap items-center gap-2 border-b border-black/10 bg-[#f1f2ef]/90 px-4 py-2 backdrop-blur-xl dark:border-white/10 dark:bg-[#101010]/90 sm:h-16 sm:flex-nowrap sm:gap-3 sm:px-6 sm:py-0 lg:fixed lg:left-64 lg:right-0 lg:px-8;

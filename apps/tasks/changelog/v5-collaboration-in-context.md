@@ -59,6 +59,8 @@ Owners can see that first look for themselves without a second deployment: **Ent
 
 The compact footer is no longer a single line. It now carries the wordmark and its tagline, whatever footer links the workspace has configured, social icons, and the credit line beneath a divider — so the quiet treatment still looks finished on sign-in screens and in the demo.
 
+Route changes now use a full-screen loading state, keeping the footer out of view while the next page is still rendering—even when navigation begins partway down a page.
+
 ### Notes that read like notes
 
 The notes board now presents each note as a finished card: its title, formatted text, author, and comment count at a glance. Links written inside a note appear as chips you can follow, alongside the task or project the note became.
