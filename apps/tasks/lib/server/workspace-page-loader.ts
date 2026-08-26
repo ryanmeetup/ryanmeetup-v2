@@ -1,4 +1,6 @@
+import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import {
   loadWorkspace,
@@ -7,8 +9,29 @@ import {
   type WorkspaceCollection,
 } from "@/lib/server/workspace-loader";
 import { isDemoBuild } from "@/lib/instance";
+import { DEMO_PREVIEW_COOKIE, DEMO_PREVIEW_VALUE } from "@/lib/demo-preview";
 
-export const isWorkspaceDemo = () => isDemoBuild;
+/**
+ * Whether this request renders the demo workspace, either because the build
+ * has no Supabase credentials at all or because an app owner turned on demo
+ * preview. Cached so the pages, the layout, and the branding resolver share one
+ * answer — and one ownership check — per request.
+ *
+ * The cookie is never trusted on its own. Demo mode swaps the whole
+ * database-backed workspace for fixtures, so a forged cookie leaks nothing, but
+ * it would still walk an anonymous visitor past the login redirect into a
+ * plausible-looking workspace. `is_app_owner` decides instead, and it fails
+ * closed: any error, or any non-owner, gets the real app.
+ */
+export const isWorkspaceDemo = cache(async (): Promise<boolean> => {
+  if (isDemoBuild) return true;
+  const requested =
+    (await cookies()).get(DEMO_PREVIEW_COOKIE)?.value === DEMO_PREVIEW_VALUE;
+  if (!requested) return false;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("is_app_owner");
+  return !error && data === true;
+});
 
 export async function loadWorkspacePage(
   collections: readonly WorkspaceCollection[],

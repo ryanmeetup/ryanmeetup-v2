@@ -5,7 +5,6 @@ import { TasksFooter } from "@/components/navigation";
 import { ToastHost } from "@ryanmeetup/ui";
 import { getInstanceSettings } from "@/lib/server/instance-settings";
 import { metadataOrigin } from "@/lib/app-url";
-import { isWorkspaceDemo } from "@/lib/server/workspace-page-loader";
 import localFont from "next/font/local";
 import "./globals.css";
 
@@ -99,7 +98,7 @@ export default async function RootLayout({
         <InstanceProvider settings={instance}>
           <ThemeProvider>
             {children}
-            <TasksFooter demoMode={isWorkspaceDemo()} />
+            <TasksFooter />
             <ToastHost />
           </ThemeProvider>
         </InstanceProvider>

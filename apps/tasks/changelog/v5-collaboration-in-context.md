@@ -8,7 +8,7 @@ title: Collaboration, connected resources, and faster task flows
 summary: Tasks, notes, contacts, and workspace resources now work together more naturally, with richer collaboration and quicker everyday editing.
 overview:
   - A shared calendar for deadlines, important dates, and time away
-  - A neutral, reusable first-run demo workspace
+  - A neutral, reusable first-run demo workspace, previewable from Admin
   - Collaborative notes, comments, and linked task references
   - Faster task editing, filters, and searchable dropdowns
   - Richer project resources and contact organization
@@ -52,6 +52,12 @@ Comments now support nested replies, making it clear which message a teammate is
 ### A cleaner first look
 
 The zero-configuration demo now opens as a neutral team workspace with sample teammates, projects, tasks, and calendar dates that fit any organization. Demo mode skips the production beta notice and uses a compact footer, which is also the default footer treatment on sign-in and account-recovery screens.
+
+Owners can see that first look for themselves without a second deployment: **Enter demo preview** on the Admin overview swaps the workspace for the demo fixtures in their browser alone, and the demo banner carries the way back out. Nothing touched during a preview reaches the database, and the preview lapses on its own after four hours.
+
+### A footer that finishes the page
+
+The compact footer is no longer a single line. It now carries the wordmark and its tagline, whatever footer links the workspace has configured, social icons, and the credit line beneath a divider — so the quiet treatment still looks finished on sign-in screens and in the demo.
 
 ### Notes that read like notes
 

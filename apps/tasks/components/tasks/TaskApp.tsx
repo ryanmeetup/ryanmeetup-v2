@@ -670,12 +670,6 @@ export function TaskApp({
         onNewTask={() => editor.openCreate()}
         setData={setData}
       >
-        {demoMode && (
-          <div className="border-b border-amber-300/40 bg-amber-50 px-4 py-2 text-center text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-100">
-            Local demo mode · Add Supabase environment variables to enable team
-            auth and realtime sync.
-          </div>
-        )}
         <div className="p-4 sm:p-6 lg:p-8">
           <TaskWorkspaceHeader
             scope={{

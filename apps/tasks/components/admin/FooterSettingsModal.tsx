@@ -35,7 +35,7 @@ const fields = [...footerTextFields, ...creditFields, ...creditWordingFields];
 
 const footerVariantOptions = [
   { value: "branded", label: "Branded — wordmark, links, socials, credit" },
-  { value: "minimal", label: "Minimal — one credit row" },
+  { value: "minimal", label: "Minimal — small wordmark, inline links, credit" },
   { value: "none", label: "None — no footer" },
 ];
 
@@ -117,11 +117,11 @@ export function FooterSettingsModal({
    * The list editors accept partial rows while they are being filled in, so
    * completeness is checked at save time — but only for the parts the chosen
    * variant actually renders. A half-filled column left behind by switching to
-   * `minimal` must not block the save on a field that is no longer on screen.
+   * `none` must not block the save on a field that is no longer on screen.
    */
   function footerProblem() {
     if (resolvedVariant === "none") return undefined;
-    if (sections && resolvedVariant === "branded")
+    if (sections)
       for (const section of sections) {
         if (!section.title.trim())
           return "Every footer link column needs a heading.";
@@ -231,27 +231,23 @@ export function FooterSettingsModal({
 
         <AnimatedCollapse open={resolvedVariant !== "none"}>
           <div className="space-y-8">
-            <AnimatedCollapse open={resolvedVariant === "branded"}>
-              <div className="space-y-8">
-                <Subsection
-                  title="Wordmark"
-                  description="The oversized name and the line beneath it."
-                >
-                  {footerTextFields.map(renderField)}
-                </Subsection>
+            <Subsection
+              title="Wordmark"
+              description="The name and the line beneath it."
+            >
+              {footerTextFields.map(renderField)}
+            </Subsection>
 
-                <Subsection
-                  title="Link columns"
-                  description="Up to three titled columns beside the wordmark."
-                >
-                  <FooterSectionsEditor
-                    sections={resolvedSections}
-                    setSections={setSections}
-                    disabled={saving}
-                  />
-                </Subsection>
-              </div>
-            </AnimatedCollapse>
+            <Subsection
+              title="Link columns"
+              description="Up to three titled columns beside the wordmark. The minimal style flattens them into one inline row."
+            >
+              <FooterSectionsEditor
+                sections={resolvedSections}
+                setSections={setSections}
+                disabled={saving}
+              />
+            </Subsection>
 
             <Subsection
               title="Social links"

@@ -14,7 +14,7 @@ import {
 export async function loadChangelogPage(
   query: Record<string, string | string[] | undefined>,
 ) {
-  const demoMode = isWorkspaceDemo();
+  const demoMode = await isWorkspaceDemo();
   if (demoMode) return { initialData: demoData, demoMode: true } as const;
 
   const loaded = await loadWorkspacePage([

@@ -39,6 +39,16 @@ const color = (value: unknown) =>
 
 export const colorSchema = color;
 
+/**
+ * The demo-preview toggle. It carries nothing but the state being asked for;
+ * who is allowed to ask is the route's business, not the schema's.
+ */
+export const demoPreviewSchema = (value: unknown) => {
+  const object = objectWithKeys(value, ["enabled"]);
+  if (!object || typeof object.enabled !== "boolean") return null;
+  return { enabled: object.enabled };
+};
+
 export function statusCreateSchema(value: unknown) {
   const body = objectWithKeys(value, ["name", "description", "color"]);
   if (!body) return null;

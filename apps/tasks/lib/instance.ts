@@ -94,8 +94,9 @@ export type InstanceFooterSocial = {
  * subtitle, titled link columns, social icons, and a credit sentence. Every
  * part of it is data, so it is a shape any deployment can fill rather than a
  * reproduction of one organization's footer; the Ryan Meetup values below are
- * simply this build's defaults. `minimal` is a single credit row and `none`
- * removes the footer entirely.
+ * simply this build's defaults. `minimal` is the same content at a quieter
+ * scale — a small wordmark, the section links inline, socials, and the
+ * credit — and `none` removes the footer entirely.
  */
 export const footerVariants = ["branded", "minimal", "none"] as const;
 export type InstanceFooterVariant = (typeof footerVariants)[number];
@@ -166,9 +167,9 @@ export type InstanceSettings = {
   logoPath: string | null;
   /** How much footer to render. See `footerVariants`. */
   footerVariant: InstanceFooterVariant;
-  /** Second line of the oversized wordmark. `branded` variant only. */
+  /** Second line under the wordmark. Shown by `branded` and `minimal`. */
   footerSubtitle: string;
-  /** Titled link columns. An empty array drops them. `branded` only. */
+  /** Titled link columns; `minimal` flattens them into one inline row. */
   footerSections: InstanceFooterSection[];
   /** Social icons beside the credit. An empty array drops them. */
   footerSocials: InstanceFooterSocial[];
@@ -255,6 +256,11 @@ export const instanceDefaults: InstanceSettings = {
  * Neutral presentation for the zero-configuration local demo. Demo mode is
  * often the first view of the product, so it should demonstrate a reusable
  * team workspace rather than inherit one deployment's identity.
+ *
+ * The build credit is the deliberate exception. It names who wrote the
+ * software rather than who the workspace belongs to, so it is just as true of
+ * the demo as of any deployment and stays in place while the organization
+ * branding around it goes neutral.
  */
 export const demoInstanceSettings: InstanceSettings = {
   name: "Workspace",
@@ -266,13 +272,13 @@ export const demoInstanceSettings: InstanceSettings = {
   accentColor: "#2563eb",
   logoPath: null,
   footerVariant: "minimal",
-  footerSubtitle: "",
+  footerSubtitle: "Team task tracker",
   footerSections: [],
   footerSocials: [],
-  creditPrefix: "",
-  creditLabel: "Team Tasks",
-  creditUrl: "/",
-  creditSuffix: "",
+  creditPrefix: "Website designed and developed by ",
+  creditLabel: "Ryan Le",
+  creditUrl: "https://ryanle.dev/",
+  creditSuffix: ". All Rights Reserved.",
   ogAlt: "Team Tasks — shared team workspace",
   ogHeadline: "Tasks",
   ogTagline: "Shared workspace for your team",

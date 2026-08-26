@@ -25,7 +25,7 @@ export async function generateMetadata({
   const taskNumber = parseTaskKey(key);
   if (taskNumber === null) return {};
 
-  if (isWorkspaceDemo()) {
+  if (await isWorkspaceDemo()) {
     const task = demoData.tasks.find((item) => item.task_number === taskNumber);
     return task
       ? {
@@ -66,7 +66,7 @@ export default async function SharedTaskPage({
   const taskNumber = parseTaskKey(key);
   if (taskNumber === null) notFound();
 
-  if (isWorkspaceDemo()) {
+  if (await isWorkspaceDemo()) {
     const task = demoData.tasks.find((item) => item.task_number === taskNumber);
     if (!task) notFound();
     return <TaskPageClient initialData={demoData} taskId={task.id} demoMode />;
