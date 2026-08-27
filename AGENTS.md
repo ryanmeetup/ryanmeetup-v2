@@ -32,6 +32,43 @@ tasks 3000 (its Supabase auth callbacks are registered there), ryanmeetup 3001,
 store 3002, ryancon 3003. End-to-end servers run higher and separately —
 tasks 3100, ryanmeetup 3101 — each overridable with `PLAYWRIGHT_PORT`.
 
+## The two Tasks instances
+
+`apps/tasks` backs two deployments that share this repository and the `main`
+branch but are otherwise completely separate — separate users, projects,
+categories, and privileges:
+
+| | Domain | Vercel org | Supabase project |
+| --- | --- | --- | --- |
+| RMT | `tasks.ryanmeetup.com` | `teamryan` | `lvfaartgcpphuokoswcm` |
+| PRD | `projects.ryanle.dev` | `ryansles-projects` | `vjsnobmfsfrsnwukfaoq` |
+
+Same Vercel account, different orgs. Different Supabase *accounts*, each with
+its own storage buckets. Both receive every feature on merge, which is the
+point of not forking.
+
+How to work with them:
+
+- **Never point one instance at the other's Supabase credentials, not even as a
+  temporary diagnostic.** It fails silently — the app builds, signs in, and
+  serves the other workspace's data under the wrong domain, and anything
+  written lands in the wrong database. This has happened once already.
+- Every migration must be pushed to **both** projects. See "Supabase database
+  changes" below; a schema change applied to one and not the other is exactly
+  the drift that broke PRD's deploys.
+- `NEXT_PUBLIC_*` values are inlined at build time, so a deployment keeps
+  talking to whatever project it was built against. After changing environment
+  variables, trigger a **fresh** deploy from `main` — redeploying an older one
+  can reuse its previous environment snapshot.
+- When a change is instance-specific, express it through `instance_settings`
+  and `/admin/settings` rather than branching on the domain in code. A blank
+  setting inherits the compiled default; see `lib/instance.ts`.
+- Nothing in the repository names PRD's credentials. To check what a running
+  instance actually resolved, read `/admin/integrations` rather than guessing
+  from a local `.env.local`.
+
+Fuller detail lives in `apps/tasks/docs/MULTI_INSTANCE.md`.
+
 ## Before Making Changes
 
 1. Inspect the relevant app and shared packages before adding a component,
