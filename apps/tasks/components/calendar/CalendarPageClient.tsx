@@ -25,8 +25,10 @@ import {
   FiExternalLink,
   FiFolder,
   FiInfo,
+  FiLogIn,
   FiMoreHorizontal,
   FiPlus,
+  FiSettings,
   FiSidebar,
   FiTrash2,
   FiUsers,
@@ -563,11 +565,11 @@ export function CalendarPageClient({
   useEffect(() => {
     const messages: Record<string, { kind: "success" | "error"; text: string }> = {
       connected: { kind: "success", text: "Google Calendar connected." },
-      invalid: { kind: "error", text: "Google Calendar returned an invalid connection request." },
-      auth: { kind: "error", text: "Sign in again before connecting Google Calendar." },
-      unavailable: { kind: "error", text: "Google Calendar has not been configured for this deployment." },
-      "refresh-token": { kind: "error", text: "Google did not provide ongoing calendar access. Try connecting again." },
-      failed: { kind: "error", text: "Google Calendar could not be connected." },
+      invalid: { kind: "error", text: "That Google sign-in link expired. Please try again." },
+      auth: { kind: "error", text: "Sign in to Tasks again, then reconnect Google Calendar." },
+      unavailable: { kind: "error", text: "Google Calendar still needs one-time workspace setup." },
+      "refresh-token": { kind: "error", text: "Google did not grant ongoing calendar access. Please try again and approve the requested access." },
+      failed: { kind: "error", text: "Google Calendar could not be connected. Please try again." },
     };
     const message = googleStatus ? messages[googleStatus] : undefined;
     if (message) toast[message.kind](message.text);
@@ -676,16 +678,28 @@ export function CalendarPageClient({
                   <Button size="xs" variant="secondary" aria-label="Next month" onClick={() => setMonth(moveMonth(month, 1))}><FiArrowRight /></Button>
                 </div>
                 <div className="flex flex-wrap items-end justify-end gap-2">
-                  {(googleCanView || googleCanManage) && (
+                  {(googleCanManage || (googleCanView && googleConnection.connected)) && (
                     <button
                       type="button"
                       onClick={() => setGoogleSettingsOpen(true)}
                       className={`inline-flex h-9 items-center gap-2 rounded-full border px-3 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 ${googleConnection.connected ? "border-blue-500/30 bg-blue-500/10 text-blue-800 hover:bg-blue-500/15 focus-visible:ring-blue-500/30 dark:border-blue-400/30 dark:text-blue-200" : "border-black/15 bg-black/[0.035] text-black/65 hover:bg-black/[0.07] focus-visible:ring-black/30 dark:border-white/15 dark:bg-white/[0.06] dark:text-white/65 dark:hover:bg-white/10 dark:focus-visible:ring-white/30"}`}
-                      aria-label={`Google Calendar is ${googleConnection.connected ? "connected" : "not connected"}. Open connection settings.`}
+                      aria-label={googleConnection.connected
+                        ? "Google Calendar is connected. Open connection settings."
+                        : googleConfigured
+                          ? "Google Calendar is ready to connect. Open connection settings."
+                          : "Google Calendar needs setup. Open connection settings."}
                     >
                       <span className={`h-2 w-2 rounded-full ${googleConnection.connected ? "bg-emerald-500" : "bg-black/30 dark:bg-white/30"}`} aria-hidden />
                       <FiCalendar aria-hidden />
-                      <span>Google · {googleLoading ? "Syncing" : googleConnection.connected ? "Connected" : "Not connected"}</span>
+                      <span>
+                        Google · {googleLoading
+                          ? "Syncing"
+                          : googleConnection.connected
+                            ? "Connected"
+                            : googleConfigured
+                              ? "Connect"
+                              : "Setup needed"}
+                      </span>
                     </button>
                   )}
                   <DropdownSelect className="h-9" label="Show" value={source} onChange={setSource} options={[
@@ -759,7 +773,11 @@ export function CalendarPageClient({
         open={googleSettingsOpen}
         setIsOpen={setGoogleSettingsOpen}
         title="Google Calendar"
-        description="Manage the calendar connection without taking up space beside the schedule."
+        description={googleConnection.connected
+          ? "Keep the shared workspace calendar close to the rest of the schedule."
+          : googleConfigured
+            ? "Sign in with Google to bring the shared workspace calendar into Tasks."
+            : "A workspace owner can finish the one-time setup from Admin."}
         size="sm"
       >
         <div className="rounded-xl border border-black/10 bg-black/[0.025] p-4 dark:border-white/10 dark:bg-white/[0.04]">
@@ -768,7 +786,11 @@ export function CalendarPageClient({
             <div className="min-w-0 flex-1">
               <p className="flex items-center gap-1.5 text-sm font-semibold">
                 {googleConnection.connected && <FiCheck className="text-emerald-600 dark:text-emerald-300" aria-hidden />}
-                {googleConnection.connected ? "Connected" : "Not connected"}
+                {googleConnection.connected
+                  ? "Connected"
+                  : googleConfigured
+                    ? "Ready to connect"
+                    : "Setup needed"}
               </p>
               {googleConnection.email && <p className="mt-0.5 truncate text-xs text-black/60 dark:text-white/60">{googleConnection.email}</p>}
             </div>
@@ -776,17 +798,19 @@ export function CalendarPageClient({
           <p className="mt-3 text-sm leading-relaxed text-black/65 dark:text-white/65">
             {googleConnection.connected
               ? googleLoading
-                ? "Refreshing events for this month. Nothing from Tasks is sent to Google."
-                : "Google events are up to date for this month. Nothing from Tasks is sent to Google."
+                ? "Refreshing Google events for this month."
+                : "Google events appear here automatically. Tasks dates are added to Google only when you choose that option."
               : googleConfigured
-                ? "Connect the shared workspace calendar to show its events here."
-                : "Add the Google OAuth environment variables to enable this connection."}
+                ? "Continue with the Google account that owns the calendar. You can review access before anything is connected."
+                : "Google Calendar is not ready for this workspace yet. Review the setup status in Admin, then return here to connect."}
           </p>
           {googleCanManage ? (
             googleConnection.connected ? (
-              <Button className="mt-4 w-full" size="sm" variant="secondary" leftIcon={<FiX />} loading={disconnectingGoogle} onClick={disconnectGoogle}>Disconnect</Button>
+              <Button className="mt-4 w-full" size="sm" variant="secondary" leftIcon={<FiX />} loading={disconnectingGoogle} onClick={disconnectGoogle}>Disconnect Google Calendar</Button>
+            ) : !googleConfigured ? (
+              <Button.Link href="/admin" className="mt-4 w-full" size="sm" variant="secondary" leftIcon={<FiSettings />}>View setup status</Button.Link>
             ) : (
-              <Button.Link href="/api/integrations/google-calendar/connect" className="mt-4 w-full" size="sm" variant="secondary" leftIcon={<FiExternalLink />} disabled={!googleConfigured || demoMode}>Connect Google Calendar</Button.Link>
+              <Button.Link href="/api/integrations/google-calendar/connect" className="mt-4 w-full" size="sm" leftIcon={<FiLogIn />} disabled={demoMode}>Continue with Google</Button.Link>
             )
           ) : (
             <p className="mt-3 text-xs text-black/50 dark:text-white/50">A workspace owner manages this connection.</p>
