@@ -210,6 +210,30 @@ Choose the task key prefix carefully. It appears in every task URL
 
 `TASKS_ALLOWED_ORIGINS` is only needed if preview deployments must issue writes.
 
+#### Never borrow the other instance's Supabase credentials
+
+The three Supabase variables must all come from the new project, and the
+temptation to paste the working instance's values in while debugging a signup
+or redirect problem is the single most expensive mistake available here. It
+does not fail loudly: the app comes up, signs in, and serves the *first*
+instance's users, projects, and categories under the second instance's domain.
+Anything written in that state lands in the wrong database.
+
+Two properties make it hard to see afterwards:
+
+- `NEXT_PUBLIC_*` values are inlined at build time, so a deployment keeps
+  talking to whatever project it was built against. Correcting the variables
+  changes nothing until a **fresh** deployment is built — redeploying an older
+  one can reuse its previous environment snapshot.
+- The database-contract preflight only checks whether the configured project
+  has the schema, not whether it is the right project. A deploy pointed at the
+  wrong database passes it.
+
+If it has already happened, restore the variables from the correct project,
+push any migrations the new database is missing, and trigger a fresh
+deployment from `main`. Then confirm on the running site that
+`/admin/integrations` shows the intended Supabase host.
+
 ### 7. Third-party accounts
 
 - **Resend.** `lib/server/resend-usage.ts` reads account-wide quotas, so two

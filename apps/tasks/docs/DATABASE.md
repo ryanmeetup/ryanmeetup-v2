@@ -233,21 +233,54 @@ database failure must propagate rather than be swallowed.
 
 ## Outstanding
 
-- **Mark the baseline applied on production.** Its schema is already there, so
-  the history row just needs writing without re-running the SQL:
+- **Apply `20260907000000` to the second instance.** The Ryan Meetup project
+  already has every object in it, so mark it applied there rather than running
+  it; the personal project needs it pushed:
 
   ```sh
-  supabase migration repair --status applied 20260731000000
-  ```
+  supabase link --project-ref lvfaartgcpphuokoswcm   # Ryan Meetup Tasks
+  supabase migration repair --status applied 20260907000000
 
-- **Apply the digest migration to production.** `digest_settings` and
-  `digest_runs` return 404 on the live project, so the worker is running on
-  built-in cadence defaults and `/admin/usage` shows an empty run ledger.
-
-  ```sh
+  supabase link --project-ref vjsnobmfsfrsnwukfaoq   # projects.ryanle.dev
   supabase db push
   ```
 
-- **Once a second instance exists, every migration must be pushed to both
-  projects.** A schema change applied to one and not the other is the beginning
-  of exactly the drift this document was written to end.
+- **Every migration must be pushed to both projects.** A schema change applied
+  to one and not the other is the beginning of exactly the drift this document
+  was written to end.
+
+## The provisioning-contract drift
+
+`20260907000000_workspace_provisioning_contract.sql` is the second time the
+same failure produced the same result, and it is worth naming.
+
+`provision_workspace_member`, `beginner_flow_health`, `repair_beginner_flow`,
+`set_project_visibility`, `create_project_with_visibility`,
+`protect_default_access_tier`,
+`normalize_project_visibility_after_group_delete`, `projects.access_mode`, and
+`access_groups.is_default` were applied straight to the Ryan Meetup project
+while the visibility and onboarding work landed. No migration file was
+committed for any of them, and this document said so in passing rather than
+treating it as a defect.
+
+Nothing was visibly wrong, because the only database that existed already had
+them. The cost only appeared when a second instance was built from this
+repository: `projects.ryanle.dev` came up on its own project without the
+contract, and `scripts/check-database-contract.mjs` refused the deploy with a
+404 on `beginner_flow_health`. The last deployment that had succeeded was built
+against the *first* instance's credentials, so the second instance served the
+first instance's data while looking healthy.
+
+The recovery was mechanical, and is the recipe for any future divergence:
+
+```sh
+supabase db reset                                   # local, from the repo
+supabase db diff --linked --schema public -f drift  # exactly what production has that the repo does not
+supabase db reset                                   # verify the captured file applies from empty
+supabase db diff --linked --schema public           # must report no schema changes
+```
+
+The preflight is what turned a silent wrong-data condition into a failed build.
+Do not reach for `SKIP_DATABASE_CONTRACT_CHECK=1` to get a deploy through; it
+exists for a database that is deliberately unreachable at build time, not for
+one that is missing the contract.
