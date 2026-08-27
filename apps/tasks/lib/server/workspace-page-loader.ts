@@ -4,7 +4,6 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import {
   loadWorkspace,
-  WorkspaceLoadError,
   requireQueryData,
   type WorkspaceCollection,
 } from "@/lib/server/workspace-loader";
@@ -55,16 +54,9 @@ export async function loadWorkspacePage(
   {
     owner = false,
     requireOnboarding = true,
-    onLoadError = "redirect",
   }: {
     owner?: boolean;
     requireOnboarding?: boolean;
-    /**
-     * How to handle a failed workspace query. The default sends the visitor to
-     * /profile, which can recover with a minimal profile — but /profile itself
-     * must pass "throw", or the redirect points at the failing page and loops.
-     */
-    onLoadError?: "redirect" | "throw";
   } = {},
 ) {
   const supabase = await createClient();
@@ -77,22 +69,14 @@ export async function loadWorkspacePage(
     if (!isOwner) notFound();
   }
 
-  let data;
-  try {
+  let data = await loadWorkspace(supabase, user.id, collections);
+  if (
+    data &&
+    collections.includes("statuses") &&
+    data.statuses.length === 0
+  ) {
+    await seedDefaultStatusesIfEmpty();
     data = await loadWorkspace(supabase, user.id, collections);
-    if (
-      data &&
-      collections.includes("statuses") &&
-      data.statuses.length === 0
-    ) {
-      await seedDefaultStatusesIfEmpty();
-      data = await loadWorkspace(supabase, user.id, collections);
-    }
-  } catch (error) {
-    if (error instanceof WorkspaceLoadError && onLoadError === "redirect") {
-      redirect("/profile");
-    }
-    throw error;
   }
 
   if (!data) redirect("/login?error=profile");

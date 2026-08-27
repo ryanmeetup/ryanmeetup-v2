@@ -20,16 +20,18 @@ export default async function ProfilePage() {
 
   let data: WorkspaceData;
   let email: string;
+  let workspaceLoadReference: string | undefined;
 
   try {
     const result = await loadWorkspacePage(
       ["profiles", "statuses", "categories", "categoryOwners", "projects"],
-      { requireOnboarding: false, onLoadError: "throw" },
+      { requireOnboarding: false },
     );
     data = result.data;
     email = result.user.email ?? "";
   } catch (error) {
     if (!(error instanceof WorkspaceLoadError)) throw error;
+    workspaceLoadReference = error.correlationId;
 
     // Fallback: load only the user's own profile (always readable via RLS).
     const supabase = await createClient();
@@ -74,6 +76,7 @@ export default async function ProfilePage() {
       initialData={data}
       email={email}
       onboardingRequired={!data.currentProfile.onboarding_completed}
+      workspaceLoadReference={workspaceLoadReference}
     />
   );
 }

@@ -65,6 +65,8 @@ The compact footer is no longer a single line. It now carries the wordmark and i
 
 Route changes now keep the workspace navigation and header in place while only the destination page loads, so moving around the app feels steady even when the next screen needs fresh data.
 
+If workspace data cannot load, the app now explains the failure and provides a reference instead of repeatedly sending you to your profile as though onboarding were incomplete.
+
 ### Notes that read like notes
 
 The notes board now presents each note as a finished card: its title, formatted text, author, and comment count at a glance. Links written inside a note appear as chips you can follow, alongside the task or project the note became.

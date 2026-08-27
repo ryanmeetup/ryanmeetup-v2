@@ -43,29 +43,19 @@ describe("loadWorkspacePage error handling", () => {
     getUser.mockResolvedValue({ data: { user: { id: "ryan" } }, error: null });
   });
 
-  it("sends a failed page to the profile fallback by default", async () => {
-    loadWorkspaceMock.mockRejectedValue(new WorkspaceLoadError("statuses"));
-
-    await expect(loadWorkspacePage(["statuses"])).rejects.toMatchObject({
-      location: "/profile",
-    });
-  });
-
-  it("rethrows for the profile route so it never redirects to itself", async () => {
+  it("surfaces a failed workspace load to the route error boundary", async () => {
     const failure = new WorkspaceLoadError("statuses");
     loadWorkspaceMock.mockRejectedValue(failure);
 
-    await expect(
-      loadWorkspacePage(["statuses"], { onLoadError: "throw" }),
-    ).rejects.toBe(failure);
+    await expect(loadWorkspacePage(["statuses"])).rejects.toBe(failure);
   });
 
   it("still redirects an unauthenticated visitor to the login page", async () => {
     getUser.mockResolvedValue({ data: { user: null }, error: null });
 
-    await expect(
-      loadWorkspacePage(["statuses"], { onLoadError: "throw" }),
-    ).rejects.toMatchObject({ location: "/login" });
+    await expect(loadWorkspacePage(["statuses"])).rejects.toMatchObject({
+      location: "/login",
+    });
   });
 
   it("repairs and reloads an empty status collection", async () => {

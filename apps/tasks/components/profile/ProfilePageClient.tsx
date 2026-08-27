@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card, Modal } from "@ryanmeetup/ui";
+import { Button, Card, ErrorCallout, Modal } from "@ryanmeetup/ui";
 import { FiLock, FiLogOut, FiUser } from "react-icons/fi";
 import { ProfileForm } from "./ProfileForm";
 import { PasswordForm } from "@/components/auth";
@@ -21,10 +21,12 @@ export function ProfilePageClient({
   initialData,
   email,
   onboardingRequired,
+  workspaceLoadReference,
 }: {
   initialData: WorkspaceData;
   email: string;
   onboardingRequired: boolean;
+  workspaceLoadReference?: string;
 }) {
   const router = useRouter();
   const [data, setData] = useState(initialData);
@@ -66,6 +68,13 @@ export function ProfilePageClient({
             title="Complete your profile"
             description="Choose your sign-in password and confirm how your name appears before continuing."
           />
+          {workspaceLoadReference ? (
+            <ErrorCallout className="mt-6">
+              The rest of the workspace could not be loaded. You can still
+              complete your profile, but if this continues, share reference{" "}
+              <code>{workspaceLoadReference}</code>.
+            </ErrorCallout>
+          ) : null}
           <div className="mt-8 border-t border-black/10 pt-8 dark:border-white/10">
             <ProfileForm
               profile={data.currentProfile}
@@ -97,6 +106,13 @@ export function ProfilePageClient({
             title="Profile"
             description="Manage how teammates see you across the workspace."
           />
+          {workspaceLoadReference ? (
+            <ErrorCallout className="mt-6">
+              Your profile loaded, but the rest of the workspace did not. Try
+              again in a moment, and share reference{" "}
+              <code>{workspaceLoadReference}</code> if the problem continues.
+            </ErrorCallout>
+          ) : null}
           <div className="mt-10 border-t border-black/10 pt-8 dark:border-white/10">
             <ProfileForm
               profile={data.currentProfile}
