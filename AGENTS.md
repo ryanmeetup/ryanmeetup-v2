@@ -321,19 +321,47 @@ Validate in proportion to the change, from the affected workspace.
 
 ### Supabase database changes
 
-The linked Supabase project is the source of truth. Do not retain chronological
-Supabase migration files in this repository and do not make builds, CI, tests,
-or local development depend on replaying migration history.
+**`apps/tasks/supabase/migrations` is the source of truth, and every schema
+change is a committed migration file.** Two instances run this app —
+`tasks.ryanmeetup.com` and `projects.ryanle.dev` — on separate Supabase
+projects in separate accounts. A change applied to one database and not written
+down cannot reach the other, and the second instance simply comes up missing
+it.
 
-For a database change, write the SQL in a temporary file, apply it directly to
-the linked project, verify the affected table, column, function, policy, or
-trigger through the live project, and delete the temporary file before handoff.
-Prefer a temporary directory outside the repository. If a tool requires the
-file under `supabase/migrations`, remove it after successful application and
-verification. Do not use a migration-history workflow such as `supabase db
-push` for these ephemeral files; it would leave the remote migration ledger
-dependent on a file the repository intentionally does not retain. Report any
-deployment or verification blocker explicitly.
+Earlier guidance here said the opposite: write the SQL in a temporary file,
+apply it directly to the linked project, and delete the file. That is how nine
+objects behind workspace provisioning and project visibility ended up in the
+Ryan Meetup database and nowhere else, which broke the second instance's
+deploys. Do not apply schema changes by hand, and never delete an applied
+migration file.
+
+For a database change:
+
+1. Write a new file in `apps/tasks/supabase/migrations` with a timestamp after
+   the latest one.
+2. `supabase db reset` to apply it from empty, then
+   `supabase db diff --linked --schema public` to see exactly what it changes
+   relative to the linked project.
+3. Run the relevant unit and route tests. The Playwright suite runs against a
+   stub and verifies nothing about the schema.
+4. Commit the file with the code that depends on it.
+5. `supabase db push` to **both** instances' projects.
+
+Code that reads a table added by a migration that may not be applied yet can
+tolerate a missing relation through `isMissingRelation` in
+`lib/server/supabase-errors.ts` and fall back to defaults, so the deploy and
+the migration can land in either order. That tolerance is only ever for a
+missing table — every other database failure must propagate.
+
+`apps/tasks/scripts/check-database-contract.mjs` runs before a production build
+and fails the deploy when the configured database is reachable but missing the
+contract. Fix the database rather than reaching for
+`SKIP_DATABASE_CONTRACT_CHECK=1`.
+
+See `apps/tasks/docs/DATABASE.md` for the schema baseline and verification
+detail, and `apps/tasks/docs/MULTI_INSTANCE.md` for everything outside the
+database — including the rule that an instance never borrows the other's
+Supabase credentials, not even as a temporary diagnostic.
 
 Minimum expectations:
 
