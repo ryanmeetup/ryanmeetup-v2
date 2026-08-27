@@ -7,8 +7,8 @@ import { demoData } from "@/lib/workspace/demo-data";
 import {
   isWorkspaceDemo,
   loadWorkspacePage,
-  requireWorkspaceUser,
 } from "@/lib/server/workspace-page-loader";
+import { requireWorkspaceEntry } from "@/lib/server/workspace-entry";
 
 const shellCollections = [
   "profiles",
@@ -33,11 +33,13 @@ export default async function WorkspaceLayout({
   children: ReactNode;
 }) {
   const demoMode = await isWorkspaceDemo();
-  if (!demoMode) await requireWorkspaceUser();
+  if (!demoMode) await requireWorkspaceEntry();
 
   return (
     <Suspense fallback={<WorkspaceShellSkeleton />}>
-      <LoadedWorkspaceShell demoMode={demoMode}>{children}</LoadedWorkspaceShell>
+      <LoadedWorkspaceShell demoMode={demoMode}>
+        {children}
+      </LoadedWorkspaceShell>
     </Suspense>
   );
 }

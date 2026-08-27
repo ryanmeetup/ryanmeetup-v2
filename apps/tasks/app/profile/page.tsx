@@ -9,14 +9,22 @@ import { WorkspaceLoadError } from "@/lib/server/workspace-loader";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import type { Metadata } from "next";
 import { pageTitle } from "@/lib/server/instance-settings";
+import { safeWorkspaceReturnPath } from "@/lib/workspace/entry-route";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: { absolute: await pageTitle("Profile") } };
 }
 
-export default async function ProfilePage() {
+export default async function ProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const demoMode = await isWorkspaceDemo();
   if (demoMode) redirect("/");
+  const params = await searchParams;
+  const entryReason = params.reason === "onboarding" ? "onboarding" : undefined;
+  const returnTo = safeWorkspaceReturnPath(params.next);
 
   let data: WorkspaceData;
   let email: string;
@@ -77,6 +85,8 @@ export default async function ProfilePage() {
       email={email}
       onboardingRequired={!data.currentProfile.onboarding_completed}
       workspaceLoadReference={workspaceLoadReference}
+      entryReason={entryReason}
+      returnTo={returnTo}
     />
   );
 }

@@ -6,7 +6,7 @@ class RedirectError extends Error {
   }
 }
 
-const getUser = vi.fn();
+const requireWorkspaceEntry = vi.fn();
 const seedDefaultStatusesIfEmpty = vi.fn();
 
 vi.mock("next/navigation", () => ({
@@ -19,7 +19,12 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: async () => ({ auth: { getUser }, rpc: vi.fn() }),
+  createClient: async () => ({ rpc: vi.fn() }),
+}));
+
+vi.mock("@/lib/server/workspace-entry", () => ({
+  requireWorkspaceEntry,
+  requireWorkspaceUser: vi.fn(),
 }));
 
 vi.mock("@/lib/server/workspace-loader", async (importOriginal) => ({
@@ -31,16 +36,16 @@ vi.mock("@/lib/server/default-statuses", () => ({
   seedDefaultStatusesIfEmpty,
 }));
 
-const { loadWorkspacePage } = await import("@/lib/server/workspace-page-loader");
-const { loadWorkspace, WorkspaceLoadError } = await import(
-  "@/lib/server/workspace-loader"
-);
+const { loadWorkspacePage } =
+  await import("@/lib/server/workspace-page-loader");
+const { loadWorkspace, WorkspaceLoadError } =
+  await import("@/lib/server/workspace-loader");
 const loadWorkspaceMock = vi.mocked(loadWorkspace);
 
 describe("loadWorkspacePage error handling", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    getUser.mockResolvedValue({ data: { user: { id: "ryan" } }, error: null });
+    requireWorkspaceEntry.mockResolvedValue({ user: { id: "ryan" } });
   });
 
   it("surfaces a failed workspace load to the route error boundary", async () => {
@@ -51,7 +56,7 @@ describe("loadWorkspacePage error handling", () => {
   });
 
   it("still redirects an unauthenticated visitor to the login page", async () => {
-    getUser.mockResolvedValue({ data: { user: null }, error: null });
+    requireWorkspaceEntry.mockRejectedValue(new RedirectError("/login"));
 
     await expect(loadWorkspacePage(["statuses"])).rejects.toMatchObject({
       location: "/login",

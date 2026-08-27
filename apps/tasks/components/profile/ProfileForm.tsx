@@ -30,11 +30,13 @@ export function ProfileForm({
   profile,
   email,
   onboardingRequired,
+  returnTo,
   onChangePassword,
 }: {
   profile: Profile;
   email: string;
   onboardingRequired: boolean;
+  returnTo: string;
   onChangePassword: () => void;
 }) {
   const router = useRouter();
@@ -169,7 +171,7 @@ export function ProfileForm({
       setAvatarFile(null);
       setAvatarPreview(result.profile.avatar_url);
       if (onboardingRequired) {
-        router.push("/");
+        router.replace(returnTo);
         router.refresh();
         return;
       }

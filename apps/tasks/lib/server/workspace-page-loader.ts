@@ -3,6 +3,10 @@ import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import {
+  requireWorkspaceEntry,
+  requireWorkspaceUser,
+} from "@/lib/server/workspace-entry";
+import {
   loadWorkspace,
   requireQueryData,
   type WorkspaceCollection,
@@ -42,12 +46,7 @@ export const isWorkspaceDemo = cache(async (): Promise<boolean> => {
  * shell, a signed-out visitor would paint a workspace they cannot see and only
  * then bounce to the login page.
  */
-export const requireWorkspaceUser = cache(async () => {
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data.user) redirect("/login");
-  return data.user;
-});
+export { requireWorkspaceUser };
 
 export async function loadWorkspacePage(
   collections: readonly WorkspaceCollection[],
@@ -60,7 +59,9 @@ export async function loadWorkspacePage(
   } = {},
 ) {
   const supabase = await createClient();
-  const user = await requireWorkspaceUser();
+  const { user } = await requireWorkspaceEntry({
+    allowIncomplete: !requireOnboarding,
+  });
   if (owner) {
     const isOwner = requireQueryData(
       "owner access",
@@ -70,17 +71,11 @@ export async function loadWorkspacePage(
   }
 
   let data = await loadWorkspace(supabase, user.id, collections);
-  if (
-    data &&
-    collections.includes("statuses") &&
-    data.statuses.length === 0
-  ) {
+  if (data && collections.includes("statuses") && data.statuses.length === 0) {
     await seedDefaultStatusesIfEmpty();
     data = await loadWorkspace(supabase, user.id, collections);
   }
 
-  if (!data) redirect("/login?error=profile");
-  if (requireOnboarding && !data.currentProfile.onboarding_completed)
-    redirect("/profile");
+  if (!data) redirect("/account-error?reason=profile");
   return { supabase, user, data };
 }

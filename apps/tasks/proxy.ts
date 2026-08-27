@@ -9,6 +9,10 @@ function responseWithSecurityPolicy(request: NextRequest, nonce: string) {
     process.env.NEXT_PUBLIC_SUPABASE_URL,
   );
   requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set(
+    "x-tasks-path",
+    `${request.nextUrl.pathname}${request.nextUrl.search}`,
+  );
   requestHeaders.set("Content-Security-Policy", policy);
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });

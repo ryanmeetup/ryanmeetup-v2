@@ -22,11 +22,15 @@ export function ProfilePageClient({
   email,
   onboardingRequired,
   workspaceLoadReference,
+  entryReason,
+  returnTo,
 }: {
   initialData: WorkspaceData;
   email: string;
   onboardingRequired: boolean;
   workspaceLoadReference?: string;
+  entryReason?: "onboarding";
+  returnTo: string;
 }) {
   const router = useRouter();
   const [data, setData] = useState(initialData);
@@ -68,6 +72,12 @@ export function ProfilePageClient({
             title="Complete your profile"
             description="Choose your sign-in password and confirm how your name appears before continuing."
           />
+          {entryReason === "onboarding" ? (
+            <p className="mt-6 rounded-xl border border-blue-500/25 bg-blue-500/10 px-4 py-3 text-sm font-semibold leading-relaxed text-blue-800 dark:border-blue-400/25 dark:text-blue-200">
+              This one-time step is required before the rest of the workspace
+              opens. After saving, you’ll return to where you were headed.
+            </p>
+          ) : null}
           {workspaceLoadReference ? (
             <ErrorCallout className="mt-6">
               The rest of the workspace could not be loaded. You can still
@@ -80,6 +90,7 @@ export function ProfilePageClient({
               profile={data.currentProfile}
               email={email}
               onboardingRequired
+              returnTo={returnTo}
               onChangePassword={() => undefined}
             />
           </div>
@@ -118,6 +129,7 @@ export function ProfilePageClient({
               profile={data.currentProfile}
               email={email}
               onboardingRequired={false}
+              returnTo="/"
               onChangePassword={() => setPasswordOpen(true)}
             />
           </div>
