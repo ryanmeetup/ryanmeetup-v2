@@ -31,20 +31,6 @@ const server = createServer((request, response) => {
     return;
   }
 
-  if (
-    [
-      "/rest/v1/access_groups",
-      "/rest/v1/access_group_members",
-      "/rest/v1/project_group_grants",
-      "/rest/v1/category_group_grants",
-      "/rest/v1/tasks",
-      "/rest/v1/task_assignees",
-    ].includes(url.pathname)
-  ) {
-    json(response, 200, []);
-    return;
-  }
-
   if (url.pathname === "/auth/v1/user") {
     json(response, 401, { message: "Auth session missing" });
     return;

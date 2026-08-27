@@ -7,25 +7,19 @@ import { FiChevronDown, FiFolder, FiTag } from "react-icons/fi";
 import { mutate } from "@/lib/mutation-client";
 import type { AccessGroup, GroupGrant } from "@/lib/access/access-types";
 import type { Category, Project } from "@/lib/resources/resource-types";
+import {
+  categoryVisibilityMode,
+  categoryVisibilityPayload,
+  eligibleVisibilityGroups,
+  isVisibilityIncomplete,
+  projectVisibilityPayload,
+  visibilityOptions,
+  visibilitySummary,
+  type VisibilityKind,
+  type VisibilityMode,
+} from "@/lib/access/content-visibility";
 
 type CategoryGrant = { category_id: string; group_id: string };
-type VisibilityMode = "owners" | "managers" | "open" | "restricted";
-
-function summary(
-  mode: VisibilityMode,
-  groupIds: string[],
-  groupNames: Map<string, string>,
-) {
-  if (mode === "open") return "Everyone";
-  if (mode === "owners") return "Project owners only";
-  if (mode === "managers") return "Workspace managers only";
-  const names = groupIds
-    .map((groupId) => groupNames.get(groupId))
-    .filter(Boolean) as string[];
-  if (names.length === 0) return "Choose access groups";
-  if (names.length <= 2) return names.join(", ");
-  return `${names.slice(0, 2).join(", ")} +${names.length - 2}`;
-}
 
 function VisibilityRow({
   kind,
@@ -35,7 +29,7 @@ function VisibilityRow({
   groups,
   onSave,
 }: {
-  kind: "project" | "category";
+  kind: VisibilityKind;
   name: string;
   initialMode: VisibilityMode;
   initialGroupIds: string[];
@@ -49,7 +43,7 @@ function VisibilityRow({
     () => new Map(groups.map((group) => [group.id, group.name])),
     [groups],
   );
-  const invalid = mode === "restricted" && groupIds.length === 0;
+  const invalid = isVisibilityIncomplete(mode, groupIds);
 
   return (
     <li className="flex flex-col items-stretch gap-3 border-t border-black/10 py-3 first:border-t-0 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
@@ -63,7 +57,9 @@ function VisibilityRow({
       </span>
       <Popover className="relative w-full shrink-0 sm:w-auto">
         <PopoverButton className="flex w-full items-center justify-between gap-2 rounded-lg border border-black/10 bg-black/[0.035] px-3 py-2 text-left text-sm transition-colors hover:bg-black/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/50 dark:border-white/10 dark:bg-white/[0.035] dark:hover:bg-white/[0.08] dark:focus-visible:ring-white/60 sm:max-w-[16rem]">
-          <span className="truncate">{summary(mode, groupIds, groupNames)}</span>
+          <span className="truncate">
+            {visibilitySummary(mode, groupIds, groupNames)}
+          </span>
           <FiChevronDown aria-hidden className="shrink-0" />
         </PopoverButton>
         <PopoverPanel
@@ -77,19 +73,7 @@ function VisibilityRow({
                 variant="field"
                 value={mode}
                 onChange={(value) => setMode(value as VisibilityMode)}
-                options={
-                  kind === "project"
-                    ? [
-                        { label: "Project owners only", value: "owners" },
-                        { label: "Everyone in the workspace", value: "open" },
-                        { label: "Selected access groups", value: "restricted" },
-                      ]
-                    : [
-                        { label: "Everyone in the workspace", value: "open" },
-                        { label: "Workspace managers only", value: "managers" },
-                        { label: "Selected access groups", value: "restricted" },
-                      ]
-                }
+                options={visibilityOptions(kind)}
                 disabled={saving}
                 required
               />
@@ -129,7 +113,7 @@ function VisibilityRow({
                   onClick={async () => {
                     setSaving(true);
                     try {
-                      await onSave(mode, mode === "restricted" ? groupIds : []);
+                      await onSave(mode, groupIds);
                       toast.success(`${name} visibility updated.`);
                       close();
                     } catch (error) {
@@ -167,7 +151,7 @@ export function ContentVisibilityPanel({
   projectGrants: GroupGrant[];
   categoryGrants: CategoryGrant[];
 }) {
-  const eligibleGroups = groups.filter((group) => !group.grants_global_content);
+  const eligibleGroups = eligibleVisibilityGroups(groups);
   const projectGroupIds = (projectId: string) =>
     projectGrants
       .filter((grant) => grant.project_id === projectId)
@@ -209,11 +193,9 @@ export function ContentVisibilityPanel({
                   onSave={(mode, groupIds) =>
                     mutate("/api/project-access", {
                       method: "POST",
-                      body: JSON.stringify({
-                        projectId: project.id,
-                        accessMode: mode,
-                        groupIds,
-                      }),
+                      body: JSON.stringify(
+                        projectVisibilityPayload(project.id, mode, groupIds),
+                      ),
                     }).then(() => undefined)
                   }
                 />
@@ -232,12 +214,10 @@ export function ContentVisibilityPanel({
               )}
               {categories.map((category) => {
                 const groupIds = categoryGroupIds(category.id);
-                const mode: VisibilityMode =
-                  category.access_mode === "open"
-                    ? "open"
-                    : groupIds.length > 0
-                      ? "restricted"
-                      : "managers";
+                const mode = categoryVisibilityMode(
+                  category.access_mode,
+                  groupIds,
+                );
                 return (
                   <VisibilityRow
                     key={category.id}
@@ -249,12 +229,13 @@ export function ContentVisibilityPanel({
                     onSave={(nextMode, nextGroupIds) =>
                       mutate("/api/category-access", {
                         method: "POST",
-                        body: JSON.stringify({
-                          categoryId: category.id,
-                          accessMode:
-                            nextMode === "open" ? "open" : "restricted",
-                          groupIds: nextGroupIds,
-                        }),
+                        body: JSON.stringify(
+                          categoryVisibilityPayload(
+                            category.id,
+                            nextMode,
+                            nextGroupIds,
+                          ),
+                        ),
                       }).then(() => undefined)
                     }
                   />
