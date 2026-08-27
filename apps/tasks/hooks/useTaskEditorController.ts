@@ -71,7 +71,7 @@ export function useTaskEditorController({
             .filter((row) => row.task_id === initialEditing.id)
             .map((row) => row.category_id),
         )
-      : emptyTaskDraft(defaults.statusId, initialData.currentProfile.id),
+      : emptyTaskDraft(defaults.statusId, initialData.currentProfile),
   );
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
@@ -119,12 +119,15 @@ export function useTaskEditorController({
     draftId.current = null;
     setDetails(emptyNewTaskDetails());
     touched.current = false;
+    const blank = emptyTaskDraft(statusId, data.currentProfile);
     setDraftState({
-      ...emptyTaskDraft(statusId, data.currentProfile.id),
+      ...blank,
       category_ids:
         defaults.categoryIds.length === 1 ? [...defaults.categoryIds] : [],
       project_id: defaults.projectId,
-      assignee_id: defaults.assigneeId,
+      // A filtered assignee is an explicit choice; the profile preference is
+      // only the fallback when the view is not narrowed to one person.
+      assignee_id: defaults.assigneeId ?? blank.assignee_id,
       priority: defaults.priority,
     });
     setOpen(true);
@@ -198,7 +201,7 @@ export function useTaskEditorController({
       if (!editing && createAnother) {
         touched.current = false;
         setDraftState({
-          ...emptyTaskDraft(draft.status_id, data.currentProfile.id),
+          ...emptyTaskDraft(draft.status_id, data.currentProfile),
           priority: draft.priority,
           category_ids: [...draft.category_ids],
           project_id: draft.project_id,

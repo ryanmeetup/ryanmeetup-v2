@@ -1,12 +1,6 @@
 import { FiCalendar } from "react-icons/fi";
 import { isTaskLate } from "@/lib/tasks/task-scheduling";
-
-function displayDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-  }).format(new Date(`${value}T12:00:00`));
-}
+import { formatCalendarDay } from "@/lib/date-format";
 
 export function TaskDueDate({
   dueDate,
@@ -36,7 +30,7 @@ export function TaskDueDate({
       }`}
     >
       {showIcon && <FiCalendar className="shrink-0" aria-hidden="true" />}
-      <time dateTime={dueDate}>{displayDate(dueDate)}</time>
+      <time dateTime={dueDate}>{formatCalendarDay(dueDate)}</time>
       {isLate && (
         <span className="rounded-full border border-red-200 bg-red-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
           Late

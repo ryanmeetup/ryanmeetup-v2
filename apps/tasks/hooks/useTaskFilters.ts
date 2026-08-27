@@ -109,3 +109,5 @@ export function useTaskFilters(setSearch: (value: string) => void) {
     setExcludedTags: tags.setExcluded,
   };
 }
+
+export type TaskFiltersState = ReturnType<typeof useTaskFilters>;

@@ -8,11 +8,7 @@ import {
   type TaskChangeLookups,
 } from "@/lib/activity/task-change-presentation";
 import type { TaskActivity } from "@/lib/activity/activity-types";
-
-const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
+import { formatTimestamp } from "@/lib/date-format";
 
 export function TaskActivityPanel({
   activity,
@@ -85,7 +81,7 @@ export function TaskActivityPanel({
                     className="mt-0.5 h-3.5 w-3.5 shrink-0 text-black/30 dark:text-white/30"
                   />
                   <time dateTime={item.created_at}>
-                    {dateTimeFormatter.format(new Date(item.created_at))}
+                    {formatTimestamp(item.created_at)}
                   </time>
                 </p>
               </div>

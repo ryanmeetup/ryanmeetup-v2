@@ -1,0 +1,171 @@
+"use client";
+
+import { ApiMutationError, mutate } from "@/lib/mutation-client";
+import type {
+  Subtask,
+  TaskAttachment,
+  TaskComment,
+  TaskReference,
+} from "@/lib/tasks/task-types";
+import type { TaskActivity } from "@/lib/activity/activity-types";
+
+/**
+ * Every request the task detail panels make.
+ *
+ * These wrap `mutate`, so a non-2xx response arrives as an `ApiMutationError`
+ * carrying the server's own message. Callers catch it and hand it to
+ * `errorMessage` with a fallback; none of them need to read a status code.
+ *
+ * A 200 is not on its own enough for the writes that hand a row back. Some of
+ * these routes cast an RPC result to its expected shape without checking it,
+ * so `expectRow` verifies the row is really there before a caller swaps it in
+ * for the optimistic one. Without that, a malformed success would write
+ * `undefined` into the workspace instead of rolling the change back.
+ */
+
+const DETAILS = "/api/task-details";
+const ATTACHMENTS = "/api/task-attachments";
+
+const json = (method: string, body: unknown) => ({
+  method,
+  body: JSON.stringify(body),
+});
+
+async function expectRow<T, K extends keyof T>(
+  request: Promise<T>,
+  keys: K[],
+  whenMissing: string,
+): Promise<T & { [P in K]-?: NonNullable<T[P]> }> {
+  const result = await request;
+  if (keys.some((key) => result[key] == null))
+    throw new ApiMutationError(whenMissing);
+  return result as T & { [P in K]-?: NonNullable<T[P]> };
+}
+
+export type TaskDetailsPayload = {
+  subtasks: Subtask[];
+  comments: TaskComment[];
+  activity: TaskActivity[];
+  attachments: TaskAttachment[];
+  taskReferences: TaskReference[];
+  activityPage: { page: number; hasMore: boolean };
+};
+
+export function fetchTaskDetails(taskId: string, activityPage: number) {
+  const query = new URLSearchParams({
+    taskId,
+    activityPage: String(activityPage),
+  });
+  return mutate<TaskDetailsPayload>(`${DETAILS}?${query}`, { method: "GET" });
+}
+
+export function createSubtask(input: {
+  taskId: string;
+  title: string;
+  sortOrder: number;
+}) {
+  return expectRow(
+    mutate<{ subtask?: Subtask; activity?: TaskActivity }>(
+      DETAILS,
+      json("POST", {
+        kind: "subtask",
+        taskId: input.taskId,
+        value: input.title,
+        sortOrder: input.sortOrder,
+      }),
+    ),
+    ["subtask", "activity"],
+    "The checklist item could not be added.",
+  );
+}
+
+export function setSubtaskCompleted(id: string, completed: boolean) {
+  return expectRow(
+    mutate<{ subtask?: Subtask }>(DETAILS, json("PATCH", { id, completed })),
+    ["subtask"],
+    "The checklist item could not be updated.",
+  );
+}
+
+export function deleteSubtask(id: string) {
+  return mutate<{ id: string }>(`${DETAILS}?id=${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+}
+
+export function createComment(input: {
+  taskId: string;
+  parentId: string | null;
+  body: string;
+}) {
+  return expectRow(
+    mutate<{ comment?: TaskComment }>(
+      DETAILS,
+      json("POST", {
+        kind: "comment",
+        taskId: input.taskId,
+        parentId: input.parentId,
+        value: input.body,
+      }),
+    ),
+    ["comment"],
+    "The comment could not be added.",
+  );
+}
+
+export function updateComment(id: string, body: string) {
+  return expectRow(
+    mutate<{ comment?: TaskComment }>(
+      DETAILS,
+      json("PATCH", { kind: "comment", id, value: body }),
+    ),
+    ["comment"],
+    "The comment could not be updated.",
+  );
+}
+
+export function deleteComment(id: string) {
+  return mutate<{ id: string }>(
+    `${DETAILS}?kind=comment&id=${encodeURIComponent(id)}`,
+    { method: "DELETE" },
+  );
+}
+
+export type AttachmentResult = {
+  attachment: TaskAttachment;
+  /** Absent when the server saved the file but could not record the audit row. */
+  activity?: TaskActivity;
+};
+
+export function uploadAttachment(taskId: string, file: File) {
+  const formData = new FormData();
+  formData.set("taskId", taskId);
+  formData.set("file", file);
+  // `mutate` leaves FormData alone so the browser sets its multipart boundary.
+  return expectRow(
+    mutate<Partial<AttachmentResult>>(ATTACHMENTS, {
+      method: "POST",
+      body: formData,
+    }),
+    ["attachment"],
+    "The upload was rejected.",
+  );
+}
+
+export function attachUrl(taskId: string, url: string) {
+  return expectRow(
+    mutate<Partial<AttachmentResult>>(
+      ATTACHMENTS,
+      json("POST", { taskId, url }),
+    ),
+    ["attachment"],
+    "The URL could not be attached.",
+  );
+}
+
+export function deleteAttachment(id: string) {
+  return mutate<{ deleted: boolean }>(
+    `${ATTACHMENTS}?id=${encodeURIComponent(id)}`,
+    { method: "DELETE" },
+  );
+}

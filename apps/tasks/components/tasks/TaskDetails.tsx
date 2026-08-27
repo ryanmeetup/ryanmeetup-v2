@@ -1,30 +1,18 @@
 "use client";
 
-import {
-  useEffect,
-  useMemo,
-  useState,
-  type Dispatch,
-  type ReactNode,
-  type SetStateAction,
-} from "react";
-import { Card, ConfirmationDialog, toast } from "@ryanmeetup/ui";
-import { MAX_ATTACHMENT_SIZE } from "@/lib/tasks/task-attachments";
-import { attachmentUrlName } from "@/lib/tasks/task-attachment-urls";
-import { normalizeHttpUrl } from "@ryanmeetup/utils";
-import type {
-  Subtask,
-  Task,
-  TaskAttachment,
-  TaskComment,
-  TaskReference,
-} from "@/lib/tasks/task-types";
+import type { Dispatch, ReactNode, SetStateAction } from "react";
+import { Card, ConfirmationDialog } from "@ryanmeetup/ui";
+import type { Task } from "@/lib/tasks/task-types";
 import type { TaskActivity } from "@/lib/activity/activity-types";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { TaskActivityPanel } from "./TaskActivityPanel";
 import { TaskChecklistPanel } from "./TaskChecklistPanel";
 import { TaskCommentsPanel } from "./TaskCommentsPanel";
 import { TaskAttachmentsPanel } from "./TaskAttachmentsPanel";
+import { useTaskAttachments } from "./useTaskAttachments";
+import { useTaskChecklist } from "./useTaskChecklist";
+import { useTaskComments } from "./useTaskComments";
+import { useTaskDetailData } from "./useTaskDetailData";
 
 type TaskDetailsProps = {
   task: Task;
@@ -42,6 +30,7 @@ type TaskDetailsProps = {
   };
 };
 
+/** On a task page each group is its own card; in the modal they run together. */
 function DetailGroup({
   card,
   className,
@@ -63,8 +52,6 @@ function DetailGroup({
   );
 }
 
-const now = () => new Date().toISOString();
-
 export function TaskDetails({ task, workspace, display }: TaskDetailsProps) {
   const { data, demoMode, setData } = workspace;
   const {
@@ -74,645 +61,34 @@ export function TaskDetails({ task, workspace, display }: TaskDetailsProps) {
     section = "all",
     conversationHeight,
   } = display;
-  const [subtaskTitle, setSubtaskTitle] = useState("");
-  const [comment, setComment] = useState("");
-  const [reply, setReply] = useState("");
-  const [replyingTo, setReplyingTo] = useState<TaskComment | null>(null);
-  const [editingComment, setEditingComment] = useState<TaskComment | null>(
-    null,
-  );
-  const [editingCommentBody, setEditingCommentBody] = useState("");
-  const [commentPendingDelete, setCommentPendingDelete] =
-    useState<TaskComment | null>(null);
-  const [commentSaving, setCommentSaving] = useState(false);
-  const [uploadingFiles, setUploadingFiles] = useState(false);
-  const [attachmentUrl, setAttachmentUrl] = useState("");
-  const [addingUrl, setAddingUrl] = useState(false);
-  const [previewAttachment, setPreviewAttachment] =
-    useState<TaskAttachment | null>(null);
-  const [detailSaving, setDetailSaving] = useState(false);
-  const [detailsLoading, setDetailsLoading] = useState(
-    !demoMode && (section === "all" || section === "activity"),
-  );
-  const [activityPage, setActivityPage] = useState(0);
-  const [hasMoreActivity, setHasMoreActivity] = useState(false);
-  const subtasks = data.subtasks.filter((item) => item.task_id === task.id);
-  const attachments = data.attachments.filter(
-    (item) =>
-      item.task_id === task.id &&
-      (item.file_path ||
-        item.mime_type ||
-        item.size_bytes !== null ||
-        item.url !== "#"),
-  );
-  const comments = useMemo(
-    () =>
-      data.comments
-        .filter((item) => item.task_id === task.id)
-        .sort((a, b) => b.created_at.localeCompare(a.created_at)),
-    [data.comments, task.id],
-  );
-  const activity = useMemo(
-    () =>
-      data.activity
-        .filter((item) => item.task_id === task.id)
-        .sort((a, b) => b.created_at.localeCompare(a.created_at)),
-    [data.activity, task.id],
-  );
 
-  async function loadDetails(page = 0) {
-    if (demoMode) return;
-    setDetailsLoading(true);
-    try {
-      const response = await fetch(
-        `/api/task-details?taskId=${encodeURIComponent(task.id)}&activityPage=${page}`,
-      );
-      const result = (await response.json()) as {
-        error?: string;
-        subtasks?: Subtask[];
-        comments?: TaskComment[];
-        activity?: TaskActivity[];
-        attachments?: TaskAttachment[];
-        taskReferences?: TaskReference[];
-        activityPage?: { hasMore: boolean };
-      };
-      if (!response.ok)
-        throw new Error(result.error ?? "Task details could not be loaded.");
-      if (page === 0) {
-        const visibleProjectIds = new Set(
-          data.projects.map((project) => project.id),
-        );
-        const inaccessibleTaskIds = new Set(
-          data.accessPreview?.inaccessibleTaskIds ?? [],
-        );
-        const taskReferences = (result.taskReferences ?? []).filter(
-          (reference) =>
-            !inaccessibleTaskIds.has(reference.id) &&
-            (reference.project_id === null ||
-              visibleProjectIds.has(reference.project_id)),
-        );
-        setData((current) => ({ ...current, taskReferences }));
-      }
-      setData((current) => ({
-        ...current,
-        subtasks:
-          page === 0
-            ? [
-                ...current.subtasks.filter((item) => item.task_id !== task.id),
-                ...(result.subtasks ?? []),
-              ]
-            : current.subtasks,
-        comments:
-          page === 0
-            ? [
-                ...current.comments.filter((item) => item.task_id !== task.id),
-                ...(result.comments ?? []),
-              ]
-            : current.comments,
-        attachments:
-          page === 0
-            ? [
-                ...current.attachments.filter(
-                  (item) => item.task_id !== task.id,
-                ),
-                ...(result.attachments ?? []),
-              ]
-            : current.attachments,
-        activity: [
-          ...current.activity.filter(
-            (item) =>
-              item.task_id !== task.id ||
-              !(result.activity ?? []).some((next) => next.id === item.id),
-          ),
-          ...(result.activity ?? []),
-        ],
-      }));
-      setActivityPage(page);
-      setHasMoreActivity(result.activityPage?.hasMore ?? false);
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Task details could not be loaded.",
-      );
-    } finally {
-      setDetailsLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    if (section !== "all" && section !== "activity") return;
-    const timer = window.setTimeout(() => void loadDetails(0), 0);
-    return () => window.clearTimeout(timer);
-    // Detail data is scoped to the selected task and loaded only when opened.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [task.id, demoMode, section]);
-
+  /**
+   * Demo mode has no save transaction to write an audit row, so it records its
+   * own to keep the activity panel aligned with the server-backed path.
+   */
   async function recordActivity(action: string) {
-    const activity: TaskActivity = {
+    const entry: TaskActivity = {
       id: crypto.randomUUID(),
       task_id: task.id,
       actor_id: data.currentProfile.id,
       action,
       details: {},
-      created_at: now(),
+      created_at: new Date().toISOString(),
     };
     setData((current) => ({
       ...current,
-      activity: [activity, ...current.activity],
+      activity: [entry, ...current.activity],
     }));
   }
 
-  async function addSubtask() {
-    const title = subtaskTitle.trim();
-    if (!title) return;
-    const item: Subtask = {
-      id: crypto.randomUUID(),
-      task_id: task.id,
-      title,
-      is_completed: false,
-      sort_order: subtasks.length,
-      created_by: data.currentProfile.id,
-      created_at: now(),
-    };
-    setData((current) => ({
-      ...current,
-      subtasks: [...current.subtasks, item],
-    }));
-    setSubtaskTitle("");
-    if (demoMode) {
-      await recordActivity(`added checklist item “${title}”`);
-      return;
-    }
-    setDetailSaving(true);
-    try {
-      const response = await fetch("/api/task-details", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          kind: "subtask",
-          taskId: task.id,
-          value: title,
-          sortOrder: item.sort_order,
-        }),
-      });
-      const result = (await response.json()) as {
-        subtask?: Subtask;
-        activity?: TaskActivity;
-        error?: string;
-      };
-      if (!response.ok || !result.subtask || !result.activity)
-        throw new Error(
-          result.error ?? "The checklist item could not be added.",
-        );
-      setData((current) => ({
-        ...current,
-        subtasks: current.subtasks.map((entry) =>
-          entry.id === item.id ? result.subtask! : entry,
-        ),
-        activity: [
-          result.activity!,
-          ...current.activity.filter(
-            (entry) => entry.id !== result.activity!.id,
-          ),
-        ],
-      }));
-    } catch (error) {
-      setData((current) => ({
-        ...current,
-        subtasks: current.subtasks.filter((entry) => entry.id !== item.id),
-      }));
-      setSubtaskTitle(title);
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "The checklist item could not be added.",
-      );
-    } finally {
-      setDetailSaving(false);
-    }
-  }
-
-  async function toggleSubtask(item: Subtask) {
-    setData((current) => ({
-      ...current,
-      subtasks: current.subtasks.map((entry) =>
-        entry.id === item.id
-          ? { ...entry, is_completed: !entry.is_completed }
-          : entry,
-      ),
-    }));
-    if (!demoMode)
-      try {
-        const response = await fetch("/api/task-details", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: item.id, completed: !item.is_completed }),
-        });
-        const result = (await response.json()) as {
-          subtask?: Subtask;
-          error?: string;
-        };
-        if (!response.ok || !result.subtask)
-          throw new Error(
-            result.error ?? "The checklist item could not be updated.",
-          );
-        setData((current) => ({
-          ...current,
-          subtasks: current.subtasks.map((entry) =>
-            entry.id === item.id ? result.subtask! : entry,
-          ),
-        }));
-      } catch (error) {
-        setData((current) => ({
-          ...current,
-          subtasks: current.subtasks.map((entry) =>
-            entry.id === item.id ? item : entry,
-          ),
-        }));
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : "The checklist item could not be updated.",
-        );
-      }
-  }
-
-  async function removeSubtask(item: Subtask) {
-    setData((current) => ({
-      ...current,
-      subtasks: current.subtasks.filter((entry) => entry.id !== item.id),
-    }));
-    if (!demoMode)
-      try {
-        const response = await fetch(
-          `/api/task-details?id=${encodeURIComponent(item.id)}`,
-          { method: "DELETE" },
-        );
-        const result = (await response.json()) as { error?: string };
-        if (!response.ok)
-          throw new Error(
-            result.error ?? "The checklist item could not be removed.",
-          );
-      } catch (error) {
-        setData((current) => ({
-          ...current,
-          subtasks: [...current.subtasks, item],
-        }));
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : "The checklist item could not be removed.",
-        );
-      }
-  }
-
-  async function addComment(parent: TaskComment | null = null) {
-    const body = (parent ? reply : comment).trim();
-    if (!body) return;
-    setCommentSaving(true);
-    const item: TaskComment = {
-      id: crypto.randomUUID(),
-      task_id: task.id,
-      parent_id: parent?.id ?? null,
-      body,
-      created_by: data.currentProfile.id,
-      created_at: now(),
-      edited_at: null,
-    };
-    setData((current) => ({
-      ...current,
-      comments: [...current.comments, item],
-    }));
-    if (parent) {
-      setReply("");
-      setReplyingTo(null);
-    } else setComment("");
-    if (!demoMode)
-      try {
-        const response = await fetch("/api/task-details", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            kind: "comment",
-            taskId: task.id,
-            parentId: parent?.id ?? null,
-            value: body,
-          }),
-        });
-        const result = (await response.json()) as {
-          comment?: TaskComment;
-          error?: string;
-        };
-        if (!response.ok || !result.comment)
-          throw new Error(result.error ?? "The comment could not be added.");
-        setData((current) => ({
-          ...current,
-          comments: current.comments.map((entry) =>
-            entry.id === item.id ? result.comment! : entry,
-          ),
-        }));
-      } catch (error) {
-        setData((current) => ({
-          ...current,
-          comments: current.comments.filter((entry) => entry.id !== item.id),
-        }));
-        if (parent) {
-          setReply(body);
-          setReplyingTo(parent);
-        } else setComment(body);
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : "The comment could not be added.",
-        );
-      } finally {
-        setCommentSaving(false);
-      }
-    else setCommentSaving(false);
-  }
-
-  async function updateComment() {
-    if (!editingComment) return;
-    const body = editingCommentBody.trim();
-    if (!body) return;
-    const original = editingComment;
-    setCommentSaving(true);
-    setData((current) => ({
-      ...current,
-      comments: current.comments.map((item) =>
-        item.id === original.id ? { ...item, body, edited_at: now() } : item,
-      ),
-    }));
-    try {
-      if (!demoMode) {
-        const response = await fetch("/api/task-details", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            kind: "comment",
-            id: original.id,
-            value: body,
-          }),
-        });
-        const result = (await response.json()) as {
-          comment?: TaskComment;
-          error?: string;
-        };
-        if (!response.ok || !result.comment)
-          throw new Error(result.error ?? "The comment could not be updated.");
-        setData((current) => ({
-          ...current,
-          comments: current.comments.map((item) =>
-            item.id === original.id ? result.comment! : item,
-          ),
-        }));
-      }
-      setEditingComment(null);
-      toast.success("Comment updated.");
-    } catch (error) {
-      setData((current) => ({
-        ...current,
-        comments: current.comments.map((item) =>
-          item.id === original.id ? original : item,
-        ),
-      }));
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "The comment could not be updated.",
-      );
-    } finally {
-      setCommentSaving(false);
-    }
-  }
-
-  async function deleteComment() {
-    if (!commentPendingDelete) return;
-    const original = commentPendingDelete;
-    setCommentSaving(true);
-    setData((current) => ({
-      ...current,
-      comments: current.comments.filter((item) => item.id !== original.id),
-    }));
-    try {
-      if (!demoMode) {
-        const response = await fetch(
-          `/api/task-details?kind=comment&id=${encodeURIComponent(original.id)}`,
-          { method: "DELETE" },
-        );
-        const result = (await response.json()) as { error?: string };
-        if (!response.ok)
-          throw new Error(result.error ?? "The comment could not be deleted.");
-      }
-      setCommentPendingDelete(null);
-      if (replyingTo?.id === original.id) {
-        setReply("");
-        setReplyingTo(null);
-      }
-      toast.success("Comment deleted.");
-    } catch (error) {
-      setData((current) => ({
-        ...current,
-        comments: [...current.comments, original],
-      }));
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "The comment could not be deleted.",
-      );
-    } finally {
-      setCommentSaving(false);
-    }
-  }
-
-  async function addAttachment(attachment: TaskAttachment) {
-    setData((current) => ({
-      ...current,
-      attachments: [...current.attachments, attachment],
-    }));
-    await recordActivity(`attached “${attachment.name}”`);
-  }
-
-  async function uploadFile(file: File) {
-    if (!demoMode) {
-      const formData = new FormData();
-      formData.set("taskId", task.id);
-      formData.set("file", file);
-      const response = await fetch("/api/task-attachments", {
-        method: "POST",
-        body: formData,
-      });
-      const result = (await response.json()) as {
-        attachment?: TaskAttachment;
-        activity?: TaskActivity;
-        error?: string;
-      };
-      if (!response.ok || !result.attachment)
-        throw new Error(result.error ?? "The upload was rejected.");
-      setData((current) => ({
-        ...current,
-        attachments: [...current.attachments, result.attachment!],
-        activity: result.activity
-          ? [result.activity, ...current.activity]
-          : current.activity,
-      }));
-      return;
-    }
-    await addAttachment({
-      id: crypto.randomUUID(),
-      task_id: task.id,
-      name: file.name,
-      url: "#",
-      file_path: null,
-      mime_type: file.type || null,
-      size_bytes: file.size,
-      created_by: data.currentProfile.id,
-      created_at: now(),
-    });
-  }
-
-  async function uploadFiles(files: File[]) {
-    if (uploadingFiles || files.length === 0) return;
-    const validFiles = files.filter((file) => {
-      if (file.size > 0 && file.size <= MAX_ATTACHMENT_SIZE) return true;
-      toast.error(`${file.name} must be between 1 byte and 10 MB.`);
-      return false;
-    });
-    if (validFiles.length === 0) return;
-
-    setUploadingFiles(true);
-    let uploaded = 0;
-    for (const file of validFiles) {
-      try {
-        await uploadFile(file);
-        uploaded += 1;
-      } catch (error) {
-        toast.error(
-          error instanceof Error
-            ? `${file.name}: ${error.message}`
-            : `${file.name} could not be uploaded.`,
-        );
-      }
-    }
-    setUploadingFiles(false);
-    if (uploaded > 0)
-      toast.success(
-        `${uploaded} ${uploaded === 1 ? "file" : "files"} attached.`,
-      );
-  }
-
-  async function addUrlAttachment() {
-    const url = normalizeHttpUrl(attachmentUrl);
-    if (!url) {
-      toast.error("Enter a valid web address.");
-      return;
-    }
-    if (attachments.some((item) => item.url === url)) {
-      toast.error("That URL is already attached.");
-      return;
-    }
-
-    setAddingUrl(true);
-    try {
-      if (demoMode) {
-        await addAttachment({
-          id: crypto.randomUUID(),
-          task_id: task.id,
-          name: attachmentUrlName(url),
-          url,
-          file_path: null,
-          mime_type: null,
-          size_bytes: null,
-          created_by: data.currentProfile.id,
-          created_at: now(),
-        });
-      } else {
-        const response = await fetch("/api/task-attachments", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ taskId: task.id, url }),
-        });
-        const result = (await response.json()) as {
-          attachment?: TaskAttachment;
-          activity?: TaskActivity;
-          error?: string;
-        };
-        if (!response.ok || !result.attachment)
-          throw new Error(result.error ?? "The URL could not be attached.");
-        setData((current) => ({
-          ...current,
-          attachments: [...current.attachments, result.attachment!],
-          activity: result.activity
-            ? [result.activity, ...current.activity]
-            : current.activity,
-        }));
-      }
-      setAttachmentUrl("");
-      toast.success("URL attached.");
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "The URL could not be attached.",
-      );
-    } finally {
-      setAddingUrl(false);
-    }
-  }
-
-  useEffect(() => {
-    if (!active || (section !== "all" && section !== "work")) return;
-
-    const handlePaste = (event: ClipboardEvent) => {
-      if (uploadingFiles) return;
-
-      const files = Array.from(event.clipboardData?.items ?? []).flatMap(
-        (item) => {
-          if (item.kind !== "file") return [];
-          const file = item.getAsFile();
-          return file ? [file] : [];
-        },
-      );
-
-      if (files.length === 0) return;
-      event.preventDefault();
-      void uploadFiles(files);
-    };
-
-    document.addEventListener("paste", handlePaste);
-    return () => document.removeEventListener("paste", handlePaste);
+  const context = { task, data, demoMode, setData, recordActivity };
+  const details = useTaskDetailData({ ...context, section });
+  const checklist = useTaskChecklist(context);
+  const comments = useTaskComments(context);
+  const attachments = useTaskAttachments({
+    ...context,
+    pasteEnabled: active && (section === "all" || section === "work"),
   });
-
-  async function removeAttachment(item: TaskAttachment) {
-    if (previewAttachment?.id === item.id) setPreviewAttachment(null);
-    setData((current) => ({
-      ...current,
-      attachments: current.attachments.filter((entry) => entry.id !== item.id),
-    }));
-    if (!demoMode)
-      try {
-        const response = await fetch(
-          `/api/task-attachments?id=${encodeURIComponent(item.id)}`,
-          { method: "DELETE" },
-        );
-        const result = (await response.json()) as { error?: string };
-        if (!response.ok)
-          throw new Error(
-            result.error ?? "The attachment could not be removed.",
-          );
-      } catch (error) {
-        setData((current) => ({
-          ...current,
-          attachments: [...current.attachments, item],
-        }));
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : "The attachment could not be removed.",
-        );
-      }
-  }
 
   return (
     <div
@@ -728,27 +104,27 @@ export function TaskDetails({ task, workspace, display }: TaskDetailsProps) {
           }
         >
           <TaskChecklistPanel
-            items={subtasks}
-            newItemTitle={subtaskTitle}
-            onAdd={() => void addSubtask()}
-            onDelete={(item) => void removeSubtask(item)}
-            onNewItemTitleChange={setSubtaskTitle}
-            onToggle={(item) => void toggleSubtask(item)}
-            saving={detailSaving}
+            items={checklist.items}
+            newItemTitle={checklist.newItemTitle}
+            onAdd={() => void checklist.add()}
+            onDelete={(item) => void checklist.remove(item)}
+            onNewItemTitleChange={checklist.setNewItemTitle}
+            onToggle={(item) => void checklist.toggle(item)}
+            saving={checklist.saving}
           />
 
           <TaskAttachmentsPanel
-            addingUrl={addingUrl}
-            attachmentUrl={attachmentUrl}
-            attachments={attachments}
-            onAddUrl={() => void addUrlAttachment()}
-            onAttachmentUrlChange={setAttachmentUrl}
-            onRemove={(item) => void removeAttachment(item)}
-            onUploadFiles={(files) => void uploadFiles(files)}
-            previewAttachment={previewAttachment}
-            setPreviewAttachment={setPreviewAttachment}
+            addingUrl={attachments.addingUrl}
+            attachmentUrl={attachments.url}
+            attachments={attachments.attachments}
+            onAddUrl={() => void attachments.addUrl()}
+            onAttachmentUrlChange={attachments.setUrl}
+            onRemove={(item) => void attachments.remove(item)}
+            onUploadFiles={(files) => void attachments.upload(files)}
+            previewAttachment={attachments.preview}
+            setPreviewAttachment={attachments.setPreview}
             taskId={task.id}
-            uploadingFiles={uploadingFiles}
+            uploadingFiles={attachments.uploading}
           />
         </DetailGroup>
       )}
@@ -756,42 +132,44 @@ export function TaskDetails({ task, workspace, display }: TaskDetailsProps) {
       {(section === "all" || section === "comment") && (
         <DetailGroup card={pageLayout} className="!pt-5">
           <TaskCommentsPanel
-            comment={comment}
-            comments={comments}
+            comment={comments.draft}
+            comments={comments.comments}
             currentProfileId={data.currentProfile.id}
-            editingBody={editingCommentBody}
-            editingComment={editingComment}
-            onCancelEdit={() => setEditingComment(null)}
-            onClear={() => setComment("")}
-            onCommentChange={setComment}
-            onDelete={setCommentPendingDelete}
+            editingBody={comments.editingBody}
+            editingComment={comments.editing}
+            onCancelEdit={() => comments.setEditing(null)}
+            onClear={() => comments.setDraft("")}
+            onCommentChange={comments.setDraft}
+            onDelete={comments.setPendingDelete}
             onEdit={(item) => {
-              setReply("");
-              setReplyingTo(null);
-              setEditingComment(item);
-              setEditingCommentBody(item.body);
+              comments.setReply("");
+              comments.setReplyingTo(null);
+              comments.setEditing(item);
+              comments.setEditingBody(item.body);
             }}
-            onEditingBodyChange={setEditingCommentBody}
-            onSave={() => void updateComment()}
-            onSubmit={() => void addComment()}
+            onEditingBodyChange={comments.setEditingBody}
+            onSave={() => void comments.saveEdit()}
+            onSubmit={() => void comments.add()}
             onCancelReply={() => {
-              setReply("");
-              setReplyingTo(null);
+              comments.setReply("");
+              comments.setReplyingTo(null);
             }}
-            onReplyChange={setReply}
+            onReplyChange={comments.setReply}
             onReplySubmit={() =>
-              replyingTo ? void addComment(replyingTo) : undefined
+              comments.replyingTo
+                ? void comments.add(comments.replyingTo)
+                : undefined
             }
             onStartReply={(item) => {
-              setEditingComment(null);
-              setReply("");
-              setReplyingTo(item);
+              comments.setEditing(null);
+              comments.setReply("");
+              comments.setReplyingTo(item);
             }}
             previewing={Boolean(data.accessPreview)}
             profiles={data.profiles}
-            reply={reply}
-            replyingTo={replyingTo}
-            saving={commentSaving}
+            reply={comments.reply}
+            replyingTo={comments.replyingTo}
+            saving={comments.saving}
             tasks={data.taskReferences ?? data.tasks}
             accessPreview={data.accessPreview}
           />
@@ -801,28 +179,29 @@ export function TaskDetails({ task, workspace, display }: TaskDetailsProps) {
       {(section === "all" || section === "activity") && (
         <DetailGroup card={pageLayout} className="overflow-hidden">
           <TaskActivityPanel
-            activity={activity}
+            activity={details.activity}
             conversationHeight={conversationHeight}
-            hasMore={hasMoreActivity}
-            loading={detailsLoading}
+            hasMore={details.hasMore}
+            loading={details.loading}
             lookups={data}
-            onLoadMore={() => void loadDetails(activityPage + 1)}
+            onLoadMore={details.loadMore}
             pageLayout={pageLayout}
           />
         </DetailGroup>
       )}
+
       <ConfirmationDialog
-        open={Boolean(commentPendingDelete)}
+        open={Boolean(comments.pendingDelete)}
         setOpen={(open) => {
-          if (!open) setCommentPendingDelete(null);
+          if (!open) comments.setPendingDelete(null);
         }}
         title="Delete Comment?"
         description="This comment will be permanently removed."
         confirmLabel="Delete comment"
         pendingLabel="Deleting..."
-        pending={commentSaving}
+        pending={comments.saving}
         destructive
-        onConfirm={() => void deleteComment()}
+        onConfirm={() => void comments.confirmDelete()}
       />
     </div>
   );

@@ -18,11 +18,7 @@ import {
 import { taskPath } from "@/lib/tasks/task-key";
 import type { TaskComment, TaskReference } from "@/lib/tasks/task-types";
 import type { AccessPreview, Profile } from "@/lib/workspace/workspace-types";
-
-const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
+import { formatTimestamp } from "@/lib/date-format";
 
 export function TaskCommentsPanel({
   comment,
@@ -140,12 +136,10 @@ export function TaskCommentsPanel({
                     {author}
                   </strong>
                   <span className="flex flex-wrap items-center gap-1.5 text-xs text-black/45 dark:text-white/45">
-                    <time>
-                      {dateTimeFormatter.format(new Date(item.created_at))}
-                    </time>
+                    <time>{formatTimestamp(item.created_at)}</time>
                     {item.edited_at && (
                       <span
-                        aria-label={`Edited ${dateTimeFormatter.format(new Date(item.edited_at))}`}
+                        aria-label={`Edited ${formatTimestamp(item.edited_at)}`}
                       >
                         · Edited
                       </span>
