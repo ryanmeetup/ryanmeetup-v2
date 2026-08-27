@@ -484,7 +484,10 @@ export function TasksSidebar({
 
   return (
     <>
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-black/10 bg-white px-4 pt-4 dark:border-white/10 dark:bg-black lg:flex">
+      <aside
+        data-workspace-sidebar
+        className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-black/10 bg-white px-4 pt-4 dark:border-white/10 dark:bg-black lg:flex"
+      >
         {sidebarContent()}
       </aside>
       <Dialog open={open} onClose={setOpen} className="relative z-50 lg:hidden">
