@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { IconButton } from "@ryanmeetup/ui";
 import { FiArrowLeft, FiArrowRight } from "react-icons/fi";
 
@@ -32,91 +32,123 @@ const getIndex = (index: number) => (index + photos.length) % photos.length;
 
 export function HeroGallery() {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [turningIndex, setTurningIndex] = useState<number | null>(null);
+  const [turnDirection, setTurnDirection] = useState<"next" | "previous">(
+    "next",
+  );
+  const turnTimeout = useRef<number | null>(null);
+
+  const turnTo = useCallback(
+    (nextIndex: number, direction: "next" | "previous") => {
+      if (nextIndex === activeIndex) return;
+
+      if (turnTimeout.current) window.clearTimeout(turnTimeout.current);
+      setTurningIndex(activeIndex);
+      setTurnDirection(direction);
+      setActiveIndex(nextIndex);
+      turnTimeout.current = window.setTimeout(() => {
+        setTurningIndex(null);
+        turnTimeout.current = null;
+      }, 700);
+    },
+    [activeIndex],
+  );
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     if (mediaQuery.matches) return;
 
     const interval = window.setInterval(() => {
-      setActiveIndex((current) => getIndex(current + 1));
+      setActiveIndex((current) => {
+        setTurningIndex(current);
+        setTurnDirection("next");
+        if (turnTimeout.current) window.clearTimeout(turnTimeout.current);
+        turnTimeout.current = window.setTimeout(() => {
+          setTurningIndex(null);
+          turnTimeout.current = null;
+        }, 700);
+        return getIndex(current + 1);
+      });
     }, 3800);
 
-    return () => window.clearInterval(interval);
+    return () => {
+      window.clearInterval(interval);
+      if (turnTimeout.current) window.clearTimeout(turnTimeout.current);
+    };
   }, []);
 
-  const showPrevious = () => setActiveIndex((current) => getIndex(current - 1));
-  const showNext = () => setActiveIndex((current) => getIndex(current + 1));
+  const showPrevious = () => turnTo(getIndex(activeIndex - 1), "previous");
+  const showNext = () => turnTo(getIndex(activeIndex + 1), "next");
 
   return (
     <div
-      className="relative mx-auto w-full max-w-2xl pb-8 sm:px-8 sm:pb-10 lg:px-0 lg:pb-12"
+      className="relative mx-auto w-full max-w-2xl pb-16"
       aria-roledescription="carousel"
       aria-label="Ryans wearing Ryan Meetup merch"
     >
-      <div
-        aria-hidden
-        className="absolute bottom-0 left-1/2 h-[86%] w-[76%] -translate-x-[43%] rotate-6 overflow-hidden rounded-[1.6rem] border border-black/10 bg-[#b9c8ba] shadow-lg dark:border-white/10 dark:bg-[#28332d]"
-      >
-        <Image
-          src={photos[getIndex(activeIndex + 2)].src}
-          alt=""
-          fill
-          sizes="(min-width: 1024px) 38vw, 75vw"
-          className="object-cover opacity-65 grayscale-[20%]"
-        />
-      </div>
-      <div
-        aria-hidden
-        className="absolute bottom-2 left-1/2 h-[90%] w-[82%] -translate-x-[58%] -rotate-5 overflow-hidden rounded-[1.6rem] border border-black/10 bg-[#d7c398] shadow-lg dark:border-white/10 dark:bg-[#463f31]"
-      >
-        <Image
-          src={photos[getIndex(activeIndex + 1)].src}
-          alt=""
-          fill
-          sizes="(min-width: 1024px) 40vw, 80vw"
-          className="object-cover opacity-75 grayscale-[12%]"
-        />
-      </div>
-
-      <figure className="relative aspect-[4/3] overflow-hidden rounded-[1.75rem] border border-black/15 bg-black shadow-2xl dark:border-white/15">
-        {photos.map((photo, index) => (
+      <figure className="group/gallery relative aspect-[4/3]">
+        <div className="absolute inset-0 translate-y-2 rounded-[1.75rem] border border-black/10 bg-black/15 shadow-xl dark:border-white/10 dark:bg-white/10" />
+        <div className="absolute inset-0 overflow-hidden rounded-[1.75rem] border border-black/15 bg-black shadow-2xl [perspective:1400px] dark:border-white/15">
           <Image
-            key={photo.src}
-            src={photo.src}
-            alt={index === activeIndex ? photo.alt : ""}
+            key={photos[activeIndex].src}
+            src={photos[activeIndex].src}
+            alt={photos[activeIndex].alt}
             fill
-            priority={index === 0}
+            priority={activeIndex === 0}
             sizes="(min-width: 1536px) 560px, (min-width: 1024px) 42vw, 92vw"
-            className={`object-cover transition-opacity duration-300 motion-reduce:transition-none ${
-              index === activeIndex ? "opacity-100" : "opacity-0"
-            }`}
+            className="object-cover"
           />
-        ))}
-        <div
-          aria-hidden
-          className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-black/10"
-        />
+          <div
+            aria-hidden
+            className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/10"
+          />
 
-        <figcaption
-          className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-4 text-white"
-          aria-live="polite"
-        >
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/65">
-              Seen on Ryans
-            </p>
-            <p className="mt-1 font-cooper text-lg tracking-wide sm:text-xl">
-              {photos[activeIndex].label}
-            </p>
-          </div>
-          <span className="shrink-0 rounded-full border border-white/25 bg-black/35 px-3 py-1.5 text-[10px] font-semibold tracking-[0.16em] backdrop-blur">
-            {String(activeIndex + 1).padStart(2, "0")} /{" "}
-            {String(photos.length).padStart(2, "0")}
-          </span>
-        </figcaption>
+          {turningIndex !== null ? (
+            <div
+              aria-hidden
+              className={`store-gallery-turn absolute inset-0 ${
+                turnDirection === "next"
+                  ? "store-gallery-turn-next"
+                  : "store-gallery-turn-previous"
+              }`}
+            >
+              <Image
+                src={photos[turningIndex].src}
+                alt=""
+                fill
+                sizes="(min-width: 1536px) 560px, (min-width: 1024px) 42vw, 92vw"
+                className="object-cover"
+              />
+              <div className="store-gallery-page-shadow absolute inset-0" />
+            </div>
+          ) : null}
+
+          <div
+            aria-hidden
+            className="absolute right-0 top-0 h-16 w-16 bg-[linear-gradient(225deg,rgba(255,255,255,0.42)_0%,rgba(255,255,255,0.12)_38%,transparent_40%)] opacity-60 transition-all duration-300 group-hover/gallery:h-20 group-hover/gallery:w-20 group-hover/gallery:opacity-90"
+          />
+
+          <figcaption
+            className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-4 text-white"
+            aria-live="polite"
+          >
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/65">
+                Seen on Ryans
+              </p>
+              <p className="mt-1 font-cooper text-lg tracking-wide sm:text-xl">
+                {photos[activeIndex].label}
+              </p>
+            </div>
+            <span className="shrink-0 rounded-full border border-white/25 bg-black/35 px-3 py-1.5 text-[10px] font-semibold tracking-[0.16em] backdrop-blur">
+              Page {String(activeIndex + 1).padStart(2, "0")} /{" "}
+              {String(photos.length).padStart(2, "0")}
+            </span>
+          </figcaption>
+        </div>
       </figure>
 
-      <div className="absolute bottom-0 right-3 z-10 flex gap-2 sm:right-0">
+      <div className="absolute bottom-0 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full border border-black/10 bg-white/80 p-1.5 shadow-lg backdrop-blur-md dark:border-white/10 dark:bg-black/65">
         <IconButton
           label="Show previous merch photo"
           variant="overlay"
@@ -126,6 +158,18 @@ export function HeroGallery() {
         >
           <FiArrowLeft aria-hidden />
         </IconButton>
+        <div className="flex items-center gap-1.5 px-1" aria-hidden>
+          {photos.map((photo, index) => (
+            <span
+              key={photo.src}
+              className={`h-1.5 rounded-full transition-all duration-300 motion-reduce:transition-none ${
+                index === activeIndex
+                  ? "w-6 bg-black dark:bg-white"
+                  : "w-1.5 bg-black/25 dark:bg-white/30"
+              }`}
+            />
+          ))}
+        </div>
         <IconButton
           label="Show next merch photo"
           variant="overlay"
