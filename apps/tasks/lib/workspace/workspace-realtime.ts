@@ -16,20 +16,65 @@ import {
 
 type SetWorkspace = Dispatch<SetStateAction<WorkspaceData>>;
 
-export function subscribeToWorkspace({
-  supabase,
-  dataRef,
-  setData,
-}: {
-  supabase: SupabaseClient;
+type WorkspaceSubscriber = {
   dataRef: MutableRefObject<WorkspaceData>;
   setData: SetWorkspace;
-}) {
+};
+
+type SharedSubscription = {
+  subscribers: Set<WorkspaceSubscriber>;
+  close: () => void;
+};
+
+/**
+ * More than one mounted component holds its own copy of the workspace — the
+ * persistent shell and whichever page client is rendered inside it — and each
+ * needs the same stream of database events.
+ *
+ * They cannot each open their own channel. `createBrowserClient` hands every
+ * caller one cached client, and its `channel(topic)` returns an existing
+ * channel for a topic rather than making a second one, so the second caller
+ * used to receive an already-subscribed channel and throw on its first `on()`.
+ * Tearing down was just as wrong: the first component to unmount removed the
+ * channel out from under the others.
+ *
+ * So the channel is opened once and reference counted. Every event fans out to
+ * all registered subscribers, and the channel closes when the last one leaves.
+ */
+let shared: SharedSubscription | null = null;
+
+/**
+ * The topic carries a suffix because `removeChannel` resolves asynchronously:
+ * the closed channel stays in the client's registry until its unsubscribe
+ * settles, so a remount that opens a new subscription in the same tick would
+ * otherwise be handed the channel that is still tearing down.
+ */
+let channelSequence = 0;
+
+function createSharedSubscription(
+  supabase: SupabaseClient,
+): SharedSubscription {
+  const subscribers = new Set<WorkspaceSubscriber>();
   const attachmentPaths = new Set<string>();
   let attachmentTimer: ReturnType<typeof setTimeout> | undefined;
   let taskRefreshTimer: ReturnType<typeof setTimeout> | undefined;
   let taskRefreshRunning = false;
   let taskRefreshQueued = false;
+
+  const setData: SetWorkspace = (update) => {
+    for (const subscriber of subscribers) subscriber.setData(update);
+  };
+
+  /**
+   * The largest page any subscriber is currently showing, so a refresh never
+   * returns fewer tasks than one of them already has on screen.
+   */
+  const taskRefreshLimit = () => {
+    const sizes = [...subscribers].flatMap(
+      (subscriber) => subscriber.dataRef.current.taskPage?.pageSize ?? [],
+    );
+    return sizes.length ? Math.max(...sizes) : 100;
+  };
 
   const signAttachments = async () => {
     attachmentTimer = undefined;
@@ -71,7 +116,7 @@ export function subscribeToWorkspace({
       .select(TASK_COLUMNS)
       .or(`archived_at.is.null,archived_at.gt.${new Date().toISOString()}`)
       .order("updated_at", { ascending: false })
-      .limit(dataRef.current.taskPage?.pageSize ?? 100);
+      .limit(taskRefreshLimit());
     if (tasks) setData((current) => ({ ...current, tasks }));
     taskRefreshRunning = false;
     if (taskRefreshQueued) {
@@ -85,7 +130,7 @@ export function subscribeToWorkspace({
     taskRefreshTimer = setTimeout(() => void refreshTasks(), 250);
   };
   const asPayload = (value: unknown) => value as RealtimePayload;
-  const channel = supabase.channel("workspace-live");
+  const channel = supabase.channel(`workspace-live-${++channelSequence}`);
 
   channel.on(
     "postgres_changes",
@@ -110,7 +155,8 @@ export function subscribeToWorkspace({
       { event: "*", schema: "public", table: "task_attachments" },
       (value) => {
         const payload = asPayload(value);
-        const path = payload.eventType === "DELETE" ? null : payload.new.file_path;
+        const path =
+          payload.eventType === "DELETE" ? null : payload.new.file_path;
         if (typeof path === "string") queueAttachmentSigning(path);
         setData((current) => reconcileAttachmentEvent(current, payload));
       },
@@ -143,9 +189,35 @@ export function subscribeToWorkspace({
     )
     .subscribe();
 
+  return {
+    subscribers,
+    close: () => {
+      if (attachmentTimer) clearTimeout(attachmentTimer);
+      if (taskRefreshTimer) clearTimeout(taskRefreshTimer);
+      void supabase.removeChannel(channel);
+    },
+  };
+}
+
+export function subscribeToWorkspace({
+  supabase,
+  dataRef,
+  setData,
+}: {
+  supabase: SupabaseClient;
+  dataRef: MutableRefObject<WorkspaceData>;
+  setData: SetWorkspace;
+}) {
+  const subscriber: WorkspaceSubscriber = { dataRef, setData };
+  const subscription = (shared ??= createSharedSubscription(supabase));
+  subscription.subscribers.add(subscriber);
+
   return () => {
-    if (attachmentTimer) clearTimeout(attachmentTimer);
-    if (taskRefreshTimer) clearTimeout(taskRefreshTimer);
-    void supabase.removeChannel(channel);
+    subscription.subscribers.delete(subscriber);
+    if (subscription.subscribers.size) return;
+    // A later mount may already have replaced this subscription; only the
+    // current one should be cleared.
+    if (shared === subscription) shared = null;
+    subscription.close();
   };
 }
