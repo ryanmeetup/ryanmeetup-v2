@@ -127,6 +127,11 @@ production build also runs `scripts/check-database-contract.mjs`, preventing a
 deployment when the configured database is reachable but missing the required
 contract.
 
+In Vercel, `NEXT_PUBLIC_SUPABASE_URL`,
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `SUPABASE_SECRET_KEY` must all come
+from the same linked project. Trigger a fresh deployment after rotating them;
+redeploying an older deployment can reuse its previous environment snapshot.
+
 ## How the baseline was captured
 
 With `supabase db dump`, which is read-only `pg_dump` — **not**
