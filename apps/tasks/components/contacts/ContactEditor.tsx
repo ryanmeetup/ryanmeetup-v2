@@ -13,6 +13,7 @@ import {
   IconButton,
   Input,
   Modal,
+  ModalActions,
   Textarea,
 } from "@ryanmeetup/ui";
 import {
@@ -180,29 +181,15 @@ export function ContactEditor({
       description="Manage this contact and the people you know there."
       size="xl"
       maxHeight="min(48rem, calc(100dvh - 2rem))"
-      hideActions
-      footer={
-        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            disabled={saving}
-            onClick={onClose}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            form={editorFormId}
-            size="sm"
-            loading={saving}
-            loadingText={contact ? "Saving…" : "Creating…"}
-            disabled={!valid || saving}
-          >
-            {contact ? "Save changes" : "Create contact"}
-          </Button>
-        </div>
+      actions={
+        <ModalActions
+          confirmDisabled={!valid || saving}
+          confirmForm={editorFormId}
+          confirmLabel={contact ? "Save changes" : "Create contact"}
+          onCancel={onClose}
+          pending={saving}
+          pendingLabel={contact ? "Saving…" : "Creating…"}
+        />
       }
     >
       <form

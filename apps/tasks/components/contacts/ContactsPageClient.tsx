@@ -293,7 +293,7 @@ export function ContactsPageClient({
           }
           description="Browse the brands, venues, sponsors, teams, and groups we know, with the right people listed under each one."
           actions={
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <>
               <Button
                 type="button"
                 size="sm"
@@ -334,9 +334,8 @@ export function ContactsPageClient({
                   New Contact
                 </Button>
               )}
-            </div>
+            </>
           }
-          hideActions
           size="xl"
           embedded
         >

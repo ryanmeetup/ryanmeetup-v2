@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Modal, toast } from "@ryanmeetup/ui";
+import { Modal, ModalActions, toast } from "@ryanmeetup/ui";
 import { errorMessage } from "@/lib/presentation";
 import { useInstanceSettingsForm } from "@/hooks/useInstanceSettingsForm";
 import {
@@ -92,27 +92,16 @@ export function IdentitySettingsModal({
         if (await submit({ extraBody: changed ? { logoPath: nextLogo } : {} }))
           setOpen(false);
       }}
-      hideActions
-      footer={
-        <div className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={saving || uploading}
-            onClick={() => setOpen(false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            form={FORM_ID}
-            loading={saving}
-            loadingText="Saving..."
-            disabled={uploading}
-          >
-            Save identity
-          </Button>
-        </div>
+      actions={
+        <ModalActions
+          cancelDisabled={saving || uploading}
+          confirmDisabled={uploading}
+          confirmForm={FORM_ID}
+          confirmLabel="Save identity"
+          onCancel={() => setOpen(false)}
+          pending={saving}
+          pendingLabel="Saving..."
+        />
       }
     >
       <div className="settings-form space-y-5">

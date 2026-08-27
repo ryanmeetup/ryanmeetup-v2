@@ -40,9 +40,9 @@ export function EmailDetailModal({
   const [detail, setDetail] = useState<ResendEmailDetail | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [pendingAction, setPendingAction] = useState<
-    "delay" | "cancel" | null
-  >(null);
+  const [pendingAction, setPendingAction] = useState<"delay" | "cancel" | null>(
+    null,
+  );
   const [confirmCancel, setConfirmCancel] = useState(false);
   const router = useRouter();
 
@@ -124,15 +124,13 @@ export function EmailDetailModal({
         title={email.subject}
         description="The exact content Resend stored for this email. Remote images are blocked so viewing it here does not trigger tracking pixels."
         size="xl"
-        hideActions
-        footer={
+        actions={
           scheduled ? (
-            <div className="flex flex-col justify-end gap-2 sm:flex-row">
+            <>
               <Button
                 type="button"
                 variant="secondary"
                 size="sm"
-                className="w-full sm:w-auto"
                 disabled={Boolean(pendingAction)}
                 onClick={onClose}
               >
@@ -142,7 +140,6 @@ export function EmailDetailModal({
                 type="button"
                 variant="secondary"
                 size="sm"
-                className="w-full sm:w-auto"
                 loading={pendingAction === "delay"}
                 loadingText="Delaying..."
                 disabled={Boolean(pendingAction)}
@@ -154,13 +151,12 @@ export function EmailDetailModal({
                 type="button"
                 variant="danger"
                 size="sm"
-                className="w-full sm:w-auto"
                 disabled={Boolean(pendingAction)}
                 onClick={() => setConfirmCancel(true)}
               >
                 Cancel send
               </Button>
-            </div>
+            </>
           ) : undefined
         }
       >

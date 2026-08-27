@@ -9,16 +9,17 @@ import {
   type SetStateAction,
 } from "react";
 import {
-  Button,
   Avatar,
+  Button,
   ConfirmationDialog,
   FilterChip,
   IconButton,
   Input,
   Modal,
+  ModalActions,
   Pill,
-  Tooltip,
   toast,
+  Tooltip,
 } from "@ryanmeetup/ui";
 import {
   FiArchive,
@@ -111,9 +112,26 @@ export function ProjectsModal({
     data.currentProfile.id,
     initialDraft ?? undefined,
   );
-  const { name, description, links, attachments, ownerIds: newOwnerIds } = createState.draft;
-  const { setName, setDescription, setLinks, setAttachments, setOwnerIds: setNewOwnerIds } = createState.changes;
-  const { creating, setCreating, detailsOpen: createDetailsOpen, setDetailsOpen: setCreateDetailsOpen } = createState;
+  const {
+    name,
+    description,
+    links,
+    attachments,
+    ownerIds: newOwnerIds,
+  } = createState.draft;
+  const {
+    setName,
+    setDescription,
+    setLinks,
+    setAttachments,
+    setOwnerIds: setNewOwnerIds,
+  } = createState.changes;
+  const {
+    creating,
+    setCreating,
+    detailsOpen: createDetailsOpen,
+    setDetailsOpen: setCreateDetailsOpen,
+  } = createState;
   const [accessGroups, setAccessGroups] = useState<ProjectAccessGroup[]>([]);
   const [newAccessMode, setNewAccessMode] =
     useState<Project["access_mode"]>("owners");
@@ -132,11 +150,36 @@ export function ProjectsModal({
     "active",
   );
   const projectStatus = archiveFilter(projectStatusParam);
-  const editState = useResourceEditState(directEditProject, directEditProject ? data.projectOwners.filter((item) => item.project_id === directEditProject.id).map((item) => item.profile_id) : []);
-  const { resourceId: editingProjectId, setResourceId: setEditingProjectId, detailsOpen: editDetailsOpen, setDetailsOpen: setEditDetailsOpen, saving: renaming, setSaving: setRenaming } = editState;
-  const { name: editingName, description: editingDescription, links: editingLinks, ownerIds: editingOwnerIds } = editState.draft;
-  const { setName: setEditingName, setDescription: setEditingDescription, setLinks: setEditingLinks, setOwnerIds: setEditingOwnerIds } = editState.changes;
-  const [supportingDetailsChanged, setSupportingDetailsChanged] = useState(false);
+  const editState = useResourceEditState(
+    directEditProject,
+    directEditProject
+      ? data.projectOwners
+          .filter((item) => item.project_id === directEditProject.id)
+          .map((item) => item.profile_id)
+      : [],
+  );
+  const {
+    resourceId: editingProjectId,
+    setResourceId: setEditingProjectId,
+    detailsOpen: editDetailsOpen,
+    setDetailsOpen: setEditDetailsOpen,
+    saving: renaming,
+    setSaving: setRenaming,
+  } = editState;
+  const {
+    name: editingName,
+    description: editingDescription,
+    links: editingLinks,
+    ownerIds: editingOwnerIds,
+  } = editState.draft;
+  const {
+    setName: setEditingName,
+    setDescription: setEditingDescription,
+    setLinks: setEditingLinks,
+    setOwnerIds: setEditingOwnerIds,
+  } = editState.changes;
+  const [supportingDetailsChanged, setSupportingDetailsChanged] =
+    useState(false);
   const [favoritePendingIds, setFavoritePendingIds] = useState<Set<string>>(
     new Set(),
   );
@@ -198,11 +241,11 @@ export function ProjectsModal({
       data.currentProfile.app_role === "owner" ||
       Boolean(
         projectId &&
-          data.projectOwners.some(
-            (owner) =>
-              owner.project_id === projectId &&
-              owner.profile_id === data.currentProfile.id,
-          ),
+        data.projectOwners.some(
+          (owner) =>
+            owner.project_id === projectId &&
+            owner.profile_id === data.currentProfile.id,
+        ),
       );
     if (!open || !canLoad) return;
     // This effect synchronizes the editor with its external access API. The
@@ -254,21 +297,21 @@ export function ProjectsModal({
       };
       if (!demoMode)
         project = (
-          await resourceMutations.save(
-            "POST",
-            {
-              name: projectName,
-              description: projectDescription,
-              links,
-              ownerIds: newOwnerIds,
-              accessMode: newAccessMode,
-              accessGroupIds:
-                newAccessMode === "restricted" ? newAccessGroupIds : [],
-            },
-          )
+          await resourceMutations.save("POST", {
+            name: projectName,
+            description: projectDescription,
+            links,
+            ownerIds: newOwnerIds,
+            accessMode: newAccessMode,
+            accessGroupIds:
+              newAccessMode === "restricted" ? newAccessGroupIds : [],
+          })
         ).project!;
       if (!demoMode && attachments.length > 0) {
-        const failedAttachments = await resourceMutations.uploadDrafts(attachments, project.id);
+        const failedAttachments = await resourceMutations.uploadDrafts(
+          attachments,
+          project.id,
+        );
         if (failedAttachments > 0)
           toast.error(
             `${failedAttachments} ${failedAttachments === 1 ? "attachment" : "attachments"} could not be added. You can retry from Edit project.`,
@@ -323,16 +366,13 @@ export function ProjectsModal({
     setRenaming(true);
     try {
       if (!demoMode)
-        await resourceMutations.save(
-          "PATCH",
-          {
-            id: project.id,
-            name: nextName,
-            description: nextDescription,
-            links: editingLinks,
-            ...(ownersChanged ? { ownerIds: editingOwnerIds } : {}),
-          },
-        );
+        await resourceMutations.save("PATCH", {
+          id: project.id,
+          name: nextName,
+          description: nextDescription,
+          links: editingLinks,
+          ...(ownersChanged ? { ownerIds: editingOwnerIds } : {}),
+        });
       if (
         !demoMode &&
         (data.currentProfile.app_role === "owner" ||
@@ -387,7 +427,8 @@ export function ProjectsModal({
 
   function beginRename(project: Project) {
     setSupportingDetailsChanged(false);
-    editState.begin(project,
+    editState.begin(
+      project,
       data.projectOwners
         .filter((item) => item.project_id === project.id)
         .map((item) => item.profile_id),
@@ -408,7 +449,8 @@ export function ProjectsModal({
   async function toggleArchived(project: Project) {
     const archived = !project.archived_at;
     try {
-      if (!demoMode) await resourceMutations.save("PATCH", { id: project.id, archived });
+      if (!demoMode)
+        await resourceMutations.save("PATCH", { id: project.id, archived });
       setData((current) => ({
         ...current,
         projects: current.projects.map((item) =>
@@ -453,7 +495,9 @@ export function ProjectsModal({
       toast.success(`${project.name} deleted.`);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "The project could not be deleted.",
+        error instanceof Error
+          ? error.message
+          : "The project could not be deleted.",
       );
     } finally {
       setDeletePending(false);
@@ -517,9 +561,24 @@ export function ProjectsModal({
       section="primary"
       resource={{ kind: "project" }}
       values={{ name, description, ownerIds: newOwnerIds, links, attachments }}
-      changes={{ setName, setDescription, setOwnerIds: setNewOwnerIds, setLinks, setAttachments }}
-      editor={{ disabled: creating, demoMode, currentUserId: data.currentProfile.id, profiles: data.profiles }}
-      copy={{ nameLabel: "New Project", namePlaceholder: "Website refresh", descriptionPlaceholder: "What is this project working toward?" }}
+      changes={{
+        setName,
+        setDescription,
+        setOwnerIds: setNewOwnerIds,
+        setLinks,
+        setAttachments,
+      }}
+      editor={{
+        disabled: creating,
+        demoMode,
+        currentUserId: data.currentProfile.id,
+        profiles: data.profiles,
+      }}
+      copy={{
+        nameLabel: "New Project",
+        namePlaceholder: "Website refresh",
+        descriptionPlaceholder: "What is this project working toward?",
+      }}
       primarySlot={
         <ProjectAccessFields
           groups={accessGroups}
@@ -539,16 +598,30 @@ export function ProjectsModal({
       section="supporting"
       resource={{ kind: "project" }}
       values={{ name, description, ownerIds: newOwnerIds, links, attachments }}
-      changes={{ setName, setDescription, setOwnerIds: setNewOwnerIds, setLinks, setAttachments }}
-      editor={{ disabled: creating, demoMode, currentUserId: data.currentProfile.id, profiles: data.profiles }}
-      copy={{ nameLabel: "New Project", namePlaceholder: "Website refresh", descriptionPlaceholder: "What is this project working toward?" }}
+      changes={{
+        setName,
+        setDescription,
+        setOwnerIds: setNewOwnerIds,
+        setLinks,
+        setAttachments,
+      }}
+      editor={{
+        disabled: creating,
+        demoMode,
+        currentUserId: data.currentProfile.id,
+        profiles: data.profiles,
+      }}
+      copy={{
+        nameLabel: "New Project",
+        namePlaceholder: "Website refresh",
+        descriptionPlaceholder: "What is this project working toward?",
+      }}
     />
   );
   return (
     <>
       <Modal
         open={open && !editProjectId}
-        maxHeight="min(42rem, calc(100dvh - 2rem))"
         setIsOpen={setOpen}
         title={
           createOnly ? (
@@ -575,40 +648,27 @@ export function ProjectsModal({
             >
               New project
             </Button>
+          ) : !embedded ? (
+            <ModalActions
+              confirmForm="create-project-form"
+              confirmLabel="Create project"
+              onCancel={() => setOpen(false)}
+              pending={creating}
+              pendingLabel="Creating..."
+            />
           ) : undefined
         }
-        hideActions
-        size={createOnly && createDetailsOpen ? "2xl" : createOnly ? "lg" : "xl"}
+        size={
+          createOnly && createDetailsOpen ? "2xl" : createOnly ? "lg" : "xl"
+        }
         panelClassName={
           createOnly
             ? "transition-[max-width] duration-300 ease-out motion-reduce:transition-none"
             : undefined
         }
         embedded={embedded}
-        footer={
-          embedded ? undefined : createOnly ? (
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => setOpen(false)}
-                disabled={creating}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                form="create-project-form"
-                variant="action"
-                size="sm"
-                loading={creating}
-                loadingText="Creating..."
-              >
-                Create project
-              </Button>
-            </div>
-          ) : (
+        footerContent={
+          !embedded && !createOnly ? (
             <form
               id="create-project-form"
               className="grid gap-4"
@@ -620,28 +680,8 @@ export function ProjectsModal({
                 primary={createProjectPrimaryFields}
                 secondary={createProjectSecondaryFields}
               />
-              <div className="flex justify-end gap-2 border-t border-black/10 pt-4 dark:border-white/10">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setOpen(false)}
-                  disabled={creating}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  variant="action"
-                  size="sm"
-                  loading={creating}
-                  loadingText="Creating..."
-                >
-                  Create project
-                </Button>
-              </div>
             </form>
-          )
+          ) : undefined
         }
       >
         {createOnly ? (
@@ -852,7 +892,11 @@ export function ProjectsModal({
                     >
                       <div className="min-w-0 flex-1 py-1">
                         <ManagementCardTitle
-                          className={project.archived_at ? "text-black/60 dark:text-white/60" : undefined}
+                          className={
+                            project.archived_at
+                              ? "text-black/60 dark:text-white/60"
+                              : undefined
+                          }
                         >
                           <span className="inline-flex max-w-full items-center gap-2">
                             <span className="truncate">{project.name}</span>
@@ -868,7 +912,11 @@ export function ProjectsModal({
                         </ManagementCardTitle>
                       </div>
                       {project.archived_at && (
-                        <Pill variant="neutral" size="sm" className="shrink-0 !px-2.5 !tracking-[0.16em]">
+                        <Pill
+                          variant="neutral"
+                          size="sm"
+                          className="shrink-0 !px-2.5 !tracking-[0.16em]"
+                        >
                           Archived
                         </Pill>
                       )}
@@ -953,7 +1001,6 @@ export function ProjectsModal({
             !sameIds(savedAccessGroupIds, editingAccessGroupIds);
           return (
             <Modal
-              maxHeight="min(42rem, calc(100dvh - 2rem))"
               open
               setIsOpen={(nextOpen) => {
                 if (!nextOpen) closeEditor();
@@ -961,34 +1008,16 @@ export function ProjectsModal({
               title={`Edit ${project.name}`}
               size={editDetailsOpen ? "2xl" : "lg"}
               panelClassName="transition-[max-width] duration-300 ease-out motion-reduce:transition-none"
-              hideActions
-              footer={
-                <div className="flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={renaming}
-                    onClick={closeEditor}
-                  >
-                    Cancel
-                  </Button>
-                  <Tooltip
-                    content="Make a change before saving."
-                    disabled={projectChanged}
-                  >
-                    <span tabIndex={projectChanged ? -1 : 0}>
-                      <Button
-                        type="submit"
-                        form={`edit-project-form-${project.id}`}
-                        disabled={!projectChanged}
-                        loading={renaming}
-                        loadingText="Saving..."
-                      >
-                        Save changes
-                      </Button>
-                    </span>
-                  </Tooltip>
-                </div>
+              actions={
+                <ModalActions
+                  confirmDisabled={!projectChanged}
+                  confirmForm={`edit-project-form-${project.id}`}
+                  confirmLabel="Save changes"
+                  confirmTooltip="Make a change before saving."
+                  onCancel={closeEditor}
+                  pending={renaming}
+                  pendingLabel="Saving..."
+                />
               }
             >
               <form
@@ -1002,8 +1031,83 @@ export function ProjectsModal({
                 <ExpandableResourceEditor
                   expanded={editDetailsOpen}
                   setExpanded={setEditDetailsOpen}
-                  primary={<ResourceFields section="primary" resource={{ kind: "project", id: project.id }} values={{ name: editingName, description: editingDescription, ownerIds: editingOwnerIds, links: editingLinks }} changes={{ setName: setEditingName, setDescription: setEditingDescription, setOwnerIds: setEditingOwnerIds, setLinks: setEditingLinks }} editor={{ disabled: renaming, demoMode, currentUserId: data.currentProfile.id, profiles: data.profiles }} copy={{ nameLabel: "Project name", namePlaceholder: "Project name", descriptionPlaceholder: "What is this project working toward?" }} primarySlot={<ProjectAccessFields groups={accessGroups} accessMode={editingAccessMode} groupIds={editingAccessGroupIds} onAccessModeChange={setEditingAccessMode} onGroupIdsChange={setEditingAccessGroupIds} disabled={renaming || !accessLoaded} loaded={accessLoaded} owner={data.currentProfile.app_role === "owner" || editingOwnerIds.includes(data.currentProfile.id)} />} />}
-                  secondary={<ResourceFields section="supporting" resource={{ kind: "project", id: project.id }} values={{ name: editingName, description: editingDescription, ownerIds: editingOwnerIds, links: editingLinks }} changes={{ setName: setEditingName, setDescription: setEditingDescription, setOwnerIds: setEditingOwnerIds, setLinks: setEditingLinks }} editor={{ disabled: renaming, demoMode, currentUserId: data.currentProfile.id, profiles: data.profiles, onSupportingMutation: () => setSupportingDetailsChanged(true) }} copy={{ nameLabel: "Project name", namePlaceholder: "Project name", descriptionPlaceholder: "What is this project working toward?" }} />}
+                  primary={
+                    <ResourceFields
+                      section="primary"
+                      resource={{ kind: "project", id: project.id }}
+                      values={{
+                        name: editingName,
+                        description: editingDescription,
+                        ownerIds: editingOwnerIds,
+                        links: editingLinks,
+                      }}
+                      changes={{
+                        setName: setEditingName,
+                        setDescription: setEditingDescription,
+                        setOwnerIds: setEditingOwnerIds,
+                        setLinks: setEditingLinks,
+                      }}
+                      editor={{
+                        disabled: renaming,
+                        demoMode,
+                        currentUserId: data.currentProfile.id,
+                        profiles: data.profiles,
+                      }}
+                      copy={{
+                        nameLabel: "Project name",
+                        namePlaceholder: "Project name",
+                        descriptionPlaceholder:
+                          "What is this project working toward?",
+                      }}
+                      primarySlot={
+                        <ProjectAccessFields
+                          groups={accessGroups}
+                          accessMode={editingAccessMode}
+                          groupIds={editingAccessGroupIds}
+                          onAccessModeChange={setEditingAccessMode}
+                          onGroupIdsChange={setEditingAccessGroupIds}
+                          disabled={renaming || !accessLoaded}
+                          loaded={accessLoaded}
+                          owner={
+                            data.currentProfile.app_role === "owner" ||
+                            editingOwnerIds.includes(data.currentProfile.id)
+                          }
+                        />
+                      }
+                    />
+                  }
+                  secondary={
+                    <ResourceFields
+                      section="supporting"
+                      resource={{ kind: "project", id: project.id }}
+                      values={{
+                        name: editingName,
+                        description: editingDescription,
+                        ownerIds: editingOwnerIds,
+                        links: editingLinks,
+                      }}
+                      changes={{
+                        setName: setEditingName,
+                        setDescription: setEditingDescription,
+                        setOwnerIds: setEditingOwnerIds,
+                        setLinks: setEditingLinks,
+                      }}
+                      editor={{
+                        disabled: renaming,
+                        demoMode,
+                        currentUserId: data.currentProfile.id,
+                        profiles: data.profiles,
+                        onSupportingMutation: () =>
+                          setSupportingDetailsChanged(true),
+                      }}
+                      copy={{
+                        nameLabel: "Project name",
+                        namePlaceholder: "Project name",
+                        descriptionPlaceholder:
+                          "What is this project working toward?",
+                      }}
+                    />
+                  }
                 />
               </form>
             </Modal>
@@ -1011,7 +1115,9 @@ export function ProjectsModal({
         })()}
       <ConfirmationDialog
         open={Boolean(deleteTarget)}
-        setOpen={(nextOpen) => !nextOpen && !deletePending && setDeleteTarget(null)}
+        setOpen={(nextOpen) =>
+          !nextOpen && !deletePending && setDeleteTarget(null)
+        }
         title="Delete this project?"
         description={`This permanently removes “${deleteTarget?.name ?? "this project"}”. This cannot be undone.`}
         confirmLabel="Delete project"

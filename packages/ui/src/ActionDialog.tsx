@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { Button } from "./Button";
-import type { ButtonSize } from "./Button";
 import { Input } from "./Input";
 import { Modal } from "./Modal";
+import { ModalActions } from "./ModalActions";
 
 export type ConfirmationDialogProps = {
   open: boolean;
@@ -15,7 +14,6 @@ export type ConfirmationDialogProps = {
   pendingLabel?: string;
   pending?: boolean;
   destructive?: boolean;
-  buttonSize?: ButtonSize;
   onConfirm: () => void;
 };
 
@@ -28,39 +26,22 @@ const ConfirmationDialog = ({
   pendingLabel,
   pending = false,
   destructive = false,
-  buttonSize = "md",
   onConfirm,
 }: ConfirmationDialogProps) => (
   <Modal
     open={open}
     setIsOpen={setOpen}
     title={title}
-    hideActions
     size="md"
-    footer={
-      <div className="flex flex-col justify-end gap-2 sm:flex-row">
-        <Button
-          type="button"
-          variant="secondary"
-          size={buttonSize}
-          className="w-full whitespace-nowrap sm:w-auto"
-          disabled={pending}
-          onClick={() => setOpen(false)}
-        >
-          Cancel
-        </Button>
-        <Button
-          type="button"
-          variant={destructive ? "danger" : "primary"}
-          size={buttonSize}
-          className="w-full whitespace-nowrap sm:w-auto"
-          loading={pending}
-          loadingText={pendingLabel ?? `${confirmLabel}...`}
-          onClick={onConfirm}
-        >
-          {confirmLabel}
-        </Button>
-      </div>
+    actions={
+      <ModalActions
+        confirmLabel={confirmLabel}
+        destructive={destructive}
+        onCancel={() => setOpen(false)}
+        onConfirm={onConfirm}
+        pending={pending}
+        pendingLabel={pendingLabel}
+      />
     }
   >
     {description && (
@@ -112,27 +93,15 @@ const PromptDialog = ({
       open={open}
       setIsOpen={setOpen}
       title={title}
-      hideActions
       size="sm"
-      footer={
-        <div className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={pending}
-            onClick={() => setOpen(false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            form={formId}
-            loading={pending}
-            loadingText={pendingLabel ?? `${confirmLabel}...`}
-          >
-            {confirmLabel}
-          </Button>
-        </div>
+      actions={
+        <ModalActions
+          confirmForm={formId}
+          confirmLabel={confirmLabel}
+          onCancel={() => setOpen(false)}
+          pending={pending}
+          pendingLabel={pendingLabel}
+        />
       }
     >
       <form id={formId} onSubmit={submit}>

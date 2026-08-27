@@ -822,7 +822,6 @@ export function TaskDetails({ task, workspace, display }: TaskDetailsProps) {
         pendingLabel="Deleting..."
         pending={commentSaving}
         destructive
-        buttonSize="sm"
         onConfirm={() => void deleteComment()}
       />
     </div>

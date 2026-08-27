@@ -2,7 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card, ErrorCallout, Modal } from "@ryanmeetup/ui";
+import {
+  Button,
+  Card,
+  ErrorCallout,
+  Modal,
+  ModalActions,
+} from "@ryanmeetup/ui";
 import { FiLock, FiLogOut, FiUser } from "react-icons/fi";
 import { ProfileForm } from "./ProfileForm";
 import { PasswordForm } from "@/components/auth";
@@ -154,27 +160,15 @@ export function ProfilePageClient({
           open={passwordOpen}
           setIsOpen={setPasswordOpen}
           title="Change Password"
-          hideActions
-          footer={
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={passwordSaving}
-                onClick={() => setPasswordOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                form={passwordFormId}
-                leftIcon={<FiLock />}
-                loading={passwordSaving}
-                loadingText="Updating..."
-              >
-                Update password
-              </Button>
-            </div>
+          actions={
+            <ModalActions
+              confirmForm={passwordFormId}
+              confirmIcon={<FiLock />}
+              confirmLabel="Update password"
+              onCancel={() => setPasswordOpen(false)}
+              pending={passwordSaving}
+              pendingLabel="Updating..."
+            />
           }
         >
           <p className="mb-6 text-sm text-black/65 dark:text-white/65">

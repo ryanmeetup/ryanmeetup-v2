@@ -9,7 +9,6 @@ import {
 import { MdClose as Close, MdKeyboardArrowDown } from "react-icons/md";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEventHandler, ReactNode } from "react";
-import { Button } from "./Button";
 import { Heading } from "./Heading";
 import { IconButton } from "./IconButton";
 
@@ -22,23 +21,36 @@ export type ModalProps = {
   description?: ReactNode;
   children: ReactNode;
   closable?: boolean;
+  /**
+   * The primary button group: right-aligned in the footer, or in the header
+   * when `embedded`. Pass `ModalActions` for the standard cancel/confirm pair.
+   */
   actions?: ReactNode;
-  footer?: ReactNode;
+  /** Left-aligned footer actions — destructive or secondary escapes. */
+  supportingActions?: ReactNode;
+  /** Footer content that sits above the button rows. */
+  footerContent?: ReactNode;
   panelClassName?: string;
   maxHeight?: string;
-  primaryActionFirst?: boolean;
-  reverseActionsOnDesktop?: boolean;
-  hideActions?: boolean;
-  cancelButtonText?: string;
-  continueButtonText?: string;
-  isContinueDisabled?: boolean;
-  cancelAction?: () => void;
-  continueAction?: () => void;
   size?: ModalSize;
   embedded?: boolean;
   formId?: string;
   onSubmit?: FormEventHandler<HTMLFormElement>;
 };
+
+/**
+ * Header action groups lay their children out but leave widths to the caller,
+ * because embedded headers host filters and toolbars as well as buttons.
+ */
+const headerActionGroup =
+  "flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center";
+
+/**
+ * Footer action groups own their children's widths: stacked and full-width on
+ * mobile, inline and hugging their content from `sm` up.
+ */
+const footerActionGroup =
+  "flex gap-3 [&>*]:w-full [&>span>*]:w-full sm:flex-row sm:items-center sm:gap-2 sm:[&>*]:w-auto sm:[&>span>*]:w-auto";
 
 const sizeStyles: Record<ModalSize, string> = {
   sm: "max-w-sm",
@@ -57,17 +69,10 @@ const Modal = ({
   children,
   closable = true,
   actions,
-  footer,
+  supportingActions,
+  footerContent,
   panelClassName,
   maxHeight,
-  primaryActionFirst = false,
-  reverseActionsOnDesktop = false,
-  hideActions = false,
-  cancelButtonText,
-  continueButtonText,
-  isContinueDisabled = false,
-  cancelAction,
-  continueAction,
   size = "md",
   embedded = false,
   formId,
@@ -111,51 +116,6 @@ const Modal = ({
     return () => resizeObserver.disconnect();
   }, [embedded, open, updateScrollState]);
 
-  const legacyActions =
-    cancelButtonText && continueButtonText && cancelAction && continueAction ? (
-      <div
-        className={`flex flex-col gap-3 sm:justify-end ${reverseActionsOnDesktop ? "sm:flex-row-reverse" : "sm:flex-row"}`}
-      >
-        {primaryActionFirst ? (
-          <>
-            <Button
-              variant="primary"
-              className="w-full sm:w-auto"
-              disabled={isContinueDisabled}
-              onClick={continueAction}
-            >
-              {continueButtonText}
-            </Button>
-            <Button
-              variant="secondary"
-              className="w-full sm:w-auto"
-              onClick={cancelAction}
-            >
-              {cancelButtonText}
-            </Button>
-          </>
-        ) : (
-          <>
-            <Button
-              variant="secondary"
-              className="w-full sm:w-auto"
-              onClick={cancelAction}
-            >
-              {cancelButtonText}
-            </Button>
-            <Button
-              variant="primary"
-              className="w-full sm:w-auto"
-              disabled={isContinueDisabled}
-              onClick={continueAction}
-            >
-              {continueButtonText}
-            </Button>
-          </>
-        )}
-      </div>
-    ) : null;
-
   if (embedded) {
     return (
       <section
@@ -173,15 +133,10 @@ const Modal = ({
                 </div>
               )}
             </div>
-            {actions && <div className="shrink-0">{actions}</div>}
+            {actions && <div className={headerActionGroup}>{actions}</div>}
           </div>
         )}
         <div className="p-5">{children}</div>
-        {footer && (
-          <div className="border-t border-black/10 p-5 dark:border-white/10">
-            {footer}
-          </div>
-        )}
       </section>
     );
   }
@@ -189,7 +144,9 @@ const Modal = ({
   return (
     <Dialog
       open={open}
-      onClose={() => setIsOpen(false)}
+      onClose={() => {
+        if (closable) setIsOpen(false);
+      }}
       className="relative z-50"
     >
       <div
@@ -249,14 +206,27 @@ const Modal = ({
               </div>
             )}
           </div>
-          {(footer || (!hideActions && (actions || legacyActions))) && (
+          {(footerContent || supportingActions || actions) && (
             <div className="shrink-0 border-t border-black/10 px-6 py-4 dark:border-white/10">
-              {footer ??
-                (actions ? (
-                  <div className="flex justify-end">{actions}</div>
-                ) : (
-                  legacyActions
-                ))}
+              {footerContent}
+              {(supportingActions || actions) && (
+                <div
+                  className={`flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between ${footerContent ? "mt-4 border-t border-black/10 pt-4 dark:border-white/10" : ""}`}
+                >
+                  {supportingActions && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {supportingActions}
+                    </div>
+                  )}
+                  {actions && (
+                    <div
+                      className={`${footerActionGroup} flex-col-reverse sm:ml-auto sm:justify-end`}
+                    >
+                      {actions}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </DialogPanel>

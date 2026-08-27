@@ -308,7 +308,6 @@ export function NotesPageClient({
               {showArchived ? "View active" : "View archive"}
             </Button>
           }
-          hideActions
           size="xl"
           embedded
         >

@@ -1,7 +1,12 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { Button, DropdownSelect, Modal, MultiSelect } from "@ryanmeetup/ui";
+import {
+  DropdownSelect,
+  Modal,
+  ModalActions,
+  MultiSelect,
+} from "@ryanmeetup/ui";
 import type { Profile } from "@/lib/workspace/workspace-types";
 
 type AccessGroupOption = {
@@ -43,28 +48,14 @@ export function ProfileAccessModal({
           : "Manage access groups"
       }
       size="md"
-      hideActions
-      footer={
-        <div className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            disabled={pending}
-            onClick={() => setProfile(null)}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            form="edit-profile-access-form"
-            size="sm"
-            loading={pending}
-            loadingText="Saving..."
-          >
-            Save access
-          </Button>
-        </div>
+      actions={
+        <ModalActions
+          confirmForm="edit-profile-access-form"
+          confirmLabel="Save access"
+          onCancel={() => setProfile(null)}
+          pending={pending}
+          pendingLabel="Saving..."
+        />
       }
     >
       <form

@@ -298,8 +298,8 @@ export function GoogleEventModal({
           </span>
         )
       }
-      footer={
-        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+      actions={
+        <>
           {joinLink ? (
             <CopyJoinLink uri={joinLink} />
           ) : (
@@ -317,7 +317,7 @@ export function GoogleEventModal({
               {awaitingYou ? "Reply in Google Calendar" : "Open in Google Calendar"}
             </Button.Link>
           )}
-        </div>
+        </>
       }
     >
       {event && (

@@ -9,20 +9,21 @@ import {
   type SetStateAction,
 } from "react";
 import {
-  Button,
   Avatar,
+  Button,
   ConfirmationDialog,
   DropdownSelect,
   FilterChip,
   IconButton,
   Input,
   Modal,
+  ModalActions,
   MultiSelect,
   Pill,
   TagInput,
   Textarea,
-  Tooltip,
   toast,
+  Tooltip,
 } from "@ryanmeetup/ui";
 import { useQueryParamState, useSearchFilter } from "@ryanmeetup/hooks";
 import {
@@ -45,10 +46,7 @@ import {
   ManagementCardTitle,
   ResourceOwnerSelect,
 } from "@/components/global";
-import type {
-  Category,
-  ProjectLink,
-} from "@/lib/resources/resource-types";
+import type { Category, ProjectLink } from "@/lib/resources/resource-types";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import {
   ExpandableResourceEditor,
@@ -129,9 +127,26 @@ export function CategoriesModal({
       null)
     : null;
   const createState = useResourceModalState(data.currentProfile.id);
-  const { name, description, links, attachments, ownerIds: newOwnerIds } = createState.draft;
-  const { setName, setDescription, setLinks, setAttachments, setOwnerIds: setNewOwnerIds } = createState.changes;
-  const { creating, setCreating, detailsOpen: createDetailsOpen, setDetailsOpen: setCreateDetailsOpen } = createState;
+  const {
+    name,
+    description,
+    links,
+    attachments,
+    ownerIds: newOwnerIds,
+  } = createState.draft;
+  const {
+    setName,
+    setDescription,
+    setLinks,
+    setAttachments,
+    setOwnerIds: setNewOwnerIds,
+  } = createState.changes;
+  const {
+    creating,
+    setCreating,
+    detailsOpen: createDetailsOpen,
+    setDetailsOpen: setCreateDetailsOpen,
+  } = createState;
   const [color, setColor] = useState(() => randomCategoryColor());
   const [tags, setTags] = useState<string[]>([]);
   const [newAccessMode, setNewAccessMode] =
@@ -181,7 +196,8 @@ export function CategoriesModal({
       : [],
   );
   const [saving, setSaving] = useState(false);
-  const [supportingDetailsChanged, setSupportingDetailsChanged] = useState(false);
+  const [supportingDetailsChanged, setSupportingDetailsChanged] =
+    useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
   const [deletePending, setDeletePending] = useState(false);
   const {
@@ -246,15 +262,16 @@ export function CategoriesModal({
               ? {
                   accessMode: newAccessMode,
                   accessGroupIds:
-                    newAccessMode === "restricted"
-                      ? newAccessGroupIds
-                      : [],
+                    newAccessMode === "restricted" ? newAccessGroupIds : [],
                 }
               : {}),
           })
         ).category!;
       if (!demoMode && attachments.length > 0) {
-        const failedAttachments = await resourceMutations.uploadDrafts(attachments, category.id);
+        const failedAttachments = await resourceMutations.uploadDrafts(
+          attachments,
+          category.id,
+        );
         if (failedAttachments > 0)
           toast.error(
             `${failedAttachments} ${failedAttachments === 1 ? "attachment" : "attachments"} could not be added. You can retry from Edit category.`,
@@ -388,9 +405,7 @@ export function CategoriesModal({
             categoryId: category.id,
             accessMode: editingAccessMode,
             groupIds:
-              editingAccessMode === "restricted"
-                ? editingAccessGroupIds
-                : [],
+              editingAccessMode === "restricted" ? editingAccessGroupIds : [],
           }),
         });
       }
@@ -476,10 +491,13 @@ export function CategoriesModal({
     const category = deleteTarget;
     setDeletePending(true);
     try {
-      if (!demoMode) await resourceMutations.save("DELETE", { id: category.id });
+      if (!demoMode)
+        await resourceMutations.save("DELETE", { id: category.id });
       setData((current) => ({
         ...current,
-        categories: current.categories.filter((item) => item.id !== category.id),
+        categories: current.categories.filter(
+          (item) => item.id !== category.id,
+        ),
         categoryOwners: current.categoryOwners.filter(
           (item) => item.category_id !== category.id,
         ),
@@ -488,7 +506,9 @@ export function CategoriesModal({
       toast.success(`${category.name} deleted.`);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "The category could not be deleted.",
+        error instanceof Error
+          ? error.message
+          : "The category could not be deleted.",
       );
     } finally {
       setDeletePending(false);
@@ -541,35 +561,30 @@ export function CategoriesModal({
 
   const newCategoryAccessControl = (
     <>
-        <DropdownSelect
-          label="Who can access this category?"
-          required
-          variant="field"
-          value={newAccessMode}
-          onChange={(value) =>
-            setNewAccessMode(value as Category["access_mode"])
-          }
-          options={[
-            { label: "Everyone in the workspace", value: "open" },
-            {
-              label: "Selected access groups",
-              value: "restricted",
-            },
-          ]}
-          disabled={
-            creating ||
-            data.currentProfile.app_role !== "owner" ||
-            !accessLoaded
-          }
-        />
-        {data.currentProfile.app_role !== "owner" && (
-          <p className="mt-2 text-sm text-black/70 dark:text-white/70">
-            New categories are open by default. App owners manage category
-            access.
-          </p>
-        )}
-        {data.currentProfile.app_role === "owner" &&
-          newAccessMode === "restricted" && (
+      <DropdownSelect
+        label="Who can access this category?"
+        required
+        variant="field"
+        value={newAccessMode}
+        onChange={(value) => setNewAccessMode(value as Category["access_mode"])}
+        options={[
+          { label: "Everyone in the workspace", value: "open" },
+          {
+            label: "Selected access groups",
+            value: "restricted",
+          },
+        ]}
+        disabled={
+          creating || data.currentProfile.app_role !== "owner" || !accessLoaded
+        }
+      />
+      {data.currentProfile.app_role !== "owner" && (
+        <p className="mt-2 text-sm text-black/70 dark:text-white/70">
+          New categories are open by default. App owners manage category access.
+        </p>
+      )}
+      {data.currentProfile.app_role === "owner" &&
+        newAccessMode === "restricted" && (
           <div className="mt-4">
             <MultiSelect
               label="Allowed access groups"
@@ -593,32 +608,78 @@ export function CategoriesModal({
               groups that should see this category.
             </p>
           </div>
-          )}
+        )}
     </>
   );
 
   const newCategoryPrimaryFields = (
-    <ResourceFields section="primary" resource={{ kind: "category" }} values={{ name, description, ownerIds: newOwnerIds, links, attachments }} changes={{ setName, setDescription, setOwnerIds: setNewOwnerIds, setLinks, setAttachments }} editor={{ disabled: creating, demoMode, currentUserId: data.currentProfile.id, profiles: data.profiles }} copy={{ nameLabel: "Category name", namePlaceholder: "Marketing", descriptionPlaceholder: "What kind of work belongs in this category?" }} primarySlot={<>
-      {colorControl(color, setColor, creating)}
-      <TagInput
-        label="Tags"
-        value={tags}
-        onChange={setTags}
-        placeholder="Feature"
-        disabled={creating}
-      />
-      {newCategoryAccessControl}
-    </>} />
+    <ResourceFields
+      section="primary"
+      resource={{ kind: "category" }}
+      values={{ name, description, ownerIds: newOwnerIds, links, attachments }}
+      changes={{
+        setName,
+        setDescription,
+        setOwnerIds: setNewOwnerIds,
+        setLinks,
+        setAttachments,
+      }}
+      editor={{
+        disabled: creating,
+        demoMode,
+        currentUserId: data.currentProfile.id,
+        profiles: data.profiles,
+      }}
+      copy={{
+        nameLabel: "Category name",
+        namePlaceholder: "Marketing",
+        descriptionPlaceholder: "What kind of work belongs in this category?",
+      }}
+      primarySlot={
+        <>
+          {colorControl(color, setColor, creating)}
+          <TagInput
+            label="Tags"
+            value={tags}
+            onChange={setTags}
+            placeholder="Feature"
+            disabled={creating}
+          />
+          {newCategoryAccessControl}
+        </>
+      }
+    />
   );
   const newCategorySecondaryFields = (
-    <ResourceFields section="supporting" resource={{ kind: "category" }} values={{ name, description, ownerIds: newOwnerIds, links, attachments }} changes={{ setName, setDescription, setOwnerIds: setNewOwnerIds, setLinks, setAttachments }} editor={{ disabled: creating, demoMode, currentUserId: data.currentProfile.id, profiles: data.profiles }} copy={{ nameLabel: "Category name", namePlaceholder: "Marketing", descriptionPlaceholder: "What kind of work belongs in this category?" }} />
+    <ResourceFields
+      section="supporting"
+      resource={{ kind: "category" }}
+      values={{ name, description, ownerIds: newOwnerIds, links, attachments }}
+      changes={{
+        setName,
+        setDescription,
+        setOwnerIds: setNewOwnerIds,
+        setLinks,
+        setAttachments,
+      }}
+      editor={{
+        disabled: creating,
+        demoMode,
+        currentUserId: data.currentProfile.id,
+        profiles: data.profiles,
+      }}
+      copy={{
+        nameLabel: "Category name",
+        namePlaceholder: "Marketing",
+        descriptionPlaceholder: "What kind of work belongs in this category?",
+      }}
+    />
   );
 
   return (
     <>
       <Modal
         open={open && !editingId}
-        maxHeight="min(42rem, calc(100dvh - 2rem))"
         setIsOpen={setOpen}
         title={
           createOnly ? (
@@ -645,72 +706,42 @@ export function CategoriesModal({
             >
               New Category
             </Button>
+          ) : !embedded ? (
+            <ModalActions
+              confirmForm="create-category-form"
+              confirmLabel="Create category"
+              onCancel={() => setOpen(false)}
+              pending={creating}
+              pendingLabel="Creating..."
+            />
           ) : undefined
         }
-        hideActions
         formId={createOnly ? "create-category-form" : undefined}
         onSubmit={createOnly ? addCategory : undefined}
-        size={createOnly && createDetailsOpen ? "2xl" : createOnly ? "lg" : "xl"}
+        size={
+          createOnly && createDetailsOpen ? "2xl" : createOnly ? "lg" : "xl"
+        }
         panelClassName={
           createOnly
             ? "transition-[max-width] duration-300 ease-out motion-reduce:transition-none"
             : undefined
         }
         embedded={embedded}
-        footer={
-          embedded ? undefined : createOnly ? (
-            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                className="w-full sm:w-auto"
-                onClick={() => setOpen(false)}
-                disabled={creating}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                variant="action"
-                size="sm"
-                className="w-full sm:w-auto"
-                loading={creating}
-                loadingText="Creating..."
-              >
-                Create category
-              </Button>
-            </div>
-          ) : (
-            <form className="grid gap-4" onSubmit={addCategory}>
+        footerContent={
+          !embedded && !createOnly ? (
+            <form
+              id="create-category-form"
+              className="grid gap-4"
+              onSubmit={addCategory}
+            >
               <ExpandableResourceEditor
                 expanded={createDetailsOpen}
                 setExpanded={setCreateDetailsOpen}
                 primary={newCategoryPrimaryFields}
                 secondary={newCategorySecondaryFields}
               />
-              <div className="flex justify-end gap-2 border-t border-black/10 pt-4 dark:border-white/10">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setOpen(false)}
-                  disabled={creating}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  variant="action"
-                  size="sm"
-                  loading={creating}
-                  loadingText="Creating..."
-                >
-                  Create category
-                </Button>
-              </div>
             </form>
-          )
+          ) : undefined
         }
       >
         {createOnly ? (
@@ -952,7 +983,11 @@ export function CategoriesModal({
                       />
                       <div className="min-w-0 flex-1 py-1">
                         <ManagementCardTitle
-                          className={category.archived_at ? "text-black/60 dark:text-white/60" : undefined}
+                          className={
+                            category.archived_at
+                              ? "text-black/60 dark:text-white/60"
+                              : undefined
+                          }
                         >
                           <span className="inline-flex max-w-full items-center gap-2">
                             <span className="truncate">{category.name}</span>
@@ -968,7 +1003,11 @@ export function CategoriesModal({
                         </ManagementCardTitle>
                       </div>
                       {category.archived_at && (
-                        <Pill variant="neutral" size="sm" className="shrink-0 !px-2.5 !tracking-[0.16em]">
+                        <Pill
+                          variant="neutral"
+                          size="sm"
+                          className="shrink-0 !px-2.5 !tracking-[0.16em]"
+                        >
                           Archived
                         </Pill>
                       )}
@@ -1043,7 +1082,6 @@ export function CategoriesModal({
             );
           return (
             <Modal
-              maxHeight="min(42rem, calc(100dvh - 2rem))"
               open
               setIsOpen={(nextOpen) => {
                 if (!nextOpen && !saving) {
@@ -1056,42 +1094,23 @@ export function CategoriesModal({
               title={`Edit ${category.name}`}
               size={editDetailsOpen ? "2xl" : "lg"}
               panelClassName="transition-[max-width] duration-300 ease-out motion-reduce:transition-none"
-              hideActions
-              footer={
-                <div className="flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => {
-                      setSupportingDetailsChanged(false);
-                      setEditingId(null);
-                      if (editCategoryId) setOpen(false);
-                    }}
-                    disabled={saving}
-                  >
-                    Cancel
-                  </Button>
-                  <Tooltip
-                    content="Make a change before saving."
-                    disabled={categoryChanged}
-                  >
-                    <span tabIndex={categoryChanged ? -1 : 0}>
-                      <Button
-                        type="submit"
-                        form={`edit-category-form-${category.id}`}
-                        disabled={
-                          !categoryChanged ||
-                          (data.currentProfile.app_role === "owner" &&
-                            !accessLoaded)
-                        }
-                        loading={saving}
-                        loadingText="Saving..."
-                      >
-                        Save changes
-                      </Button>
-                    </span>
-                  </Tooltip>
-                </div>
+              actions={
+                <ModalActions
+                  confirmDisabled={
+                    !categoryChanged ||
+                    (data.currentProfile.app_role === "owner" && !accessLoaded)
+                  }
+                  confirmForm={`edit-category-form-${category.id}`}
+                  confirmLabel="Save changes"
+                  confirmTooltip="Make a change before saving."
+                  onCancel={() => {
+                    setSupportingDetailsChanged(false);
+                    setEditingId(null);
+                    if (editCategoryId) setOpen(false);
+                  }}
+                  pending={saving}
+                  pendingLabel="Saving..."
+                />
               }
             >
               <form
@@ -1105,108 +1124,124 @@ export function CategoriesModal({
                 <ExpandableResourceEditor
                   expanded={editDetailsOpen}
                   setExpanded={setEditDetailsOpen}
-                  primary={<>
-                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-                  <Input
-                    label="Category name"
-                    name={`edit-category-${category.id}`}
-                    required
-                    autoFocus
-                    value={editingName}
-                    onChange={(event) => setEditingName(event.target.value)}
-                    disabled={saving}
-                  />
-                  {colorControl(editingColor, setEditingColor, saving)}
-                </div>
-                <Textarea
-                  id={`edit-category-description-${category.id}`}
-                  label="Description"
-                  name={`edit-category-description-${category.id}`}
-                  value={editingDescription}
-                  onChange={(event) =>
-                    setEditingDescription(event.target.value)
-                  }
-                  placeholder="What kind of work belongs here?"
-                  rows={3}
-                  disabled={saving}
-                />
-                <TagInput
-                  label="Tags"
-                  value={editingTags}
-                  onChange={setEditingTags}
-                  placeholder="Feature"
-                  disabled={saving}
-                />
-                <>
-                    <DropdownSelect
-                      label="Who can access this category?"
-                      required
-                      variant="field"
-                      value={editingAccessMode}
-                      onChange={(value) =>
-                        setEditingAccessMode(value as Category["access_mode"])
-                      }
-                      options={[
-                        { label: "Everyone in the workspace", value: "open" },
-                        {
-                          label: "Selected access groups",
-                          value: "restricted",
-                        },
-                      ]}
-                      disabled={
-                        saving || data.currentProfile.app_role !== "owner"
-                      }
-                    />
-                    <p className="mt-2 text-sm text-black/70 dark:text-white/70">
-                      Restricted categories and their work are hidden from
-                      everyone except selected access groups and R Suite.
-                    </p>
-                    {data.currentProfile.app_role === "owner" &&
-                      editingAccessMode === "restricted" && (
-                      <div className="mt-4">
-                        <MultiSelect
-                          label="Allowed access groups"
-                          options={accessGroups.map((group) => ({
-                            label: group.name,
-                            value: group.id,
-                          }))}
-                          value={editingAccessGroupIds}
-                          onChange={setEditingAccessGroupIds}
-                          placeholder={
-                            !accessLoaded
-                              ? "Loading access groups…"
-                              : "R Suite and owners only"
+                  primary={
+                    <>
+                      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+                        <Input
+                          label="Category name"
+                          name={`edit-category-${category.id}`}
+                          required
+                          autoFocus
+                          value={editingName}
+                          onChange={(event) =>
+                            setEditingName(event.target.value)
                           }
-                          searchable
-                          searchPlaceholder="Search access groups"
-                          disabled={saving || !accessLoaded}
+                          disabled={saving}
+                        />
+                        {colorControl(editingColor, setEditingColor, saving)}
+                      </div>
+                      <Textarea
+                        id={`edit-category-description-${category.id}`}
+                        label="Description"
+                        name={`edit-category-description-${category.id}`}
+                        value={editingDescription}
+                        onChange={(event) =>
+                          setEditingDescription(event.target.value)
+                        }
+                        placeholder="What kind of work belongs here?"
+                        rows={3}
+                        disabled={saving}
+                      />
+                      <TagInput
+                        label="Tags"
+                        value={editingTags}
+                        onChange={setEditingTags}
+                        placeholder="Feature"
+                        disabled={saving}
+                      />
+                      <>
+                        <DropdownSelect
+                          label="Who can access this category?"
+                          required
+                          variant="field"
+                          value={editingAccessMode}
+                          onChange={(value) =>
+                            setEditingAccessMode(
+                              value as Category["access_mode"],
+                            )
+                          }
+                          options={[
+                            {
+                              label: "Everyone in the workspace",
+                              value: "open",
+                            },
+                            {
+                              label: "Selected access groups",
+                              value: "restricted",
+                            },
+                          ]}
+                          disabled={
+                            saving || data.currentProfile.app_role !== "owner"
+                          }
                         />
                         <p className="mt-2 text-sm text-black/70 dark:text-white/70">
-                          R Suite and owners always retain access. Select any
-                          additional groups that should see this category.
+                          Restricted categories and their work are hidden from
+                          everyone except selected access groups and R Suite.
                         </p>
-                      </div>
+                        {data.currentProfile.app_role === "owner" &&
+                          editingAccessMode === "restricted" && (
+                            <div className="mt-4">
+                              <MultiSelect
+                                label="Allowed access groups"
+                                options={accessGroups.map((group) => ({
+                                  label: group.name,
+                                  value: group.id,
+                                }))}
+                                value={editingAccessGroupIds}
+                                onChange={setEditingAccessGroupIds}
+                                placeholder={
+                                  !accessLoaded
+                                    ? "Loading access groups…"
+                                    : "R Suite and owners only"
+                                }
+                                searchable
+                                searchPlaceholder="Search access groups"
+                                disabled={saving || !accessLoaded}
+                              />
+                              <p className="mt-2 text-sm text-black/70 dark:text-white/70">
+                                R Suite and owners always retain access. Select
+                                any additional groups that should see this
+                                category.
+                              </p>
+                            </div>
+                          )}
+                      </>
+                      {ownerControl(
+                        editingOwnerIds,
+                        setEditingOwnerIds,
+                        saving,
                       )}
-                </>
-                {ownerControl(editingOwnerIds, setEditingOwnerIds, saving)}
-                  </>}
-                  secondary={<>
-                <ResourceLinksFields
-                  links={editingLinks}
-                  setLinks={setEditingLinks}
-                  disabled={saving}
-                  namePrefix={`category-${category.id}`}
-                />
-                <ResourceAttachments
-                  resource={{ kind: "category", id: category.id }}
-                  editor={{
-                    demoMode,
-                    disabled: saving,
-                    currentUserId: data.currentProfile.id,
-                  }}
-                  onMutation={() => setSupportingDetailsChanged(true)}
-                />
-                  </>}
+                    </>
+                  }
+                  secondary={
+                    <>
+                      <ResourceLinksFields
+                        links={editingLinks}
+                        setLinks={setEditingLinks}
+                        disabled={saving}
+                        namePrefix={`category-${category.id}`}
+                      />
+                      <ResourceAttachments
+                        resource={{ kind: "category", id: category.id }}
+                        editor={{
+                          demoMode,
+                          disabled: saving,
+                          currentUserId: data.currentProfile.id,
+                        }}
+                        onMutation={() => setSupportingDetailsChanged(true)}
+                      />
+                    </>
+                  }
                 />
               </form>
             </Modal>
@@ -1239,7 +1274,9 @@ export function CategoriesModal({
       />
       <ConfirmationDialog
         open={Boolean(deleteTarget)}
-        setOpen={(nextOpen) => !nextOpen && !deletePending && setDeleteTarget(null)}
+        setOpen={(nextOpen) =>
+          !nextOpen && !deletePending && setDeleteTarget(null)
+        }
         title="Delete this category?"
         description={`This permanently removes “${deleteTarget?.name ?? "this category"}”. This cannot be undone.`}
         confirmLabel="Delete category"

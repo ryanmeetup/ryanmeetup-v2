@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, IconButton, Input, Modal, toast } from "@ryanmeetup/ui";
+import { IconButton, Input, Modal, ModalActions, toast } from "@ryanmeetup/ui";
 import { FiArrowDown, FiArrowUp } from "react-icons/fi";
 import {
   DIGEST_LIMITS,
@@ -126,27 +126,15 @@ export function DigestStructureModal({
         event.preventDefault();
         void submit();
       }}
-      hideActions
-      footer={
-        <div className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={saving}
-            onClick={() => setOpen(false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            form={FORM_ID}
-            loading={saving}
-            loadingText="Saving..."
-            disabled={invalid}
-          >
-            Save structure
-          </Button>
-        </div>
+      actions={
+        <ModalActions
+          confirmDisabled={invalid}
+          confirmForm={FORM_ID}
+          confirmLabel="Save structure"
+          onCancel={() => setOpen(false)}
+          pending={saving}
+          pendingLabel="Saving..."
+        />
       }
     >
       <div className="settings-form space-y-5">
@@ -227,8 +215,8 @@ export function DigestStructureModal({
             }
           />
           <p className="mt-1.5 text-xs text-black/55 dark:text-white/55">
-            How far ahead a due date has to be before it drops out of the
-            digest entirely.
+            How far ahead a due date has to be before it drops out of the digest
+            entirely.
           </p>
         </div>
 

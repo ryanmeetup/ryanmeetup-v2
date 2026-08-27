@@ -71,7 +71,7 @@ function WorkspaceChrome({
   return (
     <div
       data-workspace-shell
-      className="min-h-screen bg-[#f1f2ef] text-black dark:bg-[#101010] dark:text-white"
+      className="min-h-dvh bg-[#f1f2ef] text-black dark:bg-[#101010] dark:text-white"
     >
       <TasksSidebar
         data={data}
@@ -81,7 +81,7 @@ function WorkspaceChrome({
         onCreateCategory={onCreateCategory ?? (() => undefined)}
         onCreateProject={onCreateProject ?? (() => undefined)}
       />
-      <main className="min-w-0 overflow-x-clip lg:pl-64">
+      <main className="flex min-h-dvh min-w-0 flex-col overflow-x-clip lg:pl-64">
         <header className="tasks-app-header">
           <IconButton
             label="Open navigation"
@@ -107,7 +107,11 @@ function WorkspaceChrome({
         </header>
         <div className="hidden h-16 lg:block" aria-hidden="true" />
         <TaskBanners demoMode={demoMode} preview={data.accessPreview} />
-        <div className={contentClassName}>{children}</div>
+        <div
+          className={["flex-1", contentClassName].filter(Boolean).join(" ")}
+        >
+          {children}
+        </div>
         <TasksFooter inShell />
       </main>
     </div>

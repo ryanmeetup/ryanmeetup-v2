@@ -57,7 +57,6 @@ export function ResourceAttachmentsPreview({
           if (!open) setOpenNote(null);
         }}
         title={openNote?.name ?? ""}
-        hideActions
         size="lg"
       >
         {openNote?.body && (

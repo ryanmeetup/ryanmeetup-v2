@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { Button, ConfirmationDialog, Input, Modal } from "@ryanmeetup/ui";
+import { ConfirmationDialog, Input, Modal, ModalActions } from "@ryanmeetup/ui";
 import type { Profile } from "@/lib/workspace/workspace-types";
 
 export function InviteTeammateModal({
@@ -31,28 +31,14 @@ export function InviteTeammateModal({
       }}
       title="Invite Teammate"
       size="md"
-      hideActions
-      footer={
-        <div className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            disabled={pending}
-            onClick={() => setOpen(false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            form="invite-teammate-form"
-            size="sm"
-            loading={pending}
-            loadingText="Inviting..."
-          >
-            Send invitation
-          </Button>
-        </div>
+      actions={
+        <ModalActions
+          confirmForm="invite-teammate-form"
+          confirmLabel="Send invitation"
+          onCancel={() => setOpen(false)}
+          pending={pending}
+          pendingLabel="Inviting..."
+        />
       }
     >
       <form

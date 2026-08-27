@@ -1,7 +1,13 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { Button, DropdownSelect, Input, Modal, Textarea } from "@ryanmeetup/ui";
+import {
+  DropdownSelect,
+  Input,
+  Modal,
+  ModalActions,
+  Textarea,
+} from "@ryanmeetup/ui";
 import { ACCESS_GROUP_COLOR_OPTIONS } from "@/lib/access/access-groups";
 
 export function CreateAccessGroupModal({
@@ -51,29 +57,15 @@ export function CreateAccessGroupModal({
       }}
       title="New Access Group"
       size="md"
-      hideActions
-      footer={
-        <div className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            disabled={saving}
-            onClick={() => setOpen(false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            form="create-access-group-form"
-            size="sm"
-            loading={saving}
-            loadingText="Creating..."
-            disabled={!name.trim() || !color}
-          >
-            Create group
-          </Button>
-        </div>
+      actions={
+        <ModalActions
+          confirmDisabled={!name.trim() || !color}
+          confirmForm="create-access-group-form"
+          confirmLabel="Create group"
+          onCancel={() => setOpen(false)}
+          pending={saving}
+          pendingLabel="Creating..."
+        />
       }
     >
       <form

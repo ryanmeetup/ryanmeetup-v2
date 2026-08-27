@@ -7,6 +7,7 @@ import {
   FormattedText,
   Input,
   Modal,
+  ModalActions,
   RichTextarea,
 } from "@ryanmeetup/ui";
 import { FiClock, FiEdit2 } from "react-icons/fi";
@@ -89,43 +90,30 @@ export function NoteModal({
           : undefined
       }
       size="lg"
-      hideActions
-      footer={
-        <div className="flex flex-col gap-3 sm:flex-row sm:justify-end sm:gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            className="w-full sm:w-auto"
-            disabled={saving}
-            onClick={() => (editing ? setEditing(false) : onClose())}
-          >
-            {editing ? "Cancel" : "Close"}
+      actions={
+        editing ? (
+          <ModalActions
+            cancelLabel="Cancel"
+            confirmDisabled={!body.trim() || !changed}
+            confirmForm={formId}
+            confirmLabel="Save note"
+            onCancel={() => setEditing(false)}
+            pending={saving}
+            pendingLabel="Saving…"
+          />
+        ) : previewing || archived ? (
+          <Button type="button" variant="secondary" size="sm" onClick={onClose}>
+            Close
           </Button>
-          {editing ? (
-            <Button
-              type="submit"
-              form={formId}
-              className="w-full sm:w-auto"
-              loading={saving}
-              loadingText="Saving…"
-              disabled={!body.trim() || !changed}
-            >
-              Save note
-            </Button>
-          ) : (
-            !previewing &&
-            !archived && (
-              <Button
-                type="button"
-                className="w-full sm:w-auto"
-                leftIcon={<FiEdit2 />}
-                onClick={startEditing}
-              >
-                Edit note
-              </Button>
-            )
-          )}
-        </div>
+        ) : (
+          <ModalActions
+            cancelLabel="Close"
+            confirmIcon={<FiEdit2 />}
+            confirmLabel="Edit note"
+            onCancel={onClose}
+            onConfirm={startEditing}
+          />
+        )
       }
     >
       {editing ? (

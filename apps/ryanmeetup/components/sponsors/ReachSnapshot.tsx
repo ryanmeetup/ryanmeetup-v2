@@ -155,14 +155,8 @@ const ReachSnapshot = () => {
         setIsOpen={setShowTrafficModal}
         title="Website Traffic Snapshot"
         closable
-        hideActions
         size="2xl"
         panelClassName="p-4 sm:p-5 lg:p-6"
-        cancelButtonText=""
-        continueButtonText=""
-        isContinueDisabled={false}
-        cancelAction={() => setShowTrafficModal(false)}
-        continueAction={() => setShowTrafficModal(false)}
       >
         <div className="space-y-4">
           <Text className="text-sm text-black/70 dark:text-white/70">

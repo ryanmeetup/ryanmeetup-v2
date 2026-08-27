@@ -4,7 +4,7 @@ import { useState } from "react";
 import { MdCheck as Check } from "react-icons/md";
 
 // Components
-import { Modal } from "@ryanmeetup/ui";
+import { Modal, ModalActions } from "@ryanmeetup/ui";
 
 // Utilities
 import { useRouter } from "next/navigation";
@@ -25,13 +25,15 @@ const BryanModal = () => {
       setIsOpen={setShowModal}
       title="Welcome to the Ryan Meetup."
       closable={false}
-      cancelButtonText="Leave"
-      continueButtonText="Continue"
-      isContinueDisabled={!isChecked}
-      primaryActionFirst
-      reverseActionsOnDesktop
-      cancelAction={() => router.push("/goodbye")}
-      continueAction={() => setShowModal(false)}
+      actions={
+        <ModalActions
+          cancelLabel="Leave"
+          confirmDisabled={!isChecked}
+          confirmLabel="Continue"
+          onCancel={() => router.push("/goodbye")}
+          onConfirm={() => setShowModal(false)}
+        />
+      }
     >
       <div className="flex items-start gap-3 rounded-xl border border-black/10 bg-white/80 p-4 text-black/80 dark:border-white/15 dark:bg-white/10 dark:text-white/80">
         <input

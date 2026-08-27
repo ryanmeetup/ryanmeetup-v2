@@ -9,11 +9,12 @@ import {
   IconButton,
   Input,
   Modal,
+  ModalActions,
   MultiSelect,
   Pill,
   RichTextarea,
-  Tooltip,
   toast,
+  Tooltip,
 } from "@ryanmeetup/ui";
 import {
   FiChevronDown,
@@ -153,13 +154,12 @@ export function TaskEditor(props: TaskEditorProps) {
           "A new thing to do"
         )
       }
-      hideActions
       size={supplementalDetailsOpen ? "2xl" : "lg"}
       panelClassName="transition-[max-width] duration-300 ease-out motion-reduce:transition-none"
-      footer={
-        <div className="grid w-full gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
+      supportingActions={
+        <>
           {editing && (
-            <div className="flex flex-wrap items-center gap-2 justify-self-start">
+            <>
               <IconButton
                 type="button"
                 label="Copy task link"
@@ -186,58 +186,45 @@ export function TaskEditor(props: TaskEditorProps) {
               >
                 <FiTrash2 />
               </IconButton>
-            </div>
+            </>
           )}
           {mode.kind === "create" && (
-            <div className="flex flex-wrap items-center gap-3">
-              <label className="flex w-fit cursor-pointer items-center gap-3 text-sm font-medium text-black/70 dark:text-white/70">
-                <input
-                  type="checkbox"
-                  checked={mode.createAnother}
-                  onChange={(event) =>
-                    mode.setCreateAnother(event.target.checked)
-                  }
-                  disabled={saving}
-                  className="h-4 w-4 rounded border-black/20 accent-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/20 dark:accent-white dark:focus-visible:ring-white/40"
-                />
-                Create another
-              </label>
-            </div>
-          )}
-          <div className="flex flex-wrap items-center justify-end gap-2 sm:col-start-2">
-            {mode.kind === "create" && mode.onSaveDraft && (
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={mode.onSaveDraft}
+            <label className="flex w-fit cursor-pointer items-center gap-3 text-sm font-medium text-black/70 dark:text-white/70">
+              <input
+                type="checkbox"
+                checked={mode.createAnother}
+                onChange={(event) =>
+                  mode.setCreateAnother(event.target.checked)
+                }
                 disabled={saving}
-              >
-                Save draft
-              </Button>
-            )}
+                className="h-4 w-4 rounded border-black/20 accent-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/20 dark:accent-white dark:focus-visible:ring-white/40"
+              />
+              Create another
+            </label>
+          )}
+        </>
+      }
+      actions={
+        <>
+          {mode.kind === "create" && mode.onSaveDraft && (
             <Button
               type="button"
               variant="secondary"
               size="sm"
-              className="whitespace-nowrap"
-              onClick={() => setOpen(false)}
+              onClick={mode.onSaveDraft}
               disabled={saving}
             >
-              Cancel
+              Save draft
             </Button>
-            <Button
-              type="submit"
-              form="task-editor-form"
-              size="sm"
-              className="whitespace-nowrap"
-              loading={saving}
-              loadingText="Saving..."
-            >
-              {editing ? "Save changes" : "Create task"}
-            </Button>
-          </div>
-        </div>
+          )}
+          <ModalActions
+            confirmForm="task-editor-form"
+            confirmLabel={editing ? "Save changes" : "Create task"}
+            onCancel={() => setOpen(false)}
+            pending={saving}
+            pendingLabel="Saving..."
+          />
+        </>
       }
     >
       <form

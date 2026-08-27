@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Modal } from "@ryanmeetup/ui";
+import { Modal, ModalActions } from "@ryanmeetup/ui";
 import { useInstanceSettingsForm } from "@/hooks/useInstanceSettingsForm";
 import {
   accentField,
@@ -62,26 +62,14 @@ export function EmailSettingsModal({
         event.preventDefault();
         if (await submit()) setOpen(false);
       }}
-      hideActions
-      footer={
-        <div className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={saving}
-            onClick={() => setOpen(false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            form={FORM_ID}
-            loading={saving}
-            loadingText="Saving..."
-          >
-            Save accent
-          </Button>
-        </div>
+      actions={
+        <ModalActions
+          confirmForm={FORM_ID}
+          confirmLabel="Save accent"
+          onCancel={() => setOpen(false)}
+          pending={saving}
+          pendingLabel="Saving..."
+        />
       }
     >
       <div className="settings-form space-y-5">

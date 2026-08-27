@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import {
-  Button,
   DropdownSelect,
   Input,
   Modal,
+  ModalActions,
   MultiSelect,
   toast,
 } from "@ryanmeetup/ui";
@@ -78,19 +78,16 @@ export function DigestCadenceModal({
     if (open) setDraft(settings);
   }
 
-  const zoneOptions = [
-    ...new Set([...COMMON_TIME_ZONES, draft.timeZone]),
-  ].map((zone) => ({ value: zone, label: zone.replace(/_/g, " ") }));
+  const zoneOptions = [...new Set([...COMMON_TIME_ZONES, draft.timeZone])].map(
+    (zone) => ({ value: zone, label: zone.replace(/_/g, " ") }),
+  );
 
   const setField = <Key extends keyof DigestSettings>(
     key: Key,
     value: DigestSettings[Key],
   ) => setDraft((current) => ({ ...current, [key]: value }));
 
-  const numberField = (
-    key: "reviewMinutes" | "maxRecipients",
-    raw: string,
-  ) => {
+  const numberField = (key: "reviewMinutes" | "maxRecipients", raw: string) => {
     const parsed = Number(raw);
     setField(key, (Number.isFinite(parsed) ? parsed : 0) as never);
   };
@@ -148,27 +145,15 @@ export function DigestCadenceModal({
         event.preventDefault();
         void submit();
       }}
-      hideActions
-      footer={
-        <div className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={saving}
-            onClick={() => setOpen(false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            form={FORM_ID}
-            loading={saving}
-            loadingText="Saving..."
-            disabled={invalid}
-          >
-            Save cadence
-          </Button>
-        </div>
+      actions={
+        <ModalActions
+          confirmDisabled={invalid}
+          confirmForm={FORM_ID}
+          confirmLabel="Save cadence"
+          onCancel={() => setOpen(false)}
+          pending={saving}
+          pendingLabel="Saving..."
+        />
       }
     >
       <div className="settings-form space-y-5">

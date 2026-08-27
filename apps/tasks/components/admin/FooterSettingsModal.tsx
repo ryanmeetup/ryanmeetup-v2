@@ -3,11 +3,11 @@
 import { useState, type ReactNode } from "react";
 import {
   AnimatedCollapse,
-  Button,
   DisclosureCard,
   DropdownSelect,
   Heading,
   Modal,
+  ModalActions,
 } from "@ryanmeetup/ui";
 import { useInstanceSettingsForm } from "@/hooks/useInstanceSettingsForm";
 import {
@@ -185,26 +185,14 @@ export function FooterSettingsModal({
         });
         if (saved) setOpen(false);
       }}
-      hideActions
-      footer={
-        <div className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={saving}
-            onClick={() => setOpen(false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            form={FORM_ID}
-            loading={saving}
-            loadingText="Saving..."
-          >
-            Save footer
-          </Button>
-        </div>
+      actions={
+        <ModalActions
+          confirmForm={FORM_ID}
+          confirmLabel="Save footer"
+          onCancel={() => setOpen(false)}
+          pending={saving}
+          pendingLabel="Saving..."
+        />
       }
     >
       {/* Two columns: what the footer will look like and the one choice that

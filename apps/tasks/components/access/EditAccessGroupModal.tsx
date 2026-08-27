@@ -7,6 +7,7 @@ import {
   DropdownSelect,
   Input,
   Modal,
+  ModalActions,
   Textarea,
 } from "@ryanmeetup/ui";
 import { FiTrash2 } from "react-icons/fi";
@@ -61,37 +62,28 @@ export function EditAccessGroupModal({
       }}
       title={group ? `Edit ${group.name}` : "Edit access group"}
       size="lg"
-      hideActions
-      footer={
+      supportingActions={
         group ? (
-          <div className="flex flex-col-reverse justify-between gap-3 sm:flex-row">
-            <Button
-              type="button"
-              variant="danger"
-              leftIcon={<FiTrash2 />}
-              onClick={onDelete}
-            >
-              Delete group
-            </Button>
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={saving}
-                onClick={() => setGroup(null)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                form={formId}
-                loading={saving}
-                loadingText="Saving..."
-              >
-                Save changes
-              </Button>
-            </div>
-          </div>
+          <Button
+            type="button"
+            variant="danger"
+            size="sm"
+            leftIcon={<FiTrash2 />}
+            onClick={onDelete}
+          >
+            Delete group
+          </Button>
+        ) : undefined
+      }
+      actions={
+        group ? (
+          <ModalActions
+            confirmForm={formId}
+            confirmLabel="Save changes"
+            onCancel={() => setGroup(null)}
+            pending={saving}
+            pendingLabel="Saving..."
+          />
         ) : undefined
       }
     >
