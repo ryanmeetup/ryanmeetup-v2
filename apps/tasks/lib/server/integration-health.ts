@@ -1,9 +1,14 @@
 import "server-only";
 
 import { getAdminClient } from "@/lib/server/admin-client";
+import { readBeginnerFlowHealth } from "@/lib/server/beginner-flow-health";
 import { instanceBuild } from "@/lib/instance";
 
-export type IntegrationState = "connected" | "configured" | "missing";
+export type IntegrationState =
+  | "connected"
+  | "configured"
+  | "attention"
+  | "missing";
 
 /** Which glyph a fact carries. Mapped to an icon in the client component. */
 export type FactKind =
@@ -40,6 +45,7 @@ export type IntegrationCheck = {
   /** What breaks while the check is failing. Only set when it is. */
   consequence: string | null;
   facts: IntegrationFact[];
+  action?: { endpoint: string; label: string };
 };
 
 /**
@@ -74,6 +80,8 @@ function hostOf(value: string | null) {
  * credential disclosure.
  */
 export async function getIntegrationHealth(): Promise<IntegrationCheck[]> {
+  const admin = getAdminClient();
+  const beginnerFlowHealth = admin ? await readBeginnerFlowHealth(admin) : null;
   const supabaseUrl = present("NEXT_PUBLIC_SUPABASE_URL");
   const resendKey = present("RESEND_API_KEY");
   const googleId = present("GOOGLE_CALENDAR_CLIENT_ID");
@@ -95,7 +103,6 @@ export async function getIntegrationHealth(): Promise<IntegrationCheck[]> {
 
   let googleConnections: number | null = null;
   if (googleId && googleSecret && googleTokenKey) {
-    const admin = getAdminClient();
     if (admin) {
       const { count, error } = await admin
         .from("workspace_google_calendar_integrations")
@@ -105,6 +112,69 @@ export async function getIntegrationHealth(): Promise<IntegrationCheck[]> {
   }
 
   return [
+    {
+      key: "workspace-foundation",
+      label: "Workspace foundation",
+      state: beginnerFlowHealth?.healthy ? "connected" : "attention",
+      blurb:
+        "Creates each member's profile, baseline access, and starter statuses.",
+      consequence: beginnerFlowHealth?.healthy
+        ? null
+        : beginnerFlowHealth
+          ? "One or more members or required database objects need repair."
+          : "Provisioning health could not be read from the database.",
+      facts: [
+        {
+          kind: "accounts",
+          label: "Profiles",
+          value: beginnerFlowHealth
+            ? String(beginnerFlowHealth.profileCount)
+            : null,
+          source: "profiles",
+        },
+        {
+          kind: "accounts",
+          label: "Missing profiles",
+          value: beginnerFlowHealth
+            ? String(beginnerFlowHealth.authUsersWithoutProfile)
+            : null,
+          source: "auth.users",
+        },
+        {
+          kind: "accounts",
+          label: "Missing access",
+          value: beginnerFlowHealth
+            ? String(beginnerFlowHealth.profilesWithoutTier)
+            : null,
+          source: "access_group_members",
+        },
+        {
+          kind: "schedule",
+          label: "Starter statuses",
+          value: beginnerFlowHealth
+            ? String(beginnerFlowHealth.statusCount)
+            : null,
+          source: "statuses",
+        },
+        {
+          kind: "secret",
+          label: "Schema contract",
+          value: beginnerFlowHealth
+            ? beginnerFlowHealth.contractOk
+              ? "Current"
+              : "Incomplete"
+            : null,
+          source: "beginner_flow_health()",
+          mono: false,
+        },
+      ],
+      action: beginnerFlowHealth?.healthy
+        ? undefined
+        : {
+            endpoint: "/api/admin/workspace-health",
+            label: "Repair workspace foundation",
+          },
+    },
     {
       key: "supabase",
       label: "Supabase",

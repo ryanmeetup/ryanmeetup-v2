@@ -3,8 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "prebuild": "node scripts/check-database-contract.mjs",
     "dev": "next dev --turbopack --port 3000",
     "build": "next build",
+    "check:database-contract": "node scripts/check-database-contract.mjs",
     "start": "next start",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

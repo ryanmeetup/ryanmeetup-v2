@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { AnimatedCollapse } from "@ryanmeetup/ui";
+import { useRouter } from "next/navigation";
+import { AnimatedCollapse, Button, toast } from "@ryanmeetup/ui";
 import type { IconType } from "react-icons";
 import {
   FiAlertTriangle,
@@ -23,6 +24,7 @@ import type {
   IntegrationCheck,
   IntegrationState,
 } from "@/lib/server/integration-health";
+import { mutate } from "@/lib/mutation-client";
 
 type Accent = "emerald" | "violet" | "sky" | "indigo" | "amber" | "teal";
 
@@ -59,6 +61,7 @@ const accents: Record<Accent, { rail: string; tile: string }> = {
 
 /** Icon and accent per known integration key, with a neutral fallback. */
 const identity: Record<string, { icon: IconType; accent: Accent }> = {
+  "workspace-foundation": { icon: FiUsers, accent: "emerald" },
   supabase: { icon: FiDatabase, accent: "emerald" },
   "supabase-secret": { icon: FiKey, accent: "violet" },
   resend: { icon: FiSend, accent: "sky" },
@@ -86,6 +89,8 @@ const stateStyle: Record<IntegrationState, string> = {
     "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:border-emerald-400/30 dark:bg-emerald-500/15 dark:text-emerald-200",
   configured:
     "border-blue-500/30 bg-blue-500/10 text-blue-800 dark:border-blue-400/30 dark:bg-blue-500/15 dark:text-blue-200",
+  attention:
+    "border-amber-500/35 bg-amber-500/15 text-amber-900 dark:border-amber-400/35 dark:bg-amber-500/15 dark:text-amber-100",
   missing:
     "border-amber-500/35 bg-amber-500/15 text-amber-900 dark:border-amber-400/35 dark:bg-amber-500/15 dark:text-amber-100",
 };
@@ -93,6 +98,7 @@ const stateStyle: Record<IntegrationState, string> = {
 const stateLabel: Record<IntegrationState, string> = {
   connected: "Connected",
   configured: "Configured",
+  attention: "Needs attention",
   missing: "Not set",
 };
 
@@ -121,7 +127,27 @@ export function IntegrationStatusList({
 }: {
   integrations: IntegrationCheck[];
 }) {
+  const router = useRouter();
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
+  const [repairing, setRepairing] = useState<string | null>(null);
+
+  async function repair(integration: IntegrationCheck) {
+    if (!integration.action) return;
+    setRepairing(integration.key);
+    try {
+      await mutate(integration.action.endpoint, { method: "POST" });
+      toast.success("Workspace foundation repaired.");
+      router.refresh();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "The workspace foundation could not be repaired.",
+      );
+    } finally {
+      setRepairing(null);
+    }
+  }
 
   const toggle = (key: string) =>
     setExpanded((current) => {
@@ -133,7 +159,8 @@ export function IntegrationStatusList({
   return (
     <ul className="grid gap-3">
       {integrations.map((integration) => {
-        const missing = integration.state === "missing";
+        const missing =
+          integration.state === "missing" || integration.state === "attention";
         const open = expanded.has(integration.key);
         const panelId = `integration-${integration.key}`;
         const { icon: Icon, accent } =
@@ -231,6 +258,21 @@ export function IntegrationStatusList({
                     </div>
                   );
                 })}
+                {integration.action ? (
+                  <div className="pt-3">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      disabled={repairing === integration.key}
+                      onClick={() => repair(integration)}
+                    >
+                      {repairing === integration.key
+                        ? "Repairing…"
+                        : integration.action.label}
+                    </Button>
+                  </div>
+                ) : null}
               </dl>
             </AnimatedCollapse>
           </li>

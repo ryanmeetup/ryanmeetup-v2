@@ -48,6 +48,7 @@ export default defineConfig({
           timeout: 300_000,
           env: {
             ...process.env,
+            SKIP_DATABASE_CONTRACT_CHECK: "1",
             // These are inlined at build time, so they must be set for the build
             // step above, not just for the server it starts.
             NEXT_PUBLIC_SUPABASE_URL: supabaseOrigin,

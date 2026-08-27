@@ -114,6 +114,19 @@ signup on a new instance bootstraps it. The linked project must receive that
 function change directly; chronological migration files are not retained in
 this repository.
 
+The linked schema marks this tier explicitly with `access_groups.is_default`.
+`provision_workspace_member` creates or repairs the profile, starter statuses,
+and membership in that default tier as one idempotent operation. Higher tiers
+inherit the default tier's grants, so the baseline behaves as the general
+members group without duplicating every person into a second team.
+
+`beginner_flow_health()` checks that contract, the signup trigger, profiles,
+memberships, and starter statuses. The Admin integrations page exposes those
+checks and calls `repair_beginner_flow()` when an owner requests a repair. A
+production build also runs `scripts/check-database-contract.mjs`, preventing a
+deployment when the configured database is reachable but missing the required
+contract.
+
 ## How the baseline was captured
 
 With `supabase db dump`, which is read-only `pg_dump` — **not**

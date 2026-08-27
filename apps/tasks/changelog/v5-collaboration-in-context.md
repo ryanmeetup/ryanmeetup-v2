@@ -77,6 +77,10 @@ Opening a note brings up its full text and conversation, and editing happens the
 
 Invited teammates now choose their sign-in password while completing their profile, so they can return to the workspace without needing a password-reset workaround.
 
+First sign-in now explains why profile completion is required, remembers the page you were trying to open, and returns you there after saving. If account provisioning is missing instead, the workspace shows its own recovery screen rather than trapping you in a profile redirect.
+
+The workspace now verifies its required database contract before production builds and reports profile, default-access, signup-trigger, and starter-status health in Admin. Owners can repair missing beginner-flow records there without touching the database directly.
+
 ### Dynamic task filters
 
 Tasks can be included or excluded by category tags. Tag choices stay in sync with each category, so renamed, added, and removed tags are reflected automatically.
