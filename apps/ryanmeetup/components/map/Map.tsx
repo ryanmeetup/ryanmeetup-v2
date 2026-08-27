@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 // Components
 import Map, { Marker, Popup } from "react-map-gl/mapbox";
@@ -27,6 +27,31 @@ type MapboxProps = {
   initialShowNamedBusinesses?: boolean;
   initialShowOwnedBusinesses?: boolean;
   initialShowChapters?: boolean;
+};
+
+const MAP_HEIGHT = "h-[600px] md:h-[700px]";
+
+const FALLBACK_ICON = "/icons/map/ryanicon.png";
+
+const ICON_BY_LOCATION_TYPE: Record<string, string> = {
+  "Event Location": "/icons/map/ryanicon.png",
+  "Community Event": "/icons/map/ryanicon.png",
+  "Ryan Hub": "/icons/map/house.jpeg",
+  "Ryan-Owned Business": "/icons/map/owned.png",
+  "Ryan-Named Business": "/icons/map/ryannamed.png",
+  Chapter: "/icons/map/Rchap.png",
+};
+
+const MARKER_WRAP_CLASS =
+  "flex items-center justify-center rounded-full border border-black/15 bg-white shadow-md transition-transform hover:scale-110";
+
+const convertToSlug = (city: string) => {
+  const commaIndex = city.indexOf(",");
+  const sanitized = (
+    commaIndex === -1 ? city : city.substring(0, commaIndex)
+  ).toLowerCase();
+
+  return sanitized.trim().replaceAll(" ", "-");
 };
 
 const Mapbox = (props: MapboxProps) => {
@@ -58,8 +83,6 @@ const Mapbox = (props: MapboxProps) => {
   );
   const [showChapters, setShowChapters] =
     useState<boolean>(initialShowChapters);
-  const [showLegendVisible, setShowLegendVisible] =
-    useState<boolean>(showLegend);
   const [legendCollapsed, setLegendCollapsed] = useState<boolean>(false);
   const [currentZoom, setCurrentZoom] = useState<number>(3.5);
 
@@ -70,7 +93,7 @@ const Mapbox = (props: MapboxProps) => {
 
     const params = new URLSearchParams(searchParams?.toString());
     const filters = [
-      ["legend", showLegendVisible],
+      ["legend", showLegend],
       ["meetups", showMeetups],
       ["hubs", showRyans],
       ["named", showNamedBusinesses],
@@ -102,7 +125,7 @@ const Mapbox = (props: MapboxProps) => {
     showNamedBusinesses,
     showOwnedBusinesses,
     showChapters,
-    showLegendVisible,
+    showLegend,
     pathname,
     searchParams,
     isTestMode,
@@ -141,37 +164,47 @@ const Mapbox = (props: MapboxProps) => {
     );
   }, [locations]);
 
-  const renderIcon = useCallback((type: string) => {
-    switch (type) {
-      case "Event Location":
-      case "Community Event":
-        return "/icons/map/ryanicon.png";
-      case "Ryan Hub":
-        return "/icons/map/house.jpeg";
-      case "Ryan-Owned Business":
-        return "/icons/map/owned.png";
-      case "Ryan-Named Business":
-        return "/icons/map/ryannamed.png";
-      case "Chapter":
-        return "/icons/map/Rchap.png";
-    }
-  }, []);
+  const markerGroups = useMemo(() => {
+    return [
+      {
+        id: "hub",
+        locations: groupedLocations.hubs,
+        isVisible: showRyans,
+      },
+      {
+        id: "meetup",
+        locations: groupedLocations.meetups,
+        isVisible: showMeetups,
+      },
+      {
+        id: "named-business",
+        locations: groupedLocations.namedBusinesses,
+        isVisible: showNamedBusinesses,
+      },
+      {
+        id: "owned-business",
+        locations: groupedLocations.ownedBusinesses,
+        isVisible: showOwnedBusinesses,
+      },
+      {
+        id: "chapter",
+        locations: groupedLocations.chapters,
+        isVisible: showChapters,
+      },
+    ].filter((group) => group.isVisible);
+  }, [
+    groupedLocations,
+    showRyans,
+    showMeetups,
+    showNamedBusinesses,
+    showOwnedBusinesses,
+    showChapters,
+  ]);
 
-  const isBusiness = useMemo(() => {
-    return (
-      selectedLocation?.locationType === "Ryan-Named Business" ||
-      selectedLocation?.locationType === "Ryan-Owned Business"
-    );
-  }, [selectedLocation]);
-  const isChapter = useMemo(() => {
-    return selectedLocation?.locationType === "Chapter";
-  }, [selectedLocation]);
-
-  const convertToSlug = useCallback((city: string) => {
-    const sanitized = city.substring(0, city.indexOf(",")).toLowerCase();
-
-    return sanitized.replaceAll(" ", "-");
-  }, []);
+  const isBusiness =
+    selectedLocation?.locationType === "Ryan-Named Business" ||
+    selectedLocation?.locationType === "Ryan-Owned Business";
+  const isChapter = selectedLocation?.locationType === "Chapter";
 
   const markerSize = useMemo(() => {
     if (currentZoom <= 2) {
@@ -197,83 +230,48 @@ const Mapbox = (props: MapboxProps) => {
     return Math.max(16, Math.round(markerSize * 0.65));
   }, [markerSize]);
 
-  const markerWrapClass =
-    "flex items-center justify-center rounded-full border border-black/15 bg-white shadow-md transition-transform hover:scale-110";
-  const markerImageClass = "object-contain";
+  const legend = showLegend ? (
+    <Legend
+      showMeetups={showMeetups}
+      showRyans={showRyans}
+      showNamedBusinesses={showNamedBusinesses}
+      showOwnedBusinesses={showOwnedBusinesses}
+      showChapters={showChapters}
+      isCollapsed={legendCollapsed}
+      onToggleCollapse={() => setLegendCollapsed((prev) => !prev)}
+      setShowMeetups={setShowMeetups}
+      setShowRyans={setShowRyans}
+      setShowNamedBusinesses={setShowNamedBusinesses}
+      setShowOwnedBusinesses={setShowOwnedBusinesses}
+      setShowChapters={setShowChapters}
+    />
+  ) : null;
 
   if (isTestMode) {
     return (
-      <div className="relative w-full h-[600px] md:h-[700px]">
+      <div className={`relative w-full ${MAP_HEIGHT}`}>
         <div data-testid="map-markers" className="p-4 space-y-2">
-          {showMeetups &&
-            groupedLocations.meetups.map((location) => (
+          {markerGroups.map((group) =>
+            group.locations.map((location) => (
               <div
-                key={`meetup-${location.locationName}`}
-                data-testid="marker-meetup"
+                key={`${group.id}-${location.locationName}`}
+                data-testid={`marker-${group.id}`}
               >
                 {location.locationName}
               </div>
-            ))}
-          {showRyans &&
-            groupedLocations.hubs.map((location) => (
-              <div
-                key={`hub-${location.locationName}`}
-                data-testid="marker-hub"
-              >
-                {location.locationName}
-              </div>
-            ))}
-          {showNamedBusinesses &&
-            groupedLocations.namedBusinesses.map((location) => (
-              <div
-                key={`named-${location.locationName}`}
-                data-testid="marker-named-business"
-              >
-                {location.locationName}
-              </div>
-            ))}
-          {showOwnedBusinesses &&
-            groupedLocations.ownedBusinesses.map((location) => (
-              <div
-                key={`owned-${location.locationName}`}
-                data-testid="marker-owned-business"
-              >
-                {location.locationName}
-              </div>
-            ))}
-          {showChapters &&
-            groupedLocations.chapters.map((location) => (
-              <div
-                key={`chapter-${location.locationName}`}
-                data-testid="marker-chapter"
-              >
-                {location.locationName}
-              </div>
-            ))}
+            )),
+          )}
         </div>
 
-        {showLegendVisible && (
-          <Legend
-            showMeetups={showMeetups}
-            showRyans={showRyans}
-            showNamedBusinesses={showNamedBusinesses}
-            showOwnedBusinesses={showOwnedBusinesses}
-            showChapters={showChapters}
-            isCollapsed={legendCollapsed}
-            onToggleCollapse={() => setLegendCollapsed((prev) => !prev)}
-            setShowMeetups={setShowMeetups}
-            setShowRyans={setShowRyans}
-            setShowNamedBusinesses={setShowNamedBusinesses}
-            setShowOwnedBusinesses={setShowOwnedBusinesses}
-            setShowChapters={setShowChapters}
-          />
-        )}
+        {legend}
       </div>
     );
   }
 
   return (
-    <div className="w-full h-[600px] md:h-[700px] border-b-4 border-black/20 dark:border-white/10">
+    <div
+      className={`w-full ${MAP_HEIGHT} border-b-4 border-black/20 dark:border-white/10`}
+    >
       <Map
         mapboxAccessToken={token}
         initialViewState={{
@@ -286,10 +284,10 @@ const Mapbox = (props: MapboxProps) => {
         mapStyle="mapbox://styles/mapbox/streets-v9"
         onZoom={(event) => setCurrentZoom(event.viewState.zoom)}
       >
-        {showRyans &&
-          groupedLocations.hubs.map((location) => (
+        {markerGroups.map((group) =>
+          group.locations.map((location) => (
             <Marker
-              key={location.locationName}
+              key={`${group.id}-${location.locationName}`}
               latitude={location.coordinates.lat}
               longitude={location.coordinates.lon}
               onClick={(e) => {
@@ -297,98 +295,26 @@ const Mapbox = (props: MapboxProps) => {
                 setSelectedLocation(location);
               }}
             >
-              <div
-                className={markerWrapClass}
+              <button
+                type="button"
+                className={MARKER_WRAP_CLASS}
                 style={{ width: markerSize, height: markerSize }}
+                aria-label={location.locationName ?? location.city}
               >
                 <NextImage
-                  src={renderIcon(location.locationType) as string}
+                  src={
+                    ICON_BY_LOCATION_TYPE[location.locationType] ??
+                    FALLBACK_ICON
+                  }
                   alt={location.locationType}
                   width={markerIconSize}
                   height={markerIconSize}
-                  className={markerImageClass}
+                  className="object-contain"
                 />
-              </div>
+              </button>
             </Marker>
-          ))}
-
-        {showMeetups &&
-          groupedLocations.meetups.map((location) => (
-            <Marker
-              key={location.locationName}
-              latitude={location.coordinates.lat}
-              longitude={location.coordinates.lon}
-              onClick={(e) => {
-                e.originalEvent.stopPropagation();
-                setSelectedLocation(location);
-              }}
-            >
-              <div
-                className={markerWrapClass}
-                style={{ width: markerSize, height: markerSize }}
-              >
-                <NextImage
-                  src={renderIcon(location.locationType) as string}
-                  alt={location.locationType}
-                  width={markerIconSize}
-                  height={markerIconSize}
-                  className={markerImageClass}
-                />
-              </div>
-            </Marker>
-          ))}
-
-        {showNamedBusinesses &&
-          groupedLocations.namedBusinesses.map((location) => (
-            <Marker
-              key={location.locationName}
-              latitude={location.coordinates.lat}
-              longitude={location.coordinates.lon}
-              onClick={(e) => {
-                e.originalEvent.stopPropagation();
-                setSelectedLocation(location);
-              }}
-            >
-              <div
-                className={markerWrapClass}
-                style={{ width: markerSize, height: markerSize }}
-              >
-                <NextImage
-                  src={renderIcon(location.locationType) as string}
-                  alt={location.locationType}
-                  width={markerIconSize}
-                  height={markerIconSize}
-                  className={markerImageClass}
-                />
-              </div>
-            </Marker>
-          ))}
-
-        {showOwnedBusinesses &&
-          groupedLocations.ownedBusinesses.map((location) => (
-            <Marker
-              key={location.locationName}
-              latitude={location.coordinates.lat}
-              longitude={location.coordinates.lon}
-              onClick={(e) => {
-                e.originalEvent.stopPropagation();
-                setSelectedLocation(location);
-              }}
-            >
-              <div
-                className={markerWrapClass}
-                style={{ width: markerSize, height: markerSize }}
-              >
-                <NextImage
-                  src={renderIcon(location.locationType) as string}
-                  alt={location.locationType}
-                  width={markerIconSize}
-                  height={markerIconSize}
-                  className={markerImageClass}
-                />
-              </div>
-            </Marker>
-          ))}
+          )),
+        )}
 
         {selectedLocation && (
           <Popup
@@ -451,50 +377,7 @@ const Mapbox = (props: MapboxProps) => {
           </Popup>
         )}
 
-        {showChapters &&
-          groupedLocations.chapters.map((location) => (
-            <Marker
-              key={location.locationName}
-              latitude={location.coordinates.lat}
-              longitude={location.coordinates.lon}
-              onClick={(e) => {
-                e.originalEvent.stopPropagation();
-                setSelectedLocation(location);
-              }}
-            >
-              <button
-                type="button"
-                className={markerWrapClass}
-                style={{ width: markerSize, height: markerSize }}
-                aria-label={`${location.city} chapter`}
-              >
-                <NextImage
-                  src={renderIcon(location.locationType) as string}
-                  alt={location.locationType}
-                  width={markerIconSize}
-                  height={markerIconSize}
-                  className={markerImageClass}
-                />
-              </button>
-            </Marker>
-          ))}
-
-        {showLegendVisible && (
-          <Legend
-            showMeetups={showMeetups}
-            showRyans={showRyans}
-            showNamedBusinesses={showNamedBusinesses}
-            showOwnedBusinesses={showOwnedBusinesses}
-            showChapters={showChapters}
-            isCollapsed={legendCollapsed}
-            onToggleCollapse={() => setLegendCollapsed((prev) => !prev)}
-            setShowMeetups={setShowMeetups}
-            setShowRyans={setShowRyans}
-            setShowNamedBusinesses={setShowNamedBusinesses}
-            setShowOwnedBusinesses={setShowOwnedBusinesses}
-            setShowChapters={setShowChapters}
-          />
-        )}
+        {legend}
       </Map>
     </div>
   );
