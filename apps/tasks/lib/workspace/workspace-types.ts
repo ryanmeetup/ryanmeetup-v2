@@ -25,6 +25,7 @@ export type Profile = {
   avatar_url: string | null;
   onboarding_completed: boolean;
   task_details_open_by_default: boolean;
+  assign_new_tasks_to_self: boolean;
   favorite_project_ids?: string[];
   app_role?: "owner" | "member";
 };

@@ -1936,7 +1936,8 @@ CREATE TABLE IF NOT EXISTS "public"."profiles" (
     "onboarding_completed" boolean DEFAULT false NOT NULL,
     "app_role" "public"."app_role" DEFAULT 'member'::"public"."app_role" NOT NULL,
     "task_details_open_by_default" boolean DEFAULT false NOT NULL,
-    "favorite_project_ids" "uuid"[] DEFAULT '{}'::"uuid"[] NOT NULL
+    "favorite_project_ids" "uuid"[] DEFAULT '{}'::"uuid"[] NOT NULL,
+    "assign_new_tasks_to_self" boolean DEFAULT false NOT NULL
 );
 
 
@@ -1944,6 +1945,10 @@ ALTER TABLE "public"."profiles" OWNER TO "postgres";
 
 
 COMMENT ON COLUMN "public"."profiles"."favorite_project_ids" IS 'Project IDs favorited by this profile for personalized navigation and dashboard shortcuts.';
+
+
+
+COMMENT ON COLUMN "public"."profiles"."assign_new_tasks_to_self" IS 'When true, a new task drafted by this profile starts assigned to them.';
 
 
 

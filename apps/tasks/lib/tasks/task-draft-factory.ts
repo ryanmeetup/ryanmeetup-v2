@@ -1,18 +1,15 @@
 import type { TaskDraft } from "@/lib/tasks/task-mutations";
 import type { NewTaskDetailsDraft, Task } from "@/lib/tasks/task-types";
-import type { WorkspaceData } from "@/lib/workspace/workspace-types";
+import type { Profile, WorkspaceData } from "@/lib/workspace/workspace-types";
 
-export function emptyTaskDraft(
-  statusId: string,
-  reportedBy: string,
-): TaskDraft {
+export function emptyTaskDraft(statusId: string, author: Profile): TaskDraft {
   return {
     title: "",
     description: "",
     status_id: statusId,
     project_id: null,
-    assignee_id: null,
-    reported_by: reportedBy,
+    assignee_id: author.assign_new_tasks_to_self ? author.id : null,
+    reported_by: author.id,
     start_date: null,
     due_date: null,
     due_time: null,
@@ -37,7 +34,7 @@ export function newWorkspaceTaskDraft(data: WorkspaceData) {
     data.statuses.find((status) => status.is_default)?.id ??
     data.statuses[0]?.id ??
     "";
-  return emptyTaskDraft(statusId, data.currentProfile.id);
+  return emptyTaskDraft(statusId, data.currentProfile);
 }
 
 export function taskDraftFromTask(

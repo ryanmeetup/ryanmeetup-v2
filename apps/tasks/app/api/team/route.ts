@@ -69,6 +69,7 @@ export async function POST(request: Request) {
       avatar_url: null,
       onboarding_completed: false,
       task_details_open_by_default: false,
+      assign_new_tasks_to_self: false,
       app_role: "member",
     },
   });

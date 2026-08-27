@@ -35,6 +35,7 @@ export async function PATCH(request: Request) {
     full_name: name,
     onboarding_completed: true,
     task_details_open_by_default: parsed.data.taskDetailsOpenByDefault,
+    assign_new_tasks_to_self: parsed.data.assignNewTasksToSelf,
     ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
   };
   const { data: profile, error } = await context.admin

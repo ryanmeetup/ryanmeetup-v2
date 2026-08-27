@@ -92,6 +92,7 @@ describe("access preview", () => {
           avatar_url: null,
           onboarding_completed: true,
           task_details_open_by_default: false,
+          assign_new_tasks_to_self: false,
           favorite_project_ids: ["visible"],
           app_role: "member",
         },
@@ -177,7 +178,9 @@ describe("calendar events in an access preview", () => {
 
   it("keeps only the dates the previewed group may read", () => {
     expect(
-      calendarEventsForPreview(events, preview, ["visible"]).map(({ id }) => id),
+      calendarEventsForPreview(events, preview, ["visible"]).map(
+        ({ id }) => id,
+      ),
     ).toEqual([
       "workspace-wide",
       "visible-project",

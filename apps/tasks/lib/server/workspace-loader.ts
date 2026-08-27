@@ -74,9 +74,9 @@ export const TASK_PAGE_SIZE = 50;
 
 export const WORKSPACE_COLUMNS = {
   profiles:
-    "id,full_name,avatar_url,onboarding_completed,task_details_open_by_default,app_role",
+    "id,full_name,avatar_url,onboarding_completed,task_details_open_by_default,assign_new_tasks_to_self,app_role",
   currentProfile:
-    "id,full_name,avatar_url,onboarding_completed,task_details_open_by_default,favorite_project_ids,app_role",
+    "id,full_name,avatar_url,onboarding_completed,task_details_open_by_default,assign_new_tasks_to_self,favorite_project_ids,app_role",
   statuses:
     "id,name,description,color,sort_order,order_revision,is_default,is_completed",
   categories:

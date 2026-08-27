@@ -55,6 +55,9 @@ export function ProfileForm({
   const [taskDetailsOpenByDefault, setTaskDetailsOpenByDefault] = useState(
     profile.task_details_open_by_default,
   );
+  const [assignNewTasksToSelf, setAssignNewTasksToSelf] = useState(
+    profile.assign_new_tasks_to_self,
+  );
   const [paginationPageSize, setPaginationPageSize] = useState(
     10 as 10 | 25 | 50 | 100,
   );
@@ -164,6 +167,7 @@ export function ProfileForm({
           displayName: normalizedName,
           avatarPath,
           taskDetailsOpenByDefault,
+          assignNewTasksToSelf,
         }),
       });
       setDisplayName(result.profile.full_name || "");
@@ -192,6 +196,26 @@ export function ProfileForm({
   async function changeTaskDetailsPreference(nextValue: boolean) {
     const previousValue = taskDetailsOpenByDefault;
     setTaskDetailsOpenByDefault(nextValue);
+    await savePreferences({ taskDetailsOpenByDefault: nextValue }, () =>
+      setTaskDetailsOpenByDefault(previousValue),
+    );
+  }
+
+  async function changeAssignToSelfPreference(nextValue: boolean) {
+    const previousValue = assignNewTasksToSelf;
+    setAssignNewTasksToSelf(nextValue);
+    await savePreferences({ assignNewTasksToSelf: nextValue }, () =>
+      setAssignNewTasksToSelf(previousValue),
+    );
+  }
+
+  async function savePreferences(
+    changed: {
+      taskDetailsOpenByDefault?: boolean;
+      assignNewTasksToSelf?: boolean;
+    },
+    revert: () => void,
+  ) {
     setSavingPreferences(true);
     setMessage("");
     setHasError(false);
@@ -200,11 +224,13 @@ export function ProfileForm({
         method: "PATCH",
         body: JSON.stringify({
           displayName: savedDisplayName,
-          taskDetailsOpenByDefault: nextValue,
+          taskDetailsOpenByDefault,
+          assignNewTasksToSelf,
+          ...changed,
         }),
       });
     } catch (error) {
-      setTaskDetailsOpenByDefault(previousValue);
+      revert();
       const errorMessage = getErrorMessage(
         error,
         "Your preference could not be saved.",
@@ -345,6 +371,31 @@ export function ProfileForm({
                   disabled={saving || savingPreferences}
                   onChange={(event) =>
                     void changeTaskDetailsPreference(event.target.checked)
+                  }
+                  className="peer sr-only"
+                />
+                <span className="h-7 w-12 rounded-full bg-black/15 transition peer-checked:bg-black peer-focus-visible:ring-2 peer-focus-visible:ring-black/30 peer-focus-visible:ring-offset-2 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 dark:bg-white/20 dark:peer-checked:bg-white dark:peer-focus-visible:ring-white/40 dark:peer-focus-visible:ring-offset-[#181818]" />
+                <span className="pointer-events-none absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5 dark:bg-black" />
+              </span>
+            </label>
+            <label className="flex cursor-pointer items-center justify-between gap-5 rounded-xl border border-black/10 bg-black/[0.02] p-4 transition hover:border-black/20 dark:border-white/10 dark:bg-white/[0.025] dark:hover:border-white/20">
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold">
+                  Assign new tasks to me
+                </span>
+                <span className="mt-1 block text-xs leading-relaxed text-black/55 dark:text-white/55">
+                  Start every task you create assigned to yourself. You can
+                  still pick someone else before saving.
+                </span>
+              </span>
+              <span className="relative inline-flex shrink-0">
+                <input
+                  type="checkbox"
+                  role="switch"
+                  checked={assignNewTasksToSelf}
+                  disabled={saving || savingPreferences}
+                  onChange={(event) =>
+                    void changeAssignToSelfPreference(event.target.checked)
                   }
                   className="peer sr-only"
                 />
