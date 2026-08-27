@@ -1,5 +1,5 @@
 // Components
-import { Button, Card, Divider, Heading, Text } from "@ryanmeetup/ui";
+import { Button, Card, Heading, Text } from "@ryanmeetup/ui";
 import NextLink from "next/link";
 import NextImage from "next/image";
 import { FaInstagram as Instagram } from "react-icons/fa";

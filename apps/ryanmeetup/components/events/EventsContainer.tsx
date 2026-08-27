@@ -7,7 +7,6 @@ import type { ReactNode } from "react";
 import { FilterBar, Divider, EmptyState, Heading, Input } from "@ryanmeetup/ui";
 import { SearchIndicator } from "@/components/global";
 import { EventsSection } from "@/components/events";
-import NextLink from "next/link";
 
 // Types
 import type { RyanEvent } from "@/lib/types";

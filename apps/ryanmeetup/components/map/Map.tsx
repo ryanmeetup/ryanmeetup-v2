@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 // Components
 import Map, { Marker, Popup } from "react-map-gl/mapbox";
 import NextImage from "next/image";
-import { Heading, Text } from "@ryanmeetup/ui";
+import { Heading } from "@ryanmeetup/ui";
 import { Legend } from "@/components/map";
 import { FaMapPin as Pin } from "react-icons/fa";
 import NextLink from "next/link";

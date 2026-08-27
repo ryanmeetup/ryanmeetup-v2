@@ -3,7 +3,7 @@
 // Components
 import { Event, Chapters, EventsSectionHeader } from "@/components/events";
 import { CollapsibleYearSection } from "@/components/global";
-import { DisclosureCard, Heading } from "@ryanmeetup/ui";
+import { DisclosureCard } from "@ryanmeetup/ui";
 
 // Types
 import type { RyanEvent } from "@/lib/types";

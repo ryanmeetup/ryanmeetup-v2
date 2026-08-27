@@ -4,7 +4,6 @@ import { Blurb, Button, Divider } from "@ryanmeetup/ui";
 import { FeaturedIn, PressFeed } from "@/components/press";
 import { layoutPaddingX } from "@/lib/constants";
 import {
-  FaArrowRight as ArrowRight,
   FaBookOpen as LearnMore,
   FaEnvelope as Email,
 } from "react-icons/fa6";

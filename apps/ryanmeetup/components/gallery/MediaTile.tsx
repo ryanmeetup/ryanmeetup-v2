@@ -1,5 +1,5 @@
 // Components
-import { Heading, Text } from "@ryanmeetup/ui";
+import { Heading } from "@ryanmeetup/ui";
 import NextImage from "next/image";
 import NextLink from "next/link";
 

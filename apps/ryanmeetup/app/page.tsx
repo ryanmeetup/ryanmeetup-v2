@@ -16,7 +16,6 @@ import {
 import { Button } from "@ryanmeetup/ui";
 import { GoSponsorTiers as SponsorIcon } from "react-icons/go";
 import { layoutPaddingX, socialProfileUrls } from "@/lib/constants";
-import { sortEventsByDate, splitEventsByTime } from "@/utils/date";
 
 // Types
 import type {
@@ -67,8 +66,6 @@ const HomePage = async () => {
   const homeFaqs = faqs.filter((faq) => faq.type === "home");
   const activeChapters = chapters.filter((chapter) => chapter.active);
   const mainEvents = events.filter((event) => event.chapter.includes("Main"));
-  const { upcoming } = splitEventsByTime(events);
-  const upcomingEvents = sortEventsByDate(upcoming, "asc");
 
   const totalRaised = donations.reduce((sum, item) => {
     const amount = parseFloat(item.amount.replace(/[^0-9.-]+/g, ""));

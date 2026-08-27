@@ -2,7 +2,7 @@
 
 import NextImage from "next/image";
 import NextLink from "next/link";
-import { Heading, Kicker, Text } from "@ryanmeetup/ui";
+import { Heading, Kicker } from "@ryanmeetup/ui";
 import { FaArrowRight as ArrowRight } from "react-icons/fa6";
 import { formatEventLocationLabel, formatMonthDay } from "@/utils/date";
 import { getEventCtaLabel } from "@/utils/events";

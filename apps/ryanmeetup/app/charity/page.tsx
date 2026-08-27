@@ -1,6 +1,6 @@
 // Components
 import { Layout } from "@/components/navigation";
-import { Card, Divider, Heading, Text } from "@ryanmeetup/ui";
+import { Divider, Heading, Text } from "@ryanmeetup/ui";
 import { TotalCount, Donation } from "@/components/charity";
 
 // Types

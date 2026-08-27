@@ -6,7 +6,6 @@ import {
   EmptyState,
   FilterBar,
   Input,
-  Text,
 } from "@ryanmeetup/ui";
 import { SearchIndicator } from "@/components/global";
 import { FaSliders as Filters } from "react-icons/fa6";
