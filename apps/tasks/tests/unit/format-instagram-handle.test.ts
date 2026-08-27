@@ -19,9 +19,9 @@ describe("formatInstagramHandle", () => {
     expect(formatInstagramHandle("https://instagram.com/ryanmeetup")).toBe(
       "ryanmeetup",
     );
-    expect(
-      formatInstagramHandle("https://www.instagram.com/ryanmeetup"),
-    ).toBe("ryanmeetup");
+    expect(formatInstagramHandle("https://www.instagram.com/ryanmeetup")).toBe(
+      "ryanmeetup",
+    );
     expect(formatInstagramHandle("http://www.instagram.com/ryanmeetup")).toBe(
       "ryanmeetup",
     );

@@ -8,8 +8,12 @@ import {
 
 describe("resource attachment request validation", () => {
   it("requires exactly one resource kind", () => {
-    expect(attachmentResource(undefined, undefined)).toMatchObject({ status: 400 });
-    expect(attachmentResource("category-1", "project-1")).toMatchObject({ status: 400 });
+    expect(attachmentResource(undefined, undefined)).toMatchObject({
+      status: 400,
+    });
+    expect(attachmentResource("category-1", "project-1")).toMatchObject({
+      status: 400,
+    });
     expect(attachmentResource("category-1", undefined)).toMatchObject({
       kind: "category",
       foreignKey: "category_id",
@@ -25,7 +29,11 @@ describe("resource attachment request validation", () => {
       }),
     ).toMatchObject({ name: "Brief", body: "Context" });
     expect(
-      parseNoteAttachment({ projectId: "project-1", name: "", body: "Context" }),
+      parseNoteAttachment({
+        projectId: "project-1",
+        name: "",
+        body: "Context",
+      }),
     ).toMatchObject({ status: 400 });
   });
 
@@ -53,7 +61,9 @@ describe("resource attachment request validation", () => {
   });
 
   it("rejects empty and oversized files", () => {
-    expect(validateAttachmentFile(new File([], "empty.txt"))).toMatchObject({ status: 413 });
+    expect(validateAttachmentFile(new File([], "empty.txt"))).toMatchObject({
+      status: 413,
+    });
     expect(validateAttachmentFile(new File(["ok"], "note.txt"))).toMatchObject({
       file: expect.any(File),
     });

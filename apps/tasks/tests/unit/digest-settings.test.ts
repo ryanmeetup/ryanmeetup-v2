@@ -64,7 +64,10 @@ describe("digest cadence", () => {
 
   it("never sends while paused", () => {
     expect(
-      isDigestSlot(settings({ enabled: false }), new Date("2026-08-25T13:00:00.000Z")),
+      isDigestSlot(
+        settings({ enabled: false }),
+        new Date("2026-08-25T13:00:00.000Z"),
+      ),
     ).toBe(false);
   });
 
@@ -90,21 +93,25 @@ describe("digest cadence", () => {
     // 13:30 UTC is half an hour into the 09:00 New York slot: that run has
     // already begun, so the next one is tomorrow.
     expect(
-      nextDigestRun(settings(), new Date("2026-08-25T13:30:00.000Z"))
-        ?.toISOString(),
+      nextDigestRun(
+        settings(),
+        new Date("2026-08-25T13:30:00.000Z"),
+      )?.toISOString(),
     ).toBe("2026-08-26T13:00:00.000Z");
     // Exactly on the hour, the slot starting now is the answer.
     expect(
-      nextDigestRun(settings(), new Date("2026-08-25T13:00:00.000Z"))
-        ?.toISOString(),
+      nextDigestRun(
+        settings(),
+        new Date("2026-08-25T13:00:00.000Z"),
+      )?.toISOString(),
     ).toBe("2026-08-25T13:00:00.000Z");
   });
 
   it("summarizes the cadence for the settings card", () => {
     expect(describeCadence(settings())).toContain("Mon–Fri");
-    expect(describeCadence(settings({ weekdays: [0, 1, 2, 3, 4, 5, 6] }))).toContain(
-      "every day",
-    );
+    expect(
+      describeCadence(settings({ weekdays: [0, 1, 2, 3, 4, 5, 6] })),
+    ).toContain("every day");
     expect(describeCadence(settings({ enabled: false }))).toBe("Paused");
   });
 });
@@ -225,9 +232,9 @@ describe("digest settings schema", () => {
   });
 
   it("preserves section order, because it is the render order", () => {
-    expect(
-      digestSettingsSchema({ sections: ["dueToday", "overdue"] }),
-    ).toEqual({ sections: ["dueToday", "overdue"] });
+    expect(digestSettingsSchema({ sections: ["dueToday", "overdue"] })).toEqual(
+      { sections: ["dueToday", "overdue"] },
+    );
   });
 
   it("rejects out-of-range, unknown, duplicated, and empty values", () => {
@@ -236,7 +243,9 @@ describe("digest settings schema", () => {
     expect(digestSettingsSchema({ maxRecipients: 91 })).toBeNull();
     expect(digestSettingsSchema({ weekdays: [] })).toBeNull();
     expect(digestSettingsSchema({ weekdays: [1, 1] })).toBeNull();
-    expect(digestSettingsSchema({ sections: ["overdue", "overdue"] })).toBeNull();
+    expect(
+      digestSettingsSchema({ sections: ["overdue", "overdue"] }),
+    ).toBeNull();
     expect(digestSettingsSchema({ sections: ["invented"] })).toBeNull();
     expect(digestSettingsSchema({ timeZone: "Not/AZone" })).toBeNull();
     expect(digestSettingsSchema({ unknownField: 1 })).toBeNull();

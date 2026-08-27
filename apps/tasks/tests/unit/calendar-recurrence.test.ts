@@ -15,7 +15,9 @@ import {
 } from "@/lib/calendar/calendar-types";
 import { calendarEventSchema } from "@/lib/api-schema/calendar";
 
-const rule = (overrides: Partial<CalendarRecurrence> = {}): CalendarRecurrence => ({
+const rule = (
+  overrides: Partial<CalendarRecurrence> = {},
+): CalendarRecurrence => ({
   frequency: "weekly",
   interval: 1,
   weekdays: [1],
@@ -28,16 +30,18 @@ const starts = (
   entry: { startDate: string; endDate?: string; recurrence: unknown },
   range: { start: string; end: string },
 ) =>
-  occurrencesInRange(
-    { endDate: entry.startDate, ...entry },
-    range,
-  ).map((occurrence) => occurrence.start);
+  occurrencesInRange({ endDate: entry.startDate, ...entry }, range).map(
+    (occurrence) => occurrence.start,
+  );
 
 describe("day-scoped recurrence", () => {
   it("repeats a single date on the days the rule selects", () => {
     expect(
       starts(
-        { startDate: "2026-09-07", recurrence: rule({ interval: 2, weekdays: [1, 3] }) },
+        {
+          startDate: "2026-09-07",
+          recurrence: rule({ interval: 2, weekdays: [1, 3] }),
+        },
         { start: "2026-09-01", end: "2026-09-30" },
       ),
     ).toEqual(["2026-09-07", "2026-09-09", "2026-09-21", "2026-09-23"]);
@@ -46,7 +50,10 @@ describe("day-scoped recurrence", () => {
   it("keeps a repeat accurate in a range years after it started", () => {
     expect(
       starts(
-        { startDate: "2020-01-01", recurrence: rule({ weekdays: [1, 2, 3, 4, 5] }) },
+        {
+          startDate: "2020-01-01",
+          recurrence: rule({ weekdays: [1, 2, 3, 4, 5] }),
+        },
         { start: "2026-08-31", end: "2026-09-04" },
       ),
     ).toEqual([
@@ -169,13 +176,19 @@ describe("recurrence rules as input", () => {
     expect(parseRecurrence({ frequency: "hourly", interval: 1 })).toBeNull();
     expect(parseRecurrence(rule({ interval: 0 }))).toBeNull();
     expect(parseRecurrence(rule({ weekdays: [] }))).toBeNull();
-    expect(parseRecurrence({ ...rule(), ends: { type: "after", count: 0 } })).toBeNull();
+    expect(
+      parseRecurrence({ ...rule(), ends: { type: "after", count: 0 } }),
+    ).toBeNull();
     expect(parseRecurrence(rule())).toEqual(rule());
   });
 
   it("refuses a repeat that lands on top of the span it repeats", () => {
-    expect(recurrenceSpanConflict("2026-09-07", "2026-09-20", rule())).toBeTruthy();
-    expect(recurrenceSpanConflict("2026-09-07", "2026-09-09", rule())).toBeNull();
+    expect(
+      recurrenceSpanConflict("2026-09-07", "2026-09-20", rule()),
+    ).toBeTruthy();
+    expect(
+      recurrenceSpanConflict("2026-09-07", "2026-09-09", rule()),
+    ).toBeNull();
   });
 
   const draft = {
@@ -194,9 +207,11 @@ describe("recurrence rules as input", () => {
   };
 
   it("saves a readable rule and refuses an unreadable one", () => {
-    expect(calendarEventSchema({ ...draft, recurrence: rule() })).toMatchObject({
-      recurrence: rule(),
-    });
+    expect(calendarEventSchema({ ...draft, recurrence: rule() })).toMatchObject(
+      {
+        recurrence: rule(),
+      },
+    );
     expect(calendarEventSchema({ ...draft, recurrence: null })).toMatchObject({
       recurrence: null,
     });
@@ -228,30 +243,43 @@ describe("recurrence rules as input", () => {
 describe("recurrence as an author reads it", () => {
   it("reopens a saved rule on the preset that made it", () => {
     const startDate = "2026-09-07";
-    for (const preset of ["daily", "weekly", "monthly", "yearly", "weekdays"] as const)
-      expect(recurrencePreset(presetRecurrence(preset, startDate), startDate)).toBe(
-        preset,
-      );
+    for (const preset of [
+      "daily",
+      "weekly",
+      "monthly",
+      "yearly",
+      "weekdays",
+    ] as const)
+      expect(
+        recurrencePreset(presetRecurrence(preset, startDate), startDate),
+      ).toBe(preset);
     expect(recurrencePreset(rule({ interval: 3 }), startDate)).toBe("custom");
     expect(recurrencePreset(null, startDate)).toBe("none");
   });
 
   it("describes the rule in the words the dropdown used", () => {
     expect(recurrenceSummary(null, "2026-09-07")).toBe("Happens once.");
-    expect(recurrenceSummary(rule({ interval: 2, weekdays: [1, 3] }), "2026-09-07")).toBe(
-      "Every 2 weeks on Monday and Wednesday.",
-    );
+    expect(
+      recurrenceSummary(rule({ interval: 2, weekdays: [1, 3] }), "2026-09-07"),
+    ).toBe("Every 2 weeks on Monday and Wednesday.");
     expect(
       recurrenceSummary(rule({ weekdays: [1, 2, 3, 4, 5] }), "2026-09-07"),
     ).toBe("Every weekday (Monday to Friday).");
     expect(
       recurrenceSummary(
-        rule({ frequency: "monthly", monthlyMode: "weekday", ends: { type: "on", date: "2026-12-07" } }),
+        rule({
+          frequency: "monthly",
+          monthlyMode: "weekday",
+          ends: { type: "on", date: "2026-12-07" },
+        }),
         "2026-09-07",
       ),
     ).toBe("Every month on the first Monday, until Dec 7, 2026.");
     expect(
-      recurrenceSummary(rule({ ends: { type: "after", count: 13 } }), "2026-09-07"),
+      recurrenceSummary(
+        rule({ ends: { type: "after", count: 13 } }),
+        "2026-09-07",
+      ),
     ).toBe("Every week on Monday, 13 times.");
   });
 

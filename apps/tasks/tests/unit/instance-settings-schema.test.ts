@@ -20,7 +20,9 @@ describe("instanceSettingsSchema", () => {
     expect(instanceSettingsSchema({ creditUrl: "https://ryanle.dev" })).toEqual(
       { creditUrl: "https://ryanle.dev/" },
     );
-    expect(instanceSettingsSchema({ creditUrl: "http://ryanle.dev" })).toBeNull();
+    expect(
+      instanceSettingsSchema({ creditUrl: "http://ryanle.dev" }),
+    ).toBeNull();
     expect(instanceSettingsSchema({ githubUrl: "not a url" })).toBeNull();
   });
 
@@ -63,7 +65,10 @@ describe("instanceSettingsSchema", () => {
     expect(
       instanceSettingsSchema({
         footerSections: [
-          { title: "Built with", links: [{ label: "Next.js", url: "nextjs.org" }] },
+          {
+            title: "Built with",
+            links: [{ label: "Next.js", url: "nextjs.org" }],
+          },
         ],
       }),
     ).toEqual({

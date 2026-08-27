@@ -21,7 +21,10 @@ import {
 function configure() {
   vi.stubEnv("GOOGLE_CALENDAR_CLIENT_ID", "client-id");
   vi.stubEnv("GOOGLE_CALENDAR_CLIENT_SECRET", "client-secret");
-  vi.stubEnv("GOOGLE_CALENDAR_TOKEN_KEY", Buffer.alloc(32, 7).toString("base64"));
+  vi.stubEnv(
+    "GOOGLE_CALENDAR_TOKEN_KEY",
+    Buffer.alloc(32, 7).toString("base64"),
+  );
 }
 
 afterEach(() => vi.unstubAllEnvs());
@@ -31,7 +34,10 @@ describe("Google Calendar connection storage", () => {
     expect(isGoogleCalendarConfigured()).toBe(false);
     configure();
     expect(isGoogleCalendarConfigured()).toBe(true);
-    vi.stubEnv("GOOGLE_CALENDAR_TOKEN_KEY", Buffer.alloc(16).toString("base64"));
+    vi.stubEnv(
+      "GOOGLE_CALENDAR_TOKEN_KEY",
+      Buffer.alloc(16).toString("base64"),
+    );
     expect(isGoogleCalendarConfigured()).toBe(false);
   });
 
@@ -63,17 +69,23 @@ describe("Google Calendar connection storage", () => {
   });
 
   it("hides the recurring Home event from imported calendar results", () => {
-    expect(isVisibleGoogleCalendarEvent({
-      eventType: "workingLocation",
-      summary: "Home",
-      workingLocationProperties: { type: "homeOffice" },
-    })).toBe(false);
-    expect(isVisibleGoogleCalendarEvent({
-      eventType: "workingLocation",
-      summary: "  home  ",
-    })).toBe(false);
+    expect(
+      isVisibleGoogleCalendarEvent({
+        eventType: "workingLocation",
+        summary: "Home",
+        workingLocationProperties: { type: "homeOffice" },
+      }),
+    ).toBe(false);
+    expect(
+      isVisibleGoogleCalendarEvent({
+        eventType: "workingLocation",
+        summary: "  home  ",
+      }),
+    ).toBe(false);
     expect(isVisibleGoogleCalendarEvent({ summary: "Home" })).toBe(true);
-    expect(isVisibleGoogleCalendarEvent({ summary: "Planning call" })).toBe(true);
+    expect(isVisibleGoogleCalendarEvent({ summary: "Planning call" })).toBe(
+      true,
+    );
   });
 
   it("keeps OAuth callbacks on the allowed origin where the connection started", () => {
@@ -84,9 +96,7 @@ describe("Google Calendar connection storage", () => {
       googleCalendarRedirectUri(
         "http://localhost:3000/api/integrations/google-calendar/connect",
       ),
-    ).toBe(
-      "http://localhost:3000/api/integrations/google-calendar/callback",
-    );
+    ).toBe("http://localhost:3000/api/integrations/google-calendar/callback");
     expect(
       googleCalendarRedirectUri(
         "https://tasks.ryanmeetup.com/api/integrations/google-calendar/connect",
@@ -195,11 +205,18 @@ describe("Google event details", () => {
         organizer: { email: "ryan@ryanmeetup.com", displayName: "Ryan Smith" },
         hangoutLink: "https://meet.google.com/abc-defg-hij",
         attendees: [
-          { email: "ryan@ryanmeetup.com", responseStatus: "accepted", organizer: true },
+          {
+            email: "ryan@ryanmeetup.com",
+            responseStatus: "accepted",
+            organizer: true,
+          },
           { email: "other@ryanmeetup.com", responseStatus: "needsAction" },
         ],
         attachments: [
-          { title: "Walkthrough notes", fileUrl: "https://docs.google.com/document/d/1" },
+          {
+            title: "Walkthrough notes",
+            fileUrl: "https://docs.google.com/document/d/1",
+          },
         ],
       }),
     ).toEqual({
@@ -237,7 +254,10 @@ describe("Google event details", () => {
         },
       ],
       attachments: [
-        { title: "Walkthrough notes", url: "https://docs.google.com/document/d/1" },
+        {
+          title: "Walkthrough notes",
+          url: "https://docs.google.com/document/d/1",
+        },
       ],
     });
   });
@@ -257,7 +277,12 @@ describe("Google event details", () => {
       ].join(""),
       attendees: [
         { email: "ryan@ryanmeetup.com", self: true },
-        { email: "kbateman1@darden.com", displayName: "Kelly Bateman", organizer: true, responseStatus: "accepted" },
+        {
+          email: "kbateman1@darden.com",
+          displayName: "Kelly Bateman",
+          organizer: true,
+          responseStatus: "accepted",
+        },
         { email: "2n-pac@darden.com", displayName: "2N-PAC" },
         { email: "baliberti@darden.com", displayName: "Brandon Aliberti" },
       ],
@@ -274,14 +299,17 @@ describe("Google event details", () => {
     expect(details.attendeeCount).toBe(4);
     expect(details.guestCount).toBe(3);
     expect(
-      details.attendees?.find((attendee) => attendee.email === "2n-pac@darden.com")
-        ?.resource,
+      details.attendees?.find(
+        (attendee) => attendee.email === "2n-pac@darden.com",
+      )?.resource,
     ).toBe(true);
   });
 
   // A bare busy block should not travel with a payload of empty fields.
   it("leaves every detail unset when Google shared none of them", () => {
-    expect(googleCalendarEventDetails({ id: "google-2", summary: "Busy" })).toEqual({
+    expect(
+      googleCalendarEventDetails({ id: "google-2", summary: "Busy" }),
+    ).toEqual({
       location: undefined,
       tentative: undefined,
       organizer: undefined,

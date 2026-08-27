@@ -73,7 +73,11 @@ describe("Google event joining details", () => {
         ],
       },
     });
-    expect(entries.map((entry) => entry.kind)).toEqual(["video", "phone", "more"]);
+    expect(entries.map((entry) => entry.kind)).toEqual([
+      "video",
+      "phone",
+      "more",
+    ]);
     expect(entries[0]).toMatchObject({
       label: "Google Meet",
       uri: "https://meet.google.com/abc-defg-hij",
@@ -86,7 +90,11 @@ describe("Google event joining details", () => {
     expect(
       googleConferenceEntries({ hangoutLink: "https://meet.google.com/xyz" }),
     ).toEqual([
-      { kind: "video", label: "Google Meet", uri: "https://meet.google.com/xyz" },
+      {
+        kind: "video",
+        label: "Google Meet",
+        uri: "https://meet.google.com/xyz",
+      },
     ]);
     expect(
       googleConferenceEntries({ location: "Zoom: https://ryan.zoom.us/j/123" }),
@@ -94,7 +102,9 @@ describe("Google event joining details", () => {
       { kind: "video", label: "Zoom", uri: "https://ryan.zoom.us/j/123" },
     ]);
     // A location that is only an address contributes no way to join.
-    expect(googleConferenceEntries({ location: "The Ryan Bar, Brooklyn" })).toEqual([]);
+    expect(
+      googleConferenceEntries({ location: "The Ryan Bar, Brooklyn" }),
+    ).toEqual([]);
   });
 
   it("drops entry points that are not a safe link or a dial-in number", () => {
@@ -112,9 +122,9 @@ describe("Google event joining details", () => {
   });
 
   it("names only known meeting hosts", () => {
-    expect(meetingProviderLabel("https://teams.microsoft.com/l/meetup-join/x")).toBe(
-      "Microsoft Teams",
-    );
+    expect(
+      meetingProviderLabel("https://teams.microsoft.com/l/meetup-join/x"),
+    ).toBe("Microsoft Teams");
     expect(meetingProviderLabel("https://ryanmeetup.com/rsvp")).toBeNull();
     expect(safeLinkUrl("javascript:alert(1)")).toBeNull();
   });
@@ -125,7 +135,11 @@ describe("Google event guests", () => {
     { email: "zoe@ryanmeetup.com", responseStatus: "declined" },
     { email: "room@resource.calendar.google.com", resource: true },
     { email: "adam@ryanmeetup.com", responseStatus: "accepted" },
-    { email: "boss@ryanmeetup.com", responseStatus: "needsAction", organizer: true },
+    {
+      email: "boss@ryanmeetup.com",
+      responseStatus: "needsAction",
+      organizer: true,
+    },
     { email: "me@ryanmeetup.com", responseStatus: "tentative", self: true },
     { displayName: "", email: "" },
   ];
@@ -149,7 +163,9 @@ describe("Google event guests", () => {
   });
 
   it("counts replies without letting rooms skew them", () => {
-    expect(googleResponseCounts(googleAttendees(attendees).attendees ?? [])).toEqual({
+    expect(
+      googleResponseCounts(googleAttendees(attendees).attendees ?? []),
+    ).toEqual({
       accepted: 1,
       tentative: 1,
       needsAction: 1,
@@ -167,7 +183,9 @@ describe("Google event guests", () => {
         { title: "Agenda", fileUrl: "https://docs.google.com/document/d/1" },
         { title: "Bad", fileUrl: "javascript:alert(1)" },
       ]),
-    ).toEqual([{ title: "Agenda", url: "https://docs.google.com/document/d/1" }]);
+    ).toEqual([
+      { title: "Agenda", url: "https://docs.google.com/document/d/1" },
+    ]);
   });
 });
 
@@ -208,9 +226,15 @@ describe("Google event timing", () => {
 
 describe("Linking description text", () => {
   it("splits links out of prose without keeping the sentence punctuation", () => {
-    expect(linkedTextParts("See https://ryanmeetup.com/venue, then reply.")).toEqual([
+    expect(
+      linkedTextParts("See https://ryanmeetup.com/venue, then reply."),
+    ).toEqual([
       { key: "text:0", text: "See " },
-      { key: "link:4", text: "https://ryanmeetup.com/venue", url: "https://ryanmeetup.com/venue" },
+      {
+        key: "link:4",
+        text: "https://ryanmeetup.com/venue",
+        url: "https://ryanmeetup.com/venue",
+      },
       { key: "text:32", text: ", then reply." },
     ]);
   });
@@ -241,9 +265,13 @@ describe("Google event descriptions written by a meeting provider", () => {
   it("keeps the address of a link whose label does not spell it out", () => {
     const text = flattenGoogleHtml(teamsInvite);
     expect(text).toContain("Need help? (https://aka.ms/JoinTeamsMeeting)");
-    expect(text).toContain("Find a local number (https://dialin.teams.microsoft.com/x)");
+    expect(text).toContain(
+      "Find a local number (https://dialin.teams.microsoft.com/x)",
+    );
     // The label already is the address, so it is not repeated beside itself.
-    expect(text).toContain("Join: https://teams.microsoft.com/meet/271183?p=IxtZY6");
+    expect(text).toContain(
+      "Join: https://teams.microsoft.com/meet/271183?p=IxtZY6",
+    );
     expect(text).not.toContain("271183?p=IxtZY6 (https://");
     // An address the dialog would refuse to link leaves its label behind.
     expect(text).toContain("+1 929-229-5233,,545797412# United States");
@@ -251,7 +279,9 @@ describe("Google event descriptions written by a meeting provider", () => {
   });
 
   it("turns a typed-out rule into a separator and drops a trailing one", () => {
-    expect(googleNoteBlocks("Agenda\n_____________\nVenue\n_____________")).toEqual([
+    expect(
+      googleNoteBlocks("Agenda\n_____________\nVenue\n_____________"),
+    ).toEqual([
       { key: "text:1", kind: "text", text: "Agenda" },
       { key: "rule:1", kind: "rule" },
       { key: "text:3", kind: "text", text: "Venue" },
@@ -290,12 +320,15 @@ describe("Google event descriptions written by a meeting provider", () => {
   it("leaves an ordinary description alone", () => {
     expect(
       googleConferenceEntries({
-        description: "<div>Agenda at <a href='https://ryanmeetup.com/x'>the doc</a>.</div>",
+        description:
+          "<div>Agenda at <a href='https://ryanmeetup.com/x'>the doc</a>.</div>",
       }),
     ).toEqual([]);
     // A number in prose is not a dial-in when there is no room to dial into.
     expect(
-      googleConferenceEntries({ description: "Call Ryan on +1 929-229-5233 if late" }),
+      googleConferenceEntries({
+        description: "Call Ryan on +1 929-229-5233 if late",
+      }),
     ).toEqual([]);
   });
 
@@ -311,7 +344,11 @@ describe("Google event descriptions written by a meeting provider", () => {
 
 describe("Google event rooms", () => {
   const invite = [
-    { email: "kbateman1@darden.com", displayName: "Kelly Bateman", organizer: true },
+    {
+      email: "kbateman1@darden.com",
+      displayName: "Kelly Bateman",
+      organizer: true,
+    },
     { email: "2n-pac@darden.com", displayName: "2N-PAC" },
     { email: "room@resource.calendar.google.com", displayName: "Studio" },
   ];
@@ -332,9 +369,12 @@ describe("Google event rooms", () => {
   });
 
   it("does not mistake a guest for a room because the address names them", () => {
-    const result = googleAttendees([{ email: "ryan@ryanmeetup.com", displayName: "Ryan" }], {
-      location: "The Ryan Bar, Brooklyn",
-    });
+    const result = googleAttendees(
+      [{ email: "ryan@ryanmeetup.com", displayName: "Ryan" }],
+      {
+        location: "The Ryan Bar, Brooklyn",
+      },
+    );
     expect(result.attendees?.[0]?.resource).toBeUndefined();
   });
 
@@ -344,7 +384,9 @@ describe("Google event rooms", () => {
     );
     // A location that was only its room has nothing left to say.
     expect(googleEventPlace("2N-PAC", [{ name: "2N-PAC" }])).toBeUndefined();
-    expect(googleEventPlace("The Ryan Bar, Brooklyn", [])).toBe("The Ryan Bar, Brooklyn");
+    expect(googleEventPlace("The Ryan Bar, Brooklyn", [])).toBe(
+      "The Ryan Bar, Brooklyn",
+    );
     expect(googleEventPlace(undefined, [])).toBeUndefined();
   });
 });

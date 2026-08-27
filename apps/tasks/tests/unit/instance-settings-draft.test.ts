@@ -60,8 +60,8 @@ describe("settings dialog drafts", () => {
     expect(validateTextFields(identityFields, draft)).toEqual({
       name: "Keep this to 80 characters or fewer.",
     });
-    expect(validateTextFields(identityFields, draftForKeys(keys, null))).toEqual(
-      {},
-    );
+    expect(
+      validateTextFields(identityFields, draftForKeys(keys, null)),
+    ).toEqual({});
   });
 });

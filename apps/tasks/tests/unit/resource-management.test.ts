@@ -21,13 +21,12 @@ describe("resource management", () => {
   });
 
   it("filters and alphabetizes resources", () => {
-    expect(filterAndSortResources(resources, "active").map((item) => item.name)).toEqual([
-      "Bravo",
-      "Zulu",
-    ]);
-    expect(filterAndSortResources(resources, "archived").map((item) => item.name)).toEqual([
-      "Alpha",
-    ]);
+    expect(
+      filterAndSortResources(resources, "active").map((item) => item.name),
+    ).toEqual(["Bravo", "Zulu"]);
+    expect(
+      filterAndSortResources(resources, "archived").map((item) => item.name),
+    ).toEqual(["Alpha"]);
   });
 
   it("compares owner ids without depending on order", () => {
@@ -54,8 +53,31 @@ describe("resource management", () => {
       return new Response(null, { status: calls === 2 ? 500 : 200 });
     }) as typeof fetch;
     try {
-      const attachment = { id: "1", project_id: "project", kind: "note" as const, name: "note", body: "body", url: "", file_path: null, mime_type: null, size_bytes: null, created_by: "user", created_at: "", sort_order: 0 };
-      await expect(uploadResourceAttachments({ attachments: [attachment, { ...attachment, id: "2" }, { ...attachment, id: "3" }], resourceId: "project", resourceKind: "project" })).resolves.toBe(2);
+      const attachment = {
+        id: "1",
+        project_id: "project",
+        kind: "note" as const,
+        name: "note",
+        body: "body",
+        url: "",
+        file_path: null,
+        mime_type: null,
+        size_bytes: null,
+        created_by: "user",
+        created_at: "",
+        sort_order: 0,
+      };
+      await expect(
+        uploadResourceAttachments({
+          attachments: [
+            attachment,
+            { ...attachment, id: "2" },
+            { ...attachment, id: "3" },
+          ],
+          resourceId: "project",
+          resourceKind: "project",
+        }),
+      ).resolves.toBe(2);
       expect(calls).toBe(3);
     } finally {
       global.fetch = originalFetch;

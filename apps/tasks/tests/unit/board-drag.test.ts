@@ -13,9 +13,20 @@ describe("board drag scrolling", () => {
   });
 
   it("clears only the column that is actually being left", () => {
-    const state = { ...emptyBoardDragState, draggedTaskId: "task", dragOverStatusId: "doing" };
+    const state = {
+      ...emptyBoardDragState,
+      draggedTaskId: "task",
+      dragOverStatusId: "doing",
+    };
     expect(leaveBoardColumn(state, "todo")).toBe(state);
-    expect(leaveBoardColumn(state, "doing")).toEqual({ ...state, dragOverStatusId: null });
-    expect(emptyBoardDragState).toEqual({ draggedTaskId: null, dragOverStatusId: null, dropTarget: null });
+    expect(leaveBoardColumn(state, "doing")).toEqual({
+      ...state,
+      dragOverStatusId: null,
+    });
+    expect(emptyBoardDragState).toEqual({
+      draggedTaskId: null,
+      dragOverStatusId: null,
+      dropTarget: null,
+    });
   });
 });

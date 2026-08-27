@@ -3,7 +3,9 @@ import { derivePagination, parsePagination } from "@/lib/pagination";
 
 describe("pagination", () => {
   it("uses canonical defaults for missing and malformed input", () => {
-    expect(parsePagination(new URLSearchParams("page=nope&pageSize=-5"))).toEqual({
+    expect(
+      parsePagination(new URLSearchParams("page=nope&pageSize=-5")),
+    ).toEqual({
       requestedPage: 1,
       pageSize: 1,
     });
@@ -14,7 +16,9 @@ describe("pagination", () => {
       new URLSearchParams("page=99&pageSize=1000"),
     );
     expect(request).toEqual({ requestedPage: 99, pageSize: 100 });
-    expect(derivePagination(request.requestedPage, request.pageSize, 205)).toMatchObject({
+    expect(
+      derivePagination(request.requestedPage, request.pageSize, 205),
+    ).toMatchObject({
       page: 3,
       pageSize: 100,
       totalCount: 205,

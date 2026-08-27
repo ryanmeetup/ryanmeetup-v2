@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { activityFilterCount, buildActivityQuery } from "@/lib/activity/activity-query";
+import {
+  activityFilterCount,
+  buildActivityQuery,
+} from "@/lib/activity/activity-query";
 import type { Project } from "@/lib/resources/resource-types";
 import type { Profile } from "@/lib/workspace/workspace-types";
 

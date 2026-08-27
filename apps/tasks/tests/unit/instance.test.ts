@@ -168,7 +168,6 @@ describe("instance identity", () => {
       }),
     ).rejects.toThrow(/LOGO_PATH/);
   });
-
 });
 
 describe("instance-scoped task keys", () => {
@@ -241,11 +240,8 @@ describe("runtime instance overrides", () => {
   });
 
   it("falls back to the default when no row is stored", async () => {
-    const {
-      demoInstanceSettings,
-      instanceDefaults,
-      resolveInstanceSettings,
-    } = await loadInstance();
+    const { demoInstanceSettings, instanceDefaults, resolveInstanceSettings } =
+      await loadInstance();
 
     expect(resolveInstanceSettings(null)).toEqual(instanceDefaults);
     expect(resolveInstanceSettings({})).toEqual(instanceDefaults);

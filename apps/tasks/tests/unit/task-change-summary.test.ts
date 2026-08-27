@@ -112,7 +112,13 @@ describe("task change summary", () => {
         null,
       ]),
     ).toEqual([
-      { field: "status", from: "todo", to: "doing", added: undefined, removed: undefined },
+      {
+        field: "status",
+        from: "todo",
+        to: "doing",
+        added: undefined,
+        removed: undefined,
+      },
     ]);
     expect(parseTaskChanges(undefined)).toEqual([]);
   });

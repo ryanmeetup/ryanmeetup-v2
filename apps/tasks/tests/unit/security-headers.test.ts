@@ -25,12 +25,15 @@ describe("security headers", () => {
   });
 
   it("defines the standard browser defense-in-depth headers", () => {
-    expect(Object.fromEntries(standardSecurityHeaders.map(({ key, value }) => [key, value])))
-      .toMatchObject({
-        "Referrer-Policy": "strict-origin-when-cross-origin",
-        "X-Content-Type-Options": "nosniff",
-        "X-Frame-Options": "DENY",
-      });
+    expect(
+      Object.fromEntries(
+        standardSecurityHeaders.map(({ key, value }) => [key, value]),
+      ),
+    ).toMatchObject({
+      "Referrer-Policy": "strict-origin-when-cross-origin",
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "DENY",
+    });
     expect(
       standardSecurityHeaders.find(({ key }) => key === "Permissions-Policy")
         ?.value,

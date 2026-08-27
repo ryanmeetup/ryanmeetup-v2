@@ -44,8 +44,10 @@ describe("resource attachment drafts", () => {
   });
 
   it("normalizes link fields for both create and edit payloads", () => {
-    expect(normalizeResourceLinks([{ label: "  Docs ", url: " https://example.com/docs " }])).toEqual([
-      { label: "Docs", url: "https://example.com/docs" },
-    ]);
+    expect(
+      normalizeResourceLinks([
+        { label: "  Docs ", url: " https://example.com/docs " },
+      ]),
+    ).toEqual([{ label: "Docs", url: "https://example.com/docs" }]);
   });
 });

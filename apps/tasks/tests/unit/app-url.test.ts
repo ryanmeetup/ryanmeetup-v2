@@ -57,7 +57,9 @@ describe("Tasks app canonical URLs", () => {
     vi.stubEnv("TASKS_ALLOWED_ORIGINS", "https://tasks-preview.example.com");
 
     expect(isAllowedTasksRequestOrigin(productionTasksAppOrigin)).toBe(true);
-    expect(isAllowedTasksRequestOrigin("https://tasks-preview.example.com")).toBe(true);
+    expect(
+      isAllowedTasksRequestOrigin("https://tasks-preview.example.com"),
+    ).toBe(true);
     expect(isAllowedTasksRequestOrigin("https://attacker.example")).toBe(false);
     expect(isAllowedTasksRequestOrigin("http://localhost:3000")).toBe(false);
   });
@@ -81,9 +83,12 @@ describe("Tasks app canonical URLs", () => {
     vi.stubEnv("TASKS_APP_URL", "");
     vi.stubEnv("NEXT_PUBLIC_TASKS_APP_URL", "");
     vi.stubEnv("TASKS_ALLOWED_ORIGINS", "https://tasks-preview.example.com");
-    const request = new Request("https://tasks-preview.example.com/auth/callback", {
-      headers: { "x-forwarded-host": "attacker.example" },
-    });
+    const request = new Request(
+      "https://tasks-preview.example.com/auth/callback",
+      {
+        headers: { "x-forwarded-host": "attacker.example" },
+      },
+    );
 
     expect(tasksAppOrigin(request)).toBe("https://tasks-preview.example.com");
   });
@@ -95,7 +100,9 @@ describe("Tasks app canonical URLs", () => {
     vi.stubEnv("TASKS_ALLOWED_ORIGINS", "https://tasks-preview.example.com");
 
     expect(() => tasksAppOrigin("https://attacker.example/path")).toThrow();
-    expect(() => tasksAppOrigin("http://tasks-preview.example.com/path")).toThrow();
+    expect(() =>
+      tasksAppOrigin("http://tasks-preview.example.com/path"),
+    ).toThrow();
   });
 
   it("rejects protocol-relative destinations", () => {
@@ -150,9 +157,9 @@ describe("metadata origin", () => {
   it("assumes https for a forwarded host that states no protocol", () => {
     clearConfiguration();
 
-    expect(
-      metadataOrigin(new Headers({ host: "projects.example.dev" })),
-    ).toBe("https://projects.example.dev");
+    expect(metadataOrigin(new Headers({ host: "projects.example.dev" }))).toBe(
+      "https://projects.example.dev",
+    );
     expect(metadataOrigin(new Headers({ host: "localhost:3000" }))).toBe(
       "http://localhost:3000",
     );

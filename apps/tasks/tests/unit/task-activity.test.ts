@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { taskActivityLabel, taskStatusChange } from "@/lib/activity/task-activity";
+import {
+  taskActivityLabel,
+  taskStatusChange,
+} from "@/lib/activity/task-activity";
 import type { Status } from "@/lib/tasks/task-types";
 import type { TaskActivity } from "@/lib/activity/activity-types";
 

@@ -76,11 +76,9 @@ describe("visibility options", () => {
       "open",
       "restricted",
     ]);
-    expect(visibilityOptions("category").map((option) => option.value)).toEqual([
-      "open",
-      "managers",
-      "restricted",
-    ]);
+    expect(visibilityOptions("category").map((option) => option.value)).toEqual(
+      ["open", "managers", "restricted"],
+    );
   });
 });
 

@@ -24,6 +24,7 @@ const lookups: TaskChangeLookups = {
       avatar_url: null,
       onboarding_completed: true,
       task_details_open_by_default: true,
+      assign_new_tasks_to_self: false,
     },
     {
       id: "alex",
@@ -31,6 +32,7 @@ const lookups: TaskChangeLookups = {
       avatar_url: null,
       onboarding_completed: true,
       task_details_open_by_default: true,
+      assign_new_tasks_to_self: false,
     },
   ],
   categories: [
@@ -119,14 +121,18 @@ describe("task change presentation", () => {
       "Cleared the due date",
     );
     expect(
-      sentence({ field: "reminder_at", from: null, to: "2026-09-01T12:00:00Z" }),
+      sentence({
+        field: "reminder_at",
+        from: null,
+        to: "2026-09-01T12:00:00Z",
+      }),
     ).toContain("Set a reminder for Sep 1, 2026");
   });
 
   it("names added and removed categories and tags", () => {
-    expect(
-      sentence({ field: "categories", added: ["ops"], removed: [] }),
-    ).toBe("Added the Operations category");
+    expect(sentence({ field: "categories", added: ["ops"], removed: [] })).toBe(
+      "Added the Operations category",
+    );
     expect(
       sentence({ field: "categories", added: ["ops", "events"], removed: [] }),
     ).toBe("Added the Operations and Events categories");

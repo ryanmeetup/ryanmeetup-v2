@@ -107,13 +107,24 @@ describe("calendar view models", () => {
   });
 
   it("includes a multi-day away entry on every date in its range", () => {
-    const items = calendarItems([], [away], [], [], [{
-      id: "ryan",
-      full_name: "Ryan Smith",
-      avatar_url: null,
-      onboarding_completed: true,
-      task_details_open_by_default: false,
-    }], [], range);
+    const items = calendarItems(
+      [],
+      [away],
+      [],
+      [],
+      [
+        {
+          id: "ryan",
+          full_name: "Ryan Smith",
+          avatar_url: null,
+          onboarding_completed: true,
+          task_details_open_by_default: false,
+          assign_new_tasks_to_self: false,
+        },
+      ],
+      [],
+      range,
+    );
     expect(itemsOnDate(items, "2026-08-28")).toHaveLength(1);
     expect(itemsOnDate(items, "2026-08-31")).toHaveLength(0);
     expect(items[0].meta).toBe("Ryan Smith · Away");
@@ -131,46 +142,56 @@ describe("calendar view models", () => {
     };
     const items = calendarItems([], [], [], [], [], [event], range);
 
-    expect(items).toEqual([expect.objectContaining({
-      id: "google:google-1",
-      source: "google",
-      title: "Planning call",
-      color: "#2563eb",
-      google: event,
-    })]);
+    expect(items).toEqual([
+      expect.objectContaining({
+        id: "google:google-1",
+        source: "google",
+        title: "Planning call",
+        color: "#2563eb",
+        google: event,
+      }),
+    ]);
     // The tile no longer leaves for Google; the dialog offers that link instead.
     expect(items[0].href).toBeUndefined();
     expect(items[0].external).toBeUndefined();
   });
 
   it("leads an imported Google meeting with the hours it runs", () => {
-    const items = calendarItems([], [], [], [], [], [
-      {
-        id: "google-1",
-        title: "Planning call",
-        start: "2026-08-20",
-        end: "2026-08-20",
-        allDay: false,
-        startTime: "09:00",
-        endTime: "10:30",
-      },
-      {
-        id: "google-2",
-        title: "Offsite",
-        start: "2026-08-20",
-        end: "2026-08-22",
-        allDay: false,
-        startTime: "13:00",
-        endTime: "17:00",
-      },
-      {
-        id: "google-3",
-        title: "Company holiday",
-        start: "2026-08-20",
-        end: "2026-08-20",
-        allDay: true,
-      },
-    ], range);
+    const items = calendarItems(
+      [],
+      [],
+      [],
+      [],
+      [],
+      [
+        {
+          id: "google-1",
+          title: "Planning call",
+          start: "2026-08-20",
+          end: "2026-08-20",
+          allDay: false,
+          startTime: "09:00",
+          endTime: "10:30",
+        },
+        {
+          id: "google-2",
+          title: "Offsite",
+          start: "2026-08-20",
+          end: "2026-08-22",
+          allDay: false,
+          startTime: "13:00",
+          endTime: "17:00",
+        },
+        {
+          id: "google-3",
+          title: "Company holiday",
+          start: "2026-08-20",
+          end: "2026-08-20",
+          allDay: true,
+        },
+      ],
+      range,
+    );
 
     expect(new Map(items.map((item) => [item.title, item.meta]))).toEqual(
       new Map([
@@ -222,22 +243,30 @@ describe("calendar view models", () => {
       starts_at: "2026-09-11T00:00:00",
       ends_at: "2026-09-13T23:59:00",
     };
-    const items = calendarItems([], [published], [], [], [], [
-      {
-        id: workspaceGoogleEventId(published.id),
-        title: "Ryan Meetup California",
-        start: "2026-09-11",
-        end: "2026-09-13",
-        allDay: true,
-      },
-      {
-        id: "google-1",
-        title: "Planning call",
-        start: "2026-09-11",
-        end: "2026-09-11",
-        allDay: false,
-      },
-    ], range);
+    const items = calendarItems(
+      [],
+      [published],
+      [],
+      [],
+      [],
+      [
+        {
+          id: workspaceGoogleEventId(published.id),
+          title: "Ryan Meetup California",
+          start: "2026-09-11",
+          end: "2026-09-13",
+          allDay: true,
+        },
+        {
+          id: "google-1",
+          title: "Planning call",
+          start: "2026-09-11",
+          end: "2026-09-11",
+          allDay: false,
+        },
+      ],
+      range,
+    );
 
     expect(items.map((item) => item.id)).toEqual([
       `event:${published.id}:2026-09-11`,
@@ -260,9 +289,9 @@ describe("calendar view models", () => {
       profileId: "",
     };
     expect(calendarEventSchema(draft)).toMatchObject({ syncToGoogle: false });
-    expect(
-      calendarEventSchema({ ...draft, syncToGoogle: true }),
-    ).toMatchObject({ syncToGoogle: true });
+    expect(calendarEventSchema({ ...draft, syncToGoogle: true })).toMatchObject(
+      { syncToGoogle: true },
+    );
     expect(calendarEventSchema({ ...draft, syncToGoogle: "yes" })).toBeNull();
   });
 
@@ -278,21 +307,21 @@ describe("calendar view models", () => {
       [],
       [],
       [],
-      [{
-        id: "google-1",
-        title: "Morning meeting",
-        start: "2026-08-24",
-        end: "2026-08-24",
-        allDay: false,
-      }],
+      [
+        {
+          id: "google-1",
+          title: "Morning meeting",
+          start: "2026-08-24",
+          end: "2026-08-24",
+          allDay: false,
+        },
+      ],
       range,
     );
 
-    expect(itemsOnDate(items, "2026-08-24").map((item) => item.source)).toEqual([
-      "away",
-      "task",
-      "google",
-    ]);
+    expect(itemsOnDate(items, "2026-08-24").map((item) => item.source)).toEqual(
+      ["away", "task", "google"],
+    );
   });
 
   it("builds a six-week Sunday-first month grid", () => {
