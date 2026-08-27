@@ -95,6 +95,21 @@ Postgres rejects a deferrable constraint as an `on conflict` arbiter with
 never point it at a hosted project. To seed a hosted database, run
 `psql "$DB_URL" -f supabase/seed.sql` or paste the file into the SQL editor.
 
+### Why the default access tier is not in the seed
+
+A workspace also needs one organizational tier. `handle_new_user` puts each
+signup in the lowest-ranked `tier` group, and
+`grant_new_project_to_creator_groups` raises `23514` for a project whose creator
+holds no group — which the API flattens into "Some of the submitted information
+is no longer valid," so the cause is only visible in the server log.
+
+That row cannot live in the seed: `access_groups.created_by` is `not null` and
+references `profiles`, and the seed runs before any user exists.
+`handle_new_user` creates the tier itself when none is there yet, so the first
+signup on a new instance bootstraps it. The linked project must receive that
+function change directly; chronological migration files are not retained in
+this repository.
+
 ## How the baseline was captured
 
 With `supabase db dump`, which is read-only `pg_dump` — **not**

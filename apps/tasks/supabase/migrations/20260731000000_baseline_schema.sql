@@ -690,6 +690,8 @@ CREATE OR REPLACE FUNCTION "public"."handle_new_user"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
+declare
+  tier_id uuid;
 begin
   insert into public.profiles (id, full_name)
   values (
@@ -697,12 +699,28 @@ begin
     coalesce(nullif(new.raw_user_meta_data ->> 'full_name', ''), split_part(new.email, '@', 1))
   );
 
-  insert into public.access_group_members (group_id, profile_id, added_by)
-  select access_group.id, new.id, new.id
+  select access_group.id into tier_id
   from public.access_groups access_group
   where access_group.kind = 'tier'
   order by access_group.hierarchy_rank
   limit 1;
+
+  -- The first user of an instance arrives before any tier exists, and a
+  -- workspace whose members hold no group cannot create a project at all.
+  if tier_id is null then
+    insert into public.access_groups (name, description, created_by, kind, hierarchy_rank)
+    values (
+      'Members',
+      'Everyone in the workspace. New members join this tier automatically.',
+      new.id,
+      'tier',
+      0
+    )
+    returning id into tier_id;
+  end if;
+
+  insert into public.access_group_members (group_id, profile_id, added_by)
+  values (tier_id, new.id, new.id);
 
   return new;
 end;

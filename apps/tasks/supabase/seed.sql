@@ -16,3 +16,10 @@ select * from (values
 -- Only seed an empty workspace. `on conflict` cannot be used here: the unique
 -- constraint on statuses is deferrable, which Postgres rejects as an arbiter.
 where not exists (select 1 from public.statuses);
+
+-- The default organizational tier is deliberately not seeded here. A workspace
+-- needs one — `grant_new_project_to_creator_groups` rejects a project whose
+-- creator holds no group — but `access_groups.created_by` is `not null` and
+-- references `profiles`, and `supabase db reset` runs this file before any user
+-- exists, so there is no one to attribute it to. `handle_new_user` creates the
+-- tier instead, when the first user signs up and no tier is there yet.
