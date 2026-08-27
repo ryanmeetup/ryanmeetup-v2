@@ -34,6 +34,22 @@ export const isWorkspaceDemo = cache(async (): Promise<boolean> => {
   return !error && data === true;
 });
 
+/**
+ * The signed-in user, or a redirect to /login.
+ *
+ * Cached so the workspace layout can gate on it before it streams anything
+ * without paying for a second round trip when the page load below asks again.
+ * The gate has to resolve before the shell flushes: once the browser has the
+ * shell, a signed-out visitor would paint a workspace they cannot see and only
+ * then bounce to the login page.
+ */
+export const requireWorkspaceUser = cache(async () => {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user) redirect("/login");
+  return data.user;
+});
+
 export async function loadWorkspacePage(
   collections: readonly WorkspaceCollection[],
   {
@@ -52,8 +68,7 @@ export async function loadWorkspacePage(
   } = {},
 ) {
   const supabase = await createClient();
-  const { data: auth, error: authError } = await supabase.auth.getUser();
-  if (authError || !auth.user) redirect("/login");
+  const user = await requireWorkspaceUser();
   if (owner) {
     const isOwner = requireQueryData(
       "owner access",
@@ -64,14 +79,14 @@ export async function loadWorkspacePage(
 
   let data;
   try {
-    data = await loadWorkspace(supabase, auth.user.id, collections);
+    data = await loadWorkspace(supabase, user.id, collections);
     if (
       data &&
       collections.includes("statuses") &&
       data.statuses.length === 0
     ) {
       await seedDefaultStatusesIfEmpty();
-      data = await loadWorkspace(supabase, auth.user.id, collections);
+      data = await loadWorkspace(supabase, user.id, collections);
     }
   } catch (error) {
     if (error instanceof WorkspaceLoadError && onLoadError === "redirect") {
@@ -83,5 +98,5 @@ export async function loadWorkspacePage(
   if (!data) redirect("/login?error=profile");
   if (requireOnboarding && !data.currentProfile.onboarding_completed)
     redirect("/profile");
-  return { supabase, user: auth.user, data };
+  return { supabase, user, data };
 }

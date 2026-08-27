@@ -15,6 +15,7 @@ export { TaskBanners } from "./TaskBanners";
 export {
   PersistentWorkspaceShell,
   WorkspacePageShell,
+  WorkspaceShellSkeleton,
 } from "./WorkspacePageShell";
 export { ThemeProvider, useTheme } from "./ThemeProvider";
 export { ThemeToggle } from "./ThemeToggle";
