@@ -17,11 +17,8 @@ import type {
   ResendEmailSummary,
 } from "@/lib/usage/resend-usage-types";
 import { EmailStatusBadge } from "./EmailStatusBadge";
-
-const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
+import { errorMessage } from "@/lib/presentation";
+import { formatTimestamp } from "@/lib/date-format";
 
 const isolateEmailHtml = (html: string) => {
   const policy = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data: cid:; font-src data:">`;
@@ -71,9 +68,7 @@ export function EmailDetailModal({
           return;
         }
         setError(
-          requestError instanceof Error
-            ? requestError.message
-            : "The email content could not be loaded.",
+          errorMessage(requestError, "The email content could not be loaded."),
         );
       } finally {
         if (!controller.signal.aborted) setLoading(false);
@@ -101,9 +96,10 @@ export function EmailDetailModal({
       router.refresh();
     } catch (actionError) {
       toast.error(
-        actionError instanceof Error
-          ? actionError.message
-          : `The email could not be ${action === "delay" ? "delayed" : "canceled"}.`,
+        errorMessage(
+          actionError,
+          `The email could not be ${action === "delay" ? "delayed" : "canceled"}.`,
+        ),
       );
     } finally {
       setPendingAction(null);
@@ -197,9 +193,7 @@ export function EmailDetailModal({
                 </dt>
                 <dd className="mt-1">
                   <time dateTime={detail.scheduledAt ?? detail.createdAt}>
-                    {dateTimeFormatter.format(
-                      new Date(detail.scheduledAt ?? detail.createdAt),
-                    )}
+                    {formatTimestamp(detail.scheduledAt ?? detail.createdAt)}
                   </time>
                 </dd>
               </div>

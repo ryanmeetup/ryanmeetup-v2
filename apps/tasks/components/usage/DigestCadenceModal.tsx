@@ -15,6 +15,7 @@ import {
   type DigestSettings,
 } from "@/lib/digest/digest-settings";
 import { saveDigestSettings } from "@/lib/usage/digest-client";
+import { errorMessage } from "@/lib/presentation";
 
 const FORM_ID = "digest-cadence-form";
 
@@ -123,9 +124,7 @@ export function DigestCadenceModal({
       setOpen(false);
     } catch (error) {
       toast.error(
-        error instanceof Error
-          ? error.message
-          : "The digest settings could not be saved.",
+        errorMessage(error, "The digest settings could not be saved."),
       );
     } finally {
       setSaving(false);

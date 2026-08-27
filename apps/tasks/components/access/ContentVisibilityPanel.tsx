@@ -2,9 +2,16 @@
 
 import { useMemo, useState } from "react";
 import { Popover, PopoverButton, PopoverPanel } from "@headlessui/react";
-import { Button, Card, DropdownSelect, MultiSelect, toast } from "@ryanmeetup/ui";
+import {
+  Button,
+  Card,
+  DropdownSelect,
+  MultiSelect,
+  toast,
+} from "@ryanmeetup/ui";
 import { FiChevronDown, FiFolder, FiTag } from "react-icons/fi";
 import { mutate } from "@/lib/mutation-client";
+import { errorMessage } from "@/lib/presentation";
 import type { AccessGroup, GroupGrant } from "@/lib/access/access-types";
 import type { Category, Project } from "@/lib/resources/resource-types";
 import {
@@ -49,9 +56,15 @@ function VisibilityRow({
     <li className="flex flex-col items-stretch gap-3 border-t border-black/10 py-3 first:border-t-0 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
       <span className="flex min-w-0 items-center gap-2 text-sm font-medium">
         {kind === "project" ? (
-          <FiFolder aria-hidden className="shrink-0 text-black/45 dark:text-white/45" />
+          <FiFolder
+            aria-hidden
+            className="shrink-0 text-black/45 dark:text-white/45"
+          />
         ) : (
-          <FiTag aria-hidden className="shrink-0 text-black/45 dark:text-white/45" />
+          <FiTag
+            aria-hidden
+            className="shrink-0 text-black/45 dark:text-white/45"
+          />
         )}
         <span className="truncate">{name}</span>
       </span>
@@ -118,9 +131,10 @@ function VisibilityRow({
                       close();
                     } catch (error) {
                       toast.error(
-                        error instanceof Error
-                          ? error.message
-                          : `${name} visibility could not be updated.`,
+                        errorMessage(
+                          error,
+                          `${name} visibility could not be updated.`,
+                        ),
                       );
                     } finally {
                       setSaving(false);

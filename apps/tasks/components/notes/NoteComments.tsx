@@ -17,14 +17,10 @@ import {
 } from "react-icons/fi";
 import { CountBadge } from "@/components/global";
 import { mutate } from "@/lib/mutation-client";
-import { profileDisplayName } from "@/lib/presentation";
+import { errorMessage, profileDisplayName } from "@/lib/presentation";
 import type { NoteComment } from "@/lib/resources/resource-types";
 import type { Profile } from "@/lib/workspace/workspace-types";
-
-const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
+import { formatTimestamp } from "@/lib/date-format";
 
 export function NoteComments({
   noteId,
@@ -82,11 +78,7 @@ export function NoteComments({
       setBody("");
       toast.success("Comment added.");
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "The comment could not be added.",
-      );
+      toast.error(errorMessage(error, "The comment could not be added."));
     } finally {
       setSaving(false);
     }
@@ -115,11 +107,7 @@ export function NoteComments({
       setEditingBody("");
       toast.success("Comment updated.");
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "The comment could not be updated.",
-      );
+      toast.error(errorMessage(error, "The comment could not be updated."));
     } finally {
       setSaving(false);
     }
@@ -136,11 +124,7 @@ export function NoteComments({
       onChange(comments.filter((item) => item.id !== comment.id));
       toast.success("Comment deleted.");
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "The comment could not be deleted.",
-      );
+      toast.error(errorMessage(error, "The comment could not be deleted."));
     } finally {
       setSaving(false);
     }
@@ -186,9 +170,7 @@ export function NoteComments({
                           className="text-xs text-black/45 dark:text-white/45"
                           dateTime={comment.created_at}
                         >
-                          {dateTimeFormatter.format(
-                            new Date(comment.created_at),
-                          )}
+                          {formatTimestamp(comment.created_at)}
                           {comment.edited_at ? " · Edited" : ""}
                         </time>
                       </div>

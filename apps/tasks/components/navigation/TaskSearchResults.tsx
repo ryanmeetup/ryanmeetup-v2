@@ -19,6 +19,7 @@ import type {
 } from "@/lib/tasks/task-search";
 import { profileDisplayName } from "@/lib/presentation";
 import { TaskKeyBadge, TaskPriorityBadge } from "@/components/tasks";
+import { formatCalendarDay } from "@/lib/date-format";
 
 type Props = {
   listboxId: string;
@@ -127,11 +128,7 @@ function TaskResultItem({
             <span className="inline-flex items-center gap-1">
               <FiCalendar aria-hidden />
               <span className="sr-only">Due </span>
-              {new Intl.DateTimeFormat(undefined, {
-                month: "short",
-                day: "numeric",
-                timeZone: "UTC",
-              }).format(new Date(`${task.due_date}T00:00:00Z`))}
+              {formatCalendarDay(task.due_date)}
             </span>
           )}
         </span>

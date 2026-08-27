@@ -19,7 +19,9 @@ import {
   Modal,
   ModalActions,
   MultiSelect,
+  PendingResults,
   Pill,
+  SearchInput,
   TagInput,
   Textarea,
   toast,
@@ -30,11 +32,9 @@ import {
   FiArchive,
   FiArrowRight,
   FiEdit2,
-  FiLoader,
   FiPlus,
   FiRefreshCw,
   FiRotateCcw,
-  FiSearch,
   FiTag,
   FiTrash2,
   FiUsers,
@@ -58,6 +58,7 @@ import {
   ResourceLinksFields,
 } from "@/components/resources";
 import { mutate } from "@/lib/mutation-client";
+import { errorMessage } from "@/lib/presentation";
 import {
   archiveFilter,
   filterAndSortResources,
@@ -296,11 +297,7 @@ export function CategoriesModal({
       toast.success(`${category.name} created.`);
       if (createOnly) setOpen(false);
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "The category could not be created.",
-      );
+      toast.error(errorMessage(error, "The category could not be created."));
     } finally {
       setCreating(false);
     }
@@ -324,9 +321,7 @@ export function CategoriesModal({
       setAccessLoaded(true);
     } catch (error) {
       toast.error(
-        error instanceof Error
-          ? error.message
-          : "Category access settings could not be loaded.",
+        errorMessage(error, "Category access settings could not be loaded."),
       );
     }
   }
@@ -442,11 +437,7 @@ export function CategoriesModal({
       if (editCategoryId) setOpen(false);
       toast.success(`${nextName} updated.`);
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "The category could not be updated.",
-      );
+      toast.error(errorMessage(error, "The category could not be updated."));
     } finally {
       setSaving(false);
     }
@@ -478,11 +469,7 @@ export function CategoriesModal({
       }));
       toast.success(`${category.name} ${archived ? "archived" : "restored"}.`);
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "The category could not be updated.",
-      );
+      toast.error(errorMessage(error, "The category could not be updated."));
     }
   }
 
@@ -505,11 +492,7 @@ export function CategoriesModal({
       setDeleteTarget(null);
       toast.success(`${category.name} deleted.`);
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "The category could not be deleted.",
-      );
+      toast.error(errorMessage(error, "The category could not be deleted."));
     } finally {
       setDeletePending(false);
     }
@@ -635,9 +618,9 @@ export function CategoriesModal({
         namePlaceholder: "Marketing",
         descriptionPlaceholder: "What kind of work belongs in this category?",
       }}
+      nameSlot={colorControl(color, setColor, creating)}
       primarySlot={
         <>
-          {colorControl(color, setColor, creating)}
           <TagInput
             label="Tags"
             value={tags}
@@ -766,26 +749,15 @@ export function CategoriesModal({
             )}
             <div className="sticky top-0 z-20 -mx-1 mb-4 grid gap-3 bg-white px-1 pb-3 dark:bg-[#181818] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
               <div className="relative">
-                <Input
+                <SearchInput
                   label="Search categories"
                   name="category-search"
-                  hideLabel
-                  leadingIcon={<FiSearch aria-hidden />}
-                  aria-busy={searchPending}
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Search categories..."
-                  inputClassName="pr-10"
+                  pending={searchPending}
+                  pendingLabel="Loading category results"
                 />
-                {searchPending && (
-                  <span
-                    role="status"
-                    aria-label="Loading category results"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-black/45 dark:text-white/45"
-                  >
-                    <FiLoader className="animate-spin motion-reduce:animate-none" />
-                  </span>
-                )}
               </div>
               <div
                 className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap"
@@ -803,21 +775,9 @@ export function CategoriesModal({
                 ))}
               </div>
             </div>
-            <div className="relative" aria-busy={searchPending}>
-              {searchPending && (
-                <div
-                  role="status"
-                  aria-label="Loading category results"
-                  className="absolute inset-0 z-10 grid min-h-40 place-items-center rounded-xl bg-white/80 backdrop-blur-sm dark:bg-[#181818]/80"
-                >
-                  <span className="flex items-center gap-3 rounded-xl border border-black/15 bg-white px-5 py-3 text-sm font-semibold shadow-lg dark:border-white/15 dark:bg-[#181818]">
-                    <FiLoader className="h-5 w-5 animate-spin motion-reduce:animate-none" />
-                    Loading categories
-                  </span>
-                </div>
-              )}
+            <PendingResults pending={searchPending} label="Loading categories">
               <div
-                className={`${searchPending ? "pointer-events-none opacity-55" : ""} grid items-stretch gap-4 transition-opacity md:grid-cols-2 ${embedded ? "lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3" : ""}`}
+                className={`grid items-stretch gap-4 md:grid-cols-2 ${embedded ? "lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3" : ""}`}
               >
                 {categories.map((category) => {
                   const taskCount = data.taskCategories.filter(
@@ -1053,7 +1013,7 @@ export function CategoriesModal({
                   </div>
                 )}
               </div>
-            </div>
+            </PendingResults>
           </>
         )}
       </Modal>

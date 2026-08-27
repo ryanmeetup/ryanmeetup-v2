@@ -8,6 +8,7 @@ import type { TaskActivity } from "./activity-types";
 import type { Category, Project } from "@/lib/resources/resource-types";
 import type { Status } from "@/lib/tasks/task-types";
 import type { Profile } from "@/lib/workspace/workspace-types";
+import { formatCalendarDate, formatTimestamp } from "../date-format";
 
 export type TaskChangeLookups = {
   statuses: Pick<Status, "id" | "name" | "color">[];
@@ -31,29 +32,18 @@ export type TaskChangeDetail = {
   removed?: string[];
 };
 
-const dateFormatter = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-  timeZone: "UTC",
-});
-
-const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-});
-
+// An activity row records whatever value the field held, so a malformed date
+// is possible. Showing the raw value beats showing "Invalid Date".
 function formatDate(value: string) {
-  const date = new Date(`${value}T12:00:00Z`);
-  return Number.isNaN(date.getTime()) ? value : dateFormatter.format(date);
+  return Number.isNaN(new Date(`${value}T12:00:00Z`).getTime())
+    ? value
+    : formatCalendarDate(value);
 }
 
 function formatDateTime(value: string) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : dateTimeFormatter.format(date);
+  return Number.isNaN(new Date(value).getTime())
+    ? value
+    : formatTimestamp(value);
 }
 
 function formatTime(value: string) {

@@ -64,7 +64,7 @@ import { workspaceGoogleEventId } from "@/lib/calendar/google-calendar-sync";
 import { CalendarRecurrenceFields } from "./CalendarRecurrenceFields";
 import { mutate, parseMutationResponse } from "@/lib/mutation-client";
 import { withAccessPreview } from "@/lib/access/access-preview";
-import { profileDisplayName } from "@/lib/presentation";
+import { errorMessage, profileDisplayName } from "@/lib/presentation";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import type {
   GoogleCalendarConnection,
@@ -530,11 +530,7 @@ export function CalendarPageClient({
       );
       if (warning) toast.error(warning);
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "The calendar item could not be saved.",
-      );
+      toast.error(errorMessage(error, "The calendar item could not be saved."));
     } finally {
       setSaving(false);
     }
@@ -566,9 +562,7 @@ export function CalendarPageClient({
       if (warning) toast.error(warning);
     } catch (error) {
       toast.error(
-        error instanceof Error
-          ? error.message
-          : "The calendar item could not be deleted.",
+        errorMessage(error, "The calendar item could not be deleted."),
       );
     } finally {
       setDeleting(false);
@@ -651,9 +645,7 @@ export function CalendarPageClient({
         if (!controller.signal.aborted) {
           setLoadedGoogleMonth(month);
           toast.error(
-            error instanceof Error
-              ? error.message
-              : "Google Calendar could not be loaded.",
+            errorMessage(error, "Google Calendar could not be loaded."),
           );
         }
       });
@@ -679,9 +671,7 @@ export function CalendarPageClient({
       toast.success("Google Calendar disconnected.");
     } catch (error) {
       toast.error(
-        error instanceof Error
-          ? error.message
-          : "Google Calendar could not be disconnected.",
+        errorMessage(error, "Google Calendar could not be disconnected."),
       );
     } finally {
       setDisconnectingGoogle(false);

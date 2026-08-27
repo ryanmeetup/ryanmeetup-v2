@@ -5,12 +5,20 @@ export function profileDisplayName(
   return profile?.full_name || fallback;
 }
 
+/**
+ * Turns a caught value into something worth showing a person.
+ *
+ * An error carrying an empty message counts as no message at all: it would
+ * otherwise reach the screen as a blank toast, which reads as though nothing
+ * went wrong.
+ */
 export function errorMessage(error: unknown, fallback: string) {
   if (
     typeof error === "object" &&
     error !== null &&
     "message" in error &&
-    typeof error.message === "string"
+    typeof error.message === "string" &&
+    error.message !== ""
   ) {
     return error.message;
   }

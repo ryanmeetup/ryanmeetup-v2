@@ -25,6 +25,7 @@ import type {
   IntegrationState,
 } from "@/lib/server/integration-health";
 import { mutate } from "@/lib/mutation-client";
+import { errorMessage } from "@/lib/presentation";
 
 type Accent = "emerald" | "violet" | "sky" | "indigo" | "amber" | "teal";
 
@@ -140,9 +141,7 @@ export function IntegrationStatusList({
       router.refresh();
     } catch (error) {
       toast.error(
-        error instanceof Error
-          ? error.message
-          : "The workspace foundation could not be repaired.",
+        errorMessage(error, "The workspace foundation could not be repaired."),
       );
     } finally {
       setRepairing(null);

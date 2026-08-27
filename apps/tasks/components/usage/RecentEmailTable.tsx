@@ -2,27 +2,27 @@
 
 import { useEffect, useState } from "react";
 import { useSearchFilter } from "@ryanmeetup/hooks";
-import { Card, EmptyState, Input, Pagination } from "@ryanmeetup/ui";
+import {
+  Card,
+  EmptyState,
+  Input,
+  Pagination,
+  PendingResults,
+} from "@ryanmeetup/ui";
 import { FiLoader, FiSearch } from "react-icons/fi";
 import { usePagination } from "@/hooks/usePagination";
 import type { ResendEmailSummary } from "@/lib/usage/resend-usage-types";
 import { EmailDetailModal } from "./EmailDetailModal";
 import { EmailStatusBadge, emailStatusLabel } from "./EmailStatusBadge";
-
-const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
+import { formatTimestamp } from "@/lib/date-format";
 
 const emailSearchText = (email: ResendEmailSummary) =>
   [
     email.subject,
     email.lastEvent,
     emailStatusLabel(email.lastEvent),
-    dateTimeFormatter.format(new Date(email.createdAt)),
-    email.scheduledAt
-      ? dateTimeFormatter.format(new Date(email.scheduledAt))
-      : "",
+    formatTimestamp(email.createdAt),
+    email.scheduledAt ? formatTimestamp(email.scheduledAt) : "",
     email.recipients.join(" "),
   ]
     .join(" ")
@@ -32,24 +32,25 @@ const emailTiming = (email: ResendEmailSummary) => {
   if (email.lastEvent === "scheduled" && email.scheduledAt) {
     return {
       dateTime: email.scheduledAt,
-      label: `Scheduled ${dateTimeFormatter.format(new Date(email.scheduledAt))}`,
+      label: `Scheduled ${formatTimestamp(email.scheduledAt)}`,
     };
   }
   if (email.lastEvent === "canceled" && email.scheduledAt) {
     return {
       dateTime: email.scheduledAt,
-      label: `Canceled before ${dateTimeFormatter.format(new Date(email.scheduledAt))}`,
+      label: `Canceled before ${formatTimestamp(email.scheduledAt)}`,
     };
   }
   return {
     dateTime: email.createdAt,
-    label: dateTimeFormatter.format(new Date(email.createdAt)),
+    label: formatTimestamp(email.createdAt),
   };
 };
 
 export function RecentEmailTable({ emails }: { emails: ResendEmailSummary[] }) {
-  const [selectedEmail, setSelectedEmail] =
-    useState<ResendEmailSummary | null>(null);
+  const [selectedEmail, setSelectedEmail] = useState<ResendEmailSummary | null>(
+    null,
+  );
   const { query, setQuery, filtered, isPending } = useSearchFilter({
     data: emails,
     buildHaystack: emailSearchText,
@@ -92,24 +93,12 @@ export function RecentEmailTable({ emails }: { emails: ResendEmailSummary[] }) {
         )}
       </div>
 
-      <div className="relative" aria-busy={isPending}>
-        {isPending && (
-          <div
-            role="status"
-            aria-label="Loading email activity results"
-            className="absolute inset-0 z-10 grid min-h-40 place-items-center rounded-2xl bg-white/80 backdrop-blur-sm dark:bg-[#181818]/80"
-          >
-            <span className="flex items-center gap-3 rounded-xl border border-black/15 bg-white px-5 py-3 text-sm font-semibold shadow-lg dark:border-white/15 dark:bg-[#181818]">
-              <FiLoader className="h-5 w-5 animate-spin motion-reduce:animate-none" />
-              Loading email activity
-            </span>
-          </div>
-        )}
-        <Card
-          variant="solid"
-          size="none"
-          className={`overflow-hidden transition-opacity ${isPending ? "pointer-events-none opacity-55" : ""}`}
-        >
+      <PendingResults
+        pending={isPending}
+        label="Loading email activity"
+        className="rounded-2xl"
+      >
+        <Card variant="solid" size="none" className="overflow-hidden">
           <div className="border-b border-black/10 px-4 py-3 dark:border-white/10 md:hidden">
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-black/50 dark:text-white/50">
               Recent email activity
@@ -227,7 +216,7 @@ export function RecentEmailTable({ emails }: { emails: ResendEmailSummary[] }) {
             onPageSizeChange={setPageSize}
           />
         </Card>
-      </div>
+      </PendingResults>
 
       {selectedEmail && (
         <EmailDetailModal

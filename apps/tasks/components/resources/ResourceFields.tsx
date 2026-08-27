@@ -39,15 +39,17 @@ export type ResourceFieldsProps = {
     descriptionRequired?: boolean;
   };
   section?: "all" | "primary" | "supporting";
+  nameSlot?: ReactNode;
   primarySlot?: ReactNode;
   secondarySlot?: ReactNode;
 };
 
-export function ResourceFields({ resource, values, changes, editor, copy, section = "all", primarySlot, secondarySlot }: ResourceFieldsProps) {
+export function ResourceFields({ resource, values, changes, editor, copy, section = "all", nameSlot, primarySlot, secondarySlot }: ResourceFieldsProps) {
   const prefix = resource.id ? `${resource.kind}-${resource.id}` : resource.kind;
+  const nameField = <Input label={copy.nameLabel} name={`${prefix}-name`} value={values.name} onChange={(event) => changes.setName(event.target.value)} placeholder={copy.namePlaceholder} disabled={editor.disabled} required />;
   return <>
     {section !== "supporting" && <>
-      <Input label={copy.nameLabel} name={`${prefix}-name`} value={values.name} onChange={(event) => changes.setName(event.target.value)} placeholder={copy.namePlaceholder} disabled={editor.disabled} required />
+      {nameSlot ? <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">{nameField}{nameSlot}</div> : nameField}
       <Textarea id={`${prefix}-description`} label="Description" name={`${prefix}-description`} value={values.description} onChange={(event) => changes.setDescription(event.target.value)} placeholder={copy.descriptionPlaceholder} rows={3} disabled={editor.disabled} required={copy.descriptionRequired !== false} />
       {primarySlot}
       <ResourceOwnerSelect label={`${resource.kind === "project" ? "Project" : "Category"} owners`} profiles={editor.profiles} value={values.ownerIds} onChange={changes.setOwnerIds} disabled={editor.disabled} />

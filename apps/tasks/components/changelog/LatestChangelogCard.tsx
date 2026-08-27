@@ -14,14 +14,8 @@ import {
 } from "react-icons/fi";
 import { withAccessPreview } from "@/lib/access/access-preview";
 import { changelogReleasePath, type ChangelogRelease } from "@/lib/changelog";
+import { formatCalendarDate } from "@/lib/date-format";
 import type { AccessPreview } from "@/lib/workspace/workspace-types";
-
-const dateFormatter = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-  timeZone: "UTC",
-});
 
 export function LatestChangelogCard({
   preview,
@@ -73,7 +67,7 @@ export function LatestChangelogCard({
                   aria-hidden
                   className="text-black/35 dark:text-white/35"
                 />
-                {dateFormatter.format(new Date(`${release.date}T12:00:00Z`))}
+                {formatCalendarDate(release.date)}
               </span>
               <span className="inline-flex items-center gap-1.5 text-xs font-medium text-black/55 dark:text-white/55">
                 <FiUser

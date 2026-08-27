@@ -27,11 +27,7 @@ import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { DigestRunLedger } from "./DigestRunLedger";
 import { DigestSettingsCard } from "./DigestSettingsCard";
 import { RecentEmailTable } from "./RecentEmailTable";
-
-const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
+import { formatTimestamp } from "@/lib/date-format";
 
 function QuotaCard({
   label,
@@ -232,8 +228,8 @@ export function UsagePageClient({
 
         <RecentEmailTable emails={usage.recentEmails} />
         <p className="text-xs text-black/50 dark:text-white/50">
-          Last checked {dateTimeFormatter.format(new Date(usage.checkedAt))}.
-          Resend counts every To, CC, and BCC recipient toward email quota.
+          Last checked {formatTimestamp(usage.checkedAt)}. Resend counts every
+          To, CC, and BCC recipient toward email quota.
         </p>
       </section>
     </AdminPageShell>

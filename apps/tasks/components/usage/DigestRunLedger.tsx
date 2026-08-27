@@ -1,20 +1,17 @@
 "use client";
 
 import { Card, EmptyState } from "@ryanmeetup/ui";
+import { formatTimestamp } from "@/lib/date-format";
 import {
   DIGEST_OUTCOME_LABEL,
   type DigestRun,
   type DigestRunOutcome,
 } from "@/lib/usage/digest-run-types";
 
-const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
-
 const outcomeStyles: Record<DigestRunOutcome, string> = {
   sent: "border-emerald-500/30 bg-emerald-500/15 text-emerald-800 dark:text-emerald-200",
-  empty: "border-black/15 bg-black/[0.04] text-black/65 dark:border-white/15 dark:bg-white/[0.06] dark:text-white/65",
+  empty:
+    "border-black/15 bg-black/[0.04] text-black/65 dark:border-white/15 dark:bg-white/[0.06] dark:text-white/65",
   off_schedule:
     "border-black/15 bg-black/[0.04] text-black/65 dark:border-white/15 dark:bg-white/[0.06] dark:text-white/65",
   paused:
@@ -71,7 +68,7 @@ export function DigestRunLedger({ runs }: { runs: DigestRun[] }) {
                       dateTime={run.ranAt}
                       className="text-sm font-semibold"
                     >
-                      {dateTimeFormatter.format(new Date(run.ranAt))}
+                      {formatTimestamp(run.ranAt)}
                     </time>
                     <OutcomeBadge outcome={run.outcome} />
                   </div>
@@ -107,7 +104,7 @@ export function DigestRunLedger({ runs }: { runs: DigestRun[] }) {
                     >
                       <td className="whitespace-nowrap px-4 py-3 font-semibold">
                         <time dateTime={run.ranAt}>
-                          {dateTimeFormatter.format(new Date(run.ranAt))}
+                          {formatTimestamp(run.ranAt)}
                         </time>
                       </td>
                       <td className="px-4 py-3">

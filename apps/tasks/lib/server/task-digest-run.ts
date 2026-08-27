@@ -14,6 +14,7 @@ import {
   type DigestSettings,
 } from "@/lib/digest/digest-settings";
 import { buildTaskDigest, taskDigestCount } from "@/lib/tasks/task-digest";
+import { errorMessage } from "../presentation";
 
 export type DigestRunOutcome =
   | "sent"
@@ -91,8 +92,7 @@ export async function runTaskDigest({
     settings = await readDigestSettings(admin);
   } catch (error) {
     const digestDate = now.toISOString().slice(0, 10);
-    const detail =
-      error instanceof Error ? error.message : "Digest settings unreadable.";
+    const detail = errorMessage(error, "Digest settings unreadable.");
     await recordDigestRun({ outcome: "failed", source, digestDate, detail });
     return { ...empty("failed", digestDate, detail), recorded: true };
   }
@@ -111,7 +111,10 @@ export async function runTaskDigest({
       timeZone: settings.timeZone,
       detail: "Digests are paused.",
     });
-    return { ...empty("paused", digestDate, "Digests are paused."), recorded: true };
+    return {
+      ...empty("paused", digestDate, "Digests are paused."),
+      recorded: true,
+    };
   }
 
   if (source === "cron" && !isDigestSlot(settings, now))
@@ -209,8 +212,7 @@ export async function runTaskDigest({
       });
       scheduled += 1;
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Unknown send error";
+      const message = errorMessage(error, "Unknown send error");
       console.error("[task-digests.send]", {
         profileId: profile.id,
         message,

@@ -14,17 +14,16 @@ import {
   Input,
   Modal,
   ModalActions,
+  SearchInput,
   Textarea,
 } from "@ryanmeetup/ui";
 import {
   FiBriefcase,
   FiEdit2,
   FiInstagram,
-  FiLoader,
   FiMail,
   FiPhone,
   FiPlus,
-  FiSearch,
   FiTrash2,
 } from "react-icons/fi";
 import type {
@@ -498,29 +497,16 @@ export function ContactEditor({
             </div>
           )}
           {draft.people.length >= 8 && (
-            <div className="relative">
-              <Input
-                label="Search people"
-                name="people-search"
-                hideLabel
-                leadingIcon={<FiSearch aria-hidden />}
-                aria-busy={peopleSearchPending}
-                value={peopleQuery}
-                onChange={(event) => setPeopleQuery(event.target.value)}
-                placeholder="Search people…"
-                inputClassName="pr-10"
-                disabled={saving}
-              />
-              {peopleSearchPending && (
-                <span
-                  role="status"
-                  aria-label="Loading people results"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-black/45 dark:text-white/45"
-                >
-                  <FiLoader className="animate-spin motion-reduce:animate-none" />
-                </span>
-              )}
-            </div>
+            <SearchInput
+              label="Search people"
+              name="people-search"
+              value={peopleQuery}
+              onChange={(event) => setPeopleQuery(event.target.value)}
+              placeholder="Search people…"
+              disabled={saving}
+              pending={peopleSearchPending}
+              pendingLabel="Loading people results"
+            />
           )}
           <div
             className="grid grid-cols-1 gap-2 lg:grid-cols-2"

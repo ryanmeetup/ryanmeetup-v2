@@ -36,6 +36,7 @@ import { mutate } from "@/lib/mutation-client";
 import { archiveFilter } from "@/lib/resources/resource-management";
 import { NoteCard } from "./NoteCard";
 import { NoteModal } from "./NoteModal";
+import { errorMessage } from "@/lib/presentation";
 export function NotesPageClient({
   initialData,
   initialNotes,
@@ -103,9 +104,7 @@ export function NotesPageClient({
       setCategoryId("");
       toast.success("Note saved.");
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "The note could not be saved.",
-      );
+      toast.error(errorMessage(error, "The note could not be saved."));
     } finally {
       setCreating(false);
     }
@@ -131,9 +130,7 @@ export function NotesPageClient({
       toast.success("Note saved.");
       return true;
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "The note could not be saved.",
-      );
+      toast.error(errorMessage(error, "The note could not be saved."));
       return false;
     }
   }
@@ -168,11 +165,7 @@ export function NotesPageClient({
         setNotes((current) =>
           current.map((item) => (item.id === next.id ? previous : item)),
         );
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "The note could not be updated.",
-      );
+      toast.error(errorMessage(error, "The note could not be updated."));
     }
   }
 
@@ -193,11 +186,7 @@ export function NotesPageClient({
       setDeleteTarget(null);
       toast.success("Note deleted.");
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "The note could not be deleted.",
-      );
+      toast.error(errorMessage(error, "The note could not be deleted."));
     }
   }
 

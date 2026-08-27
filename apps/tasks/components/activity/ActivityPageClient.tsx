@@ -33,12 +33,17 @@ import { taskPath } from "@/lib/tasks/task-key";
 import { TaskKeyBadge } from "@/components/tasks";
 import { ActivityFilterMenu } from "./ActivityFilterMenu";
 import { ActivityActorAvatar } from "./ActivityActorAvatar";
+import { formatTimestamp } from "@/lib/date-format";
 import {
   ActivityChangeList,
   activityChangeSummary,
   StatusLabel,
 } from "./ActivityChangeList";
-import { profileDisplayName, splitCommaSeparated } from "@/lib/presentation";
+import {
+  errorMessage,
+  profileDisplayName,
+  splitCommaSeparated,
+} from "@/lib/presentation";
 import {
   resolveActivityRows,
   type ActivityPresentationRow,
@@ -47,11 +52,6 @@ import {
   activityFilterCount,
   buildActivityQuery,
 } from "@/lib/activity/activity-query";
-
-const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
 
 function activityDescription(
   row: ActivityPresentationRow,
@@ -276,11 +276,7 @@ export function ActivityPageClient({
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError")
           return;
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : "Activity could not be loaded.",
-        );
+        toast.error(errorMessage(error, "Activity could not be loaded."));
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -466,12 +462,10 @@ export function ActivityPageClient({
                           dateTime={item.created_at}
                           className="shrink-0 text-right text-xs text-black/55 dark:text-white/55"
                         >
-                          {dateTimeFormatter.format(new Date(item.created_at))}
+                          {formatTimestamp(item.created_at)}
                         </time>
                       </div>
-                      <div className="text-sm">
-                        {activityDescription(row)}
-                      </div>
+                      <div className="text-sm">{activityDescription(row)}</div>
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
                         {task ? (
                           <span className="min-w-0 font-semibold">
@@ -589,9 +583,7 @@ export function ActivityPageClient({
                             />
                           )}
                           <time dateTime={item.created_at}>
-                            {dateTimeFormatter.format(
-                              new Date(item.created_at),
-                            )}
+                            {formatTimestamp(item.created_at)}
                           </time>
                         </td>
                         <td className="whitespace-nowrap px-4 py-3">

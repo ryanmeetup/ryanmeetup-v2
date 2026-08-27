@@ -38,6 +38,7 @@ import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { taskPath } from "@/lib/tasks/task-key";
 import { profileDisplayName } from "@/lib/presentation";
 import { taskStatusChange } from "@/lib/activity/task-activity";
+import { formatShortTimestamp } from "@/lib/date-format";
 import {
   boundedWidgetPage,
   DashboardTaskList,
@@ -48,12 +49,6 @@ import {
 } from "./DashboardWidgets";
 
 const dayMs = 24 * 60 * 60 * 1000;
-const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-});
 
 export function DashboardPageClient({
   initialData,
@@ -583,7 +578,7 @@ export function DashboardPageClient({
                               </span>
                               <span className="mt-2 block text-xs text-black/50 dark:text-white/50">
                                 {profileDisplayName(actor)} ·{" "}
-                                {dateTimeFormatter.format(
+                                {formatShortTimestamp(
                                   new Date(item.created_at),
                                 )}
                               </span>

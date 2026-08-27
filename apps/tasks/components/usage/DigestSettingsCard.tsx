@@ -14,11 +14,8 @@ import {
 import { runDigestNow } from "@/lib/usage/digest-client";
 import { DigestCadenceModal } from "./DigestCadenceModal";
 import { DigestStructureModal } from "./DigestStructureModal";
-
-const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
+import { errorMessage } from "@/lib/presentation";
+import { formatTimestamp } from "@/lib/date-format";
 
 function Detail({
   icon: Icon,
@@ -77,7 +74,7 @@ export function DigestSettingsCard({
       const result = await runDigestNow();
       if (result.outcome === "sent")
         toast.success(
-          `Scheduled ${result.scheduled} digest${result.scheduled === 1 ? "" : "s"} for ${dateTimeFormatter.format(new Date(result.deliverAt!))}.`,
+          `Scheduled ${result.scheduled} digest${result.scheduled === 1 ? "" : "s"} for ${formatTimestamp(result.deliverAt!)}.`,
         );
       else if (result.outcome === "empty")
         toast.success("Nobody has actionable work right now, so nothing sent.");
@@ -88,9 +85,7 @@ export function DigestSettingsCard({
       else toast.error(result.detail ?? "The digest could not be sent.");
       startRefresh(() => router.refresh());
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "The digest could not be run.",
-      );
+      toast.error(errorMessage(error, "The digest could not be run."));
     } finally {
       setSending(false);
     }
@@ -134,7 +129,7 @@ export function DigestSettingsCard({
 
           <dl className="mt-6 grid gap-3 md:grid-cols-2 2xl:grid-cols-[1fr_1fr_1.35fr]">
             <Detail icon={FiCalendar} label="Next send">
-              {next ? dateTimeFormatter.format(next) : "Not scheduled"}
+              {next ? formatTimestamp(next) : "Not scheduled"}
             </Detail>
             <Detail icon={FiClock} label="Review window">
               {`${settings.reviewMinutes} minutes before delivery`}

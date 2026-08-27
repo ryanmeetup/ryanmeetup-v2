@@ -15,25 +15,18 @@ import {
   FiChevronLeft,
   FiChevronRight,
 } from "react-icons/fi";
-import type {
-  Status,
-  Task,
-} from "@/lib/tasks/task-types";
+import type { Status, Task } from "@/lib/tasks/task-types";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { withAccessPreview } from "@/lib/access/access-preview";
 import { taskPath } from "@/lib/tasks/task-key";
 import { profileDisplayName } from "@/lib/presentation";
 import { TaskKeyBadge } from "@/components/tasks";
+import { formatCalendarDay } from "@/lib/date-format";
 
 export const widgetPageSize = 5;
 
 export const boundedWidgetPage = (page: number, total: number) =>
   Math.min(page, Math.max(0, Math.ceil(total / widgetPageSize) - 1));
-
-const dateFormatter = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-});
 
 export function StatusBadge({ status }: { status?: Status }) {
   return (
@@ -95,7 +88,7 @@ export function DashboardTaskList({
               </span>
               <span className="flex items-center gap-2 text-xs font-medium text-black/50 dark:text-white/50">
                 {task.due_date
-                  ? dateFormatter.format(new Date(`${task.due_date}T12:00:00`))
+                  ? formatCalendarDay(task.due_date)
                   : "No due date"}
                 <FiArrowRight className="transition-transform group-hover:translate-x-0.5 motion-reduce:transform-none" />
               </span>
