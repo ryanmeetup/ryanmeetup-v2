@@ -6,6 +6,14 @@ export type ResourceLink = {
 /** @deprecated Use ResourceLink. */
 export type ProjectLink = ResourceLink;
 
+export type ProjectStatus =
+  | "exploring"
+  | "planned"
+  | "active"
+  | "ongoing"
+  | "paused"
+  | "complete";
+
 export type Category = {
   id: string;
   name: string;
@@ -26,6 +34,7 @@ export type Project = {
   created_by: string;
   archived_at: string | null;
   created_at: string;
+  status: ProjectStatus;
   access_mode: "owners" | "open" | "restricted";
 };
 

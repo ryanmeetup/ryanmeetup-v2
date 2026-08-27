@@ -42,6 +42,10 @@ import {
 } from "@/components/global";
 import { errorMessage } from "@/lib/presentation";
 import type { Project } from "@/lib/resources/resource-types";
+import {
+  defaultProjectStatus,
+  projectStatusDetails,
+} from "@/lib/resources/project-status";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import {
   ExpandableResourceEditor,
@@ -61,6 +65,7 @@ import {
   ProjectAccessFields,
   type ProjectAccessGroup,
 } from "./ProjectAccessFields";
+import { ProjectStatusField } from "./ProjectStatusField";
 
 export type ProjectsModalProps = {
   modal: {
@@ -136,6 +141,7 @@ export function ProjectsModal({
   const [newAccessMode, setNewAccessMode] =
     useState<Project["access_mode"]>("owners");
   const [newAccessGroupIds, setNewAccessGroupIds] = useState<string[]>([]);
+  const [newStatus, setNewStatus] = useState(defaultProjectStatus);
   const [editingAccessMode, setEditingAccessMode] =
     useState<Project["access_mode"]>("owners");
   const [editingAccessGroupIds, setEditingAccessGroupIds] = useState<string[]>(
@@ -144,6 +150,9 @@ export function ProjectsModal({
   const [savedAccessMode, setSavedAccessMode] =
     useState<Project["access_mode"]>("owners");
   const [savedAccessGroupIds, setSavedAccessGroupIds] = useState<string[]>([]);
+  const [editingStatus, setEditingStatus] = useState(
+    directEditProject?.status ?? defaultProjectStatus,
+  );
   const [accessLoaded, setAccessLoaded] = useState(demoMode);
   const [projectStatusParam, setProjectStatus] = useQueryParamState(
     "project-status",
@@ -291,6 +300,7 @@ export function ProjectsModal({
         created_by: data.currentProfile.id,
         archived_at: null,
         created_at: new Date().toISOString(),
+        status: newStatus,
         access_mode: newAccessMode,
       };
       if (!demoMode)
@@ -303,6 +313,7 @@ export function ProjectsModal({
             accessMode: newAccessMode,
             accessGroupIds:
               newAccessMode === "restricted" ? newAccessGroupIds : [],
+            status: newStatus,
           })
         ).project!;
       if (!demoMode && attachments.length > 0) {
@@ -329,6 +340,7 @@ export function ProjectsModal({
       createState.reset();
       setNewAccessMode("owners");
       setNewAccessGroupIds([]);
+      setNewStatus(defaultProjectStatus);
       toast.success(`${project.name} created.`);
       await onCreated?.(project);
       if (createOnly) setOpen(false);
@@ -365,6 +377,7 @@ export function ProjectsModal({
           name: nextName,
           description: nextDescription,
           links: editingLinks,
+          status: editingStatus,
           ...(ownersChanged ? { ownerIds: editingOwnerIds } : {}),
         });
       if (
@@ -382,6 +395,7 @@ export function ProjectsModal({
         name: nextName,
         description: nextDescription,
         links: editingLinks,
+        status: editingStatus,
         access_mode: editingAccessMode,
       };
       onProjectUpdated?.(updatedProject);
@@ -429,6 +443,7 @@ export function ProjectsModal({
     setSavedAccessMode(project.access_mode);
     setEditingAccessGroupIds([]);
     setSavedAccessGroupIds([]);
+    setEditingStatus(project.status);
     setAccessLoaded(demoMode);
     void loadProjectAccess(project.id);
   }
@@ -560,16 +575,23 @@ export function ProjectsModal({
         descriptionPlaceholder: "What is this project working toward?",
       }}
       primarySlot={
-        <ProjectAccessFields
-          groups={accessGroups}
-          accessMode={newAccessMode}
-          groupIds={newAccessGroupIds}
-          onAccessModeChange={setNewAccessMode}
-          onGroupIdsChange={setNewAccessGroupIds}
-          disabled={creating || !accessLoaded}
-          loaded={accessLoaded}
-          owner={data.currentProfile.app_role === "owner"}
-        />
+        <div className="space-y-4">
+          <ProjectStatusField
+            value={newStatus}
+            onChange={setNewStatus}
+            disabled={creating}
+          />
+          <ProjectAccessFields
+            groups={accessGroups}
+            accessMode={newAccessMode}
+            groupIds={newAccessGroupIds}
+            onAccessModeChange={setNewAccessMode}
+            onGroupIdsChange={setNewAccessGroupIds}
+            disabled={creating || !accessLoaded}
+            loaded={accessLoaded}
+            owner={data.currentProfile.app_role === "owner"}
+          />
+        </div>
       }
     />
   );
@@ -728,6 +750,7 @@ export function ProjectsModal({
                   const isFavorite = (
                     data.currentProfile.favorite_project_ids ?? []
                   ).includes(project.id);
+                  const lifecycle = projectStatusDetails(project.status);
                   const owners = data.projectOwners
                     .filter((item) => item.project_id === project.id)
                     .flatMap((item) => {
@@ -745,21 +768,31 @@ export function ProjectsModal({
                           : "min-w-0 overflow-hidden"
                       }
                       body={
-                        project.description || (project.links ?? []).length ? (
-                          <div className="min-w-0">
-                            {project.description && (
-                              <p className="break-words text-sm text-black/60 dark:text-white/60">
-                                {project.description}
-                              </p>
-                            )}
-                            {(project.links ?? []).length > 0 && (
-                              <ResourceLinks
-                                links={project.links}
-                                className={`mt-2 ${embedded ? "mb-4" : ""}`}
-                              />
-                            )}
-                          </div>
-                        ) : undefined
+                        <div className="min-w-0">
+                          <Pill
+                            variant="neutral"
+                            size="sm"
+                            className="!normal-case !tracking-normal"
+                          >
+                            <span
+                              aria-hidden
+                              className="mr-1.5 h-2 w-2 rounded-full"
+                              style={{ backgroundColor: lifecycle.color }}
+                            />
+                            {lifecycle.label}
+                          </Pill>
+                          {project.description && (
+                            <p className="mt-2 break-words text-sm text-black/60 dark:text-white/60">
+                              {project.description}
+                            </p>
+                          )}
+                          {(project.links ?? []).length > 0 && (
+                            <ResourceLinks
+                              links={project.links}
+                              className={`mt-2 ${embedded ? "mb-4" : ""}`}
+                            />
+                          )}
+                        </div>
                       }
                       footerClassName="flex-wrap justify-start"
                       footer={
@@ -948,6 +981,7 @@ export function ProjectsModal({
           const projectChanged =
             editingName.trim() !== project.name ||
             editingDescription.trim() !== (project.description ?? "") ||
+            editingStatus !== project.status ||
             JSON.stringify(editingLinks) !==
               JSON.stringify(project.links ?? []) ||
             supportingDetailsChanged ||
@@ -1015,19 +1049,26 @@ export function ProjectsModal({
                           "What is this project working toward?",
                       }}
                       primarySlot={
-                        <ProjectAccessFields
-                          groups={accessGroups}
-                          accessMode={editingAccessMode}
-                          groupIds={editingAccessGroupIds}
-                          onAccessModeChange={setEditingAccessMode}
-                          onGroupIdsChange={setEditingAccessGroupIds}
-                          disabled={renaming || !accessLoaded}
-                          loaded={accessLoaded}
-                          owner={
-                            data.currentProfile.app_role === "owner" ||
-                            editingOwnerIds.includes(data.currentProfile.id)
-                          }
-                        />
+                        <div className="space-y-4">
+                          <ProjectStatusField
+                            value={editingStatus}
+                            onChange={setEditingStatus}
+                            disabled={renaming}
+                          />
+                          <ProjectAccessFields
+                            groups={accessGroups}
+                            accessMode={editingAccessMode}
+                            groupIds={editingAccessGroupIds}
+                            onAccessModeChange={setEditingAccessMode}
+                            onGroupIdsChange={setEditingAccessGroupIds}
+                            disabled={renaming || !accessLoaded}
+                            loaded={accessLoaded}
+                            owner={
+                              data.currentProfile.app_role === "owner" ||
+                              editingOwnerIds.includes(data.currentProfile.id)
+                            }
+                          />
+                        </div>
                       }
                     />
                   }

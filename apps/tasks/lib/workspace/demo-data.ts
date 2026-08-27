@@ -62,9 +62,7 @@ export const demoData: WorkspaceData = {
   ],
   statuses: defaultStatuses.map((status, index) => ({
     ...status,
-    id: ["backlog", "todo", "progress", "review", "done", "will-not-do"][
-      index
-    ],
+    id: ["backlog", "todo", "progress", "review", "done", "will-not-do"][index],
     order_revision: 0,
   })),
   categories: [
@@ -144,6 +142,7 @@ export const demoData: WorkspaceData = {
       created_by: "taylor",
       archived_at: null,
       created_at: at(-45),
+      status: "active",
       access_mode: "open",
     },
     {
@@ -154,6 +153,7 @@ export const demoData: WorkspaceData = {
       created_by: "taylor",
       archived_at: null,
       created_at: at(-30),
+      status: "ongoing",
       access_mode: "open",
     },
   ],

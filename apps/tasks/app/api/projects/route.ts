@@ -7,7 +7,7 @@ import {
 import { apiError, databaseFailure, notFound } from "@/lib/server/api-response";
 import { authorize } from "@/lib/server/auth";
 import { readJson } from "@/lib/server/request";
-import type { ProjectLink } from "@/lib/resources/resource-types";
+import type { Project, ProjectLink } from "@/lib/resources/resource-types";
 import { recordWorkspaceActivity } from "@/lib/server/privileged-api";
 
 export async function POST(request: Request) {
@@ -24,6 +24,7 @@ export async function POST(request: Request) {
       requested_owner_ids: parsed.data.ownerIds,
       requested_access_mode: parsed.data.accessMode,
       requested_group_ids: parsed.data.accessGroupIds,
+      requested_status: parsed.data.status,
     },
   );
   if (error)
@@ -49,7 +50,10 @@ export async function POST(request: Request) {
     }))
   )
     return NextResponse.json(
-      { error: "The project was created, but its activity could not be recorded." },
+      {
+        error:
+          "The project was created, but its activity could not be recorded.",
+      },
       { status: 500 },
     );
   return NextResponse.json({ project });
@@ -75,11 +79,13 @@ export async function PATCH(request: Request) {
     description?: string | null;
     archived_at?: string | null;
     links?: ProjectLink[];
+    status?: Project["status"];
   } = {};
   if (parsed.data.name !== undefined) updates.name = parsed.data.name;
   if (parsed.data.description !== undefined)
     updates.description = parsed.data.description || null;
   if (parsed.data.links !== undefined) updates.links = parsed.data.links;
+  if (parsed.data.status !== undefined) updates.status = parsed.data.status;
   if (parsed.data.archived !== undefined)
     updates.archived_at = parsed.data.archived
       ? new Date().toISOString()
@@ -125,9 +131,15 @@ export async function PATCH(request: Request) {
     .eq("id", parsed.data.id)
     .single();
   if (projectResult.error)
-    return databaseFailure(request, "project.activity-target", projectResult.error, {
-      error: "The project was updated, but its activity could not be recorded.",
-    });
+    return databaseFailure(
+      request,
+      "project.activity-target",
+      projectResult.error,
+      {
+        error:
+          "The project was updated, but its activity could not be recorded.",
+      },
+    );
   const action =
     parsed.data.archived === true
       ? "project.archive"
@@ -145,7 +157,10 @@ export async function PATCH(request: Request) {
     }))
   )
     return NextResponse.json(
-      { error: "The project was updated, but its activity could not be recorded." },
+      {
+        error:
+          "The project was updated, but its activity could not be recorded.",
+      },
       { status: 500 },
     );
   return NextResponse.json({ ok: true });

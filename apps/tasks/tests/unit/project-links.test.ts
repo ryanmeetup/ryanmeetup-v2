@@ -67,6 +67,24 @@ describe("ensureHttpUrlScheme", () => {
     ).toMatchObject({ accessMode: "restricted" });
   });
 
+  it("defaults new projects to active development and validates lifecycle status", () => {
+    const project = {
+      name: "Website refresh",
+      description: "Give the website a fresh coat of Ryan.",
+      links: [],
+      ownerIds: ["7b27db83-577d-4de1-b4ca-9f088832f25b"],
+      accessMode: "owners",
+      accessGroupIds: [],
+    };
+    expect(projectCreateSchema(project)).toMatchObject({ status: "active" });
+    expect(
+      projectCreateSchema({ ...project, status: "exploring" }),
+    ).toMatchObject({ status: "exploring" });
+    expect(
+      projectCreateSchema({ ...project, status: "almost-done" }),
+    ).toBeNull();
+  });
+
   it("normalizes and validates category links through the same API boundary", () => {
     const ownerId = "7b27db83-577d-4de1-b4ca-9f088832f25b";
     expect(
@@ -145,5 +163,13 @@ describe("ensureHttpUrlScheme", () => {
       name: "Website refresh, again",
       ownerIds: undefined,
     });
+  });
+
+  it("validates project status updates", () => {
+    const id = "7b27db83-577d-4de1-b4ca-9f088832f25b";
+    expect(projectPatchSchema({ id, status: "paused" })).toMatchObject({
+      status: "paused",
+    });
+    expect(projectPatchSchema({ id, status: "stuck" })).toBeNull();
   });
 });

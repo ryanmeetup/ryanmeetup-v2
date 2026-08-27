@@ -1,5 +1,9 @@
 import type { ProjectLink } from "@/lib/resources/resource-types";
 import {
+  defaultProjectStatus,
+  isProjectStatus,
+} from "@/lib/resources/project-status";
+import {
   footerVariants,
   isFeedbackHref,
   socialPlatforms,
@@ -314,6 +318,7 @@ export function projectCreateSchema(value: unknown) {
     "ownerIds",
     "accessMode",
     "accessGroupIds",
+    "status",
   ]);
   if (!body) return null;
   const name = text(body.name, 100);
@@ -327,14 +332,16 @@ export function projectCreateSchema(value: unknown) {
       ? body.accessMode
       : null;
   const accessGroupIds = uuidList(body.accessGroupIds ?? []);
+  const status = body.status ?? defaultProjectStatus;
   return name &&
     description &&
     links &&
     ownerIds?.length &&
     accessMode &&
     accessGroupIds &&
+    isProjectStatus(status) &&
     (accessMode !== "restricted" || accessGroupIds.length > 0)
-    ? { name, description, links, ownerIds, accessMode, accessGroupIds }
+    ? { name, description, links, ownerIds, accessMode, accessGroupIds, status }
     : null;
 }
 
@@ -346,6 +353,7 @@ export function projectPatchSchema(value: unknown) {
     "links",
     "archived",
     "ownerIds",
+    "status",
   ]);
   if (!body) return null;
   const id = uuid(body.id);
@@ -354,12 +362,14 @@ export function projectPatchSchema(value: unknown) {
   const links = body.links === undefined ? undefined : projectLinks(body.links);
   const ownerIds =
     body.ownerIds === undefined ? undefined : uuidList(body.ownerIds);
+  const status = body.status === undefined ? undefined : body.status;
   if (
     !id ||
     name === null ||
     description === null ||
     links === null ||
     ownerIds === null ||
+    (status !== undefined && !isProjectStatus(status)) ||
     (description !== undefined && !description) ||
     (ownerIds !== undefined && ownerIds.length === 0) ||
     (body.archived !== undefined && typeof body.archived !== "boolean")
@@ -372,6 +382,7 @@ export function projectPatchSchema(value: unknown) {
     links,
     archived: body.archived as boolean | undefined,
     ownerIds,
+    status,
   };
 }
 

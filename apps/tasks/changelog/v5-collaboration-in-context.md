@@ -73,6 +73,10 @@ The notes board now presents each note as a finished card: its title, formatted 
 
 Opening a note brings up its full text and conversation, and editing happens there too, saved deliberately with Save note instead of quietly while you type.
 
+### Project progress at a glance
+
+Projects now carry a lifecycle status—Exploring, Planned, Active development, Ongoing, Paused, or Complete—so the projects page shows what kind of work is underway without opening every board.
+
 ### Complete teammate onboarding
 
 Invited teammates now choose their sign-in password while completing their profile, so they can return to the workspace without needing a password-reset workaround.
