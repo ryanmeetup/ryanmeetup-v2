@@ -108,42 +108,6 @@ export async function mutateAccessMember(
   };
 }
 
-export async function mutateAccessGrant(
-  context: PrivilegedContext,
-  operation: Extract<
-    AccessGroupOperation,
-    { action: "grant.set" | "grant.delete" }
-  >,
-): Promise<ServiceResult> {
-  if (operation.action === "grant.delete") {
-    const response = await context.admin
-      .from("project_group_grants")
-      .delete()
-      .eq("group_id", operation.groupId)
-      .eq("project_id", operation.projectId);
-    return {
-      result: { projectId: operation.projectId },
-      targetId: operation.groupId,
-      error: response.error,
-    };
-  }
-  const response = await context.admin
-    .from("project_group_grants")
-    .upsert({
-      group_id: operation.groupId,
-      project_id: operation.projectId,
-      permission: operation.permission,
-      granted_by: context.user.id,
-    })
-    .select("*")
-    .single();
-  return {
-    result: { grant: response.data },
-    targetId: operation.groupId,
-    error: response.error,
-  };
-}
-
 export function dispatchAccessGroupOperation(
   context: PrivilegedContext,
   operation: AccessGroupOperation,
@@ -154,14 +118,6 @@ export function dispatchAccessGroupOperation(
       operation as Extract<
         AccessGroupOperation,
         { action: "group.create" | "group.update" | "group.delete" }
-      >,
-    );
-  if (operation.action.startsWith("grant."))
-    return mutateAccessGrant(
-      context,
-      operation as Extract<
-        AccessGroupOperation,
-        { action: "grant.set" | "grant.delete" }
       >,
     );
   return mutateAccessMember(

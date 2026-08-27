@@ -4,7 +4,6 @@ import { useState } from "react";
 import { accessMutation } from "@/lib/access/access-mutations";
 import type {
   AccessGroup,
-  AccessPermission,
   GroupGrant,
   GroupMember,
 } from "@/lib/access/access-types";
@@ -21,9 +20,6 @@ export function useAccessManagement({
   const [groups, setGroups] = useState(initialGroups);
   const [members, setMembers] = useState(initialMembers);
   const [grants, setGrants] = useState(initialGrants);
-  const [pendingProjectIds, setPendingProjectIds] = useState<Set<string>>(
-    new Set(),
-  );
 
   async function createGroup(
     input: Omit<AccessGroup, "id" | "created_by" | "created_at" | "updated_at">,
@@ -105,59 +101,10 @@ export function useAccessManagement({
     );
   }
 
-  async function setGrant(
-    groupId: string,
-    projectId: string,
-    permission: AccessPermission,
-  ) {
-    const { grant } = await accessMutation<{ grant: GroupGrant }>({
-      action: "grant.set",
-      groupId,
-      projectId,
-      permission,
-    });
-    setGrants((current) => [
-      ...current.filter(
-        (item) => item.group_id !== groupId || item.project_id !== projectId,
-      ),
-      grant,
-    ]);
-    return grant;
-  }
-
-  async function removeGrant(groupId: string, projectId: string) {
-    await accessMutation({ action: "grant.delete", groupId, projectId });
-    setGrants((current) =>
-      current.filter(
-        (item) => item.group_id !== groupId || item.project_id !== projectId,
-      ),
-    );
-  }
-
-  async function updateGrant(
-    groupId: string,
-    projectId: string,
-    permission: AccessPermission | "none",
-  ) {
-    setPendingProjectIds((current) => new Set(current).add(projectId));
-    try {
-      return permission === "none"
-        ? await removeGrant(groupId, projectId)
-        : await setGrant(groupId, projectId, permission);
-    } finally {
-      setPendingProjectIds((current) => {
-        const next = new Set(current);
-        next.delete(projectId);
-        return next;
-      });
-    }
-  }
-
   return {
     groups,
     members,
     grants,
-    pendingProjectIds,
     setGroups,
     setMembers,
     setGrants,
@@ -166,8 +113,5 @@ export function useAccessManagement({
     deleteGroup,
     setMember,
     removeMember,
-    setGrant,
-    removeGrant,
-    updateGrant,
   };
 }

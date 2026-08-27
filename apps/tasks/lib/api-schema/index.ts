@@ -309,14 +309,29 @@ export function projectCreateSchema(value: unknown) {
     "description",
     "links",
     "ownerIds",
+    "accessMode",
+    "accessGroupIds",
   ]);
   if (!body) return null;
   const name = text(body.name, 100);
   const description = optionalText(body.description, 1000);
   const links = projectLinks(body.links ?? []);
   const ownerIds = uuidList(body.ownerIds ?? []);
-  return name && description && links && ownerIds?.length
-    ? { name, description, links, ownerIds }
+  const accessMode =
+    body.accessMode === "owners" ||
+    body.accessMode === "open" ||
+    body.accessMode === "restricted"
+      ? body.accessMode
+      : null;
+  const accessGroupIds = uuidList(body.accessGroupIds ?? []);
+  return name &&
+    description &&
+    links &&
+    ownerIds?.length &&
+    accessMode &&
+    accessGroupIds &&
+    (accessMode !== "restricted" || accessGroupIds.length > 0)
+    ? { name, description, links, ownerIds, accessMode, accessGroupIds }
     : null;
 }
 

@@ -116,15 +116,24 @@ export async function resolveAccessPreview(
             )
             .map((candidate) => candidate.id)
         : [group.id];
-    const grants = group.grants_global_content
-      ? []
-      : requireQueryData(
-          "preview project grants",
-          await supabase
+    const [grants, openProjects] = group.grants_global_content
+      ? [[], []]
+      : await Promise.all([
+          supabase
             .from("project_group_grants")
             .select("project_id")
-            .in("group_id", inheritedGroupIds),
-        );
+            .in("group_id", inheritedGroupIds)
+            .then((result) =>
+              requireQueryData("preview project grants", result),
+            ),
+          supabase
+            .from("projects")
+            .select("id")
+            .eq("access_mode", "open")
+            .then((result) =>
+              requireQueryData("preview open projects", result),
+            ),
+        ]);
     const categoryAccess = await resolveCategoryAccess(
       supabase,
       inheritedGroupIds,
@@ -143,7 +152,12 @@ export async function resolveAccessPreview(
       },
       projectIds: group.grants_global_content
         ? options.allProjectIds
-        : [...new Set(grants.map((grant) => grant.project_id))],
+        : [
+            ...new Set([
+              ...grants.map((grant) => grant.project_id),
+              ...openProjects.map((project) => project.id),
+            ]),
+          ],
     };
   }
 
@@ -225,17 +239,34 @@ export async function resolveAccessPreview(
       projectIds: options.allProjectIds,
     };
   }
-  let projectIds: string[] = [];
-  if (groupIds.length > 0) {
-    const grants = requireQueryData(
-      "preview project grants",
-      await supabase
-        .from("project_group_grants")
-        .select("project_id")
-        .in("group_id", groupIds),
-    );
-    projectIds = [...new Set(grants.map((grant) => grant.project_id))];
-  }
+  const [grants, openProjects, ownedProjects] = await Promise.all([
+    groupIds.length > 0
+      ? supabase
+          .from("project_group_grants")
+          .select("project_id")
+          .in("group_id", groupIds)
+          .then((result) =>
+            requireQueryData("preview project grants", result),
+          )
+      : Promise.resolve([]),
+    supabase
+      .from("projects")
+      .select("id")
+      .eq("access_mode", "open")
+      .then((result) => requireQueryData("preview open projects", result)),
+    supabase
+      .from("project_owners")
+      .select("project_id")
+      .eq("profile_id", profile.id)
+      .then((result) => requireQueryData("preview owned projects", result)),
+  ]);
+  const projectIds = [
+    ...new Set([
+      ...grants.map((grant) => grant.project_id),
+      ...openProjects.map((project) => project.id),
+      ...ownedProjects.map((owner) => owner.project_id),
+    ]),
+  ];
   const categoryAccess = await resolveCategoryAccess(supabase, groupIds, false);
   return {
     preview: {

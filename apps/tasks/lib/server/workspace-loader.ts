@@ -81,7 +81,8 @@ export const WORKSPACE_COLUMNS = {
     "id,name,description,color,sort_order,order_revision,is_default,is_completed",
   categories:
     "id,name,description,color,links,tags,created_by,archived_at,access_mode",
-  projects: "id,name,description,links,created_by,archived_at,created_at",
+  projects:
+    "id,name,description,links,created_by,archived_at,created_at,access_mode",
   projectOwners: "project_id,profile_id",
   categoryOwners: "category_id,profile_id",
   tasks: TASK_COLUMNS,

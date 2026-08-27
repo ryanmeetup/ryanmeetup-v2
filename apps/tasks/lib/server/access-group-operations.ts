@@ -1,7 +1,5 @@
 import "server-only";
 
-import type { AccessPermission } from "@/lib/access/access-types";
-
 export type AccessGroupOperation =
   | {
       action: "group.create";
@@ -29,14 +27,7 @@ export type AccessGroupOperation =
       action: "member.set" | "tier.set" | "member.delete";
       groupId: string;
       profileId: string;
-    }
-  | {
-      action: "grant.set";
-      groupId: string;
-      projectId: string;
-      permission: AccessPermission;
-    }
-  | { action: "grant.delete"; groupId: string; projectId: string };
+    };
 
 const uuid = (value: unknown): value is string =>
   typeof value === "string" && /^[0-9a-f-]{36}$/i.test(value);
@@ -94,28 +85,6 @@ export function accessGroupOperationSchema(
       action: body.action,
       groupId: body.groupId,
       profileId: body.profileId,
-    };
-  if (
-    body.action === "grant.set" &&
-    uuid(body.groupId) &&
-    uuid(body.projectId) &&
-    ["viewer", "editor", "manager"].includes(String(body.permission))
-  )
-    return {
-      action: body.action,
-      groupId: body.groupId,
-      projectId: body.projectId,
-      permission: body.permission as AccessPermission,
-    };
-  if (
-    body.action === "grant.delete" &&
-    uuid(body.groupId) &&
-    uuid(body.projectId)
-  )
-    return {
-      action: body.action,
-      groupId: body.groupId,
-      projectId: body.projectId,
     };
   return null;
 }

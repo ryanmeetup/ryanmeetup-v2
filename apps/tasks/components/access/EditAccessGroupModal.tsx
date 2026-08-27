@@ -11,9 +11,6 @@ import {
 } from "@ryanmeetup/ui";
 import { FiTrash2 } from "react-icons/fi";
 import type { Profile } from "@/lib/workspace/workspace-types";
-import type { Project } from "@/lib/resources/resource-types";
-import type { AccessPermission } from "@/lib/access/access-types";
-import { GrantEditor } from "./GrantEditor";
 
 type EditableGroup = { id: string; name: string };
 
@@ -21,19 +18,14 @@ export function EditAccessGroupModal({
   currentUserId,
   calendarAccess,
   description,
-  grants,
   group,
   members,
   name,
-  onAddGrant,
   onAddMember,
   onDelete,
-  onRemoveGrant,
   onRemoveMember,
   onSubmit,
   profiles,
-  projectNames,
-  projects,
   saving,
   selectedMemberId,
   setDescription,
@@ -44,19 +36,14 @@ export function EditAccessGroupModal({
   currentUserId: string;
   calendarAccess: boolean;
   description: string;
-  grants: { project_id: string; permission: AccessPermission }[];
   group: EditableGroup | null;
   members: { profile_id: string }[];
   name: string;
-  onAddGrant: (projectId: string, permission: AccessPermission) => void;
   onAddMember: (profileId: string) => void;
   onDelete: () => void;
-  onRemoveGrant: (projectId: string) => void;
   onRemoveMember: (profileId: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   profiles: Profile[];
-  projectNames: Map<string, string>;
-  projects: Project[];
   saving: boolean;
   selectedMemberId: string;
   setDescription: (value: string) => void;
@@ -144,7 +131,7 @@ export function EditAccessGroupModal({
               </span>
             </span>
           </label>
-          <div className="grid gap-6 border-t border-black/10 pt-5 dark:border-white/10 lg:grid-cols-2">
+          <div className="border-t border-black/10 pt-5 dark:border-white/10">
             <div>
               <DropdownSelect
                 label="Add member"
@@ -204,17 +191,6 @@ export function EditAccessGroupModal({
                 })}
               </ul>
             </div>
-            <GrantEditor
-              label="Project visibility"
-              projects={projects}
-              grants={grants.map((grant) => ({
-                id: grant.project_id,
-                permission: grant.permission,
-              }))}
-              names={projectNames}
-              onAdd={onAddGrant}
-              onRemove={onRemoveGrant}
-            />
           </div>
         </form>
       )}

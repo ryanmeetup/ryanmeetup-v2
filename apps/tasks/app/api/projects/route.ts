@@ -15,50 +15,44 @@ export async function POST(request: Request) {
   if ("response" in parsed) return parsed.response;
   const authorization = await authorize({ owner: true, onboarded: true });
   if ("response" in authorization) return authorization.response;
-  const { data, error } = await authorization.supabase
-    .from("projects")
-    .insert({
-      name: parsed.data.name,
-      description: parsed.data.description,
-      links: parsed.data.links,
-      created_by: authorization.user.id,
-    })
-    .select()
-    .single();
+  const { data, error } = await authorization.supabase.rpc(
+    "create_project_with_visibility",
+    {
+      requested_name: parsed.data.name,
+      requested_description: parsed.data.description,
+      requested_links: parsed.data.links,
+      requested_owner_ids: parsed.data.ownerIds,
+      requested_access_mode: parsed.data.accessMode,
+      requested_group_ids: parsed.data.accessGroupIds,
+    },
+  );
   if (error)
     return databaseFailure(request, "project.create", error, {
       error: "The project could not be created. Try again.",
       conflictError: "A project with that name already exists.",
     });
-  if (parsed.data.ownerIds.length) {
-    const { error: ownersError } = await authorization.supabase
-      .from("project_owners")
-      .insert(
-        parsed.data.ownerIds.map((profile_id) => ({
-          project_id: data.id,
-          profile_id,
-        })),
-      );
-    if (ownersError)
-      return databaseFailure(request, "project-owners.create", ownersError, {
-        error: "The project was created, but its owners could not be saved.",
-      });
-  }
+  const project = Array.isArray(data) ? data[0] : data;
+  if (!project)
+    return apiError(
+      500,
+      "OPERATION_FAILED",
+      "The project could not be created. Try again.",
+    );
   if (
     !(await recordWorkspaceActivity(authorization.user, {
       action: "project.create",
       targetType: "project",
-      targetId: data.id,
-      name: data.name,
+      targetId: project.id,
+      name: project.name,
       href: "/projects",
-      projectId: data.id,
+      projectId: project.id,
     }))
   )
     return NextResponse.json(
       { error: "The project was created, but its activity could not be recorded." },
       { status: 500 },
     );
-  return NextResponse.json({ project: data });
+  return NextResponse.json({ project });
 }
 
 export async function PATCH(request: Request) {

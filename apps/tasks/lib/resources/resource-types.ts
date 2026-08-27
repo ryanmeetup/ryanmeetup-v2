@@ -26,6 +26,7 @@ export type Project = {
   created_by: string;
   archived_at: string | null;
   created_at: string;
+  access_mode: "owners" | "open" | "restricted";
 };
 
 export type ProjectAttachment = {

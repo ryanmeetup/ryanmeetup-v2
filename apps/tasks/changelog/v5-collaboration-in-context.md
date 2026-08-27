@@ -25,6 +25,8 @@ Owners can connect one workspace Google Calendar and grant access through access
 
 Google events now use their own magenta calendar notation so they stay distinct from blue task deadlines, and routine Home blocks no longer clutter the shared view. Time away stays at the top of each day, crowded dates open into a complete day agenda, the details sidebar can be hidden between visits, and Google connection controls live in a compact status badge above the calendar.
 
+Connecting Google Calendar now keeps deployment details out of the everyday flow: owners continue with Google when the workspace is ready, get a clear path to Admin when setup is still needed, and see friendlier guidance when a connection cannot be completed.
+
 ### Weekday task rundown
 
 Assignees now receive one concise weekday email grouping overdue work, today’s deadlines, upcoming tasks, and high-priority work without a due date. Empty rundowns are skipped to keep inboxes—and the email budget—tidy.
@@ -52,6 +54,8 @@ Comments now support nested replies, making it clear which message a teammate is
 ### A cleaner first look
 
 The zero-configuration demo now opens as a neutral team workspace with sample teammates, projects, tasks, and calendar dates that fit any organization. Demo mode skips the production beta notice and uses a compact footer, which is also the default footer treatment on sign-in and account-recovery screens.
+
+New workspaces now open with the complete Ryan Meetup workflow—Backlog, Todo, In Progress, In Review, Done, and Will Not Do—and older empty instances repair the missing board automatically.
 
 Owners can see that first look for themselves without a second deployment: **Enter demo preview** on the Admin overview swaps the workspace for the demo fixtures in their browser alone, and the demo banner carries the way back out. Nothing touched during a preview reaches the database, and the preview lapses on its own after four hours.
 
@@ -97,7 +101,7 @@ Tasks also remain visible on category-filtered boards when their project is chan
 
 Supporting links, notes, and attachments are easier to reorder on touch, pointer, and keyboard devices, and supporting notes now include rich Markdown formatting.
 
-Project and category create and edit dialogs now include access-group visibility controls, so owners can choose who can view, edit, or manage new work from the start.
+Project and category create and edit dialogs now use one clear visibility choice. New projects begin with their named owners only, selected groups can collaborate on tasks without becoming project managers, and the Access page manages project and category visibility without opening every group separately.
 
 Modal headers and action bars stay in place while longer content scrolls between them.
 

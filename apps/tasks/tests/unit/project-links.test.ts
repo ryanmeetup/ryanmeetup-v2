@@ -41,10 +41,30 @@ describe("ensureHttpUrlScheme", () => {
         description: "Give the website a fresh coat of Ryan.",
         links: [{ label: "Website", url: "ryanmeetup.com" }],
         ownerIds: ["7b27db83-577d-4de1-b4ca-9f088832f25b"],
+        accessMode: "owners",
+        accessGroupIds: [],
       }),
     ).toMatchObject({
       links: [{ label: "Website", url: "https://ryanmeetup.com/" }],
     });
+  });
+
+  it("requires a selected group for restricted project visibility", () => {
+    const project = {
+      name: "Website refresh",
+      description: "Give the website a fresh coat of Ryan.",
+      links: [],
+      ownerIds: ["7b27db83-577d-4de1-b4ca-9f088832f25b"],
+      accessMode: "restricted",
+      accessGroupIds: [],
+    };
+    expect(projectCreateSchema(project)).toBeNull();
+    expect(
+      projectCreateSchema({
+        ...project,
+        accessGroupIds: ["b80b9d63-3eed-40a3-9a17-1cf9be8867fe"],
+      }),
+    ).toMatchObject({ accessMode: "restricted" });
   });
 
   it("normalizes and validates category links through the same API boundary", () => {

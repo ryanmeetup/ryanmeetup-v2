@@ -1,20 +1,18 @@
 import { Avatar, Button, Card, IconButton } from "@ryanmeetup/ui";
-import { FiCalendar, FiEdit2, FiEye, FiFolder, FiUsers } from "react-icons/fi";
+import { FiCalendar, FiEdit2, FiEye, FiUsers } from "react-icons/fi";
 import { accessGroupSlug } from "@/lib/access/access-groups";
 import { accessPreviewHref } from "@/lib/access/access-preview";
-import type { AccessGroup, GroupGrant, GroupMember } from "@/lib/access/access-types";
+import type { AccessGroup, GroupMember } from "@/lib/access/access-types";
 import type { Profile } from "@/lib/workspace/workspace-types";
 import { AccessGroupKindBadge } from "./AccessGroupKindBadge";
 import { adminAccessGroupPath } from "@/lib/admin/admin-routes";
 
 export function AccessGroupGrid({
   groups,
-  grants,
   members,
   profiles,
 }: {
   groups: AccessGroup[];
-  grants: GroupGrant[];
   members: GroupMember[];
   profiles: Profile[];
 }) {
@@ -32,9 +30,6 @@ export function AccessGroupGrid({
       <div className="grid auto-rows-fr gap-4 md:grid-cols-2 xl:grid-cols-3">
         {groups.map((group) => {
           const groupMembers = members.filter(
-            (item) => item.group_id === group.id,
-          );
-          const groupGrants = grants.filter(
             (item) => item.group_id === group.id,
           );
           return (
@@ -63,7 +58,7 @@ export function AccessGroupGrid({
                   <FiEdit2 />
                 </IconButton.Link>
               </div>
-              <div className="mt-auto grid grid-cols-3 gap-3 border-t border-black/10 pt-4 dark:border-white/10">
+              <div className="mt-auto grid grid-cols-2 gap-3 border-t border-black/10 pt-4 dark:border-white/10">
                 <div>
                   <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-black/45 dark:text-white/45">
                     <FiUsers /> Members
@@ -94,14 +89,6 @@ export function AccessGroupGrid({
                   </p>
                   <p className="mt-2 text-sm font-semibold">
                     {group.calendar_access ? "Yes" : "No"}
-                  </p>
-                </div>
-                <div>
-                  <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-black/45 dark:text-white/45">
-                    <FiFolder /> Projects
-                  </p>
-                  <p className="mt-2 text-sm font-semibold">
-                    {groupGrants.length}
                   </p>
                 </div>
               </div>

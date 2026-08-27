@@ -26,10 +26,8 @@ import { CategoriesModal } from "@/components/categories";
 import { ProjectsModal } from "@/components/projects";
 import { AccessGroupKindBadge } from "./AccessGroupKindBadge";
 import { AccessGroupMembersPanel } from "./AccessGroupMembersPanel";
-import { ProjectPermissionMatrix } from "./ProjectPermissionMatrix";
 import type {
   AccessGroup,
-  GroupGrant,
   GroupMember,
 } from "@/lib/access/access-types";
 import {
@@ -42,14 +40,12 @@ export function AccessGroupPageClient({
   group: initialGroup,
   initialGroups,
   initialMembers,
-  initialProjectGrants,
 }: {
   currentUserId: string;
   initialData: WorkspaceData;
   group: AccessGroup;
   initialGroups: AccessGroup[];
   initialMembers: GroupMember[];
-  initialProjectGrants: GroupGrant[];
 }) {
   const router = useRouter();
   const [data, setData] = useState(initialData);
@@ -57,9 +53,9 @@ export function AccessGroupPageClient({
   const access = useAccessManagement({
     initialGroups,
     initialMembers,
-    initialGrants: initialProjectGrants,
+    initialGrants: [],
   });
-  const { members, grants: projectGrants, pendingProjectIds } = access;
+  const { members } = access;
   const [name, setName] = useState(group.name);
   const [description, setDescription] = useState(group.description ?? "");
   const [color, setColor] = useState(group.color);
@@ -244,8 +240,8 @@ export function AccessGroupPageClient({
             </div>
             <div className="mt-5 flex flex-col gap-4 border-t border-black/10 pt-5 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-black/70 dark:text-white/70">
-                Group details and hierarchy settings save here. Membership and
-                project visibility changes save automatically.
+                Group details and hierarchy settings save here. Membership
+                changes save automatically.
               </p>
               <Button
                 type="submit"
@@ -258,7 +254,7 @@ export function AccessGroupPageClient({
             </div>
           </Card>
         </form>
-        <div className="grid items-stretch gap-6 xl:grid-cols-[minmax(20rem,4fr)_minmax(0,6fr)]">
+        <div>
           <AccessGroupMembersPanel
             currentProfileId={data.currentProfile.id}
             group={group}
@@ -268,16 +264,6 @@ export function AccessGroupPageClient({
               access.setMember(group.id, profileId, group.kind === "tier")
             }
             onRemove={(profileId) => access.removeMember(group.id, profileId)}
-          />
-          <ProjectPermissionMatrix
-            group={group}
-            groups={access.groups}
-            grants={projectGrants}
-            projects={data.projects}
-            pendingProjectIds={pendingProjectIds}
-            onChange={(projectId, permission) =>
-              access.updateGrant(group.id, projectId, permission)
-            }
           />
         </div>
         <Card className="flex flex-col items-start gap-4 border-red-500/25 p-5 sm:flex-row sm:items-center sm:justify-between">

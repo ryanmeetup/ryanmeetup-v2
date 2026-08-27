@@ -542,7 +542,7 @@ export function CategoriesModal({
   const newCategoryAccessControl = (
     <>
         <DropdownSelect
-          label="Category access"
+          label="Who can access this category?"
           required
           variant="field"
           value={newAccessMode}
@@ -550,9 +550,9 @@ export function CategoriesModal({
             setNewAccessMode(value as Category["access_mode"])
           }
           options={[
-            { label: "Open to all members", value: "open" },
+            { label: "Everyone in the workspace", value: "open" },
             {
-              label: "Restricted to selected access groups",
+              label: "Selected access groups",
               value: "restricted",
             },
           ]}
@@ -1139,7 +1139,7 @@ export function CategoriesModal({
                 />
                 <>
                     <DropdownSelect
-                      label="Category access"
+                      label="Who can access this category?"
                       required
                       variant="field"
                       value={editingAccessMode}
@@ -1147,9 +1147,9 @@ export function CategoriesModal({
                         setEditingAccessMode(value as Category["access_mode"])
                       }
                       options={[
-                        { label: "Open to all members", value: "open" },
+                        { label: "Everyone in the workspace", value: "open" },
                         {
-                          label: "Restricted to selected access groups",
+                          label: "Selected access groups",
                           value: "restricted",
                         },
                       ]}

@@ -29,7 +29,6 @@ import {
 import { useSearchFilter } from "@ryanmeetup/hooks";
 import { useAccessManagement } from "@/hooks/useAccessManagement";
 import {
-  indexGrantsByGroup,
   indexGroupsByProfile,
   indexMembersByGroup,
 } from "@/lib/access/access-selectors";
@@ -43,7 +42,6 @@ import {
 } from "@/lib/access/access-team-sort";
 import { usePagination } from "@/hooks/usePagination";
 import type { Profile, WorkspaceData } from "@/lib/workspace/workspace-types";
-import type { Project } from "@/lib/resources/resource-types";
 import { CategoriesModal } from "@/components/categories";
 import { CountBadge, PageHeader } from "@/components/global";
 import { AdminPageShell } from "@/components/admin";
@@ -52,6 +50,7 @@ import { InviteTeammateModal, RemoveTeammateDialog } from "./TeamDialogs";
 import { ProfileAccessModal } from "./ProfileAccessModal";
 import { CreateAccessGroupModal } from "./CreateAccessGroupModal";
 import { EditAccessGroupModal } from "./EditAccessGroupModal";
+import { ContentVisibilityPanel } from "./ContentVisibilityPanel";
 import {
   TeamAccessGroups,
   TeamAccountStatus,
@@ -60,7 +59,6 @@ import {
 import { AccessGroupGrid } from "./AccessGroupGrid";
 import type {
   AccessGroup,
-  AccessPermission,
   GroupGrant,
   GroupMember,
   UserAccessMetadata,
@@ -81,19 +79,19 @@ export function AccessPageClient({
   currentUserId,
   initialData,
   initialProfiles,
-  projects,
   initialGroups,
   initialMembers,
   initialGroupGrants,
+  initialCategoryGrants,
   userMetadata,
 }: {
   currentUserId: string;
   initialData: WorkspaceData;
   initialProfiles: Profile[];
-  projects: Project[];
   initialGroups: AccessGroup[];
   initialMembers: GroupMember[];
   initialGroupGrants: GroupGrant[];
+  initialCategoryGrants: { category_id: string; group_id: string }[];
   userMetadata: UserAccessMetadata[];
 }) {
   const [data, setData] = useState(initialData);
@@ -136,10 +134,6 @@ export function AccessPageClient({
   const [teamSortDirection, setTeamSortDirection] =
     useState<TeamSortDirection>("asc");
   const { page, pageSize, setPage, setPageSize } = usePagination();
-  const projectNames = useMemo(
-    () => new Map(projects.map((project) => [project.id, project.name])),
-    [projects],
-  );
   const metadataByProfile = useMemo(
     () =>
       new Map(teamMetadata.map((metadata) => [metadata.profileId, metadata])),
@@ -180,15 +174,8 @@ export function AccessPageClient({
     [groups, members],
   );
   const membersByGroup = useMemo(() => indexMembersByGroup(members), [members]);
-  const grantsByGroup = useMemo(
-    () => indexGrantsByGroup(groupGrants),
-    [groupGrants],
-  );
   const editingMembers = editingGroup
     ? (membersByGroup.get(editingGroup.id) ?? [])
-    : [];
-  const editingGrants = editingGroup
-    ? (grantsByGroup.get(editingGroup.id) ?? [])
     : [];
 
   useEffect(() => {
@@ -242,17 +229,6 @@ export function AccessPageClient({
   }
   async function removeMember(groupId: string, profileId: string) {
     await access.removeMember(groupId, profileId);
-  }
-  async function setGroupGrant(
-    groupId: string,
-    projectId: string,
-    permission: AccessPermission,
-  ) {
-    if (!projectId) return;
-    await access.setGrant(groupId, projectId, permission);
-  }
-  async function removeGroupGrant(groupId: string, projectId: string) {
-    await access.removeGrant(groupId, projectId);
   }
   async function confirmDeleteGroup() {
     if (!deleteGroup) return;
@@ -423,7 +399,15 @@ export function AccessPageClient({
           icon={FiShield}
           title="Access"
           badge={<CountBadge size="lg" label="group">{groups.length}</CountBadge>}
-          description="Decide who belongs to each group and which projects that group can see."
+          description="Manage workspace membership, access groups, and content visibility."
+        />
+
+        <ContentVisibilityPanel
+          projects={data.projects}
+          categories={data.categories}
+          groups={groups}
+          projectGrants={groupGrants}
+          categoryGrants={initialCategoryGrants}
         />
 
         <section aria-labelledby="groups-heading" className="space-y-4">
@@ -442,7 +426,6 @@ export function AccessPageClient({
           </div>
           <AccessGroupGrid
             groups={groups}
-            grants={groupGrants}
             members={members}
             profiles={profiles}
           />
@@ -831,14 +814,9 @@ export function AccessPageClient({
         calendarAccess={editingGroup?.calendar_access ?? false}
         currentUserId={currentUserId}
         description={editingDescription}
-        grants={editingGrants}
         group={editingGroup}
         members={editingMembers}
         name={editingName}
-        onAddGrant={(projectId, permission) => {
-          if (editingGroup)
-            void setGroupGrant(editingGroup.id, projectId, permission);
-        }}
         onAddMember={(profileId) => {
           if (!editingGroup) return;
           setMemberSelections((current) => ({
@@ -850,16 +828,11 @@ export function AccessPageClient({
         onDelete={() => {
           if (editingGroup) setDeleteGroup(editingGroup);
         }}
-        onRemoveGrant={(projectId) => {
-          if (editingGroup) void removeGroupGrant(editingGroup.id, projectId);
-        }}
         onRemoveMember={(profileId) => {
           if (editingGroup) void removeMember(editingGroup.id, profileId);
         }}
         onSubmit={updateGroup}
         profiles={profiles}
-        projectNames={projectNames}
-        projects={projects}
         saving={saving}
         selectedMemberId={
           editingGroup ? (memberSelections[editingGroup.id] ?? "") : ""
