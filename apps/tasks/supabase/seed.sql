@@ -1,8 +1,8 @@
 -- Default statuses, matching the Ryan Meetup workspace.
 --
 -- A workspace is unusable without at least one status: the board has no
--- columns and no task can be created. These are seeded rather than created
--- by a migration so a restored database and a fresh one start the same way.
+-- columns and no task can be created. `handle_new_user` also installs these
+-- rows for hosted projects where the optional seed step was skipped.
 
 insert into public.statuses (name, description, color, sort_order, is_default, is_completed)
 select * from (values

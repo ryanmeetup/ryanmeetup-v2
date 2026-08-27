@@ -7,6 +7,7 @@ class RedirectError extends Error {
 }
 
 const getUser = vi.fn();
+const seedDefaultStatusesIfEmpty = vi.fn();
 
 vi.mock("next/navigation", () => ({
   notFound: () => {
@@ -24,6 +25,10 @@ vi.mock("@/lib/supabase/server", () => ({
 vi.mock("@/lib/server/workspace-loader", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/server/workspace-loader")>()),
   loadWorkspace: vi.fn(),
+}));
+
+vi.mock("@/lib/server/default-statuses", () => ({
+  seedDefaultStatusesIfEmpty,
 }));
 
 const { loadWorkspacePage } = await import("@/lib/server/workspace-page-loader");
@@ -61,5 +66,25 @@ describe("loadWorkspacePage error handling", () => {
     await expect(
       loadWorkspacePage(["statuses"], { onLoadError: "throw" }),
     ).rejects.toMatchObject({ location: "/login" });
+  });
+
+  it("repairs and reloads an empty status collection", async () => {
+    const workspace = {
+      currentProfile: { id: "ryan", onboarding_completed: true },
+      statuses: [],
+    };
+    const repaired = {
+      ...workspace,
+      statuses: [{ id: "backlog", name: "Backlog" }],
+    };
+    loadWorkspaceMock
+      .mockResolvedValueOnce(workspace as never)
+      .mockResolvedValueOnce(repaired as never);
+
+    await expect(loadWorkspacePage(["statuses"])).resolves.toMatchObject({
+      data: repaired,
+    });
+    expect(seedDefaultStatusesIfEmpty).toHaveBeenCalledOnce();
+    expect(loadWorkspaceMock).toHaveBeenCalledTimes(2);
   });
 });

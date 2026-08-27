@@ -73,9 +73,11 @@ uploaded file.
 
 ### The seed
 
-`supabase/seed.sql` inserts the six default statuses. A workspace without at
-least one status is unusable: the board has no columns and no task can be
-created.
+`supabase/seed.sql` inserts the six default statuses. `handle_new_user` installs
+the same rows when the first account is created on a hosted project where the
+seed was not run, and the server repairs an older empty instance on its next
+authenticated workspace load. A workspace without at least one status is
+unusable: the board has no columns and no task can be created.
 
 | Name        | Color     | Order | Completes tasks |
 | ----------- | --------- | ----- | --------------- |
@@ -92,8 +94,10 @@ Postgres rejects a deferrable constraint as an `on conflict` arbiter with
 `SQLSTATE 55000`. The guard also makes the seed safe to re-run.
 
 `supabase db reset` runs the seed automatically. That is a **local** command;
-never point it at a hosted project. To seed a hosted database, run
-`psql "$DB_URL" -f supabase/seed.sql` or paste the file into the SQL editor.
+never point it at a hosted project. The first signup bootstraps a hosted
+project automatically, though the idempotent seed can still be applied with
+`psql "$DB_URL" -f supabase/seed.sql` or through the SQL editor when validating
+a new installation before signup.
 
 ### Why the default access tier is not in the seed
 

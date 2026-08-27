@@ -10,6 +10,7 @@ import {
 } from "@/lib/server/workspace-loader";
 import { isDemoBuild } from "@/lib/instance";
 import { DEMO_PREVIEW_COOKIE, DEMO_PREVIEW_VALUE } from "@/lib/demo-preview";
+import { seedDefaultStatusesIfEmpty } from "@/lib/server/default-statuses";
 
 /**
  * Whether this request renders the demo workspace, either because the build
@@ -64,6 +65,14 @@ export async function loadWorkspacePage(
   let data;
   try {
     data = await loadWorkspace(supabase, auth.user.id, collections);
+    if (
+      data &&
+      collections.includes("statuses") &&
+      data.statuses.length === 0
+    ) {
+      await seedDefaultStatusesIfEmpty();
+      data = await loadWorkspace(supabase, auth.user.id, collections);
+    }
   } catch (error) {
     if (error instanceof WorkspaceLoadError && onLoadError === "redirect") {
       redirect("/profile");

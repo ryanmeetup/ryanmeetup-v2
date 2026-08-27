@@ -699,6 +699,21 @@ begin
     coalesce(nullif(new.raw_user_meta_data ->> 'full_name', ''), split_part(new.email, '@', 1))
   );
 
+  -- Hosted projects apply the schema independently from seed.sql. Give the
+  -- first user the same board used by Ryan Meetup even when that optional seed
+  -- step was skipped.
+  perform pg_advisory_xact_lock(hashtextextended('public.statuses.bootstrap', 0));
+  insert into public.statuses (name, description, color, sort_order, is_default, is_completed)
+  select * from (values
+    ('Backlog', 'Ideas and requests that are not ready to schedule yet.', '#64748b', 0, true, false),
+    ('Todo', 'Ready to be picked up and worked on.', '#2563eb', 1, true, false),
+    ('In Progress', 'Actively being worked on right now.', '#d97706', 2, true, false),
+    ('In Review', 'Waiting for feedback, approval, or final checks.', '#7c3aed', 3, true, false),
+    ('Done', 'Finished work that no longer needs action.', '#059669', 4, true, true),
+    ('Will Not Do', null, '#f51b2b', 5, true, false)
+  ) as defaults (name, description, color, sort_order, is_default, is_completed)
+  where not exists (select 1 from public.statuses);
+
   select access_group.id into tier_id
   from public.access_groups access_group
   where access_group.kind = 'tier'

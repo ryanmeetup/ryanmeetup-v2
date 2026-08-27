@@ -70,9 +70,10 @@ committed baseline. `docs/DATABASE.md` is the reference for that half.
 ### 1. The schema baseline (done)
 
 `supabase/migrations/20260731000000_baseline_schema.sql` reproduces the whole
-database, and `supabase/seed.sql` seeds the six default statuses. Both are
-committed, so a new project is built with `supabase db push` and the seed file
-rather than by hand.
+database, and the first signup seeds the six default statuses. The idempotent
+`supabase/seed.sql` remains available for local resets and pre-signup
+verification, so a new project is built from committed sources rather than by
+hand.
 
 **`docs/DATABASE.md` is the reference for all of it** — what the baseline
 contains, why it was captured with `db dump` rather than `db pull`, the three
@@ -112,9 +113,11 @@ project fights the checked-in config on every command.
    supabase db push        # baseline, then digest_schedule, then any later ones
    ```
 
-3. Apply the seed: `psql "$DB_URL" -f supabase/seed.sql`, or paste it into the
-   SQL editor. `supabase db reset` runs it automatically, but that is a local
-   command and must never be pointed at a hosted project.
+3. Optionally apply the idempotent seed before signup with
+   `psql "$DB_URL" -f supabase/seed.sql`, or paste it into the SQL editor.
+   Otherwise the first signup creates the same six statuses automatically.
+   `supabase db reset` runs the seed automatically, but that is a local command
+   and must never be pointed at a hosted project.
 4. Storage buckets and their policies come with the baseline — nothing to create
    by hand. Confirm all six exist with the public flags in the table above;
    `public` set wrong on `task-attachments` would expose every uploaded file.

@@ -1,5 +1,6 @@
 import type { Contact } from "@/lib/contacts/contact-types";
 import type { Note, NoteComment } from "@/lib/resources/resource-types";
+import { defaultStatuses } from "./default-statuses";
 import type { WorkspaceData } from "./workspace-types";
 
 /**
@@ -55,58 +56,13 @@ export const demoData: WorkspaceData = {
       favorite_project_ids: [],
     },
   ],
-  statuses: [
-    {
-      id: "backlog",
-      name: "Backlog",
-      description: "Ideas and requests that are not ready to schedule yet.",
-      color: "#64748b",
-      sort_order: 0,
-      order_revision: 0,
-      is_default: true,
-      is_completed: false,
-    },
-    {
-      id: "todo",
-      name: "Todo",
-      description: "Ready to be picked up and worked on.",
-      color: "#2563eb",
-      sort_order: 1,
-      order_revision: 0,
-      is_default: true,
-      is_completed: false,
-    },
-    {
-      id: "progress",
-      name: "In Progress",
-      description: "Actively being worked on right now.",
-      color: "#d97706",
-      sort_order: 2,
-      order_revision: 0,
-      is_default: true,
-      is_completed: false,
-    },
-    {
-      id: "review",
-      name: "In Review",
-      description: "Waiting for feedback, approval, or final checks.",
-      color: "#7c3aed",
-      sort_order: 3,
-      order_revision: 0,
-      is_default: true,
-      is_completed: false,
-    },
-    {
-      id: "done",
-      name: "Done",
-      description: "Finished work that no longer needs action.",
-      color: "#059669",
-      sort_order: 4,
-      order_revision: 0,
-      is_default: true,
-      is_completed: true,
-    },
-  ],
+  statuses: defaultStatuses.map((status, index) => ({
+    ...status,
+    id: ["backlog", "todo", "progress", "review", "done", "will-not-do"][
+      index
+    ],
+    order_revision: 0,
+  })),
   categories: [
     {
       id: "operations",
@@ -184,6 +140,7 @@ export const demoData: WorkspaceData = {
       created_by: "taylor",
       archived_at: null,
       created_at: at(-45),
+      access_mode: "open",
     },
     {
       id: "fall-launch",
@@ -193,6 +150,7 @@ export const demoData: WorkspaceData = {
       created_by: "taylor",
       archived_at: null,
       created_at: at(-30),
+      access_mode: "open",
     },
   ],
   subtasks: [],

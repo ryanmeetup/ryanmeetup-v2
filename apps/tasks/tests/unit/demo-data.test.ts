@@ -6,6 +6,7 @@ import {
   demoNotes,
 } from "@/lib/workspace/demo-data";
 import { demoTaskDrafts } from "@/lib/workspace/demo-drafts";
+import { defaultStatuses } from "@/lib/workspace/default-statuses";
 
 describe("demo workspace", () => {
   it("uses neutral first-run content", () => {
@@ -17,6 +18,13 @@ describe("demo workspace", () => {
       "Website Refresh",
       "Fall Launch",
     ]);
+  });
+
+  it("uses the complete default workspace board", () => {
+    expect(demoData.statuses).toHaveLength(defaultStatuses.length);
+    defaultStatuses.forEach((status, index) => {
+      expect(demoData.statuses[index]).toMatchObject(status);
+    });
   });
 
   it("keeps fixture relationships connected", () => {
