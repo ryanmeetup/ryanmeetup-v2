@@ -17,6 +17,8 @@ if (!url || !secret) {
   process.exit(0);
 }
 
+const projectRef = new URL(url).hostname.split(".")[0];
+
 let response;
 try {
   response = await fetch(`${url}/rest/v1/rpc/beginner_flow_health`, {
@@ -39,7 +41,7 @@ try {
 
 if (!response.ok) {
   console.error(
-    `Database contract preflight failed (${response.status}). Apply and verify the linked database changes before deploying the app.`,
+    `Database contract preflight failed for ${projectRef} (${response.status}). Apply and verify the linked database changes before deploying the app.`,
   );
   process.exit(1);
 }
@@ -52,4 +54,4 @@ if (!health?.contractOk) {
   process.exit(1);
 }
 
-console.log("Database contract preflight passed.");
+console.log(`Database contract preflight passed for ${projectRef}.`);
