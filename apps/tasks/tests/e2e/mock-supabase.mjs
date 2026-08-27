@@ -20,6 +20,17 @@ const server = createServer((request, response) => {
     return;
   }
 
+  /**
+   * Demo preview asks the database whether the caller owns the app, and the
+   * workspace specs ride that flag to reach the shell without a session. The
+   * double answers yes because nothing else in the suite depends on ownership;
+   * the real gate lives in Postgres, where a forged cookie gets nowhere.
+   */
+  if (url.pathname === "/rest/v1/rpc/is_app_owner") {
+    json(response, 200, true);
+    return;
+  }
+
   if (url.pathname === "/auth/v1/user") {
     json(response, 401, { message: "Auth session missing" });
     return;
