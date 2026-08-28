@@ -75,7 +75,7 @@ Opening a note brings up its full text and conversation, and editing happens the
 
 ### Project progress at a glance
 
-Projects now carry a lifecycle status—Exploring, Planned, Active development, Ongoing, Paused, or Complete—so the projects page shows what kind of work is underway without opening every board.
+Projects now carry a lifecycle status—Discovery, Queued, Active, Paused, or Complete—so the projects page shows what kind of work is underway without opening every board.
 
 ### Complete teammate onboarding
 

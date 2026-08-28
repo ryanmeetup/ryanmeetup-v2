@@ -5,10 +5,9 @@ export const projectStatusOptions: {
   label: string;
   value: ProjectStatus;
 }[] = [
-  { label: "Exploring", value: "exploring", color: "#7c3aed" },
-  { label: "Planned", value: "planned", color: "#2563eb" },
-  { label: "Active development", value: "active", color: "#d97706" },
-  { label: "Ongoing", value: "ongoing", color: "#0891b2" },
+  { label: "Discovery", value: "discovery", color: "#7c3aed" },
+  { label: "Queued", value: "queued", color: "#2563eb" },
+  { label: "Active", value: "active", color: "#d97706" },
   { label: "Paused", value: "paused", color: "#64748b" },
   { label: "Complete", value: "complete", color: "#059669" },
 ];

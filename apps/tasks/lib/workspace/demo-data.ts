@@ -153,7 +153,7 @@ export const demoData: WorkspaceData = {
       created_by: "taylor",
       archived_at: null,
       created_at: at(-30),
-      status: "ongoing",
+      status: "discovery",
       access_mode: "open",
     },
   ],

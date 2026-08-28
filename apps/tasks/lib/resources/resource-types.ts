@@ -7,10 +7,9 @@ export type ResourceLink = {
 export type ProjectLink = ResourceLink;
 
 export type ProjectStatus =
-  | "exploring"
-  | "planned"
+  | "discovery"
+  | "queued"
   | "active"
-  | "ongoing"
   | "paused"
   | "complete";
 
