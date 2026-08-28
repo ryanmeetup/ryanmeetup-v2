@@ -4,7 +4,8 @@ import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { TASK_COLUMNS } from "./database-shapes";
 import type { WorkspaceData } from "./workspace-types";
-import type { RealtimePayload } from "./workspace-state";
+import { eventRow, type RealtimePayload } from "./workspace-state";
+import { publishResourceAttachmentsChanged } from "@/lib/resources/resource-attachment-events";
 import {
   reconcileAttachmentEvent,
   reconcileCategoryOwnerEvent,
@@ -147,6 +148,28 @@ function createSharedSubscription(
       "postgres_changes",
       { event: "*", schema: "public", table },
       (value) => setData((current) => reconcile(current, asPayload(value))),
+    );
+  }
+  /**
+   * Project and category attachments are not part of the workspace snapshot —
+   * the board header and the resource editors each fetch their own, signed —
+   * so these events only tell those views which resource to reload. A delete
+   * carries just the row id, which reloads every view of that kind.
+   */
+  for (const [table, kind, column] of [
+    ["project_attachments", "project", "project_id"],
+    ["category_attachments", "category", "category_id"],
+  ] as const) {
+    channel.on(
+      "postgres_changes",
+      { event: "*", schema: "public", table },
+      (value) => {
+        const resourceId = eventRow(asPayload(value))[column];
+        publishResourceAttachmentsChanged({
+          kind,
+          resourceId: typeof resourceId === "string" ? resourceId : null,
+        });
+      },
     );
   }
   channel

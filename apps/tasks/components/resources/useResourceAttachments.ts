@@ -1,11 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "@ryanmeetup/ui";
 import { MAX_ATTACHMENT_SIZE } from "@/lib/tasks/task-attachments";
 import { errorMessage } from "@/lib/presentation";
 import type { ResourceAttachment } from "@/lib/resources/resource-types";
 import type { ResourceAttachmentDraft } from "@/lib/resources/resource-management";
+import {
+  publishResourceAttachmentsChanged,
+  resourceAttachmentsAffected,
+  subscribeToResourceAttachments,
+} from "@/lib/resources/resource-attachment-events";
 import {
   appendAttachmentDraft,
   createFileDraft,
@@ -41,31 +46,14 @@ export function useResourceAttachments({
   );
   const [loading, setLoading] = useState(!demoMode && Boolean(resourceId));
   const [saving, setSaving] = useState(false);
-
+  // Identifies this view on the change bus so it skips its own writes.
+  const origin = useMemo(() => ({}), []);
+  // Held in a ref so reloading does not depend on the caller's draft handler,
+  // which is a fresh function on every render.
+  const notifyDrafts = useRef(draftState?.onChange);
   useEffect(() => {
-    if (demoMode || !resourceId) return;
-    const controller = new AbortController();
-    void fetch(`${endpoint}?${idKey}=${encodeURIComponent(resourceId)}`, {
-      signal: controller.signal,
-    })
-      .then(async (response) => {
-        const result = (await response.json()) as {
-          attachments?: ResourceAttachment[];
-          error?: string;
-        };
-        if (!response.ok) throw new Error(result.error);
-        setItems(result.attachments ?? []);
-      })
-      .catch((error) => {
-        if (error instanceof DOMException && error.name === "AbortError")
-          return;
-        toast.error(
-          `${kind === "project" ? "Project" : "Category"} attachments could not be loaded.`,
-        );
-      })
-      .finally(() => setLoading(false));
-    return () => controller.abort();
-  }, [demoMode, endpoint, idKey, kind, resourceId]);
+    notifyDrafts.current = draftState?.onChange;
+  });
 
   const updateItems = useCallback(
     (
@@ -73,12 +61,71 @@ export function useResourceAttachments({
     ) => {
       setItems((current) => {
         const next = update(current);
-        draftState?.onChange(next);
+        notifyDrafts.current?.(next);
         return next;
       });
     },
-    [draftState],
+    [],
   );
+
+  const load = useCallback(
+    async (signal: AbortSignal) => {
+      if (demoMode || !resourceId) return;
+      try {
+        const response = await fetch(
+          `${endpoint}?${idKey}=${encodeURIComponent(resourceId)}`,
+          { signal },
+        );
+        const result = (await response.json()) as {
+          attachments?: ResourceAttachment[];
+          error?: string;
+        };
+        if (!response.ok) throw new Error(result.error);
+        updateItems(() => result.attachments ?? []);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError")
+          return;
+        toast.error(
+          `${kind === "project" ? "Project" : "Category"} attachments could not be loaded.`,
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [demoMode, endpoint, idKey, kind, resourceId, updateItems],
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void load(controller.signal);
+    return () => controller.abort();
+  }, [load]);
+
+  /**
+   * A write from another view of this resource — the edit modal opened over
+   * the board, another tab, a teammate — has to reach this copy, or it keeps
+   * showing what it fetched until the page is reloaded.
+   */
+  useEffect(() => {
+    if (demoMode || !resourceId) return;
+    const controller = new AbortController();
+    const unsubscribe = subscribeToResourceAttachments((change) => {
+      if (!resourceAttachmentsAffected(change, { kind, resourceId, origin }))
+        return;
+      void load(controller.signal);
+    });
+    return () => {
+      unsubscribe();
+      controller.abort();
+    };
+  }, [demoMode, kind, load, origin, resourceId]);
+
+  /** Tells the other views of this resource to reload. */
+  function announceChange() {
+    onMutation?.();
+    if (!demoMode && resourceId)
+      publishResourceAttachmentsChanged({ kind, resourceId, origin });
+  }
 
   async function addNote(name: string, body: string) {
     if (!name.trim() || !body.trim())
@@ -111,7 +158,7 @@ export function useResourceAttachments({
         attachment = result.attachment;
       }
       updateItems((current) => appendAttachmentDraft(current, attachment));
-      onMutation?.();
+      announceChange();
       toast.success("Note attached.");
     } finally {
       setSaving(false);
@@ -152,7 +199,7 @@ export function useResourceAttachments({
           attachment = result.attachment;
         }
         updateItems((current) => appendAttachmentDraft(current, attachment));
-        onMutation?.();
+        announceChange();
         uploaded += 1;
       } catch (error) {
         toast.error(
@@ -172,7 +219,7 @@ export function useResourceAttachments({
   async function remove(item: ResourceAttachmentDraft) {
     updateItems((current) => removeAttachmentDraft(current, item.id));
     if (demoMode || !resourceId) {
-      onMutation?.();
+      announceChange();
       return;
     }
     try {
@@ -182,7 +229,7 @@ export function useResourceAttachments({
       );
       const result = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(result.error);
-      onMutation?.();
+      announceChange();
     } catch (error) {
       updateItems((current) => appendAttachmentDraft(current, item));
       toast.error(errorMessage(error, "The attachment could not be removed."));
@@ -203,7 +250,7 @@ export function useResourceAttachments({
     );
     updateItems(() => drafts);
     if (demoMode || !resourceId) {
-      onMutation?.();
+      announceChange();
       return;
     }
     try {
@@ -214,7 +261,7 @@ export function useResourceAttachments({
       });
       const result = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(result.error);
-      onMutation?.();
+      announceChange();
     } catch (error) {
       updateItems(() => previous);
       toast.error(
@@ -262,7 +309,7 @@ export function useResourceAttachments({
           ),
         );
       }
-      onMutation?.();
+      announceChange();
       toast.success("Note updated.");
     } catch (error) {
       updateItems(() => previous);
