@@ -35,7 +35,7 @@ describe("project status accents", () => {
   });
 
   it("gives the resting state a color too, so no project renders unmarked", () => {
-    expect(projectStatusDetails("active").color).toBe("#d97706");
+    expect(projectStatusDetails("discovery").color).toBe("#7c3aed");
   });
 });
 
@@ -49,8 +49,8 @@ describe("project status grouping", () => {
       project("Build", "active"),
     ]);
     expect(groups.map((group) => group.value)).toEqual([
-      "active",
       "discovery",
+      "active",
       "complete",
     ]);
   });

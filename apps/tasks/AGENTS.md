@@ -186,6 +186,21 @@ with `supabase db push`, or make CI depend on reconstructing the production
 schema locally. Keep database changes idempotent where practical and document
 security-sensitive behavior in the access-control specification.
 
+### Who applies database fixes, per instance
+
+The two instances are reached differently, so a database fix is handed over
+differently depending on which one it is. See `docs/DATABASE.md` for the full
+split.
+
+- **RMT (`tasks.ryanmeetup.com`, ref `lvfaartgcpphuokoswcm`).** This machine is
+  linked and authenticated. Run the `supabase` commands yourself and verify the
+  result rather than handing Ryan a manual step.
+- **PRD (`projects.ryanle.dev`, ref `vjsnobmfsfrsnwukfaoq`).** This machine's
+  Supabase login has no access to that project, so `supabase link` and
+  `supabase db push` cannot reach it. Never hand over CLI commands for PRD.
+  Give Ryan the exact SQL to paste into the Supabase web SQL editor instead —
+  complete, runnable as one block, and safe to re-run.
+
 ## Demo mode
 
 Demo mode is a supported local product path, not test scaffolding. It is also

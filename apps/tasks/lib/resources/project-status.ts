@@ -5,14 +5,14 @@ export const projectStatusOptions: {
   label: string;
   value: ProjectStatus;
 }[] = [
-  { label: "Active", value: "active", color: "#d97706" },
-  { label: "Queued", value: "queued", color: "#2563eb" },
   { label: "Discovery", value: "discovery", color: "#7c3aed" },
-  { label: "Paused", value: "paused", color: "#64748b" },
+  { label: "Queued", value: "queued", color: "#2563eb" },
+  { label: "Active", value: "active", color: "#d97706" },
   { label: "Complete", value: "complete", color: "#059669" },
+  { label: "Paused", value: "paused", color: "#64748b" },
 ];
 
-export const defaultProjectStatus: ProjectStatus = "active";
+export const defaultProjectStatus: ProjectStatus = "discovery";
 
 export function isProjectStatus(value: unknown): value is ProjectStatus {
   return projectStatusOptions.some((option) => option.value === value);
