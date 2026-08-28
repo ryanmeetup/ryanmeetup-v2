@@ -11,7 +11,7 @@ select * from (values
   ('In Progress', 'Actively being worked on right now.', '#d97706', 2, true, false),
   ('In Review', 'Waiting for feedback, approval, or final checks.', '#7c3aed', 3, true, false),
   ('Done', 'Finished work that no longer needs action.', '#059669', 4, true, true),
-  ('Will Not Do', null, '#f51b2b', 5, true, false)
+  ('Will Not Do', 'Work that has been intentionally declined and will not be pursued.', '#f51b2b', 5, true, false)
 ) as seed (name, description, color, sort_order, is_default, is_completed)
 -- Only seed an empty workspace. `on conflict` cannot be used here: the unique
 -- constraint on statuses is deferrable, which Postgres rejects as an arbiter.

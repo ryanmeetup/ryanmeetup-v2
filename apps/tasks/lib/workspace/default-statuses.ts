@@ -49,7 +49,7 @@ export const defaultStatuses = [
   },
   {
     name: "Will Not Do",
-    description: null,
+    description: "Work that has been intentionally declined and will not be pursued.",
     color: "#f51b2b",
     sort_order: 5,
     is_default: true,
