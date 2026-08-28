@@ -198,8 +198,12 @@ split.
 - **PRD (`projects.ryanle.dev`, ref `vjsnobmfsfrsnwukfaoq`).** This machine's
   Supabase login has no access to that project, so `supabase link` and
   `supabase db push` cannot reach it. Never hand over CLI commands for PRD.
-  Give Ryan the exact SQL to paste into the Supabase web SQL editor instead —
-  complete, runnable as one block, and safe to re-run.
+  Give Ryan the exact SQL to paste into the PRD Supabase dashboard's **SQL
+  Editor** instead — copied from the committed migration, complete, runnable as
+  one block, and safe to re-run where practical. Include a separate verification
+  query with the expected result, and say explicitly that both blocks run on
+  PRD. Do not substitute a migration filename, repository link, prose summary,
+  or CLI command for the paste-ready SQL.
 
 ## Demo mode
 

@@ -382,7 +382,16 @@ For a database change:
 3. Run the relevant unit and route tests. The Playwright suite runs against a
    stub and verifies nothing about the schema.
 4. Commit the file with the code that depends on it.
-5. `supabase db push` to **both** instances' projects.
+5. Apply the migration to both instances using their supported paths:
+   - **RMT** (`lvfaartgcpphuokoswcm`): this machine has CLI access. Run
+     `supabase db push` yourself and verify the remote migration state.
+   - **PRD** (`vjsnobmfsfrsnwukfaoq`): Ryan does not have CLI access. Never
+     hand him `supabase link`, `supabase db push`, or other CLI instructions
+     for PRD. Give him the exact, complete SQL block to paste into the PRD
+     Supabase dashboard's **SQL Editor**, followed by a concrete verification
+     query and its expected result. Source that SQL from the committed
+     migration, make it safe to re-run where practical, and state explicitly
+     that it must be run against PRD rather than RMT.
 
 Code that reads a table added by a migration that may not be applied yet can
 tolerate a missing relation through `isMissingRelation` in
