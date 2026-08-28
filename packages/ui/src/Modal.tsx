@@ -22,6 +22,12 @@ export type ModalProps = {
   children: ReactNode;
   closable?: boolean;
   /**
+   * Let a click on the dimmed area dismiss the dialog. Off by default so a
+   * stray click can't discard a half-filled form: closing then takes an
+   * explicit cancel or close. Opt in for read-only dialogs like image viewers.
+   */
+  dismissOnOutsideClick?: boolean;
+  /**
    * The primary button group: right-aligned in the footer, or in the header
    * when `embedded`. Pass `ModalActions` for the standard cancel/confirm pair.
    */
@@ -52,6 +58,9 @@ const headerActionGroup =
 const footerActionGroup =
   "flex gap-3 [&>*]:w-full [&>span>*]:w-full sm:flex-row sm:items-center sm:gap-2 sm:[&>*]:w-auto sm:[&>span>*]:w-auto";
 
+const overlayStyles =
+  "fixed inset-0 flex w-screen items-center justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]";
+
 const sizeStyles: Record<ModalSize, string> = {
   sm: "max-w-sm",
   md: "max-w-lg",
@@ -68,6 +77,7 @@ const Modal = ({
   description,
   children,
   closable = true,
+  dismissOnOutsideClick = false,
   actions,
   supportingActions,
   footerContent,
@@ -141,6 +151,113 @@ const Modal = ({
     );
   }
 
+  const cardStyle = maxHeight ? { maxHeight } : undefined;
+  const cardClassName = `mx-auto flex w-full min-h-0 flex-col ${sizeStyles[size]} ${maxHeight ? "" : "max-h-[min(42rem,calc(100dvh-max(1rem,env(safe-area-inset-top))-max(1rem,env(safe-area-inset-bottom))))] sm:max-h-[calc(100dvh-max(1rem,env(safe-area-inset-top))-max(1rem,env(safe-area-inset-bottom)))]"} overflow-hidden rounded-2xl border border-black/15 bg-white shadow-[0_24px_80px_rgba(0,0,0,0.35)] ring-1 ring-black/5 dark:border-white/20 dark:bg-[#181818] dark:shadow-[0_28px_100px_rgba(0,0,0,0.85)] dark:ring-white/10 ${panelClassName ?? ""}`;
+
+  const cardContent = (
+    <>
+      <div className="flex w-full shrink-0 items-start justify-between gap-4 border-b border-black/10 px-6 pb-4 pt-6 dark:border-white/10">
+        <div className="min-w-0">
+          <DialogTitle className="text-xl font-cooper text-black md:text-2xl dark:text-white">
+            {title}
+          </DialogTitle>
+          {description && (
+            <DialogDescription className="mt-3 text-sm leading-relaxed text-black/65 dark:text-white/65">
+              {description}
+            </DialogDescription>
+          )}
+        </div>
+        {closable && (
+          <IconButton label="Close dialog" onClick={() => setIsOpen(false)}>
+            <Close className="h-5 w-5" />
+          </IconButton>
+        )}
+      </div>
+      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+        <div
+          ref={scrollContainerRef}
+          onScroll={updateScrollState}
+          className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain"
+        >
+          <div ref={scrollContentRef} className="p-6">
+            {children}
+          </div>
+        </div>
+        {scrollState.canScrollUp && (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 top-0 z-10 h-6 bg-gradient-to-b from-black/15 to-transparent dark:from-black/45"
+          />
+        )}
+        {scrollState.canScrollDown && (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex h-16 items-end justify-center bg-gradient-to-t from-white via-white/90 to-transparent pb-2 dark:from-[#181818] dark:via-[#181818]/90"
+          >
+            <span className="flex items-center gap-1 rounded-full border border-black/10 bg-white/95 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-black/65 shadow-sm dark:border-white/15 dark:bg-[#242424]/95 dark:text-white/70">
+              Scroll for more
+              <MdKeyboardArrowDown className="h-4 w-4" />
+            </span>
+          </div>
+        )}
+      </div>
+      {(footerContent || supportingActions || actions) && (
+        <div className="shrink-0 border-t border-black/10 px-6 py-4 dark:border-white/10">
+          {footerContent}
+          {(supportingActions || actions) && (
+            <div
+              className={`flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between ${footerContent ? "mt-4 border-t border-black/10 pt-4 dark:border-white/10" : ""}`}
+            >
+              {supportingActions && (
+                <div className="flex flex-wrap items-center gap-2">
+                  {supportingActions}
+                </div>
+              )}
+              {actions && (
+                <div
+                  className={`${footerActionGroup} flex-col-reverse sm:ml-auto sm:justify-end`}
+                >
+                  {actions}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </>
+  );
+
+  /**
+   * Headless UI dismisses on a click landing outside `DialogPanel`, so the
+   * panel is the card only when outside clicks should dismiss. Otherwise the
+   * panel is the full-screen overlay and no click can ever land outside it —
+   * Escape and the close/cancel buttons stay the only ways out.
+   */
+  const card = dismissOnOutsideClick ? (
+    <DialogPanel
+      as={formId ? "form" : "div"}
+      id={formId}
+      onSubmit={onSubmit}
+      style={cardStyle}
+      className={cardClassName}
+    >
+      {cardContent}
+    </DialogPanel>
+  ) : formId ? (
+    <form
+      id={formId}
+      onSubmit={onSubmit}
+      style={cardStyle}
+      className={cardClassName}
+    >
+      {cardContent}
+    </form>
+  ) : (
+    <div style={cardStyle} className={cardClassName}>
+      {cardContent}
+    </div>
+  );
+
   return (
     <Dialog
       open={open}
@@ -153,84 +270,11 @@ const Modal = ({
         className="fixed inset-0 bg-black/65 backdrop-blur-sm dark:bg-black/80"
         aria-hidden="true"
       />
-      <div className="fixed inset-0 flex w-screen items-center justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
-        <DialogPanel
-          as={formId ? "form" : "div"}
-          id={formId}
-          onSubmit={onSubmit}
-          style={maxHeight ? { maxHeight } : undefined}
-          className={`mx-auto flex w-full min-h-0 flex-col ${sizeStyles[size]} ${maxHeight ? "" : "max-h-[min(42rem,calc(100dvh-max(1rem,env(safe-area-inset-top))-max(1rem,env(safe-area-inset-bottom))))] sm:max-h-[calc(100dvh-max(1rem,env(safe-area-inset-top))-max(1rem,env(safe-area-inset-bottom)))]"} overflow-hidden rounded-2xl border border-black/15 bg-white shadow-[0_24px_80px_rgba(0,0,0,0.35)] ring-1 ring-black/5 dark:border-white/20 dark:bg-[#181818] dark:shadow-[0_28px_100px_rgba(0,0,0,0.85)] dark:ring-white/10 ${panelClassName ?? ""}`}
-        >
-          <div className="flex w-full shrink-0 items-start justify-between gap-4 border-b border-black/10 px-6 pb-4 pt-6 dark:border-white/10">
-            <div className="min-w-0">
-              <DialogTitle className="text-xl font-cooper text-black md:text-2xl dark:text-white">
-                {title}
-              </DialogTitle>
-              {description && (
-                <DialogDescription className="mt-3 text-sm leading-relaxed text-black/65 dark:text-white/65">
-                  {description}
-                </DialogDescription>
-              )}
-            </div>
-            {closable && (
-              <IconButton label="Close dialog" onClick={() => setIsOpen(false)}>
-                <Close className="h-5 w-5" />
-              </IconButton>
-            )}
-          </div>
-          <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
-            <div
-              ref={scrollContainerRef}
-              onScroll={updateScrollState}
-              className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain"
-            >
-              <div ref={scrollContentRef} className="p-6">
-                {children}
-              </div>
-            </div>
-            {scrollState.canScrollUp && (
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-x-0 top-0 z-10 h-6 bg-gradient-to-b from-black/15 to-transparent dark:from-black/45"
-              />
-            )}
-            {scrollState.canScrollDown && (
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex h-16 items-end justify-center bg-gradient-to-t from-white via-white/90 to-transparent pb-2 dark:from-[#181818] dark:via-[#181818]/90"
-              >
-                <span className="flex items-center gap-1 rounded-full border border-black/10 bg-white/95 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-black/65 shadow-sm dark:border-white/15 dark:bg-[#242424]/95 dark:text-white/70">
-                  Scroll for more
-                  <MdKeyboardArrowDown className="h-4 w-4" />
-                </span>
-              </div>
-            )}
-          </div>
-          {(footerContent || supportingActions || actions) && (
-            <div className="shrink-0 border-t border-black/10 px-6 py-4 dark:border-white/10">
-              {footerContent}
-              {(supportingActions || actions) && (
-                <div
-                  className={`flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between ${footerContent ? "mt-4 border-t border-black/10 pt-4 dark:border-white/10" : ""}`}
-                >
-                  {supportingActions && (
-                    <div className="flex flex-wrap items-center gap-2">
-                      {supportingActions}
-                    </div>
-                  )}
-                  {actions && (
-                    <div
-                      className={`${footerActionGroup} flex-col-reverse sm:ml-auto sm:justify-end`}
-                    >
-                      {actions}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </DialogPanel>
-      </div>
+      {dismissOnOutsideClick ? (
+        <div className={overlayStyles}>{card}</div>
+      ) : (
+        <DialogPanel className={overlayStyles}>{card}</DialogPanel>
+      )}
     </Dialog>
   );
 };

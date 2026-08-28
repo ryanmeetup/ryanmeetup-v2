@@ -155,6 +155,7 @@ const ReachSnapshot = () => {
         setIsOpen={setShowTrafficModal}
         title="Website Traffic Snapshot"
         closable
+        dismissOnOutsideClick
         size="2xl"
         panelClassName="p-4 sm:p-5 lg:p-6"
       >
