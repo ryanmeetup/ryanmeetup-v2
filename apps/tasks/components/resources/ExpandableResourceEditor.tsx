@@ -1,5 +1,5 @@
 import { useId, type ReactNode } from "react";
-import { AnimatedCollapse, Button } from "@ryanmeetup/ui";
+import { AnimatedCollapse, Button, Heading } from "@ryanmeetup/ui";
 import { FiChevronDown } from "react-icons/fi";
 
 export function ExpandableResourceEditor({
@@ -41,7 +41,9 @@ export function ExpandableResourceEditor({
             onClick={() => setExpanded(true)}
           >
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold">{title}</span>
+              <span className="block font-cooper text-base tracking-wider sm:text-lg">
+                {title}
+              </span>
               <span className="mt-1 block text-xs text-black/55 dark:text-white/55">
                 {summary}
               </span>
@@ -61,8 +63,10 @@ export function ExpandableResourceEditor({
       >
         <div className="mb-5 flex flex-col items-stretch gap-3 border-b border-black/10 pb-3 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between">
           <div className="w-full min-w-0">
-            <p className="text-sm font-semibold">{title}</p>
-            <p className="text-xs text-black/55 dark:text-white/55">
+            <Heading size="h3" className="text-base sm:text-lg">
+              {title}
+            </Heading>
+            <p className="mt-1 text-xs text-black/55 dark:text-white/55">
               {summary}
             </p>
           </div>

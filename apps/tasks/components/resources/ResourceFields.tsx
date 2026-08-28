@@ -39,12 +39,14 @@ export type ResourceFieldsProps = {
     descriptionRequired?: boolean;
   };
   section?: "all" | "primary" | "supporting";
+  /** Skip the built-in owner select so the caller can place it inside its own section. */
+  hideOwners?: boolean;
   nameSlot?: ReactNode;
   primarySlot?: ReactNode;
   secondarySlot?: ReactNode;
 };
 
-export function ResourceFields({ resource, values, changes, editor, copy, section = "all", nameSlot, primarySlot, secondarySlot }: ResourceFieldsProps) {
+export function ResourceFields({ resource, values, changes, editor, copy, section = "all", hideOwners = false, nameSlot, primarySlot, secondarySlot }: ResourceFieldsProps) {
   const prefix = resource.id ? `${resource.kind}-${resource.id}` : resource.kind;
   const nameField = <Input label={copy.nameLabel} name={`${prefix}-name`} value={values.name} onChange={(event) => changes.setName(event.target.value)} placeholder={copy.namePlaceholder} disabled={editor.disabled} required />;
   return <>
@@ -52,7 +54,7 @@ export function ResourceFields({ resource, values, changes, editor, copy, sectio
       {nameSlot ? <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">{nameField}{nameSlot}</div> : nameField}
       <Textarea id={`${prefix}-description`} label="Description" name={`${prefix}-description`} value={values.description} onChange={(event) => changes.setDescription(event.target.value)} placeholder={copy.descriptionPlaceholder} rows={3} disabled={editor.disabled} required={copy.descriptionRequired !== false} />
       {primarySlot}
-      <ResourceOwnerSelect label={`${resource.kind === "project" ? "Project" : "Category"} owners`} profiles={editor.profiles} value={values.ownerIds} onChange={changes.setOwnerIds} disabled={editor.disabled} />
+      {!hideOwners && <ResourceOwnerSelect label={`${resource.kind === "project" ? "Project" : "Category"} owners`} profiles={editor.profiles} value={values.ownerIds} onChange={changes.setOwnerIds} disabled={editor.disabled} />}
     </>}
     {section !== "primary" && <>
       <ResourceLinksFields links={values.links} setLinks={changes.setLinks} disabled={editor.disabled} namePrefix={prefix} />

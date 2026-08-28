@@ -9,13 +9,14 @@ import { changelogReleasePath } from "@/lib/changelog";
 describe("changelog", () => {
   it("keeps the approved versions in newest-first order", () => {
     expect(changelog.map((release) => release.version)).toEqual([
+      "TASK v6",
       "TASK v5",
       "TASK v4",
       "TASK v3",
       "TASK v2",
       "TASK v1",
     ]);
-    expect(latestChangelogRelease.version).toBe("TASK v5");
+    expect(latestChangelogRelease.version).toBe("TASK v6");
     expect(changelog.every((release) => release.author === "Ryan Le")).toBe(
       true,
     );

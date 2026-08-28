@@ -499,16 +499,22 @@ export function CategoriesModal({
   }
 
   const colorControl = (
+    id: string,
     currentColor: string,
     setCurrentColor: (value: string) => void,
     disabled: boolean,
   ) => (
-    <div className="flex items-end gap-1">
-      <label className="date-field">
-        <span>
-          Color <span className="text-red-500">*</span>
-        </span>
+    <div className="date-field">
+      <span>
+        <label htmlFor={id}>Color</label>
+        <span className="text-red-500">*</span>
+      </span>
+      {/* The swatch and its randomiser sit in their own row so the label text
+          cannot stretch the column: the wider "Color *" caption used to push
+          the button away from the swatch and eat into the name field. */}
+      <div className="flex items-center gap-1.5">
         <input
+          id={id}
           type="color"
           className="color-input !h-10 !w-10"
           value={currentColor}
@@ -516,15 +522,15 @@ export function CategoriesModal({
           disabled={disabled}
           required
         />
-      </label>
-      <IconButton
-        label="Randomize category color"
-        size="md"
-        onClick={() => setCurrentColor(randomCategoryColor(currentColor))}
-        disabled={disabled}
-      >
-        <FiRefreshCw />
-      </IconButton>
+        <IconButton
+          label="Randomize category color"
+          size="md"
+          onClick={() => setCurrentColor(randomCategoryColor(currentColor))}
+          disabled={disabled}
+        >
+          <FiRefreshCw />
+        </IconButton>
+      </div>
     </div>
   );
 
@@ -618,7 +624,7 @@ export function CategoriesModal({
         namePlaceholder: "Marketing",
         descriptionPlaceholder: "What kind of work belongs in this category?",
       }}
-      nameSlot={colorControl(color, setColor, creating)}
+      nameSlot={colorControl("new-category-color", color, setColor, creating)}
       primarySlot={
         <>
           <TagInput
@@ -1098,7 +1104,12 @@ export function CategoriesModal({
                           }
                           disabled={saving}
                         />
-                        {colorControl(editingColor, setEditingColor, saving)}
+                        {colorControl(
+                          `edit-category-color-${category.id}`,
+                          editingColor,
+                          setEditingColor,
+                          saving,
+                        )}
                       </div>
                       <Textarea
                         id={`edit-category-description-${category.id}`}

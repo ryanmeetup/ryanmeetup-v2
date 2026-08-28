@@ -25,9 +25,11 @@ import {
 import {
   FiArchive,
   FiArrowRight,
+  FiChevronDown,
   FiEdit2,
   FiPlus,
   FiRotateCcw,
+  FiLock,
   FiStar,
   FiTrash2,
   FiUsers,
@@ -39,16 +41,19 @@ import {
   CountBadge,
   ManagementCard,
   ManagementCardTitle,
+  ResourceOwnerSelect,
 } from "@/components/global";
 import { errorMessage } from "@/lib/presentation";
 import type { Project } from "@/lib/resources/resource-types";
 import {
   defaultProjectStatus,
-  projectStatusDetails,
+  groupProjectsByStatus,
+  shouldOfferProjectArchive,
 } from "@/lib/resources/project-status";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import {
   ExpandableResourceEditor,
+  FormSection,
   ResourceFields,
   useResourceModalState,
   useResourceMutations,
@@ -60,6 +65,7 @@ import {
   filterAndSortResources,
   resourceSearchText,
   sameIds,
+  type ArchiveFilter,
 } from "@/lib/resources/resource-management";
 import {
   ProjectAccessFields,
@@ -90,6 +96,15 @@ export type ProjectsModalProps = {
     onProjectUpdated?: (project: Project) => void;
     onCreated?: (project: Project) => void | Promise<void>;
   };
+};
+
+// "Active" now names a lifecycle status, so the archive filter says "ongoing"
+// for the projects it keeps: everything that has not been archived, whatever
+// its status.
+const archiveFilterLabels: Record<ArchiveFilter, string> = {
+  active: "ongoing",
+  archived: "archived",
+  all: "all",
 };
 
 export function ProjectsModal({
@@ -192,8 +207,14 @@ export function ProjectsModal({
   const [favoritePendingIds, setFavoritePendingIds] = useState<Set<string>>(
     new Set(),
   );
+  const [collapsedStatuses, setCollapsedStatuses] = useState<
+    Set<Project["status"]>
+  >(new Set());
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
   const [deletePending, setDeletePending] = useState(false);
+  const [archivePromptTarget, setArchivePromptTarget] =
+    useState<Project | null>(null);
+  const [archivePending, setArchivePending] = useState(false);
   const {
     query: projectQuery,
     setQuery: setProjectQuery,
@@ -417,6 +438,15 @@ export function ProjectsModal({
           : current.projectOwners,
       }));
       toast.success(`${nextName} updated.`);
+      if (
+        shouldOfferProjectArchive(
+          project.status,
+          editingStatus,
+          project.archived_at,
+        )
+      ) {
+        setArchivePromptTarget(updatedProject);
+      }
       setSavedAccessMode(editingAccessMode);
       setSavedAccessGroupIds(editingAccessGroupIds);
       setSupportingDetailsChanged(false);
@@ -470,9 +500,19 @@ export function ProjectsModal({
         ),
       }));
       toast.success(`${project.name} ${archived ? "archived" : "restored"}.`);
+      return true;
     } catch (error) {
       toast.error(errorMessage(error, "The project could not be updated."));
+      return false;
     }
+  }
+
+  async function archiveCompletedProject() {
+    if (!archivePromptTarget) return;
+    setArchivePending(true);
+    const archived = await toggleArchived(archivePromptTarget);
+    setArchivePending(false);
+    if (archived) setArchivePromptTarget(null);
   }
 
   async function deleteProject() {
@@ -551,6 +591,217 @@ export function ProjectsModal({
     () => filterAndSortResources(searchedProjects, projectStatus),
     [projectStatus, searchedProjects],
   );
+  const projectGroups = useMemo(
+    () => groupProjectsByStatus(projects),
+    [projects],
+  );
+
+  function setStatusCollapsed(status: Project["status"], collapsed: boolean) {
+    setCollapsedStatuses((current) => {
+      if (current.has(status) === collapsed) return current;
+      const next = new Set(current);
+      if (collapsed) next.add(status);
+      else next.delete(status);
+      return next;
+    });
+  }
+
+  function renderProjectCard(project: Project) {
+    const taskCount =
+      data.projectTaskCounts?.[project.id] ??
+      data.tasks.filter((task) => task.project_id === project.id).length;
+    const isFavorite = (
+      data.currentProfile.favorite_project_ids ?? []
+    ).includes(project.id);
+    const owners = data.projectOwners
+      .filter((item) => item.project_id === project.id)
+      .flatMap((item) => {
+        const profile = data.profiles.find(
+          (candidate) => candidate.id === item.profile_id,
+        );
+        return profile ? [profile] : [];
+      });
+    return (
+      <ManagementCard
+        key={project.id}
+        className={
+          isFavorite
+            ? "min-w-0 overflow-hidden border-amber-500/40 bg-amber-400/10 shadow-sm shadow-amber-900/5 dark:border-amber-400/35 dark:bg-amber-300/[0.08] dark:shadow-none"
+            : "min-w-0 overflow-hidden"
+        }
+        body={
+          project.description || (project.links ?? []).length ? (
+            <div className="min-w-0">
+              {project.description && (
+                <p className="break-words text-sm text-black/60 dark:text-white/60">
+                  {project.description}
+                </p>
+              )}
+              {(project.links ?? []).length > 0 && (
+                <ResourceLinks
+                  links={project.links}
+                  className={`mt-2 ${embedded ? "mb-4" : ""}`}
+                />
+              )}
+            </div>
+          ) : undefined
+        }
+        footerClassName="flex-wrap justify-start"
+        footer={
+          <>
+            {owners.length > 0 ? (
+              <div
+                className="flex shrink-0 -space-x-2"
+                aria-label={`${owners.length} ${owners.length === 1 ? "owner" : "owners"}`}
+              >
+                {owners.slice(0, 3).map((owner) => (
+                  <Tooltip
+                    key={owner.id}
+                    content={owner.full_name}
+                    placement="top"
+                  >
+                    <Avatar
+                      name={owner.full_name}
+                      src={owner.avatar_url}
+                      size="md"
+                      className="ring-2 ring-white dark:ring-[#181818]"
+                    />
+                  </Tooltip>
+                ))}
+                {owners.length > 3 && (
+                  <Tooltip
+                    content={owners
+                      .slice(3)
+                      .map((owner) => owner.full_name)
+                      .join(", ")}
+                    placement="top"
+                  >
+                    <span className="relative grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 border-white bg-black text-[10px] font-bold text-white dark:border-[#181818] dark:bg-white dark:text-black">
+                      +{owners.length - 3}
+                    </span>
+                  </Tooltip>
+                )}
+              </div>
+            ) : (
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-dashed border-black/25 text-black/40 dark:border-white/25 dark:text-white/40">
+                <FiUsers aria-hidden size={14} />
+              </span>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-black/40 dark:text-white/40">
+                Owners
+              </p>
+              {owners.length === 0 && (
+                <p className="truncate text-xs font-medium text-black/65 dark:text-white/65">
+                  Unassigned
+                </p>
+              )}
+              {showOwnerNames && owners.length > 0 && (
+                <p
+                  className="truncate text-xs font-medium text-black/65 dark:text-white/65"
+                  title={owners.map((owner) => owner.full_name).join(", ")}
+                >
+                  {owners
+                    .slice(0, 3)
+                    .map((owner) => owner.full_name)
+                    .join(", ")}
+                  {owners.length > 3 ? ` +${owners.length - 3}` : ""}
+                </p>
+              )}
+            </div>
+            {embedded && (
+              <Button.Link
+                href={withAccessPreview(
+                  `/board?project=${encodeURIComponent(project.name)}`,
+                  data.accessPreview,
+                )}
+                variant="secondary"
+                size="sm"
+                className="w-full justify-center sm:ml-auto sm:w-auto"
+                rightIcon={<FiArrowRight aria-hidden />}
+              >
+                Open board
+              </Button.Link>
+            )}
+          </>
+        }
+      >
+        <div className="min-w-0 flex-1 py-1">
+          <ManagementCardTitle
+            className={
+              project.archived_at
+                ? "text-black/60 dark:text-white/60"
+                : undefined
+            }
+          >
+            <span className="inline-flex min-w-0 max-w-full items-center gap-2">
+              <span className="min-w-0 truncate">{project.name}</span>
+              <Tooltip
+                content={`${taskCount} ${taskCount === 1 ? "task" : "tasks"} in this project`}
+                placement="top"
+              >
+                <CountBadge label="task" className="shrink-0">
+                  {taskCount}
+                </CountBadge>
+              </Tooltip>
+            </span>
+          </ManagementCardTitle>
+        </div>
+        {project.archived_at && (
+          <Pill
+            variant="neutral"
+            size="sm"
+            className="shrink-0 !px-2.5 !tracking-[0.16em]"
+          >
+            Archived
+          </Pill>
+        )}
+        {!data.accessPreview && !project.archived_at && (
+          <IconButton
+            label={`${isFavorite ? "Remove" : "Add"} “${project.name}” ${isFavorite ? "from" : "to"} favorites`}
+            disabled={favoritePendingIds.has(project.id)}
+            onClick={() => void toggleFavorite(project)}
+            className={
+              isFavorite
+                ? "!border-amber-500/35 !bg-amber-400/15 !text-amber-700 hover:!bg-amber-400/25 dark:!border-amber-300/30 dark:!bg-amber-300/10 dark:!text-amber-200 dark:hover:!bg-amber-300/20"
+                : undefined
+            }
+          >
+            <FiStar fill={isFavorite ? "currentColor" : "none"} />
+          </IconButton>
+        )}
+        {!readOnly && (
+          <>
+            <IconButton
+              label={`Edit “${project.name}”`}
+              variant="edit"
+              onClick={() => beginRename(project)}
+            >
+              <FiEdit2 />
+            </IconButton>
+            {taskCount > 0 ? (
+              <IconButton
+                label={`${project.archived_at ? "Restore" : "Archive"} “${project.name}”`}
+                variant="archive"
+                onClick={() => void toggleArchived(project)}
+              >
+                {project.archived_at ? <FiRotateCcw /> : <FiArchive />}
+              </IconButton>
+            ) : (
+              <IconButton
+                label={`Delete “${project.name}”`}
+                variant="danger"
+                onClick={() => setDeleteTarget(project)}
+              >
+                <FiTrash2 />
+              </IconButton>
+            )}
+          </>
+        )}
+      </ManagementCard>
+    );
+  }
+
   const createProjectPrimaryFields = (
     <ResourceFields
       section="primary"
@@ -574,6 +825,7 @@ export function ProjectsModal({
         namePlaceholder: "Website refresh",
         descriptionPlaceholder: "What is this project working toward?",
       }}
+      hideOwners
       primarySlot={
         <div className="space-y-4">
           <ProjectStatusField
@@ -581,16 +833,29 @@ export function ProjectsModal({
             onChange={setNewStatus}
             disabled={creating}
           />
-          <ProjectAccessFields
-            groups={accessGroups}
-            accessMode={newAccessMode}
-            groupIds={newAccessGroupIds}
-            onAccessModeChange={setNewAccessMode}
-            onGroupIdsChange={setNewAccessGroupIds}
-            disabled={creating || !accessLoaded}
-            loaded={accessLoaded}
-            owner={data.currentProfile.app_role === "owner"}
-          />
+          <FormSection
+            title="Who can use it"
+            description="Project owners always retain access. Members of selected groups can see the project and work on its tasks."
+            icon={<FiLock className="h-4 w-4" />}
+          >
+            <ProjectAccessFields
+              groups={accessGroups}
+              accessMode={newAccessMode}
+              groupIds={newAccessGroupIds}
+              onAccessModeChange={setNewAccessMode}
+              onGroupIdsChange={setNewAccessGroupIds}
+              disabled={creating || !accessLoaded}
+              loaded={accessLoaded}
+              owner={data.currentProfile.app_role === "owner"}
+            />
+            <ResourceOwnerSelect
+              label="Project owners"
+              profiles={data.profiles}
+              value={newOwnerIds}
+              onChange={setNewOwnerIds}
+              disabled={creating}
+            />
+          </FormSection>
         </div>
       }
     />
@@ -733,238 +998,56 @@ export function ProjectsModal({
                     onClick={() => setProjectStatus(status)}
                     className="h-10 w-full justify-center px-2 py-0 sm:w-auto sm:px-4"
                   >
-                    {status}
+                    {archiveFilterLabels[status]}
                   </FilterChip>
                 ))}
               </div>
             </div>
             <PendingResults pending={searchPending} label="Loading projects">
-              <div
-                className={`grid min-w-0 grid-cols-1 items-stretch gap-4 md:grid-cols-2 ${embedded ? "lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3" : ""}`}
-              >
-                {projects.map((project) => {
-                  const taskCount =
-                    data.projectTaskCounts?.[project.id] ??
-                    data.tasks.filter((task) => task.project_id === project.id)
-                      .length;
-                  const isFavorite = (
-                    data.currentProfile.favorite_project_ids ?? []
-                  ).includes(project.id);
-                  const lifecycle = projectStatusDetails(project.status);
-                  const owners = data.projectOwners
-                    .filter((item) => item.project_id === project.id)
-                    .flatMap((item) => {
-                      const profile = data.profiles.find(
-                        (candidate) => candidate.id === item.profile_id,
-                      );
-                      return profile ? [profile] : [];
-                    });
-                  return (
-                    <ManagementCard
-                      key={project.id}
-                      className={
-                        isFavorite
-                          ? "min-w-0 overflow-hidden border-amber-500/40 bg-amber-400/10 shadow-sm shadow-amber-900/5 dark:border-amber-400/35 dark:bg-amber-300/[0.08] dark:shadow-none"
-                          : "min-w-0 overflow-hidden"
+              {projects.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-black/10 px-4 py-10 text-center text-sm text-black/55 dark:border-white/10 dark:text-white/55">
+                  No projects match this search and filter.
+                </div>
+              ) : (
+                <div className="grid min-w-0 gap-8">
+                  {projectGroups.map((group) => (
+                    <details
+                      key={group.value}
+                      open={!collapsedStatuses.has(group.value)}
+                      onToggle={(event) =>
+                        setStatusCollapsed(
+                          group.value,
+                          !event.currentTarget.open,
+                        )
                       }
-                      body={
-                        <div className="min-w-0">
-                          <Pill
-                            variant="neutral"
-                            size="sm"
-                            className="!normal-case !tracking-normal"
-                          >
-                            <span
-                              aria-hidden
-                              className="mr-1.5 h-2 w-2 rounded-full"
-                              style={{ backgroundColor: lifecycle.color }}
-                            />
-                            {lifecycle.label}
-                          </Pill>
-                          {project.description && (
-                            <p className="mt-2 break-words text-sm text-black/60 dark:text-white/60">
-                              {project.description}
-                            </p>
-                          )}
-                          {(project.links ?? []).length > 0 && (
-                            <ResourceLinks
-                              links={project.links}
-                              className={`mt-2 ${embedded ? "mb-4" : ""}`}
-                            />
-                          )}
-                        </div>
-                      }
-                      footerClassName="flex-wrap justify-start"
-                      footer={
-                        <>
-                          {owners.length > 0 ? (
-                            <div
-                              className="flex shrink-0 -space-x-2"
-                              aria-label={`${owners.length} ${owners.length === 1 ? "owner" : "owners"}`}
-                            >
-                              {owners.slice(0, 3).map((owner) => (
-                                <Tooltip
-                                  key={owner.id}
-                                  content={owner.full_name}
-                                  placement="top"
-                                >
-                                  <Avatar
-                                    name={owner.full_name}
-                                    src={owner.avatar_url}
-                                    size="md"
-                                    className="ring-2 ring-white dark:ring-[#181818]"
-                                  />
-                                </Tooltip>
-                              ))}
-                              {owners.length > 3 && (
-                                <Tooltip
-                                  content={owners
-                                    .slice(3)
-                                    .map((owner) => owner.full_name)
-                                    .join(", ")}
-                                  placement="top"
-                                >
-                                  <span className="relative grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 border-white bg-black text-[10px] font-bold text-white dark:border-[#181818] dark:bg-white dark:text-black">
-                                    +{owners.length - 3}
-                                  </span>
-                                </Tooltip>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-dashed border-black/25 text-black/40 dark:border-white/25 dark:text-white/40">
-                              <FiUsers aria-hidden size={14} />
-                            </span>
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-black/40 dark:text-white/40">
-                              Owners
-                            </p>
-                            {owners.length === 0 && (
-                              <p className="truncate text-xs font-medium text-black/65 dark:text-white/65">
-                                Unassigned
-                              </p>
-                            )}
-                            {showOwnerNames && owners.length > 0 && (
-                              <p
-                                className="truncate text-xs font-medium text-black/65 dark:text-white/65"
-                                title={owners
-                                  .map((owner) => owner.full_name)
-                                  .join(", ")}
-                              >
-                                {owners
-                                  .slice(0, 3)
-                                  .map((owner) => owner.full_name)
-                                  .join(", ")}
-                                {owners.length > 3
-                                  ? ` +${owners.length - 3}`
-                                  : ""}
-                              </p>
-                            )}
-                          </div>
-                          {embedded && (
-                            <Button.Link
-                              href={withAccessPreview(
-                                `/board?project=${encodeURIComponent(project.name)}`,
-                                data.accessPreview,
-                              )}
-                              variant="secondary"
-                              size="sm"
-                              className="w-full justify-center sm:ml-auto sm:w-auto"
-                              rightIcon={<FiArrowRight aria-hidden />}
-                            >
-                              Open board
-                            </Button.Link>
-                          )}
-                        </>
-                      }
+                      className="details-reveal group min-w-0"
                     >
-                      <div className="min-w-0 flex-1 py-1">
-                        <ManagementCardTitle
-                          className={
-                            project.archived_at
-                              ? "text-black/60 dark:text-white/60"
-                              : undefined
-                          }
-                        >
-                          <span className="inline-flex max-w-full items-center gap-2">
-                            <span className="truncate">{project.name}</span>
-                            <Tooltip
-                              content={`${taskCount} ${taskCount === 1 ? "task" : "tasks"} in this project`}
-                              placement="top"
-                            >
-                              <CountBadge label="task" className="shrink-0">
-                                {taskCount}
-                              </CountBadge>
-                            </Tooltip>
-                          </span>
-                        </ManagementCardTitle>
+                      <summary className="flex cursor-pointer list-none items-center gap-2 border-b border-black/10 pb-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-black/30 dark:border-white/10 dark:focus-visible:ring-white/30 [&::-webkit-details-marker]:hidden">
+                        <span
+                          aria-hidden
+                          className="h-2 w-2 shrink-0 rounded-full"
+                          style={{ backgroundColor: group.color }}
+                        />
+                        <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-black/55 dark:text-white/55">
+                          {group.label}
+                        </h3>
+                        <CountBadge>{group.projects.length}</CountBadge>
+                        <FiChevronDown
+                          aria-hidden
+                          className="ml-auto shrink-0 text-black/40 transition-transform group-open:-rotate-180 motion-reduce:transition-none dark:text-white/40"
+                        />
+                      </summary>
+                      <div
+                        className={`grid min-w-0 grid-cols-1 items-stretch gap-4 pt-3 md:grid-cols-2 ${embedded ? "lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3" : ""}`}
+                      >
+                        {group.projects.map((project) =>
+                          renderProjectCard(project),
+                        )}
                       </div>
-                      {project.archived_at && (
-                        <Pill
-                          variant="neutral"
-                          size="sm"
-                          className="shrink-0 !px-2.5 !tracking-[0.16em]"
-                        >
-                          Archived
-                        </Pill>
-                      )}
-                      {!data.accessPreview && !project.archived_at && (
-                        <IconButton
-                          label={`${isFavorite ? "Remove" : "Add"} “${project.name}” ${isFavorite ? "from" : "to"} favorites`}
-                          disabled={favoritePendingIds.has(project.id)}
-                          onClick={() => void toggleFavorite(project)}
-                          className={
-                            isFavorite
-                              ? "!border-amber-500/35 !bg-amber-400/15 !text-amber-700 hover:!bg-amber-400/25 dark:!border-amber-300/30 dark:!bg-amber-300/10 dark:!text-amber-200 dark:hover:!bg-amber-300/20"
-                              : undefined
-                          }
-                        >
-                          <FiStar fill={isFavorite ? "currentColor" : "none"} />
-                        </IconButton>
-                      )}
-                      {!readOnly && (
-                        <>
-                          <IconButton
-                            label={`Edit “${project.name}”`}
-                            variant="edit"
-                            onClick={() => beginRename(project)}
-                          >
-                            <FiEdit2 />
-                          </IconButton>
-                          {taskCount > 0 ? (
-                            <IconButton
-                              label={`${project.archived_at ? "Restore" : "Archive"} “${project.name}”`}
-                              variant="archive"
-                              onClick={() => void toggleArchived(project)}
-                            >
-                              {project.archived_at ? (
-                                <FiRotateCcw />
-                              ) : (
-                                <FiArchive />
-                              )}
-                            </IconButton>
-                          ) : (
-                            <IconButton
-                              label={`Delete “${project.name}”`}
-                              variant="danger"
-                              onClick={() => setDeleteTarget(project)}
-                            >
-                              <FiTrash2 />
-                            </IconButton>
-                          )}
-                        </>
-                      )}
-                    </ManagementCard>
-                  );
-                })}
-                {projects.length === 0 && (
-                  <div
-                    className={`rounded-xl border border-dashed border-black/10 px-4 py-10 text-center text-sm text-black/55 dark:border-white/10 dark:text-white/55 md:col-span-2 ${embedded ? "lg:col-span-1 xl:col-span-2 2xl:col-span-3" : ""}`}
-                  >
-                    No projects match this search and filter.
-                  </div>
-                )}
-              </div>
+                    </details>
+                  ))}
+                </div>
+              )}
             </PendingResults>
           </>
         )}
@@ -1048,6 +1131,7 @@ export function ProjectsModal({
                         descriptionPlaceholder:
                           "What is this project working toward?",
                       }}
+                      hideOwners
                       primarySlot={
                         <div className="space-y-4">
                           <ProjectStatusField
@@ -1055,19 +1139,32 @@ export function ProjectsModal({
                             onChange={setEditingStatus}
                             disabled={renaming}
                           />
-                          <ProjectAccessFields
-                            groups={accessGroups}
-                            accessMode={editingAccessMode}
-                            groupIds={editingAccessGroupIds}
-                            onAccessModeChange={setEditingAccessMode}
-                            onGroupIdsChange={setEditingAccessGroupIds}
-                            disabled={renaming || !accessLoaded}
-                            loaded={accessLoaded}
-                            owner={
-                              data.currentProfile.app_role === "owner" ||
-                              editingOwnerIds.includes(data.currentProfile.id)
-                            }
-                          />
+                          <FormSection
+                            title="Who can use it"
+                            description="Project owners always retain access. Members of selected groups can see the project and work on its tasks."
+                            icon={<FiLock className="h-4 w-4" />}
+                          >
+                            <ProjectAccessFields
+                              groups={accessGroups}
+                              accessMode={editingAccessMode}
+                              groupIds={editingAccessGroupIds}
+                              onAccessModeChange={setEditingAccessMode}
+                              onGroupIdsChange={setEditingAccessGroupIds}
+                              disabled={renaming || !accessLoaded}
+                              loaded={accessLoaded}
+                              owner={
+                                data.currentProfile.app_role === "owner" ||
+                                editingOwnerIds.includes(data.currentProfile.id)
+                              }
+                            />
+                            <ResourceOwnerSelect
+                              label="Project owners"
+                              profiles={data.profiles}
+                              value={editingOwnerIds}
+                              onChange={setEditingOwnerIds}
+                              disabled={renaming}
+                            />
+                          </FormSection>
                         </div>
                       }
                     />
@@ -1109,6 +1206,18 @@ export function ProjectsModal({
             </Modal>
           );
         })()}
+      <ConfirmationDialog
+        open={Boolean(archivePromptTarget)}
+        setOpen={(nextOpen) =>
+          !nextOpen && !archivePending && setArchivePromptTarget(null)
+        }
+        title="Archive this completed project?"
+        description={`“${archivePromptTarget?.name ?? "This project"}” is now complete. Would you like to archive it?`}
+        confirmLabel="Archive project"
+        pendingLabel="Archiving project..."
+        pending={archivePending}
+        onConfirm={() => void archiveCompletedProject()}
+      />
       <ConfirmationDialog
         open={Boolean(deleteTarget)}
         setOpen={(nextOpen) =>

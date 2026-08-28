@@ -5,6 +5,7 @@ export { useResourceAttachments } from "./useResourceAttachments";
 export { ResourceLinksFields } from "./ResourceLinksFields";
 export { ExpandableResourceEditor } from "./ExpandableResourceEditor";
 export { ResourceFields } from "./ResourceFields";
+export { FormSection } from "./FormSection";
 export { useResourceModalState } from "./useResourceModalState";
 export { useResourceMutations } from "./useResourceMutations";
 export { useResourceEditState } from "./useResourceEditState";

@@ -44,8 +44,7 @@ export function ProjectAccessFields({
   }
 
   return (
-    <fieldset className="space-y-3">
-      <legend className="text-sm font-semibold">Project visibility</legend>
+    <>
       <DropdownSelect
         variant="field"
         label="Who can access this project?"
@@ -76,10 +75,6 @@ export function ProjectAccessFields({
           disabled={disabled}
         />
       )}
-      <p className="text-sm text-black/70 dark:text-white/70">
-        Project owners always retain access. Members of selected groups can see
-        the project and work on its tasks.
-      </p>
-    </fieldset>
+    </>
   );
 }

@@ -29,9 +29,45 @@ import {
 } from "react-icons/fi";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
+import type { ProjectStatus } from "@/lib/resources/resource-types";
 import { useSidebarSections } from "@/hooks/useSidebarSections";
 import { withAccessPreview } from "@/lib/access/access-preview";
+import { projectStatusDetails } from "@/lib/resources/project-status";
 import { InstanceWordmark, useInstance } from "@/components/global";
+
+/**
+ * A filled dot in this sidebar already means "category identity", so project
+ * lifecycle borrows the row's existing glyph instead of adding a second dot:
+ * shape says what the row is (star = favourite, folder = project), colour says
+ * what state it is in. Every state is tinted with the exact colour its option
+ * shows in the project status dropdown, so two projects in the same state
+ * always look the same regardless of which section they land in.
+ */
+function ProjectLifecycleIcon({
+  status,
+  favorite = false,
+}: {
+  status: ProjectStatus;
+  favorite?: boolean;
+}) {
+  const { color, label } = projectStatusDetails(status);
+  const Icon = favorite ? FiStar : FiFolder;
+  return (
+    <Tooltip content={label} placement="right">
+      <span className="inline-flex shrink-0 items-center">
+        <Icon
+          aria-hidden
+          className="shrink-0"
+          style={{ color }}
+          fill={favorite ? "currentColor" : undefined}
+        />
+        {/* Colour is never the only carrier: the state reaches the row's
+            accessible name too. */}
+        <span className="sr-only">{label} project</span>
+      </span>
+    </Tooltip>
+  );
+}
 
 function SidebarItemLabel({ children }: { children: string }) {
   const labelRef = useRef<HTMLSpanElement>(null);
@@ -314,10 +350,7 @@ export function TasksSidebar({
                     isProjectSelected(project.id, project.name),
                   )}
                 >
-                  <FiStar
-                    className="shrink-0 text-amber-600 dark:text-amber-300"
-                    fill="currentColor"
-                  />
+                  <ProjectLifecycleIcon status={project.status} favorite />
                   <SidebarItemLabel>{project.name}</SidebarItemLabel>
                 </Link>
               ))}
@@ -456,7 +489,7 @@ export function TasksSidebar({
                   isProjectSelected(project.id, project.name),
                 )}
               >
-                <FiFolder className="shrink-0" />
+                <ProjectLifecycleIcon status={project.status} />
                 <SidebarItemLabel>{project.name}</SidebarItemLabel>
               </Link>
             ))}
