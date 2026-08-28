@@ -72,9 +72,15 @@ Editing from a task page stays focused on task fields while checklist items, att
 
 Tasks also remain visible on category-filtered boards when their project is changed.
 
+Existing tasks can now be duplicated from either the board editor or task page, carrying their current fields into a new task without changing the original.
+
 ### Richer resource management
 
 Supporting links, notes, and attachments are easier to reorder on touch, pointer, and keyboard devices, and supporting notes now include rich Markdown formatting.
+
+Rich-text fields now render Markdown headings while editing and preserve intentional blank lines after saving.
+
+Project and category attachments now refresh across open views and connected teammates as soon as they change.
 
 Modal headers and action bars stay in place while longer content scrolls between them.
 
