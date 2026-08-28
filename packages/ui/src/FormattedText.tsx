@@ -2,6 +2,7 @@ import { Fragment } from "react";
 import {
   inlineMarkdownToHtml,
   normalizeRichTextValue,
+  parseHeadingLine,
   parseListLine,
 } from "./richTextMarkdown";
 
@@ -12,6 +13,14 @@ export type FormattedTextProps = {
 };
 
 const bullets = ["•", "◦", "▪", "▫"];
+const headingClasses = [
+  "text-xl font-bold",
+  "text-lg font-bold",
+  "text-base font-semibold",
+  "text-sm font-semibold",
+  "text-sm font-semibold",
+  "text-xs font-semibold uppercase tracking-wider",
+];
 
 const FormattedText = ({ text, className, onChange }: FormattedTextProps) => {
   const normalized = normalizeRichTextValue(text);
@@ -20,6 +29,55 @@ const FormattedText = ({ text, className, onChange }: FormattedTextProps) => {
   return (
     <div className={className}>
       {lines.map((line, index) => {
+        const heading = parseHeadingLine(line);
+        if (heading) {
+          const content = (
+            <span
+              dangerouslySetInnerHTML={{
+                __html: inlineMarkdownToHtml(heading.text),
+              }}
+            />
+          );
+          const headingClassName = headingClasses[heading.level - 1];
+          switch (heading.level) {
+            case 1:
+              return (
+                <h1 key={index} className={headingClassName}>
+                  {content}
+                </h1>
+              );
+            case 2:
+              return (
+                <h2 key={index} className={headingClassName}>
+                  {content}
+                </h2>
+              );
+            case 3:
+              return (
+                <h3 key={index} className={headingClassName}>
+                  {content}
+                </h3>
+              );
+            case 4:
+              return (
+                <h4 key={index} className={headingClassName}>
+                  {content}
+                </h4>
+              );
+            case 5:
+              return (
+                <h5 key={index} className={headingClassName}>
+                  {content}
+                </h5>
+              );
+            default:
+              return (
+                <h6 key={index} className={headingClassName}>
+                  {content}
+                </h6>
+              );
+          }
+        }
         if (/^\s*(?:-{3,}|_{3,}|\*{3,})\s*$/.test(line))
           return (
             <hr

@@ -87,7 +87,9 @@ const RichTextarea = forwardRef<HTMLTextAreaElement, RichTextareaProps>(
       immediatelyRender: false,
       extensions: [
         StarterKit.configure({
-          heading: false,
+          heading: {
+            levels: [1, 2, 3, 4, 5, 6],
+          },
           bulletList: {
             HTMLAttributes: { class: "my-2 list-disc pl-6" },
           },
@@ -104,7 +106,7 @@ const RichTextarea = forwardRef<HTMLTextAreaElement, RichTextareaProps>(
       editorProps: {
         attributes: {
           class:
-            "ProseMirror min-h-[120px] px-4 py-2.5 text-sm leading-6 text-black outline-none dark:text-white",
+            "ProseMirror min-h-[120px] px-4 py-2.5 text-sm leading-6 text-black outline-none [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-bold [&_h3]:text-lg [&_h3]:font-semibold [&_h4]:text-base [&_h4]:font-semibold [&_h5]:text-sm [&_h5]:font-semibold [&_h6]:text-xs [&_h6]:font-semibold [&_h6]:uppercase [&_h6]:tracking-wider [&_p]:min-h-6 dark:text-white",
           "aria-label":
             typeof textareaProps["aria-label"] === "string"
               ? textareaProps["aria-label"]

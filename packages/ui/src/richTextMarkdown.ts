@@ -30,6 +30,16 @@ type ParsedListLine = {
   text: string;
 };
 
+type ParsedHeadingLine = {
+  level: number;
+  text: string;
+};
+
+const parseHeadingLine = (line: string): ParsedHeadingLine | null => {
+  const match = line.match(/^(#{1,6})[\t ]+(.+?)(?:[\t ]+#+[\t ]*)?$/);
+  return match ? { level: match[1].length, text: match[2] } : null;
+};
+
 const parseListLine = (line: string): ParsedListLine | null => {
   const match = line.match(
     /^(\s*)([-*+]|\d+\.)(?:\s+(?:\[([ xX])\]\s*)?(.*))?$/,
@@ -95,6 +105,15 @@ const markdownToHtml = (markdown: unknown) => {
   let index = 0;
   while (index < lines.length) {
     if (!lines[index].trim()) {
+      blocks.push("<p><br></p>");
+      index += 1;
+      continue;
+    }
+    const heading = parseHeadingLine(lines[index]);
+    if (heading) {
+      blocks.push(
+        `<h${heading.level}>${inlineMarkdownToHtml(heading.text)}</h${heading.level}>`,
+      );
       index += 1;
       continue;
     }
@@ -112,14 +131,6 @@ const markdownToHtml = (markdown: unknown) => {
           listLines.push(parsed);
           index += 1;
           continue;
-        }
-        if (!lines[index].trim()) {
-          let next = index + 1;
-          while (next < lines.length && !lines[next].trim()) next += 1;
-          if (next < lines.length && parseListLine(lines[next])) {
-            index = next;
-            continue;
-          }
         }
         break;
       }
@@ -141,6 +152,7 @@ const markdownToHtml = (markdown: unknown) => {
     while (
       index < lines.length &&
       lines[index].trim() &&
+      !parseHeadingLine(lines[index]) &&
       !parseListLine(lines[index]) &&
       !/^\s*(?:-{3,}|_{3,}|\*{3,})\s*$/.test(lines[index])
     ) {
@@ -193,6 +205,10 @@ const tiptapJsonToMarkdown = (json: JSONContent) =>
       if (["bulletList", "orderedList", "taskList"].includes(node.type ?? ""))
         return serializeList(node, 0);
       if (node.type === "horizontalRule") return ["---"];
+      if (node.type === "heading") {
+        const level = Math.min(6, Math.max(1, Number(node.attrs?.level) || 1));
+        return [`${"#".repeat(level)} ${serializeInline(node)}`];
+      }
       return [serializeInline(node)];
     })
     .join("\n")
@@ -202,6 +218,7 @@ export {
   inlineMarkdownToHtml,
   markdownToHtml,
   normalizeRichTextValue,
+  parseHeadingLine,
   parseListLine,
   tiptapJsonToMarkdown,
 };
