@@ -78,6 +78,7 @@ export function useTaskEditorController({
   const [details, setDetails] =
     useState<NewTaskDetailsDraft>(emptyNewTaskDetails);
   const [createAnother, setCreateAnother] = useState(false);
+  const [duplicatedFrom, setDuplicatedFrom] = useState<Task | null>(null);
   const draftId = useRef<string | null>(null);
   const touched = useRef(false);
   const saveInFlight = useRef(false);
@@ -114,6 +115,7 @@ export function useTaskEditorController({
   function openCreate(statusId = defaults.statusId) {
     setMessage("");
     setEditing(null);
+    setDuplicatedFrom(null);
     setDetailsOpen(data.currentProfile.task_details_open_by_default);
     setCreateAnother(false);
     draftId.current = null;
@@ -136,10 +138,33 @@ export function useTaskEditorController({
   function openEdit(task: Task) {
     setMessage("");
     setEditing(task);
+    setDuplicatedFrom(null);
     setDetailsOpen(data.currentProfile.task_details_open_by_default);
     setCreateAnother(false);
     draftId.current = null;
     setDraftState(editTaskDraft(task, categoriesByTask.get(task.id) ?? []));
+    setOpen(true);
+  }
+
+  /**
+   * Turn the open edit dialog into a new task carrying the same fields, edits
+   * included. Nothing is written until the copy is created, so the original is
+   * untouched if the dialog is closed.
+   */
+  function openDuplicate() {
+    if (!editing) return;
+    setMessage("");
+    setDuplicatedFrom(editing);
+    setEditing(null);
+    setCreateAnother(false);
+    draftId.current = null;
+    setDetails(emptyNewTaskDetails());
+    touched.current = false;
+    setDraftState((current) => ({
+      ...current,
+      category_ids: [...current.category_ids],
+      category_tags: { ...current.category_tags },
+    }));
     setOpen(true);
   }
 
@@ -200,6 +225,7 @@ export function useTaskEditorController({
       await afterSave();
       if (!editing && createAnother) {
         touched.current = false;
+        setDuplicatedFrom(null);
         setDraftState({
           ...emptyTaskDraft(draft.status_id, data.currentProfile),
           priority: draft.priority,
@@ -252,6 +278,7 @@ export function useTaskEditorController({
       ? ({ kind: "edit", task: editing } as const)
       : ({
           kind: "create",
+          duplicatedFrom,
           createAnother,
           setCreateAnother,
           details,
@@ -261,5 +288,6 @@ export function useTaskEditorController({
     editing,
     openCreate,
     openEdit,
+    openDuplicate,
   };
 }

@@ -47,6 +47,7 @@ import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { TaskDetails } from "./TaskDetails";
 import { TaskDueDate } from "./TaskDueDate";
 import { TaskEditor } from "./TaskEditor";
+import { NewTaskModal } from "./NewTaskModal";
 import { TaskPriorityBadge } from "./TaskPriorityBadge";
 
 export function TaskPageClient({
@@ -70,6 +71,10 @@ export function TaskPageClient({
   const [taskSaving, setTaskSaving] = useState(false);
   const [taskMessage, setTaskMessage] = useState("");
   const [taskPendingDelete, setTaskPendingDelete] = useState<Task | null>(null);
+  const [duplicateSource, setDuplicateSource] = useState<{
+    task: Task;
+    draft: TaskDraft;
+  } | null>(null);
   const [taskDeleting, setTaskDeleting] = useState(false);
   const conversationTopRef = useRef<HTMLDivElement>(null);
   const [conversationHeight, setConversationHeight] = useState<number>();
@@ -459,8 +464,35 @@ export function TaskPageClient({
           onSubmit: saveTask,
         }}
         workspace={{ statuses: data.statuses, data, setData, demoMode }}
-        mode={{ kind: "edit", task, onDelete: setTaskPendingDelete }}
+        mode={{
+          kind: "edit",
+          task,
+          onDelete: setTaskPendingDelete,
+          onDuplicate: () => {
+            setDuplicateSource({
+              task,
+              draft: {
+                ...draft,
+                category_ids: [...draft.category_ids],
+                category_tags: { ...draft.category_tags },
+              },
+            });
+            setTaskOpen(false);
+          },
+        }}
       />
+      {duplicateSource && (
+        <NewTaskModal
+          data={data}
+          demoMode={demoMode}
+          open
+          setData={setData}
+          setOpen={(nextOpen) => {
+            if (!nextOpen) setDuplicateSource(null);
+          }}
+          duplicateOf={duplicateSource}
+        />
+      )}
       <ConfirmationDialog
         open={Boolean(taskPendingDelete)}
         setOpen={(open) => {

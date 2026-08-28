@@ -18,6 +18,7 @@ import {
 } from "@ryanmeetup/ui";
 import {
   FiChevronDown,
+  FiCopy,
   FiExternalLink,
   FiLink,
   FiTrash2,
@@ -61,6 +62,8 @@ export type TaskEditorWorkspace = {
 export type TaskEditorMode =
   | {
       kind: "create";
+      /** The task this draft was copied from, when it started as a duplicate. */
+      duplicatedFrom?: Task | null;
       createAnother: boolean;
       setCreateAnother: (value: boolean) => void;
       details: NewTaskDetailsDraft;
@@ -71,6 +74,8 @@ export type TaskEditorMode =
       kind: "edit";
       task: Task;
       onDelete: (task: Task) => void;
+      /** Reopen the same fields as a new task. Omit to hide the action. */
+      onDuplicate?: () => void;
     };
 
 type TaskEditorProps =
@@ -99,10 +104,19 @@ export function TaskEditor(props: TaskEditorProps) {
     "controller" in props
       ? props.onDelete
       : (task: Task) => props.mode.kind === "edit" && props.mode.onDelete(task);
+  const onDuplicate =
+    "controller" in props
+      ? props.controller.openDuplicate
+      : props.mode.kind === "edit"
+        ? props.mode.onDuplicate
+        : undefined;
   const { open, setOpen, detailsOpen, setDetailsOpen } = modal;
   const { draft, setDraft, saving, message, onSubmit } = form;
   const { statuses, data, setData, demoMode } = workspace;
   const editing = mode.kind === "edit" ? mode.task : null;
+  const duplicatedFrom =
+    mode.kind === "create" ? (mode.duplicatedFrom ?? null) : null;
+  const titledTask = editing ?? duplicatedFrom;
   const showSupplementalDetails = props.showSupplementalDetails ?? true;
   const showTaskPageLink = props.showTaskPageLink ?? true;
   const supplementalDetailsOpen = showSupplementalDetails && detailsOpen;
@@ -145,10 +159,10 @@ export function TaskEditor(props: TaskEditorProps) {
       open={open}
       setIsOpen={setOpen}
       title={
-        editing ? (
+        titledTask ? (
           <span className="inline-flex flex-wrap items-center gap-2">
-            <span>Edit Task</span>
-            <TaskKeyBadge task={editing} />
+            <span>{editing ? "Edit Task" : "New task from"}</span>
+            <TaskKeyBadge task={titledTask} />
           </span>
         ) : (
           "A new thing to do"
@@ -176,6 +190,17 @@ export function TaskEditor(props: TaskEditorProps) {
                 >
                   <FiExternalLink />
                 </IconButton.Link>
+              )}
+              {onDuplicate && (
+                <IconButton
+                  type="button"
+                  label="Duplicate task"
+                  size="md"
+                  disabled={saving}
+                  onClick={onDuplicate}
+                >
+                  <FiCopy />
+                </IconButton>
               )}
               <IconButton
                 type="button"

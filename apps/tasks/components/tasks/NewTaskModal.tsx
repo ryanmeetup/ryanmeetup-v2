@@ -39,6 +39,7 @@ export function NewTaskModal({
   setData,
   setOpen,
   initialDraft,
+  duplicateOf,
   onCreated,
 }: {
   data: WorkspaceData;
@@ -47,10 +48,13 @@ export function NewTaskModal({
   setData: Dispatch<SetStateAction<WorkspaceData>>;
   setOpen: (open: boolean) => void;
   initialDraft?: StoredTaskDraft | null;
+  /** Seeds the form from an existing task; mount this modal fresh to apply it. */
+  duplicateOf?: { task: Task; draft: TaskDraft } | null;
   onCreated?: (task: Task) => void | Promise<void>;
 }) {
   const [draft, setDraft] = useState(
-    () => initialDraft?.draft ?? newWorkspaceTaskDraft(data),
+    () =>
+      duplicateOf?.draft ?? initialDraft?.draft ?? newWorkspaceTaskDraft(data),
   );
   const draftId = useRef<string | null>(initialDraft?.id ?? null);
   const opened = useRef(false);
@@ -217,6 +221,7 @@ export function NewTaskModal({
       workspace={{ statuses: data.statuses, data, setData, demoMode }}
       mode={{
         kind: "create",
+        duplicatedFrom: duplicateOf?.task ?? null,
         createAnother,
         setCreateAnother,
         details: newTaskDetails,
