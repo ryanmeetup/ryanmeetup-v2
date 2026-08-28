@@ -42,15 +42,28 @@ describe("project status accents", () => {
 describe("project status grouping", () => {
   const project = (name: string, status: ProjectStatus) => ({ name, status });
 
-  it("orders groups the way the lifecycle reads, not the way projects arrive", () => {
+  it("leads with the work that wants attention, not the way projects arrive", () => {
     const groups = groupProjectsByStatus([
       project("Ship", "complete"),
       project("Scope", "discovery"),
       project("Build", "active"),
     ]);
     expect(groups.map((group) => group.value)).toEqual([
-      "discovery",
       "active",
+      "discovery",
+      "complete",
+    ]);
+  });
+
+  it("sections every status, in the order the page reads", () => {
+    const groups = groupProjectsByStatus(
+      projectStatusOptions.map((option) => project(option.label, option.value)),
+    );
+    expect(groups.map((group) => group.value)).toEqual([
+      "active",
+      "queued",
+      "discovery",
+      "paused",
       "complete",
     ]);
   });

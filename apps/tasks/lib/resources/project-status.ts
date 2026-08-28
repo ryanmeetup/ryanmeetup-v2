@@ -14,6 +14,16 @@ export const projectStatusOptions: {
 
 export const defaultProjectStatus: ProjectStatus = "discovery";
 
+// The form lists statuses in the order a project moves through them; the
+// projects page leads with the work that wants attention now.
+export const projectStatusSectionOrder: ProjectStatus[] = [
+  "active",
+  "queued",
+  "discovery",
+  "paused",
+  "complete",
+];
+
 export function isProjectStatus(value: unknown): value is ProjectStatus {
   return projectStatusOptions.some((option) => option.value === value);
 }
@@ -42,10 +52,10 @@ export function shouldOfferProjectArchive(
 export function groupProjectsByStatus<T extends { status: ProjectStatus }>(
   projects: T[],
 ) {
-  return projectStatusOptions
-    .map((option) => ({
-      ...option,
-      projects: projects.filter((project) => project.status === option.value),
+  return projectStatusSectionOrder
+    .map((status) => ({
+      ...projectStatusDetails(status),
+      projects: projects.filter((project) => project.status === status),
     }))
     .filter((group) => group.projects.length > 0);
 }
