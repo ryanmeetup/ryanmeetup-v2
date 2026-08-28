@@ -64,11 +64,6 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
               {leadingIcon}
             </span>
           )}
-          {trailingAction && (
-            <div className="absolute right-2 top-1/2 -translate-y-1/2">
-              {trailingAction}
-            </div>
-          )}
           <input
             className={`${fieldControlBaseClasses} ${error ? "border-red-500 ring-2 ring-red-500/20 focus:border-red-500 focus:ring-red-500/25 dark:border-red-400 dark:focus:border-red-400 dark:focus:ring-red-400/25" : ""} ${iconPadding} ${actionPadding} ${inputClassName ?? ""}`}
             id={name}
@@ -81,6 +76,11 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             {...rest}
           />
+          {trailingAction && (
+            <div className="absolute right-2 top-1/2 -translate-y-1/2">
+              {trailingAction}
+            </div>
+          )}
         </div>
       </div>
     );

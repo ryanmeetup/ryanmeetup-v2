@@ -391,7 +391,7 @@ export function ContactsPageClient({
                               {column.map((contact) => (
                                 <article
                                   key={contact.id}
-                                  className="w-full rounded-2xl border border-black/10 bg-white/90 p-5 shadow-sm dark:border-white/10 dark:bg-white/[0.055]"
+                                  className="w-full rounded-2xl border border-black/15 bg-black/[0.035] p-5 shadow-sm shadow-black/5 dark:border-white/10 dark:bg-white/[0.055]"
                                 >
                                   <div className="flex items-start justify-between gap-4">
                                     <div className="min-w-0">

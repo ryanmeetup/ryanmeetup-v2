@@ -53,6 +53,8 @@ If workspace data cannot load, the app now explains the failure and provides a r
 
 The compact footer is no longer a single line. It now carries the wordmark and its tagline, whatever footer links the workspace has configured, social icons, and the credit line beneath a divider — so the quiet treatment still looks finished on sign-in screens and in the demo.
 
+The task board now uses solid column surfaces that stay clear over the paper background, and it fills the space above the footer so its horizontal scroller sits directly against the bottom of the board.
+
 ### Notes that read like notes
 
 The notes board now presents each note as a finished card: its title, formatted text, author, and comment count at a glance. Links written inside a note appear as chips you can follow, alongside the task or project the note became.

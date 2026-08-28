@@ -31,6 +31,11 @@ test("login exposes accessible credentials and validates missing input", async (
 
 test("password visibility is keyboard-operable", async ({ page }) => {
   await page.goto("/login");
+  await page.getByLabel("Username").focus();
+  await page.keyboard.press("Tab");
+  await expect(page.getByLabel(/^Password/)).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("button", { name: "Show password" })).toBeFocused();
   await page.getByRole("button", { name: "Show password" }).focus();
   await page.keyboard.press("Enter");
   await expect(page.getByLabel(/^Password/)).toHaveAttribute("type", "text");

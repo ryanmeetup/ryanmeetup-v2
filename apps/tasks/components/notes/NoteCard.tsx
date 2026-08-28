@@ -64,7 +64,7 @@ export function NoteCard({
   const title = noteTitle(note);
   const archived = Boolean(note.archived_at);
   return (
-    <article className="relative flex flex-col rounded-2xl border border-black/10 bg-black/[0.015] p-4 transition hover:border-black/20 dark:border-white/10 dark:bg-white/[0.025] dark:hover:border-white/20 sm:p-5">
+    <article className="relative flex flex-col rounded-2xl border border-black/15 bg-black/[0.035] p-4 shadow-sm shadow-black/5 transition hover:border-black/25 dark:border-white/10 dark:bg-white/[0.025] dark:shadow-none dark:hover:border-white/20 sm:p-5">
       <div className="flex items-center gap-3">
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-black/5 text-black/55 dark:bg-white/10 dark:text-white/60">
           <FiFileText aria-hidden />

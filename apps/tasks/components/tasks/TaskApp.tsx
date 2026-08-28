@@ -218,9 +218,11 @@ export function TaskApp({
         }}
         onNewTask={() => editor.openCreate()}
         setData={setData}
-        contentClassName="flex flex-col"
+        contentClassName="flex min-h-0 flex-1 flex-col"
       >
-        <div className="flex min-h-0 flex-1 flex-col p-4 sm:p-6 lg:p-8">
+        <div
+          className={`flex min-h-0 flex-1 flex-col px-4 pt-4 sm:px-6 sm:pt-6 lg:px-8 lg:pt-8 ${view === "board" ? "" : "pb-4 sm:pb-6 lg:pb-8"}`}
+        >
           <TaskWorkspaceHeader
             scope={{
               assignee: filters.assignee,

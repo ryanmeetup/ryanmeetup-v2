@@ -31,7 +31,7 @@ export function ManagementCard({
 }) {
   return (
     <div
-      className={`flex h-full flex-col rounded-xl border border-black/10 bg-black/[0.015] px-4 py-3 dark:border-white/10 dark:bg-white/[0.025] ${className ?? ""}`}
+      className={`flex h-full flex-col rounded-xl border border-black/15 bg-black/[0.035] px-4 py-3 shadow-sm shadow-black/5 dark:border-white/10 dark:bg-white/[0.025] dark:shadow-none ${className ?? ""}`}
     >
       <div className="flex-1">
         <div className="flex items-center gap-3">{children}</div>

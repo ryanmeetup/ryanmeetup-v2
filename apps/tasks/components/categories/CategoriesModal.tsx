@@ -773,6 +773,7 @@ export function CategoriesModal({
                   <FilterChip
                     key={status}
                     active={categoryStatus === status}
+                    variant="soft"
                     onClick={() => setCategoryStatus(status)}
                     className="h-10 w-full justify-center px-2 py-0 sm:w-auto sm:px-4"
                   >

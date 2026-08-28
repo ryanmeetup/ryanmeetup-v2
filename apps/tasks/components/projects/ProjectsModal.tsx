@@ -995,6 +995,7 @@ export function ProjectsModal({
                   <FilterChip
                     key={status}
                     active={projectStatus === status}
+                    variant="soft"
                     onClick={() => setProjectStatus(status)}
                     className="h-10 w-full justify-center px-2 py-0 sm:w-auto sm:px-4"
                   >

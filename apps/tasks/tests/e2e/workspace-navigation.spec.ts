@@ -56,6 +56,89 @@ test("workspace chrome persists across page navigation", async ({
   await expect(page.locator("[data-workspace-content-loading]")).toHaveCount(0);
 });
 
+test("aligns board column searches across description lengths", async ({
+  page,
+  baseURL,
+}) => {
+  await enterDemoWorkspace(page, baseURL);
+  await page.goto("/board");
+
+  const searches = page.locator(
+    'section input[aria-label^="Search "][aria-label$=" tasks"]',
+  );
+  await expect(searches).toHaveCount(6);
+
+  const topPositions = await searches.evaluateAll((inputs) =>
+    inputs.map((input) => input.getBoundingClientRect().top),
+  );
+  expect(Math.max(...topPositions) - Math.min(...topPositions)).toBeLessThan(1);
+});
+
+test("keeps the board scroller next to the footer", async ({
+  page,
+  baseURL,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.addInitScript(() => localStorage.setItem("theme", "light"));
+  await enterDemoWorkspace(page, baseURL);
+  await page.goto("/board");
+
+  const doneColumn = page.locator("section").filter({
+    has: page.getByRole("heading", { level: 2, name: "Done" }),
+  });
+  const boardScroller = doneColumn.locator("..");
+  const footer = page.locator(".tasks-footer");
+  await expect(boardScroller).toBeVisible();
+  await expect(footer).toBeVisible();
+
+  const [boardBox, columnBox, footerBox] = await Promise.all([
+    boardScroller.boundingBox(),
+    doneColumn.boundingBox(),
+    footer.boundingBox(),
+  ]);
+  expect(boardBox).not.toBeNull();
+  expect(columnBox).not.toBeNull();
+  expect(footerBox).not.toBeNull();
+  const gap = footerBox!.y - (boardBox!.y + boardBox!.height);
+  expect(gap).toBeGreaterThanOrEqual(0);
+  expect(gap).toBeLessThanOrEqual(1);
+  const columnInset = boardBox!.y + boardBox!.height -
+    (columnBox!.y + columnBox!.height);
+  expect(columnInset).toBeGreaterThanOrEqual(24);
+
+  const columnBackground = await doneColumn.evaluate(
+    (column) => getComputedStyle(column).backgroundColor,
+  );
+  expect(columnBackground).not.toMatch(/^rgba\(.+, 0\.\d+\)$/);
+});
+
+test("shrinks collapsed board columns to their header", async ({
+  page,
+  baseURL,
+}) => {
+  await enterDemoWorkspace(page, baseURL);
+  await page.goto("/board");
+
+  const doneColumn = page.locator("section").filter({
+    has: page.getByRole("heading", { level: 2, name: "Done" }),
+  });
+  const inProgressColumn = page.locator("section").filter({
+    has: page.getByRole("heading", { level: 2, name: "In Progress" }),
+  });
+
+  await doneColumn.getByRole("button", { name: 'Collapse “Done”' }).click();
+  await expect(
+    doneColumn.getByRole("button", { name: 'Expand “Done”' }),
+  ).toBeVisible();
+
+  await expect
+    .poll(async () => (await doneColumn.boundingBox())?.height)
+    .toBeLessThan(100);
+  await expect
+    .poll(async () => (await inProgressColumn.boundingBox())?.height)
+    .toBeGreaterThan(400);
+});
+
 test.describe("mobile workspace navigation", () => {
   test.use({ viewport: { width: 390, height: 844 } });
 

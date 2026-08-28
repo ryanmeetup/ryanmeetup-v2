@@ -53,6 +53,16 @@ body:has([data-workspace-error]) .tasks-footer {
 }
 
 @layer components {
+  .tasks-workspace-background {
+    background-color: white;
+    background-image: url("/crumbled.png");
+    background-repeat: repeat;
+    background-size: cover;
+  }
+  .dark .tasks-workspace-background {
+    background-color: #101010;
+    background-image: none;
+  }
   .tasks-app-header {
     @apply sticky top-0 z-40 flex min-h-16 flex-wrap items-center gap-2 border-b border-black/10 bg-[#f1f2ef]/90 px-4 py-2 backdrop-blur-xl dark:border-white/10 dark:bg-[#101010]/90 sm:h-16 sm:flex-nowrap sm:gap-3 sm:px-6 sm:py-0 lg:fixed lg:left-64 lg:right-0 lg:px-8;
   }
@@ -60,13 +70,13 @@ body:has([data-workspace-error]) .tasks-footer {
     @apply flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-black/60 transition hover:bg-black/5 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-black/30 dark:text-white/60 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:ring-white/40;
   }
   .sidebar-link-active {
-    @apply bg-black text-white hover:bg-black/90 hover:text-white dark:bg-white dark:text-black dark:hover:bg-white/90 dark:hover:text-black;
+    @apply bg-black/[0.08] text-black ring-1 ring-inset ring-black/10 hover:bg-black/[0.12] hover:text-black dark:bg-white dark:text-black dark:ring-0 dark:hover:bg-white/90 dark:hover:text-black;
   }
   .view-button {
     @apply flex items-center justify-center gap-2 rounded-md px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-black/50 transition hover:text-black focus:outline-none focus:ring-2 focus:ring-black/10 dark:text-white/50 dark:hover:text-white dark:focus:ring-white/10;
   }
   .view-button-active {
-    @apply bg-black text-white shadow-sm hover:text-white dark:bg-white dark:text-black dark:hover:text-black;
+    @apply bg-black/10 text-black shadow-sm ring-1 ring-inset ring-black/10 hover:bg-black/15 hover:text-black dark:bg-white dark:text-black dark:ring-0 dark:hover:bg-white dark:hover:text-black;
   }
   .date-field {
     @apply flex flex-col gap-2;

@@ -71,7 +71,7 @@ function WorkspaceChrome({
   return (
     <div
       data-workspace-shell
-      className="min-h-dvh bg-[#f1f2ef] text-black dark:bg-[#101010] dark:text-white"
+      className="tasks-workspace-background min-h-dvh text-black dark:text-white"
     >
       <TasksSidebar
         data={data}
@@ -108,7 +108,9 @@ function WorkspaceChrome({
         <div className="hidden h-16 lg:block" aria-hidden="true" />
         <TaskBanners demoMode={demoMode} preview={data.accessPreview} />
         <div
-          className={["flex-1", contentClassName].filter(Boolean).join(" ")}
+          className={["flex min-h-0 flex-1 flex-col", contentClassName]
+            .filter(Boolean)
+            .join(" ")}
         >
           {children}
         </div>
@@ -131,7 +133,7 @@ export function WorkspaceShellSkeleton() {
     <div
       data-workspace-shell-loading
       aria-busy="true"
-      className="min-h-screen bg-[#f1f2ef] text-black dark:bg-[#101010] dark:text-white"
+      className="tasks-workspace-background min-h-screen text-black dark:text-white"
     >
       <aside
         aria-hidden="true"
@@ -198,7 +200,15 @@ export function WorkspacePageShell(props: WorkspacePageShellProps) {
   ]);
 
   if (persistentShell) {
-    return <div className={contentClassName}>{children}</div>;
+    return (
+      <div
+        className={["min-h-0 flex-1", contentClassName]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        {children}
+      </div>
+    );
   }
 
   return <WorkspaceChrome {...props} />;

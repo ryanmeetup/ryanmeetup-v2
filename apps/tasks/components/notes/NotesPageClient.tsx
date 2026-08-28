@@ -301,7 +301,7 @@ export function NotesPageClient({
           embedded
         >
           {!previewing && (
-            <section className="rounded-xl border border-black/10 bg-black/[0.015] p-4 dark:border-white/10 dark:bg-white/[0.025] sm:p-5">
+            <section className="rounded-xl border border-black/15 bg-black/[0.035] p-4 shadow-sm shadow-black/5 dark:border-white/10 dark:bg-white/[0.025] dark:shadow-none sm:p-5">
               <Textarea
                 id="quick-note"
                 label="Quick note"
@@ -359,6 +359,7 @@ export function NotesPageClient({
                 >
                   <FilterChip
                     active={noteCategoryParam === "all"}
+                    variant="soft"
                     className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap"
                     onClick={() => setNoteCategory("all")}
                   >
@@ -368,7 +369,7 @@ export function NotesPageClient({
                       hideLabel
                       className={
                         noteCategoryParam === "all"
-                          ? "bg-white/20 text-white dark:bg-black/15 dark:text-black"
+                          ? "!bg-black/10 !text-black/65 dark:!bg-black/15 dark:!text-black"
                           : undefined
                       }
                     >
@@ -385,6 +386,7 @@ export function NotesPageClient({
                       <FilterChip
                         key={group.category?.id ?? "uncategorized"}
                         active={active}
+                        variant="soft"
                         className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap"
                         onClick={() => setNoteCategory(value)}
                       >
@@ -400,7 +402,7 @@ export function NotesPageClient({
                           hideLabel
                           className={
                             active
-                              ? "bg-white/20 text-white dark:bg-black/15 dark:text-black"
+                              ? "!bg-black/10 !text-black/65 dark:!bg-black/15 dark:!text-black"
                               : undefined
                           }
                         >

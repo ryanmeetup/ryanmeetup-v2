@@ -330,6 +330,7 @@ export function ActivityPageClient({
 
           <FilterPanel
             collapseOnMobile
+            className="!border-black/15 !bg-black/[0.035] shadow-black/5 dark:!border-white/10 dark:!bg-white/5"
             count={filterCount}
             controlsClassName="grid grid-cols-1 gap-3 overflow-visible sm:grid-cols-2 lg:flex lg:gap-2 lg:overflow-x-auto"
             defaultExpanded

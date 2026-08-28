@@ -278,7 +278,7 @@ export function TasksSidebar({
           <DropdownMenu>
             <DropdownMenuButton
               unstyled
-              className="flex w-full items-center gap-3 rounded-lg border border-black/10 bg-black/[0.03] px-3 py-2.5 text-left text-sm font-semibold text-black/70 transition hover:border-black/20 hover:bg-black/[0.07] hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-black/30 dark:border-white/10 dark:bg-white/[0.06] dark:text-white/70 dark:hover:border-white/20 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:ring-white/40"
+              className="flex w-full items-center gap-3 rounded-lg border border-black/15 bg-black/[0.06] px-3 py-2.5 text-left text-sm font-semibold text-black/70 shadow-sm shadow-black/5 transition hover:border-black/25 hover:bg-black/10 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-black/30 dark:border-white/10 dark:bg-white/[0.06] dark:text-white/70 dark:shadow-none dark:hover:border-white/20 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:ring-white/40"
             >
               <FiPlus aria-hidden />
               New
