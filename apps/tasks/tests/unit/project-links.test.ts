@@ -67,7 +67,7 @@ describe("ensureHttpUrlScheme", () => {
     ).toMatchObject({ accessMode: "restricted" });
   });
 
-  it("defaults new projects to active and validates lifecycle status", () => {
+  it("defaults new projects to discovery and validates lifecycle status", () => {
     const project = {
       name: "Website refresh",
       description: "Give the website a fresh coat of Ryan.",
@@ -76,10 +76,12 @@ describe("ensureHttpUrlScheme", () => {
       accessMode: "owners",
       accessGroupIds: [],
     };
-    expect(projectCreateSchema(project)).toMatchObject({ status: "active" });
-    expect(
-      projectCreateSchema({ ...project, status: "discovery" }),
-    ).toMatchObject({ status: "discovery" });
+    expect(projectCreateSchema(project)).toMatchObject({
+      status: "discovery",
+    });
+    expect(projectCreateSchema({ ...project, status: "active" })).toMatchObject(
+      { status: "active" },
+    );
     expect(
       projectCreateSchema({ ...project, status: "almost-done" }),
     ).toBeNull();
