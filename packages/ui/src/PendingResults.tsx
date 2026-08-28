@@ -15,6 +15,11 @@ export type PendingResultsProps = {
   size?: "md" | "lg";
   /** For matching the corner radius of the container underneath. */
   className?: string;
+  /**
+   * Stretch to fill a flex-column parent instead of sizing to the results.
+   * For views that own the rest of the page height, like the task board.
+   */
+  fill?: boolean;
   children: ReactNode;
 };
 
@@ -41,11 +46,13 @@ const PendingResults = ({
   surface = "card",
   size = "md",
   className,
+  fill = false,
   children,
 }: PendingResultsProps) => {
   const styles = sizeStyles[size];
+  const fillStyles = fill ? "flex min-h-0 flex-1 flex-col" : "";
   return (
-    <div className="relative" aria-busy={pending}>
+    <div className={`relative ${fillStyles}`} aria-busy={pending}>
       {pending && (
         <div
           role="status"
@@ -63,11 +70,11 @@ const PendingResults = ({
         </div>
       )}
       <div
-        className={
+        className={`${
           pending
             ? "pointer-events-none opacity-55 transition-opacity"
             : "transition-opacity"
-        }
+        } ${fillStyles}`}
       >
         {children}
       </div>

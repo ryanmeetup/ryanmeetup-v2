@@ -115,7 +115,7 @@ export function TaskBoardView({
   return (
     <div
       ref={scrollRef}
-      className="-mx-4 flex flex-nowrap items-start gap-4 overflow-x-auto overscroll-x-contain px-4 pb-5 scroll-px-4 sm:-mx-6 sm:px-6 sm:scroll-px-6 lg:-mx-8 lg:px-8 lg:scroll-px-8"
+      className="-mx-4 flex min-h-[28rem] flex-1 flex-nowrap items-stretch gap-4 overflow-x-auto overscroll-x-contain px-4 pb-5 scroll-px-4 sm:-mx-6 sm:px-6 sm:scroll-px-6 lg:-mx-8 lg:px-8 lg:scroll-px-8"
     >
       {statuses.map((status) => {
         const columnTasks = model.columns.get(status.id) ?? [];
@@ -146,7 +146,7 @@ export function TaskBoardView({
                 status.id,
               );
             }}
-            className={`${collapsed ? "min-h-0 w-[240px]" : "min-h-0 w-[min(320px,calc(100vw-3rem))]"} shrink-0 rounded-2xl p-3 transition-[width,background-color,box-shadow] ${drag.state.dragOverStatusId === status.id ? "bg-black/[0.07] ring-2 ring-inset ring-black/30 dark:bg-white/[0.09] dark:ring-white/40" : "bg-black/[0.035] dark:bg-white/[0.035]"}`}
+            className={`${collapsed ? "w-[240px]" : "w-[min(320px,calc(100vw-3rem))]"} shrink-0 rounded-2xl p-3 transition-[width,background-color,box-shadow] ${drag.state.dragOverStatusId === status.id ? "bg-black/[0.07] ring-2 ring-inset ring-black/30 dark:bg-white/[0.09] dark:ring-white/40" : "bg-black/[0.035] dark:bg-white/[0.035]"}`}
           >
             <div className="flex items-center gap-2 px-1">
               <i
