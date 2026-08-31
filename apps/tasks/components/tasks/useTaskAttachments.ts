@@ -12,6 +12,7 @@ import {
   type AttachmentResult,
 } from "@/lib/tasks/task-detail-mutations";
 import { useWorkspaceWrite } from "@/hooks/useWorkspaceWrite";
+import { withRecordedRows } from "@/lib/activity/activity-state";
 import { errorMessage } from "@/lib/presentation";
 import type { TaskAttachment } from "@/lib/tasks/task-types";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
@@ -20,13 +21,11 @@ import type { TaskDetailContext } from "./task-detail-context";
 /** Files the server accepted, plus the audit row it wrote for them. */
 const withAttachment =
   (result: AttachmentResult) =>
-  (current: WorkspaceData): WorkspaceData => ({
-    ...current,
-    attachments: [...current.attachments, result.attachment],
-    activity: result.activity
-      ? [result.activity, ...current.activity]
-      : current.activity,
-  });
+  (current: WorkspaceData): WorkspaceData =>
+    withRecordedRows(result, {
+      ...current,
+      attachments: [...current.attachments, result.attachment],
+    });
 
 export function useTaskAttachments({
   task,
@@ -161,6 +160,10 @@ export function useTaskAttachments({
         attachments: [...current.attachments, item],
       }),
       persist: demoMode ? undefined : () => deleteAttachment(item.id),
+      reconcile:
+        ({ activity }) =>
+        (current) =>
+          withRecordedRows({ activity }, current),
       whenFailed: "The attachment could not be removed.",
     });
   }

@@ -23,6 +23,7 @@ const emptyDraft = {
   priority: "medium" as const,
   category_ids: [] as string[],
   category_tags: {} as Record<string, string[]>,
+  status_reason: "",
 };
 
 export const demoTaskDrafts: StoredTaskDraft[] = [

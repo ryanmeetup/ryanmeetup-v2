@@ -44,7 +44,12 @@ export function useResourceAttachments({
   const [items, setItems] = useState<ResourceAttachmentDraft[]>(
     draftState?.drafts ?? [],
   );
-  const [loading, setLoading] = useState(!demoMode && Boolean(resourceId));
+  // Which resource the items on hand were fetched for. Tracking this instead of
+  // a loading flag keeps the pending state derived: this view outlives the
+  // resource it points at - the board header stays mounted while you move
+  // between projects - and a flag set once at mount would report every later
+  // resource as loaded before its fetch had even started.
+  const [loadedResourceId, setLoadedResourceId] = useState<string>();
   const [saving, setSaving] = useState(false);
   // Identifies this view on the change bus so it skips its own writes.
   const origin = useMemo(() => ({}), []);
@@ -89,7 +94,9 @@ export function useResourceAttachments({
           `${kind === "project" ? "Project" : "Category"} attachments could not be loaded.`,
         );
       } finally {
-        setLoading(false);
+        // An aborted request was superseded by one for another resource, so it
+        // must not mark anything loaded - the replacement will.
+        if (!signal.aborted) setLoadedResourceId(resourceId);
       }
     },
     [demoMode, endpoint, idKey, kind, resourceId, updateItems],
@@ -321,7 +328,8 @@ export function useResourceAttachments({
 
   return {
     ...partitionAttachmentDrafts(items),
-    loading,
+    loading:
+      !demoMode && Boolean(resourceId) && loadedResourceId !== resourceId,
     saving,
     addNote,
     updateNote,

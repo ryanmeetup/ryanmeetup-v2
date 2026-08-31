@@ -1,11 +1,50 @@
 import { NextResponse } from "next/server";
 import { databaseFailure, operationFailed } from "@/lib/server/api-response";
 import { authorize } from "@/lib/server/auth";
+import { isUuid, requiredTrimmedText } from "@/lib/api-schema/shared";
+import { MAX_CHECKLIST_PASTE_ITEMS } from "@/lib/tasks/checklist-paste";
 import type { Subtask, TaskComment } from "@/lib/tasks/task-types";
 import type { TaskActivity } from "@/lib/activity/activity-types";
-import { TASK_PAGE_SIZE, WORKSPACE_COLUMNS } from "@/lib/server/workspace-loader";
+import {
+  TASK_PAGE_SIZE,
+  WORKSPACE_COLUMNS,
+} from "@/lib/server/workspace-loader";
 
 const failure = (message: string) => operationFailed(message);
+
+/** Long enough for a wrapped line of prose, short enough to stay an item. */
+const MAX_CHECKLIST_ITEM_LENGTH = 1000;
+
+/**
+ * Validates one pasted checklist batch into the shape the RPC expects.
+ *
+ * Sort order is derived from the offset the client sends plus the position in
+ * the batch, so the pasted items land after whatever is already on the list
+ * and keep the order they were written in.
+ */
+function checklistPasteItems(value: unknown, sortOrder: unknown) {
+  const offset =
+    typeof sortOrder === "number" &&
+    Number.isInteger(sortOrder) &&
+    sortOrder >= 0
+      ? sortOrder
+      : 0;
+  if (
+    !Array.isArray(value) ||
+    !value.length ||
+    value.length > MAX_CHECKLIST_PASTE_ITEMS
+  )
+    return null;
+  const items = value.map((entry, index) => {
+    if (!entry || typeof entry !== "object") return null;
+    const { id, title, completed } = entry as Record<string, unknown>;
+    const cleanTitle = requiredTrimmedText(title, MAX_CHECKLIST_ITEM_LENGTH);
+    return isUuid(id) && cleanTitle && typeof completed === "boolean"
+      ? { id, title: cleanTitle, completed, sort_order: offset + index }
+      : null;
+  });
+  return items.every((item) => item !== null) ? items : null;
+}
 
 export async function GET(request: Request) {
   const authorization = await authorize();
@@ -101,8 +140,31 @@ export async function POST(request: Request) {
     parentId?: string | null;
     value?: string;
     sortOrder?: number;
+    items?: unknown;
   };
-  if (!body.taskId || typeof body.value !== "string" || !body.value.trim())
+  if (!body.taskId) return failure("Invalid task detail.");
+  if (body.kind === "subtasks") {
+    const items = checklistPasteItems(body.items, body.sortOrder);
+    if (!items)
+      return failure(
+        `Paste up to ${MAX_CHECKLIST_PASTE_ITEMS} checklist items of ${MAX_CHECKLIST_ITEM_LENGTH.toLocaleString("en-US")} characters each.`,
+      );
+    const { data, error } = await supabase.rpc(
+      "create_subtasks_with_activity",
+      {
+        parent_task_id: body.taskId,
+        requested_items: items,
+      },
+    );
+    if (error)
+      return databaseFailure(request, "subtasks.create", error, {
+        error: "The checklist items could not be added. Try again.",
+      });
+    return NextResponse.json(
+      data as { subtasks: Subtask[]; activity: TaskActivity },
+    );
+  }
+  if (typeof body.value !== "string" || !body.value.trim())
     return failure("Invalid task detail.");
   if (body.kind === "subtask") {
     const id = crypto.randomUUID();
@@ -146,7 +208,10 @@ export async function POST(request: Request) {
       return databaseFailure(request, "comment.activity", activity.error, {
         error: "The comment was added, but its activity could not be recorded.",
       });
-    return NextResponse.json({ comment: data as TaskComment });
+    return NextResponse.json({
+      comment: data as TaskComment,
+      activity: activity.data as TaskActivity,
+    });
   }
   return failure("Invalid task detail type.");
 }
@@ -186,7 +251,10 @@ export async function PATCH(request: Request) {
         error:
           "The comment was edited, but its activity could not be recorded.",
       });
-    return NextResponse.json({ comment: data as TaskComment });
+    return NextResponse.json({
+      comment: data as TaskComment,
+      activity: activity.data as TaskActivity,
+    });
   }
   if (!body.id || typeof body.completed !== "boolean")
     return failure("Invalid checklist update.");
@@ -211,7 +279,10 @@ export async function PATCH(request: Request) {
       error:
         "The checklist was updated, but its activity could not be recorded.",
     });
-  return NextResponse.json({ subtask: data as Subtask });
+  return NextResponse.json({
+    subtask: data as Subtask,
+    activity: activity.data as TaskActivity,
+  });
 }
 
 export async function DELETE(request: Request) {
@@ -245,7 +316,10 @@ export async function DELETE(request: Request) {
         error:
           "The comment was deleted, but its activity could not be recorded.",
       });
-    return NextResponse.json({ id: data.id });
+    return NextResponse.json({
+      id: data.id,
+      activity: activity.data as TaskActivity,
+    });
   }
   if (!id) return failure("A checklist item is required.");
   const { data, error } = await supabase
@@ -269,8 +343,18 @@ export async function DELETE(request: Request) {
       error:
         "The checklist item was deleted, but its activity could not be recorded.",
     });
-  return NextResponse.json({ id: data.id });
+  return NextResponse.json({
+    id: data.id,
+    activity: activity.data as TaskActivity,
+  });
 }
+/**
+ * Records one audit row and hands it back.
+ *
+ * The row is selected rather than discarded because the panels read activity
+ * out of the workspace the client already holds. A write that only inserts it
+ * leaves the activity list a page refresh behind the change it describes.
+ */
 async function recordTaskActivity(
   supabase: Awaited<ReturnType<typeof authorize>> extends infer T
     ? T extends { supabase: infer S }
@@ -281,10 +365,14 @@ async function recordTaskActivity(
   actorId: string,
   action: string,
 ) {
-  return supabase.from("task_activity").insert({
-    task_id: taskId,
-    actor_id: actorId,
-    action,
-    details: {},
-  });
+  return supabase
+    .from("task_activity")
+    .insert({
+      task_id: taskId,
+      actor_id: actorId,
+      action,
+      details: {},
+    })
+    .select(WORKSPACE_COLUMNS.activity)
+    .single();
 }

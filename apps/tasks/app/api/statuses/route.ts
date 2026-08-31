@@ -100,6 +100,9 @@ export async function PATCH(request: Request) {
     ...(parsed.data.isCompleted !== undefined
       ? { is_completed: parsed.data.isCompleted }
       : {}),
+    ...(parsed.data.requiresReason !== undefined
+      ? { requires_reason: parsed.data.requiresReason }
+      : {}),
   };
   const { data, error } = await context.admin
     .from("statuses")

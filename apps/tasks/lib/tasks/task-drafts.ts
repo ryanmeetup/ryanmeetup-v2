@@ -40,7 +40,11 @@ export function readTaskDrafts(profileId: string): StoredTaskDraft[] {
       )
       .map((item) => ({
         ...item,
-        draft: { ...item.draft, category_tags: item.draft.category_tags ?? {} },
+        draft: {
+          ...item.draft,
+          category_tags: item.draft.category_tags ?? {},
+          status_reason: item.draft.status_reason ?? "",
+        },
       }))
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   } catch {

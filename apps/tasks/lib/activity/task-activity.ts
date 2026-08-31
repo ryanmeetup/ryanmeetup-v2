@@ -47,6 +47,11 @@ export function taskActivityLabel(action: string) {
   if (action === "updated the task") return "Task updated";
   if (action.startsWith("added checklist item"))
     return action.replace("added checklist item", "Checklist item added");
+  const pastedChecklist = /^added (\d+) checklist items$/.exec(action);
+  if (pastedChecklist) {
+    const count = Number(pastedChecklist[1]);
+    return `${count} checklist item${count === 1 ? "" : "s"} added`;
+  }
   if (action.startsWith("attached "))
     return action.replace("attached ", "Attachment added: ");
   if (action.startsWith("removed attachment "))

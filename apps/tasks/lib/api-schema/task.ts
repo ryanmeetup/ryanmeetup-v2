@@ -3,10 +3,25 @@ import { normalizeTaskSchedule } from "@/lib/tasks/task-scheduling";
 import {
   isJsonObject,
   objectWithKeys,
+  optionalTrimmedText,
   parseUuid,
   requiredTrimmedText,
   uuidList,
 } from "./shared";
+
+/** Long enough for a real explanation, short enough to stay a comment. */
+const STATUS_REASON_MAX = 2000;
+
+/**
+ * `undefined` when no reason was sent, `null` when what was sent is not usable
+ * as one. The client sends an explicit `null` whenever the target status asks
+ * for no reason, so that has to read as absent rather than as a bad value.
+ */
+function statusReasonText(value: unknown) {
+  return value === null
+    ? undefined
+    : optionalTrimmedText(value, STATUS_REASON_MAX);
+}
 
 type TaskInput = Pick<
   Task,
@@ -26,7 +41,12 @@ type TaskInput = Pick<
 const priorities: Priority[] = ["low", "medium", "high", "urgent"];
 
 export function taskSaveSchema(value: unknown) {
-  const body = objectWithKeys(value, ["id", "task", "categoryIds"]);
+  const body = objectWithKeys(value, [
+    "id",
+    "task",
+    "categoryIds",
+    "statusReason",
+  ]);
   if (!body || !isJsonObject(body.task)) return null;
   const task = body.task as Partial<TaskInput>;
   const title = requiredTrimmedText(task.title, 500);
@@ -36,7 +56,9 @@ export function taskSaveSchema(value: unknown) {
   const categoryTags = task.category_tags ?? {};
   const id = body.id === undefined ? null : parseUuid(body.id);
   const schedule = normalizeTaskSchedule(task);
+  const statusReason = statusReasonText(body.statusReason);
   if (
+    statusReason === null ||
     !title ||
     !statusId ||
     !reportedBy ||
@@ -60,18 +82,31 @@ export function taskSaveSchema(value: unknown) {
       ...schedule,
     },
     categoryIds,
+    statusReason: statusReason || null,
   };
 }
 
 export function taskMoveSchema(value: unknown) {
-  const body = objectWithKeys(value, ["id", "statusId", "boardPosition"]);
+  const body = objectWithKeys(value, [
+    "id",
+    "statusId",
+    "boardPosition",
+    "statusReason",
+  ]);
   const id = body && parseUuid(body.id);
   const statusId = body && parseUuid(body.statusId);
+  const statusReason = body ? statusReasonText(body.statusReason) : null;
   return id &&
     statusId &&
+    statusReason !== null &&
     typeof body!.boardPosition === "number" &&
     Number.isFinite(body!.boardPosition)
-    ? { id, statusId, boardPosition: body!.boardPosition }
+    ? {
+        id,
+        statusId,
+        boardPosition: body!.boardPosition,
+        statusReason: statusReason || null,
+      }
     : null;
 }
 

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { idSchema, taskMoveSchema, taskSaveSchema } from "@/lib/api-schema";
-import { databaseFailure } from "@/lib/server/api-response";
+import { databaseFailure, operationFailed } from "@/lib/server/api-response";
 import { authorize } from "@/lib/server/auth";
 import { readJson } from "@/lib/server/request";
 import {
@@ -17,9 +17,15 @@ import {
 } from "@/lib/access/access-preview";
 import { resolveAccessPreview } from "@/lib/server/access-preview";
 import { parseTaskKey } from "@/lib/tasks/task-key";
-import { deleteTask, moveTask, saveTask } from "@/lib/server/tasks/mutations";
+import {
+  deleteTask,
+  isMissingStatusReason,
+  moveTask,
+  saveTask,
+} from "@/lib/server/tasks/mutations";
 import {
   loadTaskChangeSnapshot,
+  savedTaskRecords,
   savedTaskSnapshot,
 } from "@/lib/server/tasks/task-change-activity";
 import { summarizeTaskChanges } from "@/lib/activity/task-change-summary";
@@ -396,6 +402,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     ? await loadTaskChangeSnapshot(authorization.supabase, parsed.data.id)
     : null;
   const { data, error } = await saveTask(authorization.supabase, parsed.data);
+  if (isMissingStatusReason(error)) return operationFailed(error!.message);
   if (error)
     return databaseFailure(request, "task.save", error, {
       error: "The task could not be saved. Try again.",
@@ -410,7 +417,14 @@ export async function POST(request: Request): Promise<NextResponse> {
         savedTaskSnapshot(data.task, parsed.data.categoryIds),
       ),
     );
-  return NextResponse.json(data);
+  // Read after the change summary is attached, so the client is handed the
+  // finished audit row rather than the bare one the trigger wrote.
+  const recorded = await savedTaskRecords(
+    authorization.supabase,
+    data.task.id,
+    parsed.data.statusReason,
+  );
+  return NextResponse.json({ ...data, ...recorded });
 }
 
 export async function PATCH(request: Request): Promise<NextResponse> {
@@ -419,11 +433,17 @@ export async function PATCH(request: Request): Promise<NextResponse> {
   const authorization = await authorize();
   if ("response" in authorization) return authorization.response;
   const { data, error } = await moveTask(authorization.supabase, parsed.data);
+  if (isMissingStatusReason(error)) return operationFailed(error!.message);
   if (error)
     return databaseFailure(request, "task.move", error, {
       error: "The task could not be moved. Refresh and try again.",
     });
-  return NextResponse.json({ task: data });
+  const recorded = await savedTaskRecords(
+    authorization.supabase,
+    data.id,
+    parsed.data.statusReason,
+  );
+  return NextResponse.json({ task: data, ...recorded });
 }
 
 export async function DELETE(request: Request): Promise<NextResponse> {

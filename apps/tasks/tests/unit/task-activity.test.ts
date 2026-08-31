@@ -32,6 +32,12 @@ describe("task activity", () => {
     expect(taskActivityLabel("added checklist item Buy snacks")).toBe(
       "Checklist item added Buy snacks",
     );
+    expect(taskActivityLabel("added 8 checklist items")).toBe(
+      "8 checklist items added",
+    );
+    expect(taskActivityLabel("added 1 checklist items")).toBe(
+      "1 checklist item added",
+    );
     expect(taskActivityLabel("attached brief.pdf")).toBe(
       "Attachment added: brief.pdf",
     );

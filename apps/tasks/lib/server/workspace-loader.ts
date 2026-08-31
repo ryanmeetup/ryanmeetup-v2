@@ -79,7 +79,7 @@ export const WORKSPACE_COLUMNS = {
   currentProfile:
     "id,full_name,avatar_url,onboarding_completed,task_details_open_by_default,assign_new_tasks_to_self,favorite_project_ids,app_role",
   statuses:
-    "id,name,description,color,sort_order,order_revision,is_default,is_completed",
+    "id,name,description,color,sort_order,order_revision,is_default,is_completed,requires_reason",
   categories:
     "id,name,description,color,links,tags,created_by,archived_at,access_mode",
   projects:

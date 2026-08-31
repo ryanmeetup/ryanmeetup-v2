@@ -17,6 +17,7 @@ import {
   FiChevronDown,
   FiCircle,
   FiEdit2,
+  FiMessageSquare,
   FiTrash2,
 } from "react-icons/fi";
 import type { Status } from "@/lib/tasks/task-types";
@@ -72,6 +73,7 @@ export function StatusSettings({
       order_revision: statuses[0]?.order_revision ?? 0,
       is_default: false,
       is_completed: false,
+      requires_reason: false,
     };
     try {
       if (!demoMode) {
@@ -191,6 +193,29 @@ export function StatusSettings({
     }
   }
 
+  async function toggleRequiresReason(id: string, requiresReason: boolean) {
+    setSettingActionPending(true);
+    try {
+      if (!demoMode) {
+        await statusRequest("PATCH", { id, requiresReason });
+      }
+      onStatusesChange((current) =>
+        current.map((item) =>
+          item.id === id ? { ...item, requires_reason: requiresReason } : item,
+        ),
+      );
+      toast.success(
+        requiresReason
+          ? "Moving a task here now requires a reason."
+          : "Tasks can move here without a reason.",
+      );
+    } catch (error) {
+      toast.error(errorMessage(error, "The status could not be updated."));
+    } finally {
+      setSettingActionPending(false);
+    }
+  }
+
   async function moveStatus(id: string, direction: -1 | 1) {
     if (settingActionPending) return;
     const ordered = [...statuses].sort(
@@ -233,7 +258,9 @@ export function StatusSettings({
       <p className="text-sm leading-6 text-black/70 dark:text-white/70">
         Completion statuses mark tasks complete when they enter the column and
         automatically archive them after 14 days. Moving a task back to an
-        active status reopens it.
+        active status reopens it. A status that requires a reason asks whoever
+        moves a task into it to say why, and keeps that answer as a comment on
+        the task — “Will Not Do” does by default.
       </p>
 
       <div className="space-y-3">
@@ -375,6 +402,32 @@ export function StatusSettings({
                         {item.is_completed
                           ? "Completes tasks"
                           : "Active status"}
+                      </button>
+                    </Tooltip>
+                    <Tooltip
+                      content={
+                        item.requires_reason
+                          ? "Moving a task here asks for a reason, saved as a comment. Select to stop requiring one."
+                          : "Select to require a reason whenever a task moves here."
+                      }
+                    >
+                      <button
+                        type="button"
+                        aria-label={`${item.name} ${item.requires_reason ? "currently requires a reason when a task moves here" : "accepts tasks without a reason"}`}
+                        aria-pressed={item.requires_reason}
+                        disabled={settingActionPending}
+                        onClick={() =>
+                          void toggleRequiresReason(
+                            item.id,
+                            !item.requires_reason,
+                          )
+                        }
+                        className={`inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[11px] font-semibold uppercase tracking-[0.12em] transition focus:outline-none focus:ring-2 focus:ring-black/20 disabled:opacity-50 dark:focus:ring-white/30 ${item.requires_reason ? "border-amber-500/35 bg-amber-500/15 text-amber-800 dark:text-amber-200" : "border-black/10 text-black/50 hover:border-black/25 hover:text-black dark:border-white/10 dark:text-white/50 dark:hover:border-white/25 dark:hover:text-white"}`}
+                      >
+                        <FiMessageSquare aria-hidden className="h-3.5 w-3.5" />
+                        {item.requires_reason
+                          ? "Requires a reason"
+                          : "No reason needed"}
                       </button>
                     </Tooltip>
                     <span

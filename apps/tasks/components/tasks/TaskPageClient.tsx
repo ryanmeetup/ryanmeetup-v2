@@ -42,6 +42,7 @@ import { taskKey, taskPath } from "@/lib/tasks/task-key";
 import { errorMessage } from "@/lib/presentation";
 import { formatTimestampDate } from "@/lib/date-format";
 import { taskDraftFromTask } from "@/lib/tasks/task-draft-factory";
+import { taskDraftValidationMessage } from "@/lib/tasks/task-draft-validation";
 import type { Task } from "@/lib/tasks/task-types";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { taskEditorView } from "@/lib/tasks/task-editor-view";
@@ -125,13 +126,10 @@ export function TaskPageClient({
 
   async function saveTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const validationMessage = !draft.title.trim()
-      ? "A task title is required."
-      : !draft.status_id
-        ? "A status is required."
-        : draft.category_ids.length === 0
-          ? "Select at least one category."
-          : null;
+    const validationMessage = taskDraftValidationMessage(draft, {
+      statuses: data.statuses,
+      currentStatusId: task.status_id,
+    });
     if (validationMessage) {
       setTaskMessage(validationMessage);
       toast.error(validationMessage);

@@ -23,6 +23,7 @@ import {
   taskDraftAutosaveDelayMs,
 } from "@/lib/tasks/task-drafts";
 import { errorMessage } from "@/lib/presentation";
+import { taskDraftValidationMessage } from "@/lib/tasks/task-draft-validation";
 import { persistNewTaskDetails } from "@/lib/tasks/new-task-details";
 import { taskKey, taskPath } from "@/lib/tasks/task-key";
 
@@ -187,15 +188,10 @@ export function useTaskEditorController({
     event.preventDefault();
     event.stopPropagation();
     if (saveInFlight.current) return;
-    const validationMessage = !draft.title.trim()
-      ? "A task title is required."
-      : !draft.status_id
-        ? "A status is required."
-        : !draft.priority
-          ? "A priority is required."
-          : draft.category_ids.length === 0
-            ? "Select at least one category."
-            : null;
+    const validationMessage = taskDraftValidationMessage(draft, {
+      statuses: data.statuses,
+      currentStatusId: editing?.status_id ?? null,
+    });
     if (validationMessage) {
       setMessage(validationMessage);
       toast.error(validationMessage);

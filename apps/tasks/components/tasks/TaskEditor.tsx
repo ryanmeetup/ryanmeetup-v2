@@ -289,6 +289,7 @@ export function TaskEditor(props: TaskEditorProps) {
                 profiles,
                 currentProfileId,
                 accessibleCategoryIds,
+                currentStatusId: editing?.status_id ?? null,
               }}
             />
             {false && (

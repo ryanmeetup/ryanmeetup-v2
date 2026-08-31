@@ -32,6 +32,7 @@ import {
 } from "@/lib/tasks/task-drafts";
 import { taskKey, taskPath } from "@/lib/tasks/task-key";
 import { taskEditorView } from "@/lib/tasks/task-editor-view";
+import { taskDraftValidationMessage } from "@/lib/tasks/task-draft-validation";
 
 export function NewTaskModal({
   data,
@@ -137,13 +138,10 @@ export function NewTaskModal({
     event.preventDefault();
     event.stopPropagation();
     if (saveInFlight.current) return;
-    const validationMessage = !draft.title.trim()
-      ? "A task title is required."
-      : !draft.status_id
-        ? "A status is required."
-        : draft.category_ids.length === 0
-          ? "Select at least one category."
-          : null;
+    const validationMessage = taskDraftValidationMessage(draft, {
+      statuses: data.statuses,
+      currentStatusId: null,
+    });
     if (validationMessage) {
       setMessage(validationMessage);
       toast.error(validationMessage);

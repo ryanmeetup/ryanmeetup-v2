@@ -14,6 +14,7 @@ export const defaultStatuses = [
     sort_order: 0,
     is_default: true,
     is_completed: false,
+    requires_reason: false,
   },
   {
     name: "Todo",
@@ -22,6 +23,7 @@ export const defaultStatuses = [
     sort_order: 1,
     is_default: true,
     is_completed: false,
+    requires_reason: false,
   },
   {
     name: "In Progress",
@@ -30,6 +32,7 @@ export const defaultStatuses = [
     sort_order: 2,
     is_default: true,
     is_completed: false,
+    requires_reason: false,
   },
   {
     name: "In Review",
@@ -38,6 +41,7 @@ export const defaultStatuses = [
     sort_order: 3,
     is_default: true,
     is_completed: false,
+    requires_reason: false,
   },
   {
     name: "Done",
@@ -46,6 +50,7 @@ export const defaultStatuses = [
     sort_order: 4,
     is_default: true,
     is_completed: true,
+    requires_reason: false,
   },
   {
     name: "Will Not Do",
@@ -54,5 +59,6 @@ export const defaultStatuses = [
     sort_order: 5,
     is_default: true,
     is_completed: false,
+    requires_reason: true,
   },
 ] as const satisfies readonly DefaultStatus[];

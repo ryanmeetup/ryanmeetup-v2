@@ -109,3 +109,49 @@ test("saves and deletes a calendar item", async ({ page, baseURL }) => {
     page.getByRole("button", { name: title, exact: true }),
   ).toHaveCount(0);
 });
+
+test("requires a reason before a task can be declined", async ({
+  page,
+  baseURL,
+}) => {
+  await enterDemoWorkspace(page, baseURL);
+  await page.goto("/board");
+  await page.waitForLoadState("networkidle");
+
+  await page.getByRole("button", { name: "Open Confirm launch venue" }).click();
+  await expect(page.getByRole("heading", { name: "Edit Task" })).toBeVisible();
+
+  const reason = page.getByLabel(/Why is this task moving to Will Not Do/);
+  await expect(reason).toHaveCount(0);
+
+  await page.getByRole("button", { name: /^Status/ }).click();
+  await page.getByRole("option", { name: "Will Not Do" }).click();
+  await expect(reason).toBeVisible();
+
+  // An empty reason is caught by the field itself, whitespace by the editor.
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByRole("heading", { name: "Edit Task" })).toBeVisible();
+
+  await reason.fill("   ");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(
+    page
+      .getByRole("status")
+      .getByText("Add a reason before moving this task to Will Not Do."),
+  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Edit Task" })).toBeVisible();
+
+  await reason.fill("The venue doubled its rate.");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByRole("heading", { name: "Edit Task" })).toHaveCount(0);
+
+  // The reason is kept as a comment, and the task now sits in the status, so
+  // editing it again does not ask for another one.
+  await page
+    .getByRole("link", { name: "Go to Confirm launch venue details" })
+    .click();
+  await expect(page.getByText("The venue doubled its rate.")).toBeVisible();
+  await page.getByRole("button", { name: "Edit task" }).first().click();
+  await expect(page.getByRole("heading", { name: "Edit Task" })).toBeVisible();
+  await expect(reason).toHaveCount(0);
+});

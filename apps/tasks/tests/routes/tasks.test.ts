@@ -16,6 +16,19 @@ const validBody = {
   categoryIds: [categoryId, categoryId],
 };
 
+/**
+ * A query builder for the read-back the save makes for its audit row and any
+ * status-reason comment. Every chained filter returns itself, so the stub does
+ * not have to know which ones the route uses.
+ */
+const queryStub = () => {
+  const builder: Record<string, unknown> = {};
+  for (const method of ["select", "eq", "order", "limit"])
+    builder[method] = () => builder;
+  builder.maybeSingle = async () => ({ data: null, error: null });
+  return builder;
+};
+
 const request = () =>
   new Request("http://localhost/api/tasks", {
     method: "POST",
@@ -54,6 +67,7 @@ describe("POST /api/tasks", () => {
           .mockResolvedValue({ data: { user: { id: "user-1" } } }),
       },
       rpc,
+      from: queryStub,
     });
     const { POST } = await import("@/app/api/tasks/route");
     const response = await POST(request());
@@ -69,6 +83,30 @@ describe("POST /api/tasks", () => {
         category_ids: [categoryId],
       }),
     );
+  });
+
+  it("returns the status's own reason requirement to the caller", async () => {
+    createClient.mockResolvedValue({
+      auth: {
+        getUser: vi
+          .fn()
+          .mockResolvedValue({ data: { user: { id: "user-1" } } }),
+      },
+      rpc: vi.fn().mockResolvedValue({
+        data: null,
+        error: {
+          code: "TK001",
+          message: "Add a reason before moving this task to Will Not Do.",
+        },
+      }),
+    });
+    const { POST } = await import("@/app/api/tasks/route");
+    const response = await POST(request());
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      code: "OPERATION_FAILED",
+      error: "Add a reason before moving this task to Will Not Do.",
+    });
   });
 
   it("surfaces a failed atomic mutation without reporting success", async () => {

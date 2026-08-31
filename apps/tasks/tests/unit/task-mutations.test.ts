@@ -96,15 +96,18 @@ describe("task mutations", () => {
       },
     });
 
-    await service.save(
-      {
-        ...task,
-        title: "Chapter request",
-        status_id: "doing",
-        category_ids: ["events", "ops"],
-        category_tags: {},
-      } as unknown as TaskDraft,
-      task,
+    service.applySaved(
+      await service.save(
+        {
+          ...task,
+          title: "Chapter request",
+          status_id: "doing",
+          category_ids: ["events", "ops"],
+          category_tags: {},
+        } as unknown as TaskDraft,
+        task,
+      ),
+      true,
     );
 
     expect(data.activity).toMatchObject([
@@ -120,6 +123,127 @@ describe("task mutations", () => {
         },
       },
     ]);
+  });
+
+  it("records a demo move into a declined status as its reason comment", async () => {
+    const task = {
+      id: "task-1",
+      title: "Second stage lighting",
+      status_id: "todo",
+      board_position: 1024,
+    } as unknown as Task;
+    let data = {
+      currentProfile: { id: "profile-1" },
+      statuses: [
+        { id: "todo", is_completed: false, requires_reason: false },
+        { id: "declined", is_completed: false, requires_reason: true },
+      ],
+      tasks: [task],
+      comments: [],
+    } as unknown as WorkspaceData;
+    const service = createTaskMutationService({
+      demoMode: true,
+      getData: () => data,
+      setData: (update) => {
+        data = typeof update === "function" ? update(data) : update;
+      },
+    });
+
+    await service.move(
+      task.id,
+      "declined",
+      undefined,
+      "after",
+      "  Venue said no.  ",
+    );
+
+    expect(data.tasks[0].status_id).toBe("declined");
+    expect(data.comments).toMatchObject([
+      { task_id: task.id, body: "Venue said no.", created_by: "profile-1" },
+    ]);
+  });
+
+  it("shows the rows a server-backed move recorded without a reload", async () => {
+    const task = {
+      id: "task-1",
+      status_id: "todo",
+      board_position: 1024,
+    } as unknown as Task;
+    vi.mocked(mutate).mockResolvedValue({
+      task: { ...task, status_id: "declined" },
+      activity: {
+        id: "activity-1",
+        task_id: task.id,
+        actor_id: "profile-1",
+        action: "moved task",
+        details: {},
+        created_at: "2026-08-31T12:00:00.000Z",
+      },
+      comment: {
+        id: "comment-1",
+        task_id: task.id,
+        body: "Venue said no.",
+        created_by: "profile-1",
+      },
+    });
+    let data = {
+      currentProfile: { id: "profile-1" },
+      statuses: [
+        { id: "todo", is_completed: false, requires_reason: false },
+        { id: "declined", is_completed: false, requires_reason: true },
+      ],
+      tasks: [task],
+      comments: [],
+      activity: [],
+    } as unknown as WorkspaceData;
+    const service = createTaskMutationService({
+      demoMode: false,
+      getData: () => data,
+      setData: (update) => {
+        data = typeof update === "function" ? update(data) : update;
+      },
+    });
+
+    await service.move(
+      task.id,
+      "declined",
+      undefined,
+      "after",
+      "Venue said no.",
+    );
+
+    expect(data.activity).toMatchObject([{ id: "activity-1" }]);
+    expect(data.comments).toMatchObject([{ body: "Venue said no." }]);
+  });
+
+  it("sends no reason when a card is reordered inside its own column", async () => {
+    const task = {
+      id: "task-1",
+      status_id: "declined",
+      board_position: 1024,
+    } as unknown as Task;
+    vi.mocked(mutate).mockResolvedValue({ task });
+    let data = {
+      currentProfile: { id: "profile-1" },
+      statuses: [
+        { id: "declined", is_completed: false, requires_reason: true },
+      ],
+      tasks: [task],
+      comments: [],
+    } as unknown as WorkspaceData;
+    const service = createTaskMutationService({
+      demoMode: false,
+      getData: () => data,
+      setData: (update) => {
+        data = typeof update === "function" ? update(data) : update;
+      },
+    });
+
+    await service.move(task.id, "declined");
+
+    expect(
+      JSON.parse(vi.mocked(mutate).mock.calls.at(-1)![1]!.body as string),
+    ).toMatchObject({ statusReason: null });
   });
 
   it("keeps the submitted assignee when the save response omits it", async () => {
@@ -149,10 +273,11 @@ describe("task mutations", () => {
       priority: "medium",
       category_ids: ["category-1"],
       category_tags: {},
+      status_reason: "",
     } satisfies TaskDraft;
     const service = createTaskMutationService({
       demoMode: false,
-      getData: () => ({}) as WorkspaceData,
+      getData: () => ({ statuses: [] }) as unknown as WorkspaceData,
       setData: vi.fn(),
     });
 
@@ -189,10 +314,11 @@ describe("task mutations", () => {
       priority: "medium",
       category_ids: [categoryId],
       category_tags: {},
+      status_reason: "",
     } satisfies TaskDraft;
     const service = createTaskMutationService({
       demoMode: false,
-      getData: () => ({}) as WorkspaceData,
+      getData: () => ({ statuses: [] }) as unknown as WorkspaceData,
       setData: vi.fn(),
     });
 

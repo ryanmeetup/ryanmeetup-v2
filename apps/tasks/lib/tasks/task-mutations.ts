@@ -9,7 +9,11 @@ import type {
   Task,
   TaskAssignee,
   TaskCategory,
+  TaskComment,
 } from "@/lib/tasks/task-types";
+import { statusNeedingReason } from "@/lib/tasks/task-status-reason";
+import { withRecordedRows } from "@/lib/activity/activity-state";
+import type { TaskActivity } from "@/lib/activity/activity-types";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { withNormalizedTaskSchedule } from "@/lib/tasks/task-scheduling";
 
@@ -26,7 +30,15 @@ export type TaskDraft = Pick<
   | "due_time"
   | "reminder_at"
   | "priority"
-> & { category_ids: string[]; category_tags: Record<string, string[]> };
+> & {
+  category_ids: string[];
+  category_tags: Record<string, string[]>;
+  /**
+   * Why the task is entering a status that requires an explanation. It is not
+   * a task column: the server stores it as the task's next comment.
+   */
+  status_reason: string;
+};
 
 type MutationContext = {
   demoMode: boolean;
@@ -38,9 +50,33 @@ export type SavedTask = {
   task: Task;
   assignees: TaskAssignee[];
   categories: TaskCategory[];
+  /**
+   * The rows the save recorded rather than the caller: the audit entry, and
+   * the comment a required status reason was stored as. Demo mode writes its
+   * own so both paths leave the panels in the same state.
+   */
+  activity?: TaskActivity | null;
+  comment?: TaskComment | null;
 };
 
 const archiveDelayMs = 14 * 24 * 60 * 60 * 1000;
+
+/** The reason a demo move records, matching what `save_task` inserts. */
+function reasonComment(
+  taskId: string,
+  body: string,
+  authorId: string,
+): TaskComment {
+  return {
+    id: crypto.randomUUID(),
+    task_id: taskId,
+    parent_id: null,
+    body,
+    created_by: authorId,
+    created_at: new Date().toISOString(),
+    edited_at: null,
+  };
+}
 
 function completionLifecycle(
   statusId: string,
@@ -63,8 +99,19 @@ export function createTaskMutationService(context: MutationContext) {
   return {
     async save(draft: TaskDraft, editing: Task | null): Promise<SavedTask> {
       const snapshot = context.getData();
-      const { category_ids: categoryIds, ...rawTaskDraft } = draft;
+      const {
+        category_ids: categoryIds,
+        status_reason: rawReason,
+        ...rawTaskDraft
+      } = draft;
       const taskDraft = withNormalizedTaskSchedule(rawTaskDraft);
+      const statusReason = statusNeedingReason(
+        snapshot.statuses,
+        draft.status_id,
+        editing?.status_id ?? null,
+      )
+        ? rawReason.trim()
+        : null;
       if (context.demoMode) {
         const now = new Date().toISOString();
         const task: Task = editing
@@ -115,23 +162,21 @@ export function createTaskMutationService(context: MutationContext) {
             )
           : [];
         // Demo mode has no save transaction, so it records its own audit row
-        // to keep the activity panel aligned with the server-backed path.
-        context.setData((current) => ({
-          ...current,
-          activity: [
-            {
-              id: crypto.randomUUID(),
-              task_id: task.id,
-              actor_id: current.currentProfile.id,
-              action: editing ? "updated the task" : "created the task",
-              details: changes.length ? { changes } : {},
-              created_at: now,
-            },
-            ...current.activity,
-          ],
-        }));
+        // and reason comment to keep the panels aligned with the
+        // server-backed path.
         return {
           task,
+          activity: {
+            id: crypto.randomUUID(),
+            task_id: task.id,
+            actor_id: snapshot.currentProfile.id,
+            action: editing ? "updated the task" : "created the task",
+            details: changes.length ? { changes } : {},
+            created_at: now,
+          },
+          comment: statusReason
+            ? reasonComment(task.id, statusReason, snapshot.currentProfile.id)
+            : null,
           assignees: task.assignee_id
             ? [{ task_id: task.id, profile_id: task.assignee_id }]
             : [],
@@ -143,10 +188,17 @@ export function createTaskMutationService(context: MutationContext) {
       }
       const result = await mutate<SavedTask>("/api/tasks", {
         method: "POST",
-        body: JSON.stringify({ id: editing?.id, task: taskDraft, categoryIds }),
+        body: JSON.stringify({
+          id: editing?.id,
+          task: taskDraft,
+          categoryIds,
+          statusReason,
+        }),
       });
       return {
         task: result.task,
+        activity: result.activity,
+        comment: result.comment,
         // The submitted assignee is the authoritative post-transaction value.
         // The RPC relation payload can briefly be empty, which otherwise makes
         // the board render the saved task as unassigned until a full refresh.
@@ -164,29 +216,31 @@ export function createTaskMutationService(context: MutationContext) {
     },
 
     applySaved(saved: SavedTask, editing: boolean) {
-      context.setData((current) => ({
-        ...current,
-        tasks: editing
-          ? current.tasks.map((task) =>
-              task.id === saved.task.id ? saved.task : task,
-            )
-          : [
-              saved.task,
-              ...current.tasks.filter((task) => task.id !== saved.task.id),
-            ],
-        taskAssignees: [
-          ...current.taskAssignees.filter(
-            (item) => item.task_id !== saved.task.id,
-          ),
-          ...saved.assignees,
-        ],
-        taskCategories: [
-          ...current.taskCategories.filter(
-            (item) => item.task_id !== saved.task.id,
-          ),
-          ...saved.categories,
-        ],
-      }));
+      context.setData((current) =>
+        withRecordedRows(saved, {
+          ...current,
+          tasks: editing
+            ? current.tasks.map((task) =>
+                task.id === saved.task.id ? saved.task : task,
+              )
+            : [
+                saved.task,
+                ...current.tasks.filter((task) => task.id !== saved.task.id),
+              ],
+          taskAssignees: [
+            ...current.taskAssignees.filter(
+              (item) => item.task_id !== saved.task.id,
+            ),
+            ...saved.assignees,
+          ],
+          taskCategories: [
+            ...current.taskCategories.filter(
+              (item) => item.task_id !== saved.task.id,
+            ),
+            ...saved.categories,
+          ],
+        }),
+      );
     },
 
     async remove(id: string) {
@@ -239,10 +293,18 @@ export function createTaskMutationService(context: MutationContext) {
       statusId: string,
       targetId?: string,
       edge: "before" | "after" = "after",
+      reason = "",
     ) {
       const snapshot = context.getData();
       const original = snapshot.tasks.find((task) => task.id === id);
       if (!original || targetId === id) return;
+      const statusReason = statusNeedingReason(
+        snapshot.statuses,
+        statusId,
+        original.status_id,
+      )
+        ? reason.trim()
+        : null;
       const destination = snapshot.tasks
         .filter((task) => task.status_id === statusId && task.id !== id)
         .sort((a, b) => a.board_position - b.board_position);
@@ -263,32 +325,58 @@ export function createTaskMutationService(context: MutationContext) {
             2
           : destination[index].board_position + 1024;
       }
-      context.setData((current) => ({
-        ...current,
-        tasks: current.tasks.map((task) =>
-          task.id === id
+      context.setData((current) =>
+        withRecordedRows(
+          // Demo mode has no move transaction, so it records its own reason
+          // comment; the server hands its own back once the move lands.
+          context.demoMode && statusReason
             ? {
-                ...task,
-                status_id: statusId,
-                board_position: position,
-                ...completionLifecycle(statusId, current.statuses, task),
-                updated_at: new Date().toISOString(),
+                comment: reasonComment(
+                  id,
+                  statusReason,
+                  current.currentProfile.id,
+                ),
               }
-            : task,
-        ),
-      }));
-      if (!context.demoMode) {
-        try {
-          const result = await mutate<{ task: Task }>("/api/tasks", {
-            method: "PATCH",
-            body: JSON.stringify({ id, statusId, boardPosition: position }),
-          });
-          context.setData((current) => ({
+            : {},
+          {
             ...current,
             tasks: current.tasks.map((task) =>
-              task.id === id ? result.task : task,
+              task.id === id
+                ? {
+                    ...task,
+                    status_id: statusId,
+                    board_position: position,
+                    ...completionLifecycle(statusId, current.statuses, task),
+                    updated_at: new Date().toISOString(),
+                  }
+                : task,
             ),
-          }));
+          },
+        ),
+      );
+      if (!context.demoMode) {
+        try {
+          const result = await mutate<{
+            task: Task;
+            activity: TaskActivity | null;
+            comment: TaskComment | null;
+          }>("/api/tasks", {
+            method: "PATCH",
+            body: JSON.stringify({
+              id,
+              statusId,
+              boardPosition: position,
+              statusReason,
+            }),
+          });
+          context.setData((current) =>
+            withRecordedRows(result, {
+              ...current,
+              tasks: current.tasks.map((task) =>
+                task.id === id ? result.task : task,
+              ),
+            }),
+          );
         } catch (error) {
           context.setData((current) => ({
             ...current,

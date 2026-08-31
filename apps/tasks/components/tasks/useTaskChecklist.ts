@@ -1,12 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "@ryanmeetup/ui";
 import {
   createSubtask,
+  createSubtasks,
   deleteSubtask,
   setSubtaskCompleted,
 } from "@/lib/tasks/task-detail-mutations";
+import {
+  MAX_CHECKLIST_PASTE_ITEMS,
+  type ChecklistPasteItem,
+} from "@/lib/tasks/checklist-paste";
 import { useWorkspaceWrite } from "@/hooks/useWorkspaceWrite";
+import { withRecordedRows } from "@/lib/activity/activity-state";
 import type { Subtask } from "@/lib/tasks/task-types";
 import type { TaskDetailContext } from "./task-detail-context";
 
@@ -64,18 +71,84 @@ export function useTaskChecklist({
         }),
       reconcile:
         ({ subtask, activity }) =>
-        (current) => ({
-          ...current,
-          subtasks: current.subtasks.map((entry) =>
-            entry.id === item.id ? subtask : entry,
+        (current) =>
+          withRecordedRows(
+            { activity },
+            {
+              ...current,
+              subtasks: current.subtasks.map((entry) =>
+                entry.id === item.id ? subtask : entry,
+              ),
+            },
           ),
-          activity: [
-            activity,
-            ...current.activity.filter((entry) => entry.id !== activity.id),
-          ],
-        }),
       whenFailed: "The checklist item could not be added.",
       onFailed: () => setNewItemTitle(title),
+    });
+    setSaving(false);
+  }
+
+  /** Commits a pasted list as one batch, keeping the order it was written in. */
+  async function addPasted(pasted: ChecklistPasteItem[]) {
+    if (!pasted.length) return;
+    if (pasted.length > MAX_CHECKLIST_PASTE_ITEMS) {
+      toast.error(
+        `Paste up to ${MAX_CHECKLIST_PASTE_ITEMS} checklist items at a time.`,
+      );
+      return;
+    }
+    const sortOrder = items.length;
+    const created: Subtask[] = pasted.map((entry, index) => ({
+      id: crypto.randomUUID(),
+      task_id: task.id,
+      title: entry.title,
+      is_completed: entry.completed,
+      sort_order: sortOrder + index,
+      created_by: data.currentProfile.id,
+      created_at: new Date().toISOString(),
+    }));
+    const withoutCreated = (subtasks: Subtask[]) =>
+      subtasks.filter((entry) => !created.some((item) => item.id === entry.id));
+
+    if (demoMode) {
+      setData((current) => ({
+        ...current,
+        subtasks: [...current.subtasks, ...created],
+      }));
+      await recordActivity(`added ${created.length} checklist items`);
+      return;
+    }
+
+    setSaving(true);
+    await write({
+      apply: (current) => ({
+        ...current,
+        subtasks: [...current.subtasks, ...created],
+      }),
+      revert: (current) => ({
+        ...current,
+        subtasks: withoutCreated(current.subtasks),
+      }),
+      persist: () =>
+        createSubtasks({
+          taskId: task.id,
+          items: created.map((entry) => ({
+            id: entry.id,
+            title: entry.title,
+            completed: entry.is_completed,
+          })),
+          sortOrder,
+        }),
+      reconcile:
+        ({ subtasks, activity }) =>
+        (current) =>
+          withRecordedRows(
+            { activity },
+            {
+              ...current,
+              subtasks: [...withoutCreated(current.subtasks), ...subtasks],
+            },
+          ),
+      whenFailed: "The checklist items could not be added.",
     });
     setSaving(false);
   }
@@ -99,13 +172,17 @@ export function useTaskChecklist({
         ? undefined
         : () => setSubtaskCompleted(item.id, completed),
       reconcile:
-        ({ subtask }) =>
-        (current) => ({
-          ...current,
-          subtasks: current.subtasks.map((entry) =>
-            entry.id === item.id ? subtask : entry,
+        ({ subtask, activity }) =>
+        (current) =>
+          withRecordedRows(
+            { activity },
+            {
+              ...current,
+              subtasks: current.subtasks.map((entry) =>
+                entry.id === item.id ? subtask : entry,
+              ),
+            },
           ),
-        }),
       whenFailed: "The checklist item could not be updated.",
     });
   }
@@ -121,9 +198,22 @@ export function useTaskChecklist({
         subtasks: [...current.subtasks, item],
       }),
       persist: demoMode ? undefined : () => deleteSubtask(item.id),
+      reconcile:
+        ({ activity }) =>
+        (current) =>
+          withRecordedRows({ activity }, current),
       whenFailed: "The checklist item could not be removed.",
     });
   }
 
-  return { items, newItemTitle, setNewItemTitle, saving, add, toggle, remove };
+  return {
+    items,
+    newItemTitle,
+    setNewItemTitle,
+    saving,
+    add,
+    addPasted,
+    toggle,
+    remove,
+  };
 }

@@ -29,7 +29,7 @@ export function AdminStatusesPageClient({
       <PageHeader
         icon={FiColumns}
         title="Statuses"
-        description="The shared task columns, their order, and which ones complete work."
+        description="The shared task columns, their order, which ones complete work, and which ones require a reason."
       />
       <StatusSettings
         statuses={data.statuses}

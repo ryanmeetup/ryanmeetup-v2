@@ -79,7 +79,10 @@ describe("task detail requests", () => {
   });
 
   it("toggles a checklist item by id", async () => {
-    const fetch = stubFetch({ subtask: { id: "subtask-1" } });
+    const fetch = stubFetch({
+      subtask: { id: "subtask-1" },
+      activity: { id: "activity-1" },
+    });
     await setSubtaskCompleted("subtask-1", true);
 
     expect(requestOf(fetch)).toEqual({
@@ -102,7 +105,10 @@ describe("task detail requests", () => {
   });
 
   it("sends a reply with its parent comment", async () => {
-    const fetch = stubFetch({ comment: { id: "comment-2" } });
+    const fetch = stubFetch({
+      comment: { id: "comment-2" },
+      activity: { id: "activity-1" },
+    });
     await createComment({
       taskId: "task-1",
       parentId: "comment-1",

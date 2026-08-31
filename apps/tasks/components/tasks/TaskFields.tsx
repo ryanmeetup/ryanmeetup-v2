@@ -7,6 +7,7 @@ import {
   Input,
   MultiSelect,
   RichTextarea,
+  Textarea,
   Tooltip,
 } from "@ryanmeetup/ui";
 import type { Category, Project } from "@/lib/resources/resource-types";
@@ -14,6 +15,10 @@ import type { Priority, Status } from "@/lib/tasks/task-types";
 import type { Profile } from "@/lib/workspace/workspace-types";
 import type { TaskDraft } from "@/lib/tasks/task-mutations";
 import { profileDisplayName } from "@/lib/presentation";
+import {
+  statusNeedingReason,
+  statusReasonPrompt,
+} from "@/lib/tasks/task-status-reason";
 import { sortFavoriteProjectsFirst } from "@/lib/resources/project-sort";
 import {
   favoriteProjectsGroupLabel,
@@ -30,6 +35,8 @@ export type TaskFieldOptions = {
   profiles: Profile[];
   currentProfileId: string;
   accessibleCategoryIds?: string[];
+  /** The status the task sits in today, so only a real move asks for a reason. */
+  currentStatusId?: string | null;
 };
 
 export function TaskFields({
@@ -43,6 +50,11 @@ export function TaskFields({
   options: TaskFieldOptions;
   density?: "full" | "quick";
 }) {
+  const reasonStatus = statusNeedingReason(
+    options.statuses,
+    draft.status_id,
+    options.currentStatusId ?? null,
+  );
   const favoriteProjectIds = new Set(options.favoriteProjectIds);
   const accessibleCategoryIds = options.accessibleCategoryIds
     ? new Set(options.accessibleCategoryIds)
@@ -116,6 +128,24 @@ export function TaskFields({
             value: item,
           }))}
         />
+        {reasonStatus && (
+          <div className="sm:col-span-2">
+            <Textarea
+              id="task-status-reason"
+              name="task-status-reason"
+              label={statusReasonPrompt(reasonStatus)}
+              required
+              rows={3}
+              maxLength={2000}
+              value={draft.status_reason}
+              onChange={(event) => patch({ status_reason: event.target.value })}
+              placeholder="What made this the right call?"
+            />
+            <p className="mt-2 text-xs text-black/60 dark:text-white/60">
+              Saved as a comment on the task so the decision stays with it.
+            </p>
+          </div>
+        )}
         <fieldset className="sm:col-span-2" aria-required="true">
           <legend className="mb-2 flex gap-1 text-sm font-semibold">
             <span>Categories</span>

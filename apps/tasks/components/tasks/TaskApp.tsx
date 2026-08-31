@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { PendingResults, toast } from "@ryanmeetup/ui";
 
 import { useQueryParamState, useSearchFilter } from "@ryanmeetup/hooks";
-import type { Task } from "@/lib/tasks/task-types";
+import type { Status, Task } from "@/lib/tasks/task-types";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { WorkspacePageShell } from "@/components/global";
 import { TaskFilterBar } from "./TaskFilterBar";
@@ -35,8 +35,19 @@ import { useTaskScope } from "@/hooks/useTaskScope";
 import { useTaskEditorController } from "@/hooks/useTaskEditorController";
 import { useTaskBoardDrag } from "@/hooks/useTaskBoardDrag";
 import { TaskBoardView } from "./TaskBoardView";
+import { StatusReasonDialog } from "./StatusReasonDialog";
+import { statusNeedingReason } from "@/lib/tasks/task-status-reason";
 
 type View = "board" | "list";
+
+/** A board drop, held while its status asks the mover for a reason. */
+type PendingMove = {
+  id: string;
+  statusId: string;
+  targetId?: string;
+  edge: "before" | "after";
+  status?: Status;
+};
 
 export function TaskApp({
   initialData,
@@ -71,6 +82,9 @@ export function TaskApp({
   const [projectEditId, setProjectEditId] = useState<string | null>(null);
   const [taskPendingDelete, setTaskPendingDelete] = useState<Task | null>(null);
   const [taskDeleting, setTaskDeleting] = useState(false);
+  const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
+  const [moveReason, setMoveReason] = useState("");
+  const [moveSaving, setMoveSaving] = useState(false);
   const boardScrollRef = useRef<HTMLDivElement>(null);
   const {
     setQuery: setSearch,
@@ -181,6 +195,25 @@ export function TaskApp({
     }
   }
 
+  /** Reports whether the move landed, so a rejected one keeps its reason. */
+  async function commitMove(move: PendingMove, reason: string) {
+    const { id, statusId, targetId, edge } = move;
+    const task = getData().tasks.find((item) => item.id === id);
+    const destination = data.statuses.find((item) => item.id === statusId);
+    const movedToNewColumn = Boolean(task && task.status_id !== statusId);
+    try {
+      await mutations.move(id, statusId, targetId, edge, reason);
+      if (!demoMode && view === "list") await loadTaskPage(true);
+      if (movedToNewColumn && destination) {
+        toast.success(`Task moved to ${destination.name}.`);
+      }
+      return true;
+    } catch (error) {
+      toast.error(errorMessage(error, "The task could not be moved."));
+      return false;
+    }
+  }
+
   async function moveTask(
     id: string,
     statusId: string,
@@ -188,17 +221,31 @@ export function TaskApp({
     edge: "before" | "after" = "after",
   ) {
     const task = getData().tasks.find((item) => item.id === id);
-    const destination = data.statuses.find((item) => item.id === statusId);
-    const movedToNewColumn = Boolean(task && task.status_id !== statusId);
-    try {
-      await mutations.move(id, statusId, targetId, edge);
-      if (!demoMode && view === "list") await loadTaskPage(true);
-      if (movedToNewColumn && destination) {
-        toast.success(`Task moved to ${destination.name}.`);
-      }
-    } catch (error) {
-      toast.error(errorMessage(error, "The task could not be moved."));
+    const reasonStatus = task
+      ? statusNeedingReason(data.statuses, statusId, task.status_id)
+      : null;
+    // A dragged card carries no explanation, so the move waits for one rather
+    // than reaching a server that would reject it.
+    if (reasonStatus) {
+      setPendingMove({ id, statusId, targetId, edge, status: reasonStatus });
+      return;
     }
+    await commitMove({ id, statusId, targetId, edge }, "");
+  }
+
+  async function confirmPendingMove() {
+    if (!pendingMove) return;
+    setMoveSaving(true);
+    try {
+      if (await commitMove(pendingMove, moveReason)) closePendingMove();
+    } finally {
+      setMoveSaving(false);
+    }
+  }
+
+  function closePendingMove() {
+    setPendingMove(null);
+    setMoveReason("");
   }
   const boardDrag = useTaskBoardDrag(moveTask);
   useBoardAutoScroll(Boolean(boardDrag.state.draggedTaskId), boardScrollRef);
@@ -370,6 +417,14 @@ export function TaskApp({
           selectedId: selectedProject?.id,
           onRename: filters.setProject,
         }}
+      />
+      <StatusReasonDialog
+        status={pendingMove?.status ?? null}
+        reason={moveReason}
+        onReasonChange={setMoveReason}
+        pending={moveSaving}
+        onCancel={closePendingMove}
+        onConfirm={() => void confirmPendingMove()}
       />
     </>
   );

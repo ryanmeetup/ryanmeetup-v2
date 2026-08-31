@@ -143,6 +143,7 @@ export function noteConversionDraft(
       priority: "medium",
       category_ids: note.category_id ? [note.category_id] : [],
       category_tags: {},
+      status_reason: "",
     },
   };
 }

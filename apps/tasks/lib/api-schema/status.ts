@@ -24,6 +24,7 @@ export function statusPatchSchema(value: unknown) {
     "description",
     "color",
     "isCompleted",
+    "requiresReason",
     "orderedIds",
     "expectedRevision",
   ]);
@@ -51,19 +52,22 @@ export function statusPatchSchema(value: unknown) {
   const patchColor =
     body.color === undefined ? undefined : colorSchema(body.color);
   const isCompleted = body.isCompleted;
+  const requiresReason = body.requiresReason;
   if (
     !id ||
     name === null ||
     description === null ||
     patchColor === null ||
-    (isCompleted !== undefined && typeof isCompleted !== "boolean")
+    (isCompleted !== undefined && typeof isCompleted !== "boolean") ||
+    (requiresReason !== undefined && typeof requiresReason !== "boolean")
   )
     return null;
   if (
     name === undefined &&
     description === undefined &&
     patchColor === undefined &&
-    isCompleted === undefined
+    isCompleted === undefined &&
+    requiresReason === undefined
   )
     return null;
   return {
@@ -72,5 +76,6 @@ export function statusPatchSchema(value: unknown) {
     description: description === undefined ? undefined : description || null,
     color: patchColor,
     isCompleted: isCompleted as boolean | undefined,
+    requiresReason: requiresReason as boolean | undefined,
   };
 }

@@ -9,6 +9,8 @@ export type Status = {
   order_revision: number;
   is_default: boolean;
   is_completed: boolean;
+  /** Moving a task into this status requires a reason, kept as a comment. */
+  requires_reason: boolean;
 };
 
 export type Task = {

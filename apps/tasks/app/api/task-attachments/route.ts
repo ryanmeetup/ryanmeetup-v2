@@ -234,18 +234,24 @@ export async function DELETE(request: Request) {
       error: "The attachment could not be removed. Try again.",
     });
 
-  const { error: activityError } = await supabase.from("task_activity").insert({
-    task_id: attachment.task_id,
-    actor_id: user.id,
-    action: `removed attachment “${attachment.name}”`,
-    details: { attachment_id: attachment.id },
-  });
+  const { data: activity, error: activityError } = await supabase
+    .from("task_activity")
+    .insert({
+      task_id: attachment.task_id,
+      actor_id: user.id,
+      action: `removed attachment “${attachment.name}”`,
+      details: { attachment_id: attachment.id },
+    })
+    .select("*")
+    .single();
   if (activityError)
     return databaseFailure(request, "attachment.activity", activityError, {
-      error: "The attachment was removed, but its activity could not be recorded.",
+      error:
+        "The attachment was removed, but its activity could not be recorded.",
     });
 
-  if (!attachment.file_path) return NextResponse.json({ deleted: true });
+  if (!attachment.file_path)
+    return NextResponse.json({ deleted: true, activity });
 
   const cleanupError = await removeObject(attachment.file_path);
   if (cleanupError) {
@@ -254,6 +260,7 @@ export async function DELETE(request: Request) {
 
   return NextResponse.json({
     deleted: true,
+    activity,
     cleanupDeferred: Boolean(cleanupError),
   });
 }

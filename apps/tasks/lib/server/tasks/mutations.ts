@@ -9,6 +9,17 @@ import type {
   TaskSaveInput,
 } from "../../api-schema/task";
 
+/**
+ * `save_task` and `move_task` raise this SQLSTATE when a status that requires
+ * a reason is entered without one. Its message is authored by the migration
+ * and names the status, so it is safe to return to the caller verbatim.
+ */
+const STATUS_REASON_REQUIRED = "TK001";
+
+export function isMissingStatusReason(error: { code?: string } | null) {
+  return error?.code === STATUS_REASON_REQUIRED;
+}
+
 export type SavedTask = {
   task: Task;
   assignees: TaskAssignee[];
@@ -19,12 +30,13 @@ export async function saveTask(
   supabase: SupabaseClient,
   input: TaskSaveInput,
 ) {
-  const { id, task, categoryIds } = input;
+  const { id, task, categoryIds, statusReason } = input;
   const result = await supabase.rpc("save_task", {
     task_id: id,
     task_values: task,
     category_ids: categoryIds,
     assignee_ids: task.assignee_id ? [task.assignee_id] : [],
+    status_reason: statusReason,
   });
   return { data: result.data as SavedTask, error: result.error };
 }
@@ -37,6 +49,7 @@ export async function moveTask(
     moved_task_id: input.id,
     next_status_id: input.statusId,
     next_board_position: input.boardPosition,
+    status_reason: input.statusReason,
   });
   return { data: result.data as Task, error: result.error };
 }

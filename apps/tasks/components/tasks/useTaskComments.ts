@@ -8,6 +8,7 @@ import {
   updateComment,
 } from "@/lib/tasks/task-detail-mutations";
 import { useWorkspaceWrite } from "@/hooks/useWorkspaceWrite";
+import { withRecordedRows } from "@/lib/activity/activity-state";
 import type { TaskComment } from "@/lib/tasks/task-types";
 import type { TaskDetailContext } from "./task-detail-context";
 
@@ -72,13 +73,17 @@ export function useTaskComments({
               body,
             }),
       reconcile:
-        ({ comment }) =>
-        (current) => ({
-          ...current,
-          comments: current.comments.map((entry) =>
-            entry.id === item.id ? comment : entry,
+        ({ comment, activity }) =>
+        (current) =>
+          withRecordedRows(
+            { activity },
+            {
+              ...current,
+              comments: current.comments.map((entry) =>
+                entry.id === item.id ? comment : entry,
+              ),
+            },
           ),
-        }),
       whenFailed: "The comment could not be added.",
       onFailed: () => {
         if (parent) {
@@ -114,13 +119,17 @@ export function useTaskComments({
       }),
       persist: demoMode ? undefined : () => updateComment(original.id, body),
       reconcile:
-        ({ comment }) =>
-        (current) => ({
-          ...current,
-          comments: current.comments.map((item) =>
-            item.id === original.id ? comment : item,
+        ({ comment, activity }) =>
+        (current) =>
+          withRecordedRows(
+            { activity },
+            {
+              ...current,
+              comments: current.comments.map((item) =>
+                item.id === original.id ? comment : item,
+              ),
+            },
           ),
-        }),
       whenFailed: "The comment could not be updated.",
     });
     if (saved) {
@@ -145,6 +154,10 @@ export function useTaskComments({
         comments: [...current.comments, original],
       }),
       persist: demoMode ? undefined : () => deleteComment(original.id),
+      reconcile:
+        ({ activity }) =>
+        (current) =>
+          withRecordedRows({ activity }, current),
       whenFailed: "The comment could not be deleted.",
     });
     if (deleted) {

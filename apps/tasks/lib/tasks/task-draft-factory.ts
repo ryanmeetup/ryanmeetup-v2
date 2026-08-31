@@ -17,6 +17,7 @@ export function emptyTaskDraft(statusId: string, author: Profile): TaskDraft {
     priority: "medium",
     category_ids: [],
     category_tags: {},
+    status_reason: "",
   };
 }
 
@@ -55,6 +56,9 @@ export function taskDraftFromTask(
     due_time: task.due_time,
     reminder_at: task.reminder_at,
     priority: task.priority,
+    // A reason belongs to the move that is about to happen, never to the one
+    // that already put the task where it is.
+    status_reason: "",
   };
 }
 

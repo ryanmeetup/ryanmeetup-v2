@@ -7,12 +7,18 @@ import {
 } from "@ryanmeetup/ui";
 import { FiCheck, FiPlus, FiTrash2 } from "react-icons/fi";
 import { CountBadge } from "@/components/global";
+import {
+  isChecklistPaste,
+  parseChecklistPaste,
+  type ChecklistPasteItem,
+} from "@/lib/tasks/checklist-paste";
 import type { Subtask } from "@/lib/tasks/task-types";
 
 export function TaskChecklistPanel({
   items,
   newItemTitle,
   onAdd,
+  onAddPasted,
   onDelete,
   onNewItemTitleChange,
   onToggle,
@@ -21,6 +27,7 @@ export function TaskChecklistPanel({
   items: Subtask[];
   newItemTitle: string;
   onAdd: () => void;
+  onAddPasted: (pasted: ChecklistPasteItem[]) => void;
   onDelete: (item: Subtask) => void;
   onNewItemTitleChange: (value: string) => void;
   onToggle: (item: Subtask) => void;
@@ -91,12 +98,22 @@ export function TaskChecklistPanel({
             name="new-subtask"
             value={newItemTitle}
             onChange={(event) => onNewItemTitleChange(event.target.value)}
-            placeholder="Add a checklist item…"
+            placeholder="Add a checklist item, or paste a list…"
             onKeyDown={(event) => {
               if (event.key === "Enter") {
                 event.preventDefault();
                 onAdd();
               }
+            }}
+            onPaste={(event) => {
+              // A single-line input drops the newlines, so a pasted list has
+              // to be claimed here or it collapses into one run-on item.
+              const pasted = parseChecklistPaste(
+                event.clipboardData.getData("text/plain"),
+              );
+              if (!isChecklistPaste(pasted)) return;
+              event.preventDefault();
+              onAddPasted(pasted);
             }}
           />
         </div>
