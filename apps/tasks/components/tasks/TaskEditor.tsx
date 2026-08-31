@@ -1,6 +1,6 @@
 "use client";
 
-import type { Dispatch, FormEvent, SetStateAction } from "react";
+import type { Dispatch, FormEvent, ReactNode, SetStateAction } from "react";
 import {
   AnimatedCollapse,
   Button,
@@ -24,11 +24,11 @@ import {
   FiTrash2,
 } from "react-icons/fi";
 import type { Priority, Status, Task } from "@/lib/tasks/task-types";
-import type { WorkspaceData } from "@/lib/workspace/workspace-types";
+import type { Category, Project } from "@/lib/resources/resource-types";
+import type { Profile } from "@/lib/workspace/workspace-types";
 import type { TaskDraft } from "@/lib/tasks/task-mutations";
 import { taskKey, taskPath } from "@/lib/tasks/task-key";
 import { profileDisplayName } from "@/lib/presentation";
-import { TaskDetails } from "./TaskDetails";
 import { TaskKeyBadge } from "./TaskKeyBadge";
 import type { NewTaskDetailsDraft } from "@/lib/tasks/task-types";
 import { NewTaskDetails } from "./NewTaskDetails";
@@ -52,11 +52,14 @@ export type TaskEditorFormState = {
   onSubmit: (event: FormEvent<HTMLFormElement>) => void | Promise<void>;
 };
 
-export type TaskEditorWorkspace = {
+export type TaskEditorViewModel = {
   statuses: Status[];
-  data: WorkspaceData;
-  setData: Dispatch<SetStateAction<WorkspaceData>>;
-  demoMode: boolean;
+  categories: Category[];
+  projects: Project[];
+  profiles: Profile[];
+  currentProfileId: string;
+  favoriteProjectIds: string[];
+  accessibleCategoryIds?: string[];
 };
 
 export type TaskEditorMode =
@@ -81,24 +84,26 @@ export type TaskEditorMode =
 type TaskEditorProps =
   | {
       controller: TaskEditorController;
-      workspace: TaskEditorWorkspace;
+      view: TaskEditorViewModel;
       onDelete: (task: Task) => void;
+      taskDetails?: ReactNode;
       showSupplementalDetails?: boolean;
       showTaskPageLink?: boolean;
     }
   | {
       modal: TaskEditorModalState;
       form: TaskEditorFormState;
-      workspace: TaskEditorWorkspace;
+      view: TaskEditorViewModel;
       mode: TaskEditorMode;
+      taskDetails?: ReactNode;
       showSupplementalDetails?: boolean;
       showTaskPageLink?: boolean;
     };
 
 export function TaskEditor(props: TaskEditorProps) {
-  const { modal, form, mode, workspace } =
+  const { modal, form, mode, view } =
     "controller" in props
-      ? { ...props.controller, workspace: props.workspace }
+      ? { ...props.controller, view: props.view }
       : props;
   const onDelete =
     "controller" in props
@@ -112,7 +117,15 @@ export function TaskEditor(props: TaskEditorProps) {
         : undefined;
   const { open, setOpen, detailsOpen, setDetailsOpen } = modal;
   const { draft, setDraft, saving, message, onSubmit } = form;
-  const { statuses, data, setData, demoMode } = workspace;
+  const {
+    statuses,
+    categories,
+    projects,
+    profiles,
+    currentProfileId,
+    favoriteProjectIds,
+    accessibleCategoryIds,
+  } = view;
   const editing = mode.kind === "edit" ? mode.task : null;
   const duplicatedFrom =
     mode.kind === "create" ? (mode.duplicatedFrom ?? null) : null;
@@ -131,7 +144,7 @@ export function TaskEditor(props: TaskEditorProps) {
       toast.error("The task link could not be copied.");
     }
   }
-  const tagOptions = data.categories
+  const tagOptions = categories
     .filter((category) => draft.category_ids.includes(category.id))
     .flatMap((category) =>
       (category.tags ?? []).map((tag) => ({
@@ -270,14 +283,12 @@ export function TaskEditor(props: TaskEditorProps) {
               setDraft={setDraft}
               options={{
                 statuses,
-                categories: data.categories,
-                projects: data.projects,
-                favoriteProjectIds:
-                  data.currentProfile.favorite_project_ids ?? [],
-                profiles: data.profiles,
-                currentProfileId: data.currentProfile.id,
-                accessibleCategoryIds:
-                  data.accessPreview?.accessibleCategoryIds,
+                categories,
+                projects,
+                favoriteProjectIds,
+                profiles,
+                currentProfileId,
+                accessibleCategoryIds,
               }}
             />
             {false && (
@@ -343,7 +354,7 @@ export function TaskEditor(props: TaskEditorProps) {
                       <span className="text-red-500">*</span>
                     </legend>
                     <div className="flex flex-wrap gap-2">
-                      {data.categories
+                      {categories
                         .filter(
                           (item) =>
                             !item.archived_at ||
@@ -404,7 +415,7 @@ export function TaskEditor(props: TaskEditorProps) {
                     }
                     options={[
                       { label: "No project", value: "" },
-                      ...data.projects
+                      ...projects
                         .filter(
                           (item) =>
                             !item.archived_at || item.id === draft.project_id,
@@ -418,14 +429,14 @@ export function TaskEditor(props: TaskEditorProps) {
                   <DropdownSelect
                     variant="field"
                     label="Assignee"
-                    proximityValue={data.currentProfile.id}
+                    proximityValue={currentProfileId}
                     value={draft.assignee_id ?? ""}
                     onChange={(value) =>
                       setDraft({ ...draft, assignee_id: value || null })
                     }
                     options={[
                       { label: "Unassigned", value: "" },
-                      ...data.profiles.map((item) => ({
+                      ...profiles.map((item) => ({
                         avatar: {
                           name: profileDisplayName(item),
                           src: item.avatar_url,
@@ -438,13 +449,13 @@ export function TaskEditor(props: TaskEditorProps) {
                   <DropdownSelect
                     variant="field"
                     label="Reported by"
-                    proximityValue={data.currentProfile.id}
+                    proximityValue={currentProfileId}
                     required
                     value={draft.reported_by}
                     onChange={(value) =>
                       setDraft({ ...draft, reported_by: value })
                     }
-                    options={data.profiles.map((item) => ({
+                    options={profiles.map((item) => ({
                       avatar: {
                         name: profileDisplayName(item),
                         src: item.avatar_url,
@@ -565,12 +576,7 @@ export function TaskEditor(props: TaskEditorProps) {
                 </Button>
               </div>
               {mode.kind === "edit" ? (
-                <TaskDetails
-                  key={mode.task.id}
-                  task={mode.task}
-                  workspace={{ data, setData, demoMode }}
-                  display={{ active: open, className: "!border-t-0 !pt-0" }}
-                />
+                props.taskDetails
               ) : (
                 <NewTaskDetails
                   value={mode.details}

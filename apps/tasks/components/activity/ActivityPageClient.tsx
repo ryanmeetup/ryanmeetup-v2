@@ -13,6 +13,7 @@ import {
 } from "@ryanmeetup/ui";
 import { FiArrowRight, FiClock } from "react-icons/fi";
 import { CategoriesModal, CategoryLabel } from "@/components/categories";
+import { categoryController } from "@/components/categories/category-workspace";
 import {
   CountBadge,
   PageHeader,
@@ -675,7 +676,7 @@ export function ActivityPageClient({
       {categoryCreateOpen && !data.accessPreview && (
         <CategoriesModal
           modal={{ open: categoryCreateOpen, setOpen: setCategoryCreateOpen }}
-          workspace={{ data, setData, demoMode }}
+          controller={categoryController(data, setData, demoMode)}
           options={{ createOnly: true }}
         />
       )}

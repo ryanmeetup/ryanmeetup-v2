@@ -12,6 +12,7 @@ import { TaskListView } from "./TaskListView";
 import { TaskWorkspaceHeader } from "./TaskWorkspaceHeader";
 import { TaskWorkspaceModals } from "./TaskWorkspaceModals";
 import { useWorkspaceData } from "@/hooks/useWorkspaceData";
+import { useProjectFavorites } from "@/hooks/useProjectFavorites";
 import { useTaskFilters } from "@/hooks/useTaskFilters";
 import { usePagination } from "@/hooks/usePagination";
 import { useCollapsedStatuses } from "@/hooks/useCollapsedStatuses";
@@ -101,6 +102,7 @@ export function TaskApp({
     visibility,
   });
   const scope = useTaskScope({ data, resolved, visibility });
+  const favorites = useProjectFavorites({ data, setData, demoMode });
   const filterCount = countResolvedTaskFilters(resolved, {
     isMyTasks: scope.isMyTasks,
     visibility,
@@ -230,10 +232,24 @@ export function TaskApp({
               isMyTasks: scope.isMyTasks,
               myTasksName: scope.myTasksName,
               previewing: Boolean(data.accessPreview),
+              projectFavorite: selectedProject
+                ? favorites.isFavorite(selectedProject.id)
+                : false,
+              projectFavoritePending: selectedProject
+                ? favorites.isPending(selectedProject.id)
+                : false,
               scopeDescription: scope.scopeDescription,
               selectedCategory: resolved.selectedCategory,
               selectedProject,
               projectOwners: resolved.selectedProjectOwners,
+              projectAttachmentCount: attachmentCount(
+                data.resourceAttachmentCounts?.projects,
+                selectedProject?.id,
+              ),
+              categoryAttachmentCount: attachmentCount(
+                data.resourceAttachmentCounts?.categories,
+                resolved.selectedCategory?.id,
+              ),
               taskCount: visibleTaskCount,
               view,
               viewTitle: scope.viewTitle,
@@ -244,6 +260,10 @@ export function TaskApp({
                 if (!selectedProject) return;
                 setProjectEditId(selectedProject.id);
                 setProjectsOpen(true);
+              },
+              onToggleProjectFavorite: () => {
+                if (!selectedProject) return;
+                void favorites.toggle(selectedProject);
               },
               onEditCategory: () => {
                 if (!resolved.selectedCategory) return;
@@ -353,4 +373,18 @@ export function TaskApp({
       />
     </>
   );
+}
+
+/**
+ * Resolves how many attachments a resource has from the counts loaded with the
+ * page. A missing entry in a loaded map means none; a missing map means the
+ * counts never loaded, which stays undefined so the header falls back to
+ * assuming there may be some.
+ */
+function attachmentCount(
+  counts: Record<string, number> | undefined,
+  resourceId: string | undefined,
+) {
+  if (!counts || !resourceId) return undefined;
+  return counts[resourceId] ?? 0;
 }

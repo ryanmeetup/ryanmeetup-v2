@@ -42,6 +42,7 @@ import {
 import { usePagination } from "@/hooks/usePagination";
 import type { Profile, WorkspaceData } from "@/lib/workspace/workspace-types";
 import { CategoriesModal } from "@/components/categories";
+import { categoryController } from "@/components/categories/category-workspace";
 import { CountBadge, PageHeader } from "@/components/global";
 import { AdminPageShell } from "@/components/admin";
 import { ProjectsModal } from "@/components/projects";
@@ -732,7 +733,7 @@ export function AccessPageClient({
       {categoryCreateOpen && (
         <CategoriesModal
           modal={{ open: categoryCreateOpen, setOpen: setCategoryCreateOpen }}
-          workspace={{ data, setData, demoMode: false }}
+          controller={categoryController(data, setData, false)}
           options={{ createOnly: true }}
         />
       )}

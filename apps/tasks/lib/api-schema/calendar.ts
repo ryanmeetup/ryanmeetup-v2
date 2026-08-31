@@ -1,4 +1,9 @@
-import { objectWithKeys, optionalText, text, uuid } from "./shared";
+import {
+  objectWithKeys,
+  optionalTrimmedText,
+  parseUuid,
+  requiredTrimmedText,
+} from "./shared";
 import type {
   CalendarEventDraft,
   CalendarEventKind,
@@ -29,13 +34,13 @@ export function calendarEventSchema(value: unknown, requireId = false) {
     "syncToGoogle",
   ]);
   if (!body) return null;
-  const id = requireId ? uuid(body.id) : undefined;
+  const id = requireId ? parseUuid(body.id) : undefined;
   const kind =
     body.kind === "important" || body.kind === "away"
       ? (body.kind as CalendarEventKind)
       : null;
-  const title = text(body.title, 160);
-  const description = optionalText(body.description, 2000);
+  const title = requiredTrimmedText(body.title, 160);
+  const description = optionalTrimmedText(body.description, 2000);
   const startDate =
     typeof body.startDate === "string" && datePattern.test(body.startDate)
       ? body.startDate
@@ -59,9 +64,9 @@ export function calendarEventSchema(value: unknown, requireId = false) {
     body.recurrence === null || body.recurrence === undefined
       ? null
       : parseRecurrence(body.recurrence);
-  const projectId = body.projectId ? uuid(body.projectId) : null;
-  const categoryId = body.categoryId ? uuid(body.categoryId) : null;
-  const profileId = body.profileId ? uuid(body.profileId) : null;
+  const projectId = body.projectId ? parseUuid(body.projectId) : null;
+  const categoryId = body.categoryId ? parseUuid(body.categoryId) : null;
+  const profileId = body.profileId ? parseUuid(body.profileId) : null;
   const syncToGoogle = body.syncToGoogle ?? false;
   if (
     (requireId && !id) ||
@@ -105,7 +110,7 @@ export function calendarEventSchema(value: unknown, requireId = false) {
 
 export function calendarEventDeleteSchema(value: unknown) {
   const body = objectWithKeys(value, ["id"]);
-  const id = body && uuid(body.id);
+  const id = body && parseUuid(body.id);
   return id ? { id } : null;
 }
 
@@ -128,7 +133,10 @@ export function calendarEventValues(
   };
 }
 
-export function blankCalendarDraft(kind: CalendarEventKind, date: string): CalendarEventDraft {
+export function blankCalendarDraft(
+  kind: CalendarEventKind,
+  date: string,
+): CalendarEventDraft {
   return {
     kind,
     title: kind === "away" ? "Out of office" : "",

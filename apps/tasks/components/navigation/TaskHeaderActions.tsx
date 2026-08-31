@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, type Dispatch, type SetStateAction } from "react";
 import { useRouter } from "next/navigation";
 import {
   Button,
@@ -21,33 +20,30 @@ import {
   FiSun,
   FiUser,
 } from "react-icons/fi";
-import type { WorkspaceData } from "@/lib/workspace/workspace-types";
+import type { Profile } from "@/lib/workspace/workspace-types";
 import { ThemeToggle, useTheme } from "@/components/global";
-import { NewTaskModal } from "@/components/tasks";
 import { ADMIN_ROOT } from "@/lib/admin/admin-routes";
 import { HeaderProfileControls } from "./HeaderProfileControls";
 import { createClient } from "@/lib/supabase/client";
 import { profileDisplayName } from "@/lib/presentation";
 
 export function TaskHeaderActions({
-  data,
-  setData,
+  profile,
+  previewing,
   demoMode,
   onNewTask,
 }: {
-  data: WorkspaceData;
-  setData: Dispatch<SetStateAction<WorkspaceData>>;
+  profile: Profile;
+  previewing: boolean;
   demoMode: boolean;
-  onNewTask?: () => void;
+  onNewTask: () => void;
 }) {
-  const [newTaskOpen, setNewTaskOpen] = useState(false);
   const router = useRouter();
   const { theme, setTheme } = useTheme();
-  const isPreviewing = Boolean(data.accessPreview);
   // Demo builds hide /admin entirely, so the entry points go with it.
   const isOwner =
-    !isPreviewing && !demoMode && data.currentProfile.app_role === "owner";
-  const profileName = profileDisplayName(data.currentProfile);
+    !previewing && !demoMode && profile.app_role === "owner";
+  const profileName = profileDisplayName(profile);
   return (
     <>
       <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-3">
@@ -76,7 +72,7 @@ export function TaskHeaderActions({
               <div className="flex items-center gap-3 px-3 py-2.5">
                 <Avatar
                   name={profileName}
-                  src={data.currentProfile.avatar_url}
+                  src={profile.avatar_url}
                   size="md"
                 />
                 <span className="min-w-0">
@@ -84,7 +80,7 @@ export function TaskHeaderActions({
                     {profileName}
                   </span>
                   <span className="block text-[10px] uppercase tracking-widest text-black/45 dark:text-white/45">
-                    {data.currentProfile.app_role === "owner"
+                    {profile.app_role === "owner"
                       ? "Owner"
                       : "Team member"}
                     {demoMode ? " · Demo" : ""}
@@ -104,7 +100,7 @@ export function TaskHeaderActions({
                     role="group"
                     aria-labelledby="mobile-account-menu-account"
                   >
-                    {!isPreviewing && (
+                    {!previewing && (
                       <DropdownMenuItem onClick={() => router.push("/profile")}>
                         <FiUser aria-hidden /> View profile
                       </DropdownMenuItem>
@@ -162,7 +158,7 @@ export function TaskHeaderActions({
             </DropdownMenuItems>
           </DropdownMenu>
         </span>
-        {isPreviewing ? (
+        {previewing ? (
           <Tooltip content="Exit access preview to create a new task">
             <Button
               size="sm"
@@ -174,21 +170,11 @@ export function TaskHeaderActions({
               New task
             </Button>
           </Tooltip>
-        ) : onNewTask ? (
-          <Button
-            size="sm"
-            leftIcon={<FiPlus />}
-            onClick={onNewTask}
-            aria-label="New task"
-            className="gap-0 px-3 [&>span:last-child]:hidden sm:gap-2 sm:px-4 sm:[&>span:last-child]:inline"
-          >
-            New task
-          </Button>
         ) : (
           <Button
             size="sm"
             leftIcon={<FiPlus />}
-            onClick={() => setNewTaskOpen(true)}
+            onClick={onNewTask}
             aria-label="New task"
             className="gap-0 px-3 [&>span:last-child]:hidden sm:gap-2 sm:px-4 sm:[&>span:last-child]:inline"
           >
@@ -200,21 +186,12 @@ export function TaskHeaderActions({
         </span>
         <span className="hidden sm:inline-flex">
           <HeaderProfileControls
-            profile={data.currentProfile}
+            profile={profile}
             demoMode={demoMode}
-            previewing={isPreviewing}
+            previewing={previewing}
           />
         </span>
       </div>
-      {!onNewTask && !isPreviewing && (
-        <NewTaskModal
-          data={data}
-          demoMode={demoMode}
-          open={newTaskOpen}
-          setData={setData}
-          setOpen={setNewTaskOpen}
-        />
-      )}
     </>
   );
 }

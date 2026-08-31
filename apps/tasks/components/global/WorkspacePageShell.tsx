@@ -24,6 +24,7 @@ import {
 } from "@/components/navigation";
 import { TaskBanners } from "./TaskBanners";
 import { InstanceWordmark } from "./InstanceWordmark";
+import { NewTaskModal } from "@/components/tasks/NewTaskModal";
 
 type WorkspaceShellRegistration = {
   id: symbol;
@@ -68,6 +69,8 @@ function WorkspaceChrome({
   setSidebarOpen,
   sidebarOpen,
 }: WorkspacePageShellProps) {
+  const [newTaskOpen, setNewTaskOpen] = useState(false);
+  const previewing = Boolean(data.accessPreview);
   return (
     <div
       data-workspace-shell
@@ -99,10 +102,10 @@ function WorkspaceChrome({
             profiles={data.profiles}
           />
           <TaskHeaderActions
-            data={data}
-            setData={setData}
+            profile={data.currentProfile}
+            previewing={previewing}
             demoMode={demoMode}
-            onNewTask={onNewTask}
+            onNewTask={onNewTask ?? (() => setNewTaskOpen(true))}
           />
         </header>
         <div className="hidden h-16 lg:block" aria-hidden="true" />
@@ -116,6 +119,15 @@ function WorkspaceChrome({
         </div>
         <TasksFooter inShell />
       </main>
+      {!onNewTask && !previewing && (
+        <NewTaskModal
+          data={data}
+          demoMode={demoMode}
+          open={newTaskOpen}
+          setData={setData}
+          setOpen={setNewTaskOpen}
+        />
+      )}
     </div>
   );
 }

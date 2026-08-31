@@ -31,6 +31,7 @@ import {
   type StoredTaskDraft,
 } from "@/lib/tasks/task-drafts";
 import { taskKey, taskPath } from "@/lib/tasks/task-key";
+import { taskEditorView } from "@/lib/tasks/task-editor-view";
 
 export function NewTaskModal({
   data,
@@ -218,7 +219,7 @@ export function NewTaskModal({
         message,
         onSubmit: saveTask,
       }}
-      workspace={{ statuses: data.statuses, data, setData, demoMode }}
+      view={taskEditorView(data)}
       mode={{
         kind: "create",
         duplicatedFrom: duplicateOf?.task ?? null,

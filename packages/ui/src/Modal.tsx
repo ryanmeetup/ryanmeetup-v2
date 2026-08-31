@@ -9,7 +9,6 @@ import {
 import { MdClose as Close, MdKeyboardArrowDown } from "react-icons/md";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEventHandler, ReactNode } from "react";
-import { Heading } from "./Heading";
 import { IconButton } from "./IconButton";
 
 export type ModalSize = "sm" | "md" | "lg" | "xl" | "2xl" | "full";
@@ -28,8 +27,8 @@ export type ModalProps = {
    */
   dismissOnOutsideClick?: boolean;
   /**
-   * The primary button group: right-aligned in the footer, or in the header
-   * when `embedded`. Pass `ModalActions` for the standard cancel/confirm pair.
+   * The primary button group, right-aligned in the footer. Pass `ModalActions`
+   * for the standard cancel/confirm pair.
    */
   actions?: ReactNode;
   /** Left-aligned footer actions — destructive or secondary escapes. */
@@ -39,17 +38,9 @@ export type ModalProps = {
   panelClassName?: string;
   maxHeight?: string;
   size?: ModalSize;
-  embedded?: boolean;
   formId?: string;
   onSubmit?: FormEventHandler<HTMLFormElement>;
 };
-
-/**
- * Header action groups lay their children out but leave widths to the caller,
- * because embedded headers host filters and toolbars as well as buttons.
- */
-const headerActionGroup =
-  "flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center";
 
 /**
  * Footer action groups own their children's widths: stacked and full-width on
@@ -84,7 +75,6 @@ const Modal = ({
   panelClassName,
   maxHeight,
   size = "md",
-  embedded = false,
   formId,
   onSubmit,
 }: ModalProps) => {
@@ -110,7 +100,7 @@ const Modal = ({
   }, []);
 
   useEffect(() => {
-    if (!open || embedded) return;
+    if (!open) return;
 
     const container = scrollContainerRef.current;
     const content = scrollContentRef.current;
@@ -124,32 +114,7 @@ const Modal = ({
     resizeObserver.observe(content);
 
     return () => resizeObserver.disconnect();
-  }, [embedded, open, updateScrollState]);
-
-  if (embedded) {
-    return (
-      <section
-        className={`overflow-hidden rounded-2xl border border-black/10 bg-white shadow-sm dark:border-white/10 dark:bg-[#181818] ${panelClassName ?? ""}`}
-      >
-        {title && (
-          <div className="flex flex-col gap-4 border-b border-black/10 px-5 py-4 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <Heading size="h1" className="text-2xl sm:text-3xl">
-                {title}
-              </Heading>
-              {description && (
-                <div className="mt-2 text-sm leading-relaxed text-black/65 dark:text-white/65">
-                  {description}
-                </div>
-              )}
-            </div>
-            {actions && <div className={headerActionGroup}>{actions}</div>}
-          </div>
-        )}
-        <div className="p-5">{children}</div>
-      </section>
-    );
-  }
+  }, [open, updateScrollState]);
 
   const cardStyle = maxHeight ? { maxHeight } : undefined;
   const cardClassName = `mx-auto flex w-full min-h-0 flex-col ${sizeStyles[size]} ${maxHeight ? "" : "max-h-[min(42rem,calc(100dvh-max(1rem,env(safe-area-inset-top))-max(1rem,env(safe-area-inset-bottom))))] sm:max-h-[calc(100dvh-max(1rem,env(safe-area-inset-top))-max(1rem,env(safe-area-inset-bottom)))]"} overflow-hidden rounded-2xl border border-black/15 bg-white shadow-[0_24px_80px_rgba(0,0,0,0.35)] ring-1 ring-black/5 dark:border-white/20 dark:bg-[#181818] dark:shadow-[0_28px_100px_rgba(0,0,0,0.85)] dark:ring-white/10 ${panelClassName ?? ""}`;

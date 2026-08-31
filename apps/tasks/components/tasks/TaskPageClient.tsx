@@ -44,6 +44,7 @@ import { formatTimestampDate } from "@/lib/date-format";
 import { taskDraftFromTask } from "@/lib/tasks/task-draft-factory";
 import type { Task } from "@/lib/tasks/task-types";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
+import { taskEditorView } from "@/lib/tasks/task-editor-view";
 import { TaskDetails } from "./TaskDetails";
 import { TaskDueDate } from "./TaskDueDate";
 import { TaskEditor } from "./TaskEditor";
@@ -463,7 +464,7 @@ export function TaskPageClient({
           message: taskMessage,
           onSubmit: saveTask,
         }}
-        workspace={{ statuses: data.statuses, data, setData, demoMode }}
+        view={taskEditorView(data)}
         mode={{
           kind: "edit",
           task,

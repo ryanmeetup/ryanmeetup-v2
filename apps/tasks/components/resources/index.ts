@@ -1,5 +1,6 @@
 export { ResourceAttachments } from "./ResourceAttachments";
 export { ResourceAttachmentsPreview } from "./ResourceAttachmentsPreview";
+export { ResourceChipsSkeleton } from "./ResourceChipsSkeleton";
 export { ResourceLinks } from "./ResourceLinks";
 export { useResourceAttachments } from "./useResourceAttachments";
 export { ResourceLinksFields } from "./ResourceLinksFields";
@@ -9,3 +10,4 @@ export { FormSection } from "./FormSection";
 export { useResourceModalState } from "./useResourceModalState";
 export { useResourceMutations } from "./useResourceMutations";
 export { useResourceEditState } from "./useResourceEditState";
+export { useResourceAccessState } from "./useResourceAccessState";

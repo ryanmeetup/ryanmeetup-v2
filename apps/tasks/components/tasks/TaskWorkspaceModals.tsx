@@ -7,7 +7,10 @@ import type { Status } from "@/lib/tasks/task-types";
 import type { TaskEditorController } from "@/hooks/useTaskEditorController";
 import { TaskEditor } from "./TaskEditor";
 import { CategoriesModal } from "@/components/categories";
+import { categoryController } from "@/components/categories/category-workspace";
 import { ProjectsModal } from "@/components/projects";
+import { taskEditorView } from "@/lib/tasks/task-editor-view";
+import { TaskDetails } from "./TaskDetails";
 
 /**
  * The dialog layer that sits above the board and the list: the task editor,
@@ -56,8 +59,21 @@ export function TaskWorkspaceModals({
     <>
       <TaskEditor
         controller={editor}
-        workspace={{ statuses, data, setData, demoMode }}
+        view={taskEditorView(data, statuses)}
         onDelete={deletion.setTask}
+        taskDetails={
+          editor.mode.kind === "edit" ? (
+            <TaskDetails
+              key={editor.mode.task.id}
+              task={editor.mode.task}
+              workspace={{ data, setData, demoMode }}
+              display={{
+                active: editor.modal.open,
+                className: "!border-t-0 !pt-0",
+              }}
+            />
+          ) : undefined
+        }
       />
       <ConfirmationDialog
         open={Boolean(deletion.task)}
@@ -83,7 +99,7 @@ export function TaskWorkspaceModals({
               if (!nextOpen) categories.setEditId(null);
             },
           }}
-          workspace={{ data, setData, demoMode }}
+          controller={categoryController(data, setData, demoMode)}
           options={{ editCategoryId: categories.editId, createOnly: true }}
           events={{
             onCategoryUpdated: (updatedCategory) => {

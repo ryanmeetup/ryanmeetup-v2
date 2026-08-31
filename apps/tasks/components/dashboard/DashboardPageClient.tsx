@@ -21,6 +21,7 @@ import {
   FiTrash2,
 } from "react-icons/fi";
 import { CategoriesModal } from "@/components/categories";
+import { categoryController } from "@/components/categories/category-workspace";
 import { LatestChangelogCard } from "@/components/changelog";
 import { WorkspacePageShell } from "@/components/global";
 import { ProjectsModal } from "@/components/projects";
@@ -606,7 +607,7 @@ export function DashboardPageClient({
       </WorkspacePageShell>
       <CategoriesModal
         modal={{ open: categoryCreateOpen, setOpen: setCategoryCreateOpen }}
-        workspace={{ data, setData, demoMode }}
+        controller={categoryController(data, setData, demoMode)}
         options={{ createOnly: true }}
       />
       <ProjectsModal

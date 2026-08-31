@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type Dispatch, type SetStateAction } from "react";
+import { useState } from "react";
 import {
   Button,
   Card,
@@ -19,24 +19,24 @@ import {
   FiEdit2,
   FiTrash2,
 } from "react-icons/fi";
-import type { WorkspaceData } from "@/lib/workspace/workspace-types";
+import type { Status } from "@/lib/tasks/task-types";
 import { ManagementCardTitle } from "@/components/global";
 import { errorMessage } from "@/lib/presentation";
 import { mutate } from "@/lib/mutation-client";
-
-const archiveDelayMs = 14 * 24 * 60 * 60 * 1000;
 
 /**
  * Owner-only status management, rendered as a page section at /admin/statuses.
  * It was a header modal until the admin section gave it a permanent home.
  */
 export function StatusSettings({
-  data,
-  setData,
+  statuses,
+  onStatusesChange,
+  onStatusCompletionChange,
   demoMode,
 }: {
-  data: WorkspaceData;
-  setData: Dispatch<SetStateAction<WorkspaceData>>;
+  statuses: Status[];
+  onStatusesChange: (update: (current: Status[]) => Status[]) => void;
+  onStatusCompletionChange: (id: string, isCompleted: boolean) => void;
   demoMode: boolean;
 }) {
   const [name, setName] = useState("");
@@ -46,9 +46,7 @@ export function StatusSettings({
   const [editingStatusName, setEditingStatusName] = useState("");
   const [editingStatusDescription, setEditingStatusDescription] = useState("");
   const [editingStatusColor, setEditingStatusColor] = useState("#ee1a25");
-  const [statusToDelete, setStatusToDelete] = useState<
-    WorkspaceData["statuses"][number] | null
-  >(null);
+  const [statusToDelete, setStatusToDelete] = useState<Status | null>(null);
   const [settingActionPending, setSettingActionPending] = useState(false);
 
   async function statusRequest<T>(
@@ -65,13 +63,13 @@ export function StatusSettings({
     const nextName = name.trim();
     if (!nextName || settingActionPending) return;
     setSettingActionPending(true);
-    let item: WorkspaceData["statuses"][number] = {
+    let item: Status = {
       id: crypto.randomUUID(),
       name: nextName,
       description: description.trim() || null,
       color,
-      sort_order: data.statuses.length,
-      order_revision: data.statuses[0]?.order_revision ?? 0,
+      sort_order: statuses.length,
+      order_revision: statuses[0]?.order_revision ?? 0,
       is_default: false,
       is_completed: false,
     };
@@ -84,10 +82,7 @@ export function StatusSettings({
         });
         item = result.status;
       }
-      setData((current) => ({
-        ...current,
-        statuses: [...current.statuses, item],
-      }));
+      onStatusesChange((current) => [...current, item]);
       setName("");
       setDescription("");
       toast.success(`${item.name} added.`);
@@ -100,7 +95,7 @@ export function StatusSettings({
     }
   }
 
-  function beginEdit(item: WorkspaceData["statuses"][number]) {
+  function beginEdit(item: Status) {
     setEditingStatusId(item.id);
     setEditingStatusName(item.name);
     setEditingStatusDescription(item.description ?? "");
@@ -114,7 +109,7 @@ export function StatusSettings({
   }
 
   /** Saves only the fields the owner actually changed. */
-  async function saveSetting(current: WorkspaceData["statuses"][number]) {
+  async function saveSetting(current: Status) {
     const nextName = editingStatusName.trim();
     if (!nextName || settingActionPending) return;
     const nextDescription = editingStatusDescription.trim() || null;
@@ -136,9 +131,8 @@ export function StatusSettings({
       if (!demoMode) {
         await statusRequest("PATCH", { id: current.id, ...changes });
       }
-      setData((workspace) => ({
-        ...workspace,
-        statuses: workspace.statuses.map((item) =>
+      onStatusesChange((statuses) =>
+        statuses.map((item) =>
           item.id === current.id
             ? {
                 ...item,
@@ -148,7 +142,7 @@ export function StatusSettings({
               }
             : item,
         ),
-      }));
+      );
       cancelEdit();
       toast.success(`${nextName} updated.`);
     } catch (error) {
@@ -162,10 +156,9 @@ export function StatusSettings({
     setSettingActionPending(true);
     try {
       if (!demoMode) await statusRequest("DELETE", { id });
-      setData((current) => ({
-        ...current,
-        statuses: current.statuses.filter((item) => item.id !== id),
-      }));
+      onStatusesChange((current) =>
+        current.filter((item) => item.id !== id),
+      );
       setStatusToDelete(null);
       toast.success("Status deleted.");
     } catch (error) {
@@ -183,29 +176,7 @@ export function StatusSettings({
       if (!demoMode) {
         await statusRequest("PATCH", { id, isCompleted });
       }
-      const now = new Date().toISOString();
-      setData((current) => ({
-        ...current,
-        statuses: current.statuses.map((item) =>
-          item.id === id ? { ...item, is_completed: isCompleted } : item,
-        ),
-        tasks: current.tasks.map((task) => {
-          if (task.status_id !== id) return task;
-          return {
-            ...task,
-            ...(isCompleted
-              ? {
-                  completed_at: task.completed_at ?? now,
-                  archived_at:
-                    task.archived_at ??
-                    new Date(
-                      new Date(now).getTime() + archiveDelayMs,
-                    ).toISOString(),
-                }
-              : { completed_at: null, archived_at: null }),
-          };
-        }),
-      }));
+      onStatusCompletionChange(id, isCompleted);
       toast.success(
         isCompleted
           ? "Tasks in this status will archive after 14 days."
@@ -222,7 +193,7 @@ export function StatusSettings({
 
   async function moveStatus(id: string, direction: -1 | 1) {
     if (settingActionPending) return;
-    const ordered = [...data.statuses].sort(
+    const ordered = [...statuses].sort(
       (a, b) => a.sort_order - b.sort_order,
     );
     const index = ordered.findIndex((item) => item.id === id);
@@ -234,7 +205,7 @@ export function StatusSettings({
     try {
       if (!demoMode) {
         const result = await statusRequest<{
-          statuses: WorkspaceData["statuses"];
+          statuses: Status[];
         }>("PATCH", {
           orderedIds: next.map((item) => item.id),
           expectedRevision: ordered[0]?.order_revision ?? 0,
@@ -248,7 +219,7 @@ export function StatusSettings({
           ...next.map((status) => savedById.get(status.id) ?? status),
         );
       }
-      setData((current) => ({ ...current, statuses: next }));
+      onStatusesChange(() => next);
     } catch (error) {
       toast.error(
         errorMessage(error, "The status order could not be saved."),
@@ -266,7 +237,7 @@ export function StatusSettings({
       </p>
 
       <div className="space-y-3">
-        {[...data.statuses]
+        {[...statuses]
           .sort((a, b) => a.sort_order - b.sort_order)
           .map((item, index, ordered) => (
             <div

@@ -47,6 +47,18 @@ export type WorkspaceData = {
   categories: Category[];
   projects: Project[];
   projectTaskCounts?: Record<string, number>;
+  /**
+   * How many attachments each project and category holds, counted at page
+   * load. Attachments themselves are fetched lazily by the view that shows
+   * them; this lets a header reserve space only for a resource that actually
+   * has some, rather than flashing a placeholder over every empty one. A count
+   * can go stale against a later write - it only decides whether a placeholder
+   * is worth showing, never what is rendered.
+   */
+  resourceAttachmentCounts?: {
+    projects: Record<string, number>;
+    categories: Record<string, number>;
+  };
   profiles: Profile[];
   currentProfile: Profile;
   canManageCategories: boolean;

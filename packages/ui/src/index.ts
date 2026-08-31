@@ -26,6 +26,7 @@ export * from "./Input";
 export * from "./Kicker";
 export * from "./LogoCard";
 export * from "./LogoMarquee";
+export * from "./ManagementSurface";
 export * from "./Modal";
 export * from "./ModalActions";
 export * from "./MultiSelect";

@@ -13,6 +13,7 @@ import { FiLock, FiLogOut, FiUser } from "react-icons/fi";
 import { ProfileForm } from "./ProfileForm";
 import { PasswordForm } from "@/components/auth";
 import { CategoriesModal } from "@/components/categories";
+import { categoryController } from "@/components/categories/category-workspace";
 import {
   InstanceWordmark,
   PageHeader,
@@ -144,7 +145,7 @@ export function ProfilePageClient({
       {categoryOpen && (
         <CategoriesModal
           modal={{ open: categoryOpen, setOpen: setCategoryOpen }}
-          workspace={{ data, setData, demoMode: false }}
+          controller={categoryController(data, setData, false)}
           options={{ createOnly: true }}
         />
       )}

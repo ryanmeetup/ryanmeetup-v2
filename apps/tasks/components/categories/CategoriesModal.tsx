@@ -4,9 +4,8 @@ import {
   useMemo,
   useEffect,
   useState,
-  type Dispatch,
   type FormEvent,
-  type SetStateAction,
+  type ReactNode,
 } from "react";
 import {
   Avatar,
@@ -16,6 +15,7 @@ import {
   FilterChip,
   IconButton,
   Input,
+  ManagementSurface,
   Modal,
   ModalActions,
   MultiSelect,
@@ -46,13 +46,15 @@ import {
   ManagementCardTitle,
   ResourceOwnerSelect,
 } from "@/components/global";
-import type { Category, ProjectLink } from "@/lib/resources/resource-types";
-import type { WorkspaceData } from "@/lib/workspace/workspace-types";
+import type { Category } from "@/lib/resources/resource-types";
+import type { CategoryController } from "./category-workspace";
 import {
   ExpandableResourceEditor,
   ResourceFields,
   useResourceModalState,
   useResourceMutations,
+  useResourceEditState,
+  useResourceAccessState,
   ResourceAttachments,
   ResourceLinks,
   ResourceLinksFields,
@@ -84,36 +86,44 @@ function randomCategoryColor(exclude?: string) {
   return color;
 }
 
-export type CategoriesModalProps = {
-  modal: {
-    open: boolean;
-    setOpen: (value: boolean) => void;
-  };
-  workspace: {
-    data: WorkspaceData;
-    setData: Dispatch<SetStateAction<WorkspaceData>>;
-    demoMode: boolean;
-  };
-  options?: {
-    embedded?: boolean;
-    createOnly?: boolean;
-    editCategoryId?: string | null;
-    readOnly?: boolean;
-  };
+type CategoriesModalOptions = {
+  embedded?: boolean;
+  createOnly?: boolean;
+  editCategoryId?: string | null;
+  readOnly?: boolean;
+};
+
+type CategoriesModalCommonProps = {
+  controller: CategoryController;
   events?: {
     onCreate?: () => void;
     onCategoryUpdated?: (category: Category) => void;
   };
 };
 
+export type CategoriesModalProps = CategoriesModalCommonProps &
+  (
+    | {
+        modal?: never;
+        options: CategoriesModalOptions & { embedded: true };
+      }
+    | {
+        modal: {
+          open: boolean;
+          setOpen: (value: boolean) => void;
+        };
+        options?: CategoriesModalOptions & { embedded?: false };
+      }
+  );
+
 export function CategoriesModal({
   modal,
-  workspace,
+  controller,
   options,
   events,
 }: CategoriesModalProps) {
-  const { open, setOpen } = modal;
-  const { data, setData, demoMode } = workspace;
+  const setOpen = modal?.setOpen;
+  const { view: data, commands, demoMode } = controller;
   const {
     embedded = false,
     createOnly: createOnlyOption,
@@ -154,49 +164,64 @@ export function CategoriesModal({
     useState<Category["access_mode"]>("open");
   const [newAccessGroupIds, setNewAccessGroupIds] = useState<string[]>([]);
   const [confirmSuiteOnlyCreate, setConfirmSuiteOnlyCreate] = useState(false);
-  const [editDetailsOpen, setEditDetailsOpen] = useState(false);
   const [categoryStatusParam, setCategoryStatus] = useQueryParamState(
     "category-status",
     "active",
   );
   const categoryStatus = archiveFilter(categoryStatusParam);
-  const [editingId, setEditingId] = useState<string | null>(
-    directEditCategory?.id ?? null,
-  );
-  const [editingName, setEditingName] = useState(
-    directEditCategory?.name ?? "",
-  );
-  const [editingDescription, setEditingDescription] = useState(
-    directEditCategory?.description ?? "",
-  );
-  const [editingColor, setEditingColor] = useState(
-    directEditCategory?.color ?? "",
-  );
-  const [editingLinks, setEditingLinks] = useState<ProjectLink[]>(
-    directEditCategory?.links ?? [],
-  );
-  const [editingTags, setEditingTags] = useState<string[]>(
-    directEditCategory?.tags ?? [],
-  );
-  const [editingAccessMode, setEditingAccessMode] = useState<
-    Category["access_mode"]
-  >(directEditCategory?.access_mode ?? "open");
-  const [accessGroups, setAccessGroups] = useState<CategoryAccessGroup[]>([]);
-  const [editingAccessGroupIds, setEditingAccessGroupIds] = useState<string[]>(
-    [],
-  );
-  const [savedAccessGroupIds, setSavedAccessGroupIds] = useState<string[]>([]);
-  const [accessLoaded, setAccessLoaded] = useState(demoMode);
-  const [confirmSuiteOnlyCategory, setConfirmSuiteOnlyCategory] =
-    useState<Category | null>(null);
-  const [editingOwnerIds, setEditingOwnerIds] = useState<string[]>(
+  const editState = useResourceEditState(
+    directEditCategory,
     directEditCategory
       ? data.categoryOwners
           .filter((item) => item.category_id === directEditCategory.id)
           .map((item) => item.profile_id)
       : [],
   );
-  const [saving, setSaving] = useState(false);
+  const {
+    resourceId: editingId,
+    detailsOpen: editDetailsOpen,
+    setDetailsOpen: setEditDetailsOpen,
+    saving,
+    setSaving,
+  } = editState;
+  const {
+    name: editingName,
+    description: editingDescription,
+    links: editingLinks,
+    ownerIds: editingOwnerIds,
+  } = editState.draft;
+  const {
+    setName: setEditingName,
+    setDescription: setEditingDescription,
+    setLinks: setEditingLinks,
+    setOwnerIds: setEditingOwnerIds,
+  } = editState.changes;
+  const [editingColor, setEditingColor] = useState(
+    directEditCategory?.color ?? "",
+  );
+  const [editingTags, setEditingTags] = useState<string[]>(
+    directEditCategory?.tags ?? [],
+  );
+  const accessState = useResourceAccessState<
+    CategoryAccessGroup,
+    Category["access_mode"]
+  >({
+    initialAccessMode: directEditCategory?.access_mode ?? "open",
+    demoMode,
+  });
+  const accessGroups = accessState.groups;
+  const {
+    accessMode: editingAccessMode,
+    groupIds: editingAccessGroupIds,
+    savedGroupIds: savedAccessGroupIds,
+  } = accessState.selection;
+  const {
+    setAccessMode: setEditingAccessMode,
+    setGroupIds: setEditingAccessGroupIds,
+  } = accessState.changes;
+  const accessLoaded = accessState.loaded;
+  const [confirmSuiteOnlyCategory, setConfirmSuiteOnlyCategory] =
+    useState<Category | null>(null);
   const [supportingDetailsChanged, setSupportingDetailsChanged] =
     useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
@@ -278,24 +303,14 @@ export function CategoriesModal({
             `${failedAttachments} ${failedAttachments === 1 ? "attachment" : "attachments"} could not be added. You can retry from Edit category.`,
           );
       }
-      setData((current) => ({
-        ...current,
-        categories: [...current.categories, category],
-        categoryOwners: [
-          ...current.categoryOwners,
-          ...newOwnerIds.map((profile_id) => ({
-            category_id: category.id,
-            profile_id,
-          })),
-        ],
-      }));
+      commands.add(category, newOwnerIds);
       createState.reset();
       setTags([]);
       setNewAccessMode("open");
       setNewAccessGroupIds([]);
       setColor(randomCategoryColor(color));
       toast.success(`${category.name} created.`);
-      if (createOnly) setOpen(false);
+      if (createOnly) setOpen?.(false);
     } catch (error) {
       toast.error(errorMessage(error, "The category could not be created."));
     } finally {
@@ -306,19 +321,19 @@ export function CategoriesModal({
   async function loadCategoryAccess(categoryId?: string) {
     if (demoMode || data.currentProfile.app_role !== "owner") return;
     try {
-      const result = await mutate<{
-        groups: CategoryAccessGroup[];
-        groupIds: string[];
-      }>(
-        categoryId
-          ? `/api/category-access?categoryId=${encodeURIComponent(categoryId)}`
-          : "/api/category-access",
-        { method: "GET" },
+      await accessState.load(
+        (signal) =>
+          mutate<{
+            groups: CategoryAccessGroup[];
+            groupIds: string[];
+          }>(
+            categoryId
+              ? `/api/category-access?categoryId=${encodeURIComponent(categoryId)}`
+              : "/api/category-access",
+            { method: "GET", signal },
+          ),
+        { applySelection: Boolean(categoryId) },
       );
-      setAccessGroups(result.groups);
-      setEditingAccessGroupIds(result.groupIds);
-      setSavedAccessGroupIds(result.groupIds);
-      setAccessLoaded(true);
     } catch (error) {
       toast.error(
         errorMessage(error, "Category access settings could not be loaded."),
@@ -328,7 +343,6 @@ export function CategoriesModal({
 
   useEffect(() => {
     // Direct-edit modals receive owner-only access metadata from the API after mount.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (directEditCategory) void loadCategoryAccess(directEditCategory.id);
     else if (createOnly && data.currentProfile.app_role === "owner")
       void loadCategoryAccess();
@@ -338,23 +352,21 @@ export function CategoriesModal({
 
   function beginEdit(category: Category) {
     setSupportingDetailsChanged(false);
-    setEditDetailsOpen(false);
-    setEditingId(category.id);
-    setEditingName(category.name);
-    setEditingDescription(category.description ?? "");
-    setEditingColor(category.color);
-    setEditingLinks(category.links ?? []);
-    setEditingTags(category.tags);
-    setEditingAccessMode(category.access_mode);
-    setEditingAccessGroupIds([]);
-    setSavedAccessGroupIds([]);
-    setAccessLoaded(demoMode);
-    void loadCategoryAccess(category.id);
-    setEditingOwnerIds(
+    editState.begin(
+      category,
       data.categoryOwners
         .filter((item) => item.category_id === category.id)
         .map((item) => item.profile_id),
     );
+    setEditingColor(category.color);
+    setEditingTags(category.tags);
+    accessState.begin(category.access_mode);
+    void loadCategoryAccess(category.id);
+  }
+
+  function closeEditor() {
+    setSupportingDetailsChanged(false);
+    if (editState.close() && editCategoryId) setOpen?.(false);
   }
 
   async function updateCategory(
@@ -413,28 +425,15 @@ export function CategoriesModal({
         tags: nextTags,
         access_mode: editingAccessMode,
       };
-      setData((current) => ({
-        ...current,
-        categories: current.categories.map((item) =>
-          item.id === category.id ? updatedCategory : item,
-        ),
-        categoryOwners: ownersChanged
-          ? [
-              ...current.categoryOwners.filter(
-                (item) => item.category_id !== category.id,
-              ),
-              ...editingOwnerIds.map((profile_id) => ({
-                category_id: category.id,
-                profile_id,
-              })),
-            ]
-          : current.categoryOwners,
-      }));
-      setSavedAccessGroupIds(editingAccessGroupIds);
+      commands.update(
+        updatedCategory,
+        ownersChanged ? editingOwnerIds : undefined,
+      );
+      accessState.commit();
       onCategoryUpdated?.(updatedCategory);
       setSupportingDetailsChanged(false);
-      setEditingId(null);
-      if (editCategoryId) setOpen(false);
+      editState.complete();
+      if (editCategoryId) setOpen?.(false);
       toast.success(`${nextName} updated.`);
     } catch (error) {
       toast.error(errorMessage(error, "The category could not be updated."));
@@ -456,17 +455,10 @@ export function CategoriesModal({
           tags: category.tags,
           archived,
         });
-      setData((current) => ({
-        ...current,
-        categories: current.categories.map((item) =>
-          item.id === category.id
-            ? {
-                ...item,
-                archived_at: archived ? new Date().toISOString() : null,
-              }
-            : item,
-        ),
-      }));
+      commands.setArchived(
+        category.id,
+        archived ? new Date().toISOString() : null,
+      );
       toast.success(`${category.name} ${archived ? "archived" : "restored"}.`);
     } catch (error) {
       toast.error(errorMessage(error, "The category could not be updated."));
@@ -480,15 +472,7 @@ export function CategoriesModal({
     try {
       if (!demoMode)
         await resourceMutations.save("DELETE", { id: category.id });
-      setData((current) => ({
-        ...current,
-        categories: current.categories.filter(
-          (item) => item.id !== category.id,
-        ),
-        categoryOwners: current.categoryOwners.filter(
-          (item) => item.category_id !== category.id,
-        ),
-      }));
+      commands.remove(category.id);
       setDeleteTarget(null);
       toast.success(`${category.name} deleted.`);
     } catch (error) {
@@ -665,45 +649,54 @@ export function CategoriesModal({
     />
   );
 
-  return (
-    <>
+  const renderSurface = (children: ReactNode) => {
+    const title = createOnly ? (
+      "New Category"
+    ) : (
+      <>
+        Categories <CountBadge size="lg">{categories.length}</CountBadge>
+      </>
+    );
+
+    if (embedded) {
+      return (
+        <ManagementSurface
+          title={title}
+          description="Categories make work easier to scan and filter across projects."
+          actions={
+            onCreate && !readOnly ? (
+              <Button
+                type="button"
+                size="sm"
+                className="w-full sm:w-auto"
+                leftIcon={<FiPlus aria-hidden />}
+                onClick={onCreate}
+              >
+                New Category
+              </Button>
+            ) : undefined
+          }
+        >
+          {children}
+        </ManagementSurface>
+      );
+    }
+
+    if (!modal) return null;
+
+    return (
       <Modal
-        open={open && !editingId}
-        setIsOpen={setOpen}
-        title={
-          createOnly ? (
-            "New Category"
-          ) : (
-            <>
-              Categories <CountBadge size="lg">{categories.length}</CountBadge>
-            </>
-          )
-        }
-        description={
-          embedded
-            ? "Categories make work easier to scan and filter across projects."
-            : undefined
-        }
+        open={modal.open && !editingId}
+        setIsOpen={modal.setOpen}
+        title={title}
         actions={
-          embedded && onCreate && !readOnly ? (
-            <Button
-              type="button"
-              size="sm"
-              className="w-full sm:w-auto"
-              leftIcon={<FiPlus aria-hidden />}
-              onClick={onCreate}
-            >
-              New Category
-            </Button>
-          ) : !embedded ? (
-            <ModalActions
-              confirmForm="create-category-form"
-              confirmLabel="Create category"
-              onCancel={() => setOpen(false)}
-              pending={creating}
-              pendingLabel="Creating..."
-            />
-          ) : undefined
+          <ModalActions
+            confirmForm="create-category-form"
+            confirmLabel="Create category"
+            onCancel={() => modal.setOpen(false)}
+            pending={creating}
+            pendingLabel="Creating..."
+          />
         }
         formId={createOnly ? "create-category-form" : undefined}
         onSubmit={createOnly ? addCategory : undefined}
@@ -715,9 +708,8 @@ export function CategoriesModal({
             ? "transition-[max-width] duration-300 ease-out motion-reduce:transition-none"
             : undefined
         }
-        embedded={embedded}
         footerContent={
-          !embedded && !createOnly ? (
+          !createOnly ? (
             <form
               id="create-category-form"
               className="grid gap-4"
@@ -733,297 +725,311 @@ export function CategoriesModal({
           ) : undefined
         }
       >
-        {createOnly ? (
-          <div className="space-y-4">
-            <p className="text-sm text-black/60 dark:text-white/60">
-              Give related work a recognizable label and color. You can edit or
-              archive it from the Categories page later.
-            </p>
-            <ExpandableResourceEditor
-              expanded={createDetailsOpen}
-              setExpanded={setCreateDetailsOpen}
-              primary={newCategoryPrimaryFields}
-              secondary={newCategorySecondaryFields}
-            />
-          </div>
-        ) : (
-          <>
-            {!embedded && (
-              <p className="mb-5 text-sm text-black/60 dark:text-white/60">
-                Categories make work easier to scan and filter across projects.
+        {children}
+      </Modal>
+    );
+  };
+
+  return (
+    <>
+      {renderSurface(
+        <>
+          {createOnly ? (
+            <div className="space-y-4">
+              <p className="text-sm text-black/60 dark:text-white/60">
+                Give related work a recognizable label and color. You can edit
+                or archive it from the Categories page later.
               </p>
-            )}
-            <div className="sticky top-0 z-20 -mx-1 mb-4 grid gap-3 bg-white px-1 pb-3 dark:bg-[#181818] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-              <div className="relative">
-                <SearchInput
-                  label="Search categories"
-                  name="category-search"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search categories..."
-                  pending={searchPending}
-                  pendingLabel="Loading category results"
-                />
-              </div>
-              <div
-                className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap"
-                aria-label="Filter categories"
-              >
-                {(["active", "archived", "all"] as const).map((status) => (
-                  <FilterChip
-                    key={status}
-                    active={categoryStatus === status}
-                    variant="soft"
-                    onClick={() => setCategoryStatus(status)}
-                    className="h-10 w-full justify-center px-2 py-0 sm:w-auto sm:px-4"
-                  >
-                    {status}
-                  </FilterChip>
-                ))}
-              </div>
+              <ExpandableResourceEditor
+                expanded={createDetailsOpen}
+                setExpanded={setCreateDetailsOpen}
+                primary={newCategoryPrimaryFields}
+                secondary={newCategorySecondaryFields}
+              />
             </div>
-            <PendingResults pending={searchPending} label="Loading categories">
-              <div
-                className={`grid items-stretch gap-4 md:grid-cols-2 ${embedded ? "lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3" : ""}`}
+          ) : (
+            <>
+              {!embedded && (
+                <p className="mb-5 text-sm text-black/60 dark:text-white/60">
+                  Categories make work easier to scan and filter across
+                  projects.
+                </p>
+              )}
+              <div className="sticky top-0 z-20 -mx-1 mb-4 grid gap-3 bg-white px-1 pb-3 dark:bg-[#181818] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+                <div className="relative">
+                  <SearchInput
+                    label="Search categories"
+                    name="category-search"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Search categories..."
+                    pending={searchPending}
+                    pendingLabel="Loading category results"
+                  />
+                </div>
+                <div
+                  className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap"
+                  aria-label="Filter categories"
+                >
+                  {(["active", "archived", "all"] as const).map((status) => (
+                    <FilterChip
+                      key={status}
+                      active={categoryStatus === status}
+                      variant="soft"
+                      onClick={() => setCategoryStatus(status)}
+                      className="h-10 w-full justify-center px-2 py-0 sm:w-auto sm:px-4"
+                    >
+                      {status}
+                    </FilterChip>
+                  ))}
+                </div>
+              </div>
+              <PendingResults
+                pending={searchPending}
+                label="Loading categories"
               >
-                {categories.map((category) => {
-                  const taskCount = data.taskCategories.filter(
-                    (item) => item.category_id === category.id,
-                  ).length;
-                  const owners = data.categoryOwners
-                    .filter((item) => item.category_id === category.id)
-                    .flatMap((item) => {
-                      const profile = data.profiles.find(
-                        (candidate) => candidate.id === item.profile_id,
-                      );
-                      return profile ? [profile] : [];
-                    });
-                  return (
-                    <ManagementCard
-                      key={category.id}
-                      body={
-                        category.description ||
-                        (category.links ?? []).length ||
-                        category.tags.length ? (
-                          <div className="min-w-0">
-                            {category.description && (
-                              <p className="text-sm text-black/60 dark:text-white/60">
-                                {category.description}
-                              </p>
-                            )}
-                            {(category.links ?? []).length > 0 && (
-                              <div className="mt-3">
-                                <p className="mb-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-black/45 dark:text-white/45">
-                                  Useful links
+                <div
+                  className={`grid items-stretch gap-4 md:grid-cols-2 ${embedded ? "lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3" : ""}`}
+                >
+                  {categories.map((category) => {
+                    const taskCount = data.taskCategories.filter(
+                      (item) => item.category_id === category.id,
+                    ).length;
+                    const owners = data.categoryOwners
+                      .filter((item) => item.category_id === category.id)
+                      .flatMap((item) => {
+                        const profile = data.profiles.find(
+                          (candidate) => candidate.id === item.profile_id,
+                        );
+                        return profile ? [profile] : [];
+                      });
+                    return (
+                      <ManagementCard
+                        key={category.id}
+                        body={
+                          category.description ||
+                          (category.links ?? []).length ||
+                          category.tags.length ? (
+                            <div className="min-w-0">
+                              {category.description && (
+                                <p className="text-sm text-black/60 dark:text-white/60">
+                                  {category.description}
                                 </p>
-                                <ResourceLinks links={category.links} />
-                              </div>
-                            )}
-                            {category.tags.length > 0 && (
-                              <div className="mb-3 mt-3">
-                                <p className="mb-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-black/45 dark:text-white/45">
-                                  Available tags
-                                </p>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {category.tags.slice(0, 4).map((tag) => (
-                                    <span
-                                      key={tag}
-                                      className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-semibold text-black/70 dark:text-white/75"
-                                      style={{
-                                        borderColor: `${category.color}55`,
-                                        backgroundColor: `${category.color}18`,
-                                      }}
-                                    >
-                                      <FiTag
-                                        aria-hidden
-                                        className="h-2.5 w-2.5"
-                                      />
-                                      {tag}
-                                    </span>
-                                  ))}
-                                  {category.tags.length > 4 && (
-                                    <Tooltip
-                                      content={category.tags
-                                        .slice(4)
-                                        .join(", ")}
-                                      placement="top"
-                                    >
+                              )}
+                              {(category.links ?? []).length > 0 && (
+                                <div className="mt-3">
+                                  <p className="mb-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-black/45 dark:text-white/45">
+                                    Useful links
+                                  </p>
+                                  <ResourceLinks links={category.links} />
+                                </div>
+                              )}
+                              {category.tags.length > 0 && (
+                                <div className="mb-3 mt-3">
+                                  <p className="mb-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-black/45 dark:text-white/45">
+                                    Available tags
+                                  </p>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {category.tags.slice(0, 4).map((tag) => (
                                       <span
-                                        className="inline-flex items-center rounded-md border px-2 py-1 text-[10px] font-semibold text-black/60 dark:text-white/65"
+                                        key={tag}
+                                        className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-semibold text-black/70 dark:text-white/75"
                                         style={{
                                           borderColor: `${category.color}55`,
                                           backgroundColor: `${category.color}18`,
                                         }}
                                       >
-                                        +{category.tags.length - 4}
+                                        <FiTag
+                                          aria-hidden
+                                          className="h-2.5 w-2.5"
+                                        />
+                                        {tag}
                                       </span>
-                                    </Tooltip>
-                                  )}
+                                    ))}
+                                    {category.tags.length > 4 && (
+                                      <Tooltip
+                                        content={category.tags
+                                          .slice(4)
+                                          .join(", ")}
+                                        placement="top"
+                                      >
+                                        <span
+                                          className="inline-flex items-center rounded-md border px-2 py-1 text-[10px] font-semibold text-black/60 dark:text-white/65"
+                                          style={{
+                                            borderColor: `${category.color}55`,
+                                            backgroundColor: `${category.color}18`,
+                                          }}
+                                        >
+                                          +{category.tags.length - 4}
+                                        </span>
+                                      </Tooltip>
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
-                            )}
-                          </div>
-                        ) : undefined
-                      }
-                      footerClassName="flex-wrap justify-start"
-                      footer={
-                        <>
-                          {owners.length > 0 ? (
-                            <div
-                              className="flex shrink-0 -space-x-2"
-                              aria-label={`${owners.length} ${owners.length === 1 ? "owner" : "owners"}`}
-                            >
-                              {owners.slice(0, 3).map((owner) => (
-                                <Tooltip
-                                  key={owner.id}
-                                  content={owner.full_name}
-                                  placement="top"
-                                >
-                                  <Avatar
-                                    name={owner.full_name}
-                                    src={owner.avatar_url}
-                                    size="md"
-                                    className="ring-2 ring-white dark:ring-[#181818]"
-                                  />
-                                </Tooltip>
-                              ))}
-                              {owners.length > 3 && (
-                                <Tooltip
-                                  content={owners
-                                    .slice(3)
-                                    .map((owner) => owner.full_name)
-                                    .join(", ")}
-                                  placement="top"
-                                >
-                                  <span className="relative grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 border-white bg-black text-[10px] font-bold text-white dark:border-[#181818] dark:bg-white dark:text-black">
-                                    +{owners.length - 3}
-                                  </span>
-                                </Tooltip>
                               )}
                             </div>
-                          ) : (
-                            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-dashed border-black/25 text-black/40 dark:border-white/25 dark:text-white/40">
-                              <FiUsers aria-hidden size={14} />
-                            </span>
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-black/40 dark:text-white/40">
-                              Owners
-                            </p>
-                            <p
-                              className="truncate text-xs font-medium text-black/65 dark:text-white/65"
-                              title={owners
-                                .map((owner) => owner.full_name)
-                                .join(", ")}
-                            >
-                              {owners.length > 0
-                                ? `${owners
-                                    .slice(0, 3)
-                                    .map((owner) => owner.full_name)
-                                    .join(
-                                      ", ",
-                                    )}${owners.length > 3 ? ` +${owners.length - 3}` : ""}`
-                                : "Unassigned"}
-                            </p>
-                          </div>
-                          {embedded && (
-                            <Button.Link
-                              href={withAccessPreview(
-                                `/board?category=${encodeURIComponent(category.name)}`,
-                                data.accessPreview,
-                              )}
-                              variant="secondary"
-                              size="sm"
-                              className="w-full justify-center sm:ml-auto sm:w-auto"
-                              rightIcon={<FiArrowRight aria-hidden />}
-                            >
-                              Open board
-                            </Button.Link>
-                          )}
-                        </>
-                      }
-                    >
-                      <span
-                        aria-hidden
-                        className="h-4 w-4 shrink-0 rounded-full ring-4 ring-black/5 dark:ring-white/5"
-                        style={{ backgroundColor: category.color }}
-                      />
-                      <div className="min-w-0 flex-1 py-1">
-                        <ManagementCardTitle
-                          className={
-                            category.archived_at
-                              ? "text-black/60 dark:text-white/60"
-                              : undefined
-                          }
-                        >
-                          <span className="inline-flex max-w-full items-center gap-2">
-                            <span className="truncate">{category.name}</span>
-                            <Tooltip
-                              content={`${taskCount} ${taskCount === 1 ? "task" : "tasks"} in this category`}
-                              placement="top"
-                            >
-                              <CountBadge label="task" className="shrink-0">
-                                {taskCount}
-                              </CountBadge>
-                            </Tooltip>
-                          </span>
-                        </ManagementCardTitle>
-                      </div>
-                      {category.archived_at && (
-                        <Pill
-                          variant="neutral"
-                          size="sm"
-                          className="shrink-0 !px-2.5 !tracking-[0.16em]"
-                        >
-                          Archived
-                        </Pill>
-                      )}
-                      {!readOnly && (
-                        <>
-                          <IconButton
-                            label={`Edit “${category.name}”`}
-                            variant="edit"
-                            onClick={() => beginEdit(category)}
-                          >
-                            <FiEdit2 />
-                          </IconButton>
-                          <IconButton
-                            label={`${category.archived_at ? "Restore" : "Archive"} “${category.name}”`}
-                            variant="archive"
-                            onClick={() => void toggleArchived(category)}
-                          >
-                            {category.archived_at ? (
-                              <FiRotateCcw />
+                          ) : undefined
+                        }
+                        footerClassName="flex-wrap justify-start"
+                        footer={
+                          <>
+                            {owners.length > 0 ? (
+                              <div
+                                className="flex shrink-0 -space-x-2"
+                                aria-label={`${owners.length} ${owners.length === 1 ? "owner" : "owners"}`}
+                              >
+                                {owners.slice(0, 3).map((owner) => (
+                                  <Tooltip
+                                    key={owner.id}
+                                    content={owner.full_name}
+                                    placement="top"
+                                  >
+                                    <Avatar
+                                      name={owner.full_name}
+                                      src={owner.avatar_url}
+                                      size="md"
+                                      className="ring-2 ring-white dark:ring-[#181818]"
+                                    />
+                                  </Tooltip>
+                                ))}
+                                {owners.length > 3 && (
+                                  <Tooltip
+                                    content={owners
+                                      .slice(3)
+                                      .map((owner) => owner.full_name)
+                                      .join(", ")}
+                                    placement="top"
+                                  >
+                                    <span className="relative grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 border-white bg-black text-[10px] font-bold text-white dark:border-[#181818] dark:bg-white dark:text-black">
+                                      +{owners.length - 3}
+                                    </span>
+                                  </Tooltip>
+                                )}
+                              </div>
                             ) : (
-                              <FiArchive />
+                              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-dashed border-black/25 text-black/40 dark:border-white/25 dark:text-white/40">
+                                <FiUsers aria-hidden size={14} />
+                              </span>
                             )}
-                          </IconButton>
-                          {taskCount === 0 && (
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-black/40 dark:text-white/40">
+                                Owners
+                              </p>
+                              <p
+                                className="truncate text-xs font-medium text-black/65 dark:text-white/65"
+                                title={owners
+                                  .map((owner) => owner.full_name)
+                                  .join(", ")}
+                              >
+                                {owners.length > 0
+                                  ? `${owners
+                                      .slice(0, 3)
+                                      .map((owner) => owner.full_name)
+                                      .join(
+                                        ", ",
+                                      )}${owners.length > 3 ? ` +${owners.length - 3}` : ""}`
+                                  : "Unassigned"}
+                              </p>
+                            </div>
+                            {embedded && (
+                              <Button.Link
+                                href={withAccessPreview(
+                                  `/board?category=${encodeURIComponent(category.name)}`,
+                                  data.accessPreview,
+                                )}
+                                variant="secondary"
+                                size="sm"
+                                className="w-full justify-center sm:ml-auto sm:w-auto"
+                                rightIcon={<FiArrowRight aria-hidden />}
+                              >
+                                Open board
+                              </Button.Link>
+                            )}
+                          </>
+                        }
+                      >
+                        <span
+                          aria-hidden
+                          className="h-4 w-4 shrink-0 rounded-full ring-4 ring-black/5 dark:ring-white/5"
+                          style={{ backgroundColor: category.color }}
+                        />
+                        <div className="min-w-0 flex-1 py-1">
+                          <ManagementCardTitle
+                            className={
+                              category.archived_at
+                                ? "text-black/60 dark:text-white/60"
+                                : undefined
+                            }
+                          >
+                            <span className="inline-flex max-w-full items-center gap-2">
+                              <span className="truncate">{category.name}</span>
+                              <Tooltip
+                                content={`${taskCount} ${taskCount === 1 ? "task" : "tasks"} in this category`}
+                                placement="top"
+                              >
+                                <CountBadge label="task" className="shrink-0">
+                                  {taskCount}
+                                </CountBadge>
+                              </Tooltip>
+                            </span>
+                          </ManagementCardTitle>
+                        </div>
+                        {category.archived_at && (
+                          <Pill
+                            variant="neutral"
+                            size="sm"
+                            className="shrink-0 !px-2.5 !tracking-[0.16em]"
+                          >
+                            Archived
+                          </Pill>
+                        )}
+                        {!readOnly && (
+                          <>
                             <IconButton
-                              label={`Delete “${category.name}”`}
-                              variant="danger"
-                              onClick={() => setDeleteTarget(category)}
+                              label={`Edit “${category.name}”`}
+                              variant="edit"
+                              onClick={() => beginEdit(category)}
                             >
-                              <FiTrash2 />
+                              <FiEdit2 />
                             </IconButton>
-                          )}
-                        </>
-                      )}
-                    </ManagementCard>
-                  );
-                })}
-                {categories.length === 0 && (
-                  <div
-                    className={`rounded-xl border border-dashed border-black/10 px-4 py-10 text-center text-sm text-black/55 dark:border-white/10 dark:text-white/55 md:col-span-2 ${embedded ? "lg:col-span-1 xl:col-span-2 2xl:col-span-3" : ""}`}
-                  >
-                    No categories match this search.
-                  </div>
-                )}
-              </div>
-            </PendingResults>
-          </>
-        )}
-      </Modal>
+                            <IconButton
+                              label={`${category.archived_at ? "Restore" : "Archive"} “${category.name}”`}
+                              variant="archive"
+                              onClick={() => void toggleArchived(category)}
+                            >
+                              {category.archived_at ? (
+                                <FiRotateCcw />
+                              ) : (
+                                <FiArchive />
+                              )}
+                            </IconButton>
+                            {taskCount === 0 && (
+                              <IconButton
+                                label={`Delete “${category.name}”`}
+                                variant="danger"
+                                onClick={() => setDeleteTarget(category)}
+                              >
+                                <FiTrash2 />
+                              </IconButton>
+                            )}
+                          </>
+                        )}
+                      </ManagementCard>
+                    );
+                  })}
+                  {categories.length === 0 && (
+                    <div
+                      className={`rounded-xl border border-dashed border-black/10 px-4 py-10 text-center text-sm text-black/55 dark:border-white/10 dark:text-white/55 md:col-span-2 ${embedded ? "lg:col-span-1 xl:col-span-2 2xl:col-span-3" : ""}`}
+                    >
+                      No categories match this search.
+                    </div>
+                  )}
+                </div>
+              </PendingResults>
+            </>
+          )}
+        </>,
+      )}
 
       {editingId &&
         (() => {
@@ -1051,12 +1057,7 @@ export function CategoriesModal({
             <Modal
               open
               setIsOpen={(nextOpen) => {
-                if (!nextOpen && !saving) {
-                  setEditDetailsOpen(false);
-                  setSupportingDetailsChanged(false);
-                  setEditingId(null);
-                  if (editCategoryId) setOpen(false);
-                }
+                if (!nextOpen) closeEditor();
               }}
               title={`Edit ${category.name}`}
               size={editDetailsOpen ? "2xl" : "lg"}
@@ -1070,11 +1071,7 @@ export function CategoriesModal({
                   confirmForm={`edit-category-form-${category.id}`}
                   confirmLabel="Save changes"
                   confirmTooltip="Make a change before saving."
-                  onCancel={() => {
-                    setSupportingDetailsChanged(false);
-                    setEditingId(null);
-                    if (editCategoryId) setOpen(false);
-                  }}
+                  onCancel={closeEditor}
                   pending={saving}
                   pendingLabel="Saving..."
                 />

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CategoriesModal } from "./CategoriesModal";
+import { categoryController } from "./category-workspace";
 import { WorkspacePageShell } from "@/components/global";
 import { ProjectsModal } from "@/components/projects";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
@@ -31,12 +32,10 @@ export function CategoriesPageClient({
         contentClassName="p-3 sm:p-6 lg:p-6 xl:p-8"
       >
         <CategoriesModal
-          modal={{ open: true, setOpen: () => undefined }}
-          workspace={{ data, setData, demoMode }}
+          controller={categoryController(data, setData, demoMode)}
           options={{
             embedded: true,
-            readOnly:
-              Boolean(data.accessPreview) || !data.canManageCategories,
+            readOnly: Boolean(data.accessPreview) || !data.canManageCategories,
           }}
           events={{ onCreate: () => setCreateOpen(true) }}
         />
@@ -44,7 +43,7 @@ export function CategoriesPageClient({
       {createOpen && !data.accessPreview && data.canManageCategories && (
         <CategoriesModal
           modal={{ open: createOpen, setOpen: setCreateOpen }}
-          workspace={{ data, setData, demoMode }}
+          controller={categoryController(data, setData, demoMode)}
           options={{ createOnly: true }}
         />
       )}

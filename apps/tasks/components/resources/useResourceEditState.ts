@@ -10,7 +10,10 @@ export type EditableResource = {
   links: ResourceLink[];
 };
 
-export function useResourceEditState(initial?: EditableResource | null, initialOwnerIds: string[] = []) {
+export function useResourceEditState(
+  initial?: EditableResource | null,
+  initialOwnerIds: string[] = [],
+) {
   const [resourceId, setResourceId] = useState<string | null>(initial?.id ?? null);
   const [name, setName] = useState(initial?.name ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
@@ -30,14 +33,17 @@ export function useResourceEditState(initial?: EditableResource | null, initialO
 
   function close() {
     if (saving) return false;
+    complete();
+    return true;
+  }
+
+  function complete() {
     setDetailsOpen(false);
     setResourceId(null);
-    return true;
   }
 
   return {
     resourceId,
-    setResourceId,
     draft: { name, description, links, ownerIds },
     changes: { setName, setDescription, setLinks, setOwnerIds },
     detailsOpen,
@@ -46,5 +52,6 @@ export function useResourceEditState(initial?: EditableResource | null, initialO
     setSaving,
     begin,
     close,
+    complete,
   };
 }

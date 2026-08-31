@@ -23,6 +23,7 @@ import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { useAccessManagement } from "@/hooks/useAccessManagement";
 import { AdminPageShell } from "@/components/admin";
 import { CategoriesModal } from "@/components/categories";
+import { categoryController } from "@/components/categories/category-workspace";
 import { ProjectsModal } from "@/components/projects";
 import { AccessGroupKindBadge } from "./AccessGroupKindBadge";
 import { AccessGroupMembersPanel } from "./AccessGroupMembersPanel";
@@ -293,7 +294,7 @@ export function AccessGroupPageClient({
       {categoryCreateOpen && (
         <CategoriesModal
           modal={{ open: true, setOpen: setCategoryCreateOpen }}
-          workspace={{ data, setData, demoMode: false }}
+          controller={categoryController(data, setData, false)}
           options={{ createOnly: true }}
         />
       )}

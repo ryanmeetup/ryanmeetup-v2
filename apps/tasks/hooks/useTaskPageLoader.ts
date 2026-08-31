@@ -9,6 +9,7 @@ import {
   taskQuerySignature as buildTaskQuerySignature,
   type TaskQueryFilters,
 } from "@/lib/tasks/task-query";
+import { LatestRequestTracker } from "@/lib/latest-request";
 import { errorMessage } from "@/lib/presentation";
 
 type TaskPageResponse = {
@@ -56,9 +57,11 @@ export function useTaskPageLoader({
 }) {
   const [loading, setLoading] = useState(false);
   const loadedTaskQuery = useRef("");
+  const requests = useRef(new LatestRequestTracker());
 
   async function loadTaskPage(replace = false) {
-    if (demoMode || loading) return;
+    if (demoMode) return;
+    const request = requests.current.start();
     setLoading(true);
     try {
       const params = buildTaskQueryParams({
@@ -71,8 +74,11 @@ export function useTaskPageLoader({
         view,
         visibility,
       });
-      const response = await fetch(`/api/tasks?${params}`);
+      const response = await fetch(`/api/tasks?${params}`, {
+        signal: request.controller.signal,
+      });
       const result = (await response.json()) as TaskPageResponse;
+      if (!requests.current.isLatest(request)) return;
       if (!response.ok || !result.tasks || !result.page)
         throw new Error(result.error ?? "Tasks could not be loaded.");
       setData((current) => {
@@ -113,9 +119,10 @@ export function useTaskPageLoader({
         syncPageSize(result.page.pageSize);
       }
     } catch (error) {
+      if (!requests.current.isLatest(request)) return;
       toast.error(errorMessage(error, "Tasks could not be loaded."));
     } finally {
-      setLoading(false);
+      if (requests.current.finish(request)) setLoading(false);
     }
   }
 
@@ -140,7 +147,12 @@ export function useTaskPageLoader({
       return;
     }
     loadedTaskQuery.current = taskQuerySignature;
+    const requestTracker = requests.current;
     void loadTaskPage(true);
+    const request = requestTracker.getActive();
+    return () => {
+      if (request) requestTracker.abort(request);
+    };
     // Query values are normalized above; fetching from this signature keeps
     // URL pagination and the authoritative server result in sync.
     // eslint-disable-next-line react-hooks/exhaustive-deps

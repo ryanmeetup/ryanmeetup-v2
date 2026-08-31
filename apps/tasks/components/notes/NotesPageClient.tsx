@@ -8,7 +8,7 @@ import {
   ConfirmationDialog,
   DropdownSelect,
   FilterChip,
-  Modal,
+  ManagementSurface,
   Textarea,
   toast,
 } from "@ryanmeetup/ui";
@@ -275,9 +275,7 @@ export function NotesPageClient({
         setSidebarOpen={setSidebarOpen}
         contentClassName="p-3 sm:p-6 lg:p-6 xl:p-8"
       >
-        <Modal
-          open
-          setIsOpen={() => undefined}
+        <ManagementSurface
           title={
             <>
               Notes <CountBadge size="lg">{activeNotes.length}</CountBadge>
@@ -297,8 +295,6 @@ export function NotesPageClient({
               {showArchived ? "View active" : "View archive"}
             </Button>
           }
-          size="xl"
-          embedded
         >
           {!previewing && (
             <section className="rounded-xl border border-black/15 bg-black/[0.035] p-4 shadow-sm shadow-black/5 dark:border-white/10 dark:bg-white/[0.025] dark:shadow-none sm:p-5">
@@ -485,7 +481,7 @@ export function NotesPageClient({
               </div>
             )}
           </section>
-        </Modal>
+        </ManagementSurface>
       </WorkspacePageShell>
 
       {openNote && (

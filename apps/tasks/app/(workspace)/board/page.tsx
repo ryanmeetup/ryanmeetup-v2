@@ -6,7 +6,11 @@ import {
 } from "@/lib/access/access-preview";
 import { resolveAccessPreview } from "@/lib/server/access-preview";
 import { demoData } from "@/lib/workspace/demo-data";
-import { requireQueryData, WORKSPACE_COLUMNS } from "@/lib/server/workspace-loader";
+import {
+  requireQueryData,
+  WORKSPACE_COLUMNS,
+} from "@/lib/server/workspace-loader";
+import { loadResourceAttachmentCounts } from "@/lib/server/resource-attachment-persistence";
 import {
   isWorkspaceDemo,
   loadWorkspacePage,
@@ -99,6 +103,7 @@ export default async function BoardPage({
     taskAssignees: requireQueryData("task assignees", assigneeResult),
     taskCategories: requireQueryData("task categories", categoryResult),
     taskLabels: requireQueryData("task labels", labelResult),
+    resourceAttachmentCounts: await loadResourceAttachmentCounts(supabase),
   };
   if (requestedGroupPreview || requestedUserPreview) {
     const isOwner = requireQueryData(

@@ -3,8 +3,10 @@ import {
   isDigestSectionKey,
   isSupportedTimeZone,
 } from "@/lib/digest/digest-settings";
+import { objectWithKeys } from "./shared";
 
-const integerIn = ({ min, max }: { min: number; max: number }) =>
+const integerIn =
+  ({ min, max }: { min: number; max: number }) =>
   (raw: unknown) =>
     Number.isInteger(raw) && (raw as number) >= min && (raw as number) <= max
       ? (raw as number)
@@ -52,9 +54,8 @@ export function digestSettingsSchema(value: unknown) {
     maxRecipients: integerIn(DIGEST_LIMITS.maxRecipients),
   } as const;
 
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const body = value as Record<string, unknown>;
-  if (!Object.keys(body).every((key) => key in fields)) return null;
+  const body = objectWithKeys(value, Object.keys(fields));
+  if (!body) return null;
 
   const parsed: Record<string, unknown> = {};
   for (const [key, validate] of Object.entries(fields)) {

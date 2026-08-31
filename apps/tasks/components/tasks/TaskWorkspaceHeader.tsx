@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Avatar, Button, Heading, Tooltip } from "@ryanmeetup/ui";
+import { Avatar, Button, Heading, IconButton, Tooltip } from "@ryanmeetup/ui";
 import {
   FiChevronDown,
   FiEdit2,
   FiFolder,
   FiGrid,
   FiList,
+  FiStar,
   FiTag,
   FiUsers,
 } from "react-icons/fi";
@@ -16,6 +17,7 @@ import type { Category, Project } from "@/lib/resources/resource-types";
 import type { Profile } from "@/lib/workspace/workspace-types";
 import {
   ResourceAttachmentsPreview,
+  ResourceChipsSkeleton,
   ResourceLinks,
   useResourceAttachments,
 } from "@/components/resources";
@@ -26,7 +28,17 @@ export type TaskWorkspaceHeaderScope = {
   isMyTasks: boolean;
   myTasksName: string;
   previewing: boolean;
+  projectFavorite: boolean;
+  projectFavoritePending: boolean;
   projectOwners: Profile[];
+  /**
+   * How many attachments the selected project and category are known to have,
+   * from the counts loaded with the page. Zero suppresses the loading
+   * placeholder entirely; undefined means the count is unknown, so the
+   * placeholder shows rather than risking a silent pop-in.
+   */
+  projectAttachmentCount: number | undefined;
+  categoryAttachmentCount: number | undefined;
   scopeDescription: string | null | undefined;
   selectedCategory: Category | null | undefined;
   selectedProject: Project | null | undefined;
@@ -38,6 +50,7 @@ export type TaskWorkspaceHeaderScope = {
 
 export type TaskWorkspaceHeaderControls = {
   onEditProject: () => void;
+  onToggleProjectFavorite: () => void;
   onEditCategory: () => void;
   onSetAssignee: (value: string) => void;
   onSetView: (value: "board" | "list") => void;
@@ -68,7 +81,11 @@ export function TaskWorkspaceHeader({
     isMyTasks,
     myTasksName,
     previewing,
+    projectFavorite,
+    projectFavoritePending,
     projectOwners,
+    projectAttachmentCount,
+    categoryAttachmentCount,
     scopeDescription,
     selectedCategory,
     selectedProject,
@@ -77,7 +94,18 @@ export function TaskWorkspaceHeader({
     viewTitle,
     viewingAsGroup,
   } = scope;
-  const { onEditProject, onEditCategory, onSetAssignee, onSetView } = controls;
+  const {
+    onEditProject,
+    onEditCategory,
+    onSetAssignee,
+    onSetView,
+    onToggleProjectFavorite,
+  } = controls;
+  // Favorites belong to the viewer's own profile, so an access preview - which
+  // borrows someone else's view - has none to show.
+  const showFavorite = Boolean(
+    selectedProject && !previewing && !selectedProject.archived_at,
+  );
   const projectAttachments = useResourceAttachments({
     kind: "project",
     resourceId: selectedProject?.id,
@@ -90,6 +118,13 @@ export function TaskWorkspaceHeader({
     demoMode,
     currentUserId: "",
   });
+  // Only reserve space for attachments that are actually coming. A resource
+  // counted at zero skips the placeholder, so an empty project no longer
+  // flashes an Attachments heading that removes itself a moment later.
+  const projectAttachmentsPending =
+    projectAttachments.loading && projectAttachmentCount !== 0;
+  const categoryAttachmentsPending =
+    categoryAttachments.loading && categoryAttachmentCount !== 0;
   return (
     <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
       <div>
@@ -107,6 +142,26 @@ export function TaskWorkspaceHeader({
           <CountBadge size="lg" label="task">
             {taskCount}
           </CountBadge>
+          {showFavorite && (
+            <IconButton
+              label={`${projectFavorite ? "Remove" : "Add"} \u201c${selectedProject?.name}\u201d ${projectFavorite ? "from" : "to"} favorites`}
+              variant="plain"
+              disabled={projectFavoritePending}
+              onClick={onToggleProjectFavorite}
+              className={`align-middle ${
+                projectFavorite
+                  ? "!text-amber-500 dark:!text-amber-300"
+                  : "!text-black/25 hover:!text-amber-500 dark:!text-white/25 dark:hover:!text-amber-300"
+              }`}
+            >
+              {/* Sized explicitly: the icon would otherwise inherit the
+                  heading's font size and render at title scale. */}
+              <FiStar
+                size={18}
+                fill={projectFavorite ? "currentColor" : "none"}
+              />
+            </IconButton>
+          )}
         </Heading>
         {scopeDescription && (
           <p className="mt-2 text-sm text-black/70 dark:text-white/70 sm:text-base">
@@ -178,16 +233,24 @@ export function TaskWorkspaceHeader({
                   <ResourceLinks links={selectedProject.links} />
                 </div>
               )}
-              {(projectAttachments.notes.length > 0 ||
+              {(projectAttachmentsPending ||
+                projectAttachments.notes.length > 0 ||
                 projectAttachments.files.length > 0) && (
                 <div className="min-w-0">
                   <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-black/45 dark:text-white/45">
                     Attachments
                   </p>
-                  <ResourceAttachmentsPreview
-                    notes={projectAttachments.notes}
-                    files={projectAttachments.files}
-                  />
+                  {projectAttachmentsPending ? (
+                    <ResourceChipsSkeleton
+                      count={projectAttachmentCount}
+                      label="Loading project attachments"
+                    />
+                  ) : (
+                    <ResourceAttachmentsPreview
+                      notes={projectAttachments.notes}
+                      files={projectAttachments.files}
+                    />
+                  )}
                 </div>
               )}
             </div>
@@ -195,6 +258,7 @@ export function TaskWorkspaceHeader({
         )}
         {selectedCategory &&
           ((selectedCategory.links ?? []).length > 0 ||
+            categoryAttachmentsPending ||
             categoryAttachments.notes.length > 0 ||
             categoryAttachments.files.length > 0) && (
             <details
@@ -222,16 +286,24 @@ export function TaskWorkspaceHeader({
                     <ResourceLinks links={selectedCategory.links ?? []} />
                   </div>
                 )}
-                {(categoryAttachments.notes.length > 0 ||
+                {(categoryAttachmentsPending ||
+                  categoryAttachments.notes.length > 0 ||
                   categoryAttachments.files.length > 0) && (
                   <div className="min-w-0">
                     <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-black/45 dark:text-white/45">
                       Attachments
                     </p>
-                    <ResourceAttachmentsPreview
-                      notes={categoryAttachments.notes}
-                      files={categoryAttachments.files}
-                    />
+                    {categoryAttachmentsPending ? (
+                      <ResourceChipsSkeleton
+                        count={categoryAttachmentCount}
+                        label="Loading category attachments"
+                      />
+                    ) : (
+                      <ResourceAttachmentsPreview
+                        notes={categoryAttachments.notes}
+                        files={categoryAttachments.files}
+                      />
+                    )}
                   </div>
                 )}
               </div>

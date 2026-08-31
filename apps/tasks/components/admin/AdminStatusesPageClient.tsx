@@ -31,7 +31,44 @@ export function AdminStatusesPageClient({
         title="Statuses"
         description="The shared task columns, their order, and which ones complete work."
       />
-      <StatusSettings data={data} setData={setData} demoMode={demoMode} />
+      <StatusSettings
+        statuses={data.statuses}
+        demoMode={demoMode}
+        onStatusesChange={(update) =>
+          setData((current) => ({
+            ...current,
+            statuses: update(current.statuses),
+          }))
+        }
+        onStatusCompletionChange={(id, isCompleted) => {
+          const now = new Date().toISOString();
+          const archiveDelayMs = 14 * 24 * 60 * 60 * 1000;
+          setData((current) => ({
+            ...current,
+            statuses: current.statuses.map((status) =>
+              status.id === id
+                ? { ...status, is_completed: isCompleted }
+                : status,
+            ),
+            tasks: current.tasks.map((task) => {
+              if (task.status_id !== id) return task;
+              return {
+                ...task,
+                ...(isCompleted
+                  ? {
+                      completed_at: task.completed_at ?? now,
+                      archived_at:
+                        task.archived_at ??
+                        new Date(
+                          new Date(now).getTime() + archiveDelayMs,
+                        ).toISOString(),
+                    }
+                  : { completed_at: null, archived_at: null }),
+              };
+            }),
+          }));
+        }}
+      />
     </AdminPageShell>
   );
 }
