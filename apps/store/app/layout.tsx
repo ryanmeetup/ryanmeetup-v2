@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/react";
-import { SiteFooter } from "@ryanmeetup/ui";
+import { RyanMeetupFooter } from "@ryanmeetup/ui";
 import { ThemeProvider } from "next-themes";
 import { CartProvider } from "@/components/cart-provider";
 import { Header } from "@/components/header";
@@ -35,25 +35,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             )}
             <Header />
             {children}
-            <SiteFooter
-              title="RYAN"
-              subtitle="General Store"
-              homeHref="/"
+            <RyanMeetupFooter
+              homeHref="https://ryanmeetup.com"
               className="store-container"
-              sections={[
-                { title: "Shop", links: [
-                  { href: "/collections/all", label: "All goods" },
-                  { href: "/collections/apparel", label: "Apparel" },
-                  { href: "/collections/accessories", label: "Accessories" },
-                ] },
-                { title: "Ryan Meetup", links: [
-                  { href: "https://ryanmeetup.com", label: "Main site" },
-                  { href: "/contact", label: "Store support" },
-                  { href: "https://ryanmeetup.com/contact", label: "General contact" },
-                  { href: "https://ryanmeetup.com/faqs", label: "FAQs" },
-                ] },
-              ]}
-              credit={{ href: "https://ryanmeetup.com", label: "Ryan Meetup", prefix: "Official goods by ", suffix: "." }}
             />
             <Analytics />
           </CartProvider>

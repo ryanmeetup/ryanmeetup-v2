@@ -5,14 +5,14 @@ import { useState, useEffect } from "react";
 // Components
 import { Banner, Header } from "@/components/navigation";
 import { FloatingCta } from "@/components/global";
-import { SiteFooter } from "@ryanmeetup/ui";
+import { RyanMeetupFooter } from "@ryanmeetup/ui";
 import { FiSun } from "react-icons/fi";
 import {
   FaCalendarAlt as Calendar,
   FaMapMarkerAlt as MapPin,
 } from "react-icons/fa";
 import { useTheme } from "next-themes";
-import { layoutPaddingX, socials } from "@/lib/constants";
+import { layoutPaddingX } from "@/lib/constants";
 
 // Types
 import type { ReactNode } from "react";
@@ -110,39 +110,7 @@ const Layout = (props: LayoutProps) => {
         icon={<FiSun className="h-7 w-7" aria-hidden />}
       />
 
-      <SiteFooter
-        title="RYAN MEETUP"
-        subtitle="NO BRYANS ALLOWED"
-        className={layoutPaddingX}
-        sections={[
-          {
-            title: "Follow us",
-            links: socials.map((social) => ({
-              href: social.href,
-              label: social.text,
-            })),
-          },
-          {
-            title: "Built with",
-            columns: 2,
-            links: [
-              { href: "https://vercel.com", label: "Vercel" },
-              { href: "https://nextjs.org/", label: "Next.js" },
-              { href: "https://react.dev/", label: "React" },
-              { href: "https://tailwindcss.com/", label: "Tailwind CSS" },
-              { href: "https://headlessui.com/", label: "Headless UI" },
-              { href: "https://www.contentful.com/", label: "Contentful" },
-              { href: "https://www.mapbox.com/", label: "Mapbox" },
-            ],
-          },
-        ]}
-        socialLinks={socials.map((social) => ({
-          href: social.href,
-          icon: social.icon,
-          label: social.text,
-        }))}
-        credit={{ href: "https://ryanle.dev/", label: "Ryan Le" }}
-      />
+      <RyanMeetupFooter className={layoutPaddingX} />
     </main>
   );
 };

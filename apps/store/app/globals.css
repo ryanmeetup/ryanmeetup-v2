@@ -26,6 +26,8 @@ body {
 .dark body {
   --background: #000000;
   --foreground: #ffffff;
+  background-color: #000000;
+  background-image: linear-gradient(to bottom, #171717, #000000);
 }
 
 .light body {
