@@ -54,7 +54,6 @@ export function AccessGroupPageClient({
   const access = useAccessManagement({
     initialGroups,
     initialMembers,
-    initialGrants: [],
   });
   const { members } = access;
   const [name, setName] = useState(group.name);

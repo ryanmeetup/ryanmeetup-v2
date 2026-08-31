@@ -50,7 +50,6 @@ import { InviteTeammateModal, RemoveTeammateDialog } from "./TeamDialogs";
 import { ProfileAccessModal } from "./ProfileAccessModal";
 import { CreateAccessGroupModal } from "./CreateAccessGroupModal";
 import { EditAccessGroupModal } from "./EditAccessGroupModal";
-import { ContentVisibilityPanel } from "./ContentVisibilityPanel";
 import {
   TeamAccessGroups,
   TeamAccountStatus,
@@ -59,7 +58,6 @@ import {
 import { AccessGroupGrid } from "./AccessGroupGrid";
 import type {
   AccessGroup,
-  GroupGrant,
   GroupMember,
   UserAccessMetadata,
 } from "@/lib/access/access-types";
@@ -81,8 +79,6 @@ export function AccessPageClient({
   initialProfiles,
   initialGroups,
   initialMembers,
-  initialGroupGrants,
-  initialCategoryGrants,
   userMetadata,
 }: {
   currentUserId: string;
@@ -90,8 +86,6 @@ export function AccessPageClient({
   initialProfiles: Profile[];
   initialGroups: AccessGroup[];
   initialMembers: GroupMember[];
-  initialGroupGrants: GroupGrant[];
-  initialCategoryGrants: { category_id: string; group_id: string }[];
   userMetadata: UserAccessMetadata[];
 }) {
   const [data, setData] = useState(initialData);
@@ -109,9 +103,8 @@ export function AccessPageClient({
   const access = useAccessManagement({
     initialGroups,
     initialMembers,
-    initialGrants: initialGroupGrants,
   });
-  const { groups, members, grants: groupGrants, setMembers } = access;
+  const { groups, members, setMembers } = access;
   const [teamMetadata, setTeamMetadata] = useState(userMetadata);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -403,15 +396,7 @@ export function AccessPageClient({
               {groups.length}
             </CountBadge>
           }
-          description="Manage workspace membership, access groups, and content visibility."
-        />
-
-        <ContentVisibilityPanel
-          projects={data.projects}
-          categories={data.categories}
-          groups={groups}
-          projectGrants={groupGrants}
-          categoryGrants={initialCategoryGrants}
+          description="Manage workspace membership, organizational tiers, and teams."
         />
 
         <section aria-labelledby="groups-heading" className="space-y-4">

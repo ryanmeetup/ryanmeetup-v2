@@ -22,25 +22,16 @@ export default async function AccessPage() {
   const [
     groupsResult,
     membersResult,
-    grantsResult,
-    categoryGrantsResult,
     tasksResult,
     assigneesResult,
   ] = await Promise.all([
     supabase.from("access_groups").select("*").order("name"),
     supabase.from("access_group_members").select("*"),
-    supabase.from("project_group_grants").select("*"),
-    supabase.from("category_group_grants").select("category_id,group_id"),
     supabase.from("tasks").select("id, created_by, reported_by, completed_at"),
     supabase.from("task_assignees").select("task_id, profile_id"),
   ]);
   const groups = requireQueryData("access groups", groupsResult);
   const members = requireQueryData("access group members", membersResult);
-  const groupGrants = requireQueryData("project group grants", grantsResult);
-  const categoryGrants = requireQueryData(
-    "category group grants",
-    categoryGrantsResult,
-  );
   const tasks = requireQueryData("task metadata", tasksResult);
   const taskAssignees = requireQueryData("task assignments", assigneesResult);
 
@@ -85,8 +76,6 @@ export default async function AccessPage() {
       initialProfiles={workspaceData.profiles}
       initialGroups={groups}
       initialMembers={members}
-      initialGroupGrants={groupGrants}
-      initialCategoryGrants={categoryGrants}
       userMetadata={userMetadata}
     />
   );

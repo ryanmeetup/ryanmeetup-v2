@@ -2,24 +2,17 @@
 
 import { useState } from "react";
 import { accessMutation } from "@/lib/access/access-mutations";
-import type {
-  AccessGroup,
-  GroupGrant,
-  GroupMember,
-} from "@/lib/access/access-types";
+import type { AccessGroup, GroupMember } from "@/lib/access/access-types";
 
 export function useAccessManagement({
   initialGroups,
   initialMembers,
-  initialGrants,
 }: {
   initialGroups: AccessGroup[];
   initialMembers: GroupMember[];
-  initialGrants: GroupGrant[];
 }) {
   const [groups, setGroups] = useState(initialGroups);
   const [members, setMembers] = useState(initialMembers);
-  const [grants, setGrants] = useState(initialGrants);
 
   async function createGroup(
     input: Omit<AccessGroup, "id" | "created_by" | "created_at" | "updated_at">,
@@ -69,7 +62,6 @@ export function useAccessManagement({
     setMembers((current) =>
       current.filter((item) => item.group_id !== groupId),
     );
-    setGrants((current) => current.filter((item) => item.group_id !== groupId));
   }
 
   async function setMember(groupId: string, profileId: string, tier = false) {
@@ -104,10 +96,8 @@ export function useAccessManagement({
   return {
     groups,
     members,
-    grants,
     setGroups,
     setMembers,
-    setGrants,
     createGroup,
     updateGroup,
     deleteGroup,

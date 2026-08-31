@@ -92,4 +92,4 @@ The workspace now verifies its required database contract before production buil
 
 ### One clear visibility choice
 
-Project and category create and edit dialogs now use one clear visibility choice. New projects begin with their named owners only, selected groups can collaborate on tasks without becoming project managers, and the Access page manages project and category visibility without opening every group separately.
+Project and category create and edit dialogs now use one clear visibility choice. New projects begin with their named owners only, and selected groups can collaborate on tasks without becoming project managers. Visibility stays with each project or category instead of appearing as a second set of controls on the Access page.
