@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isJsonObject, isUuid } from "@/lib/api-schema/shared";
 import { databaseFailure } from "@/lib/server/api-response";
 import {
   apiError,
@@ -7,14 +8,11 @@ import {
   readJson,
 } from "@/lib/server/privileged-api";
 
-const uuid = (value: unknown): value is string =>
-  typeof value === "string" && /^[0-9a-f-]{36}$/i.test(value);
-
 export async function GET(request: Request) {
   const context = await privilegedContext();
   if ("response" in context) return context.response;
   const projectId = new URL(request.url).searchParams.get("projectId");
-  if (projectId !== null && !uuid(projectId))
+  if (projectId !== null && !isUuid(projectId))
     return apiError(400, "INVALID_REQUEST", "A valid project is required.");
   const { data: allowed, error: permissionError } = projectId
     ? await context.supabase.rpc("can_manage_project", {
@@ -64,15 +62,15 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const parsed = await readJson(request, (value) => {
-    if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-    const body = value as Record<string, unknown>;
+    if (!isJsonObject(value)) return null;
+    const body = value;
     if (
-      !uuid(body.projectId) ||
+      !isUuid(body.projectId) ||
       (body.accessMode !== "owners" &&
         body.accessMode !== "open" &&
         body.accessMode !== "restricted") ||
       !Array.isArray(body.groupIds) ||
-      !body.groupIds.every(uuid) ||
+      !body.groupIds.every(isUuid) ||
       (body.accessMode === "restricted" && body.groupIds.length === 0)
     )
       return null;

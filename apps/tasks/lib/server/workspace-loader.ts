@@ -68,6 +68,7 @@ export type WorkspaceCollection = Exclude<
   | "activityPage"
   | "taskReferences"
   | "projectTaskCounts"
+  | "resourceAttachmentCounts"
 >;
 
 export const TASK_PAGE_SIZE = 50;

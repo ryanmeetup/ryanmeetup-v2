@@ -7,8 +7,6 @@ import {
 import { apiError, databaseFailure, notFound } from "@/lib/server/api-response";
 import { authorize } from "@/lib/server/auth";
 import { readJson } from "@/lib/server/request";
-import type { Project, ProjectLink } from "@/lib/resources/resource-types";
-import { recordWorkspaceActivity } from "@/lib/server/privileged-api";
 
 export async function POST(request: Request) {
   const parsed = await readJson(request, projectCreateSchema);
@@ -39,23 +37,6 @@ export async function POST(request: Request) {
       "OPERATION_FAILED",
       "The project could not be created. Try again.",
     );
-  if (
-    !(await recordWorkspaceActivity(authorization.user, {
-      action: "project.create",
-      targetType: "project",
-      targetId: project.id,
-      name: project.name,
-      href: "/projects",
-      projectId: project.id,
-    }))
-  )
-    return NextResponse.json(
-      {
-        error:
-          "The project was created, but its activity could not be recorded.",
-      },
-      { status: 500 },
-    );
   return NextResponse.json({ project });
 }
 
@@ -74,95 +55,16 @@ export async function PATCH(request: Request) {
       error: "Project permissions are temporarily unavailable.",
     });
   if (!canManage) return notFound();
-  const updates: {
-    name?: string;
-    description?: string | null;
-    archived_at?: string | null;
-    links?: ProjectLink[];
-    status?: Project["status"];
-  } = {};
-  if (parsed.data.name !== undefined) updates.name = parsed.data.name;
-  if (parsed.data.description !== undefined)
-    updates.description = parsed.data.description || null;
-  if (parsed.data.links !== undefined) updates.links = parsed.data.links;
-  if (parsed.data.status !== undefined) updates.status = parsed.data.status;
-  if (parsed.data.archived !== undefined)
-    updates.archived_at = parsed.data.archived
-      ? new Date().toISOString()
-      : null;
-  if (Object.keys(updates).length) {
-    const { error } = await supabase
-      .from("projects")
-      .update(updates)
-      .eq("id", parsed.data.id);
-    if (error)
-      return databaseFailure(request, "project.update", error, {
-        error: "The project could not be updated. Try again.",
-        conflictError: "A project with that name already exists.",
-      });
-  }
-  if (parsed.data.ownerIds !== undefined) {
-    const { error: deleteError } = await supabase
-      .from("project_owners")
-      .delete()
-      .eq("project_id", parsed.data.id);
-    if (deleteError)
-      return databaseFailure(request, "project-owners.clear", deleteError, {
-        error: "The project owners could not be updated. Try again.",
-      });
-    if (parsed.data.ownerIds.length) {
-      const { error: insertError } = await supabase
-        .from("project_owners")
-        .insert(
-          parsed.data.ownerIds.map((profile_id) => ({
-            project_id: parsed.data.id,
-            profile_id,
-          })),
-        );
-      if (insertError)
-        return databaseFailure(request, "project-owners.update", insertError, {
-          error: "The project owners could not be updated. Try again.",
-        });
-    }
-  }
-  const projectResult = await supabase
-    .from("projects")
-    .select("id,name")
-    .eq("id", parsed.data.id)
-    .single();
-  if (projectResult.error)
-    return databaseFailure(
-      request,
-      "project.activity-target",
-      projectResult.error,
-      {
-        error:
-          "The project was updated, but its activity could not be recorded.",
-      },
-    );
-  const action =
-    parsed.data.archived === true
-      ? "project.archive"
-      : parsed.data.archived === false
-        ? "project.restore"
-        : "project.update";
-  if (
-    !(await recordWorkspaceActivity(authorization.user, {
-      action,
-      targetType: "project",
-      targetId: parsed.data.id,
-      name: projectResult.data.name,
-      href: "/projects",
-      projectId: parsed.data.id,
-    }))
-  )
-    return NextResponse.json(
-      {
-        error:
-          "The project was updated, but its activity could not be recorded.",
-      },
-      { status: 500 },
-    );
+  const { id, ...values } = parsed.data;
+  const { error } = await supabase.rpc("replace_project_owners_and_update", {
+    requested_project_id: id,
+    requested_values: values,
+  });
+  if (error)
+    return databaseFailure(request, "project.update", error, {
+      error: "The project could not be updated. Try again.",
+      conflictError: "A project with that name already exists.",
+    });
   return NextResponse.json({ ok: true });
 }
 
@@ -209,12 +111,5 @@ export async function DELETE(request: Request) {
     return databaseFailure(request, "project.delete", error, {
       error: "The project could not be deleted. Try again.",
     });
-  await recordWorkspaceActivity(authorization.user, {
-    action: "project.delete",
-    targetType: "project",
-    targetId: parsed.data.id,
-    name: projectResult.data.name,
-    href: "/projects",
-  });
   return NextResponse.json({ ok: true });
 }

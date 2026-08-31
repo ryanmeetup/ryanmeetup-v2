@@ -1,4 +1,5 @@
 import "server-only";
+import { isJsonObject, isUuid } from "@/lib/api-schema/shared";
 
 export type AccessGroupOperation =
   | {
@@ -29,8 +30,6 @@ export type AccessGroupOperation =
       profileId: string;
     };
 
-const uuid = (value: unknown): value is string =>
-  typeof value === "string" && /^[0-9a-f-]{36}$/i.test(value);
 const hexColor = (value: unknown): value is string =>
   typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value);
 const groupShape = (body: Record<string, unknown>) =>
@@ -45,11 +44,11 @@ const groupShape = (body: Record<string, unknown>) =>
 export function accessGroupOperationSchema(
   value: unknown,
 ): AccessGroupOperation | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const body = value as Record<string, unknown>;
+  if (!isJsonObject(value)) return null;
+  const body = value;
   if (
     (body.action === "group.create" || body.action === "group.update") &&
-    (body.action === "group.create" || uuid(body.id)) &&
+    (body.action === "group.create" || isUuid(body.id)) &&
     typeof body.name === "string" &&
     body.name.trim() &&
     body.name.length <= 100 &&
@@ -72,14 +71,14 @@ export function accessGroupOperationSchema(
         : null,
     } as AccessGroupOperation;
   }
-  if (body.action === "group.delete" && uuid(body.id))
+  if (body.action === "group.delete" && isUuid(body.id))
     return { action: body.action, id: body.id };
   if (
     (body.action === "member.set" ||
       body.action === "member.delete" ||
       body.action === "tier.set") &&
-    uuid(body.groupId) &&
-    uuid(body.profileId)
+    isUuid(body.groupId) &&
+    isUuid(body.profileId)
   )
     return {
       action: body.action,

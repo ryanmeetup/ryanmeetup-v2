@@ -7,27 +7,11 @@ import {
 import { databaseFailure } from "@/lib/server/api-response";
 import { authorize } from "@/lib/server/auth";
 import { readJson } from "@/lib/server/request";
-import { recordWorkspaceActivity } from "@/lib/server/privileged-api";
 import { syncWorkspaceEventToGoogle } from "@/lib/server/google-calendar";
 import {
   CALENDAR_EVENT_COLUMNS,
   type CalendarEvent,
 } from "@/lib/calendar/calendar-types";
-
-async function record(
-  user: Parameters<typeof recordWorkspaceActivity>[0],
-  action: string,
-  event: { id: string; title: string; project_id: string | null },
-) {
-  return recordWorkspaceActivity(user, {
-    action,
-    targetType: "calendar_event",
-    targetId: event.id,
-    name: event.title,
-    href: "/calendar",
-    projectId: event.project_id,
-  });
-}
 
 // Publishing is best effort: the workspace row is already saved, so a Google
 // failure is reported as a warning instead of discarding the write.
@@ -45,9 +29,7 @@ async function syncToGoogle(
 }
 
 export async function POST(request: Request) {
-  const parsed = await readJson(request, (value) =>
-    calendarEventSchema(value),
-  );
+  const parsed = await readJson(request, (value) => calendarEventSchema(value));
   if ("response" in parsed) return parsed.response;
   const authorization = await authorize({ onboarded: true });
   if ("response" in authorization) return authorization.response;
@@ -63,11 +45,6 @@ export async function POST(request: Request) {
     return databaseFailure(request, "calendar_event.create", result.error, {
       error: "The calendar item could not be saved.",
     });
-  if (!(await record(authorization.user, "calendar.create", result.data)))
-    return NextResponse.json(
-      { error: "The date was saved, but its activity could not be recorded." },
-      { status: 500 },
-    );
   const warning = parsed.data.syncToGoogle
     ? await syncToGoogle(authorization.supabase, result.data, true)
     : null;
@@ -91,11 +68,6 @@ export async function PATCH(request: Request) {
     return databaseFailure(request, "calendar_event.update", result.error, {
       error: "The calendar item could not be updated.",
     });
-  if (!(await record(authorization.user, "calendar.update", result.data)))
-    return NextResponse.json(
-      { error: "The date was updated, but its activity could not be recorded." },
-      { status: 500 },
-    );
   // An edit reconciles the copy in both directions, so clearing the option
   // removes a date that was published earlier.
   const warning = await syncToGoogle(
@@ -121,11 +93,6 @@ export async function DELETE(request: Request) {
     return databaseFailure(request, "calendar_event.delete", result.error, {
       error: "The calendar item could not be deleted.",
     });
-  if (!(await record(authorization.user, "calendar.delete", result.data)))
-    return NextResponse.json(
-      { error: "The date was deleted, but its activity could not be recorded." },
-      { status: 500 },
-    );
   const warning = await syncToGoogle(
     authorization.supabase,
     result.data,
