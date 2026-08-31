@@ -47,6 +47,10 @@ The Usage page now reports Resend's daily and monthly email allowance, recent se
 
 Route changes now keep the workspace navigation and header in place while only the destination page loads, so moving around the app feels steady even when the next screen needs fresh data.
 
+Changing task filters, searches, sorting, pages, or views while results are loading now always keeps the newest request, so a slower earlier response cannot replace or skip the selection you just made.
+
+Categories, projects, contacts, calendar dates, notes, comments, and resource attachments now save their activity history in the same database transaction, so a failed save no longer leaves half-finished changes behind.
+
 If workspace data cannot load, the app now explains the failure and provides a reference instead of repeatedly sending you to your profile as though onboarding were incomplete.
 
 ### A footer that finishes the page
@@ -60,6 +64,9 @@ The task board now uses solid column surfaces that stay clear over the paper bac
 The notes board now presents each note as a finished card: its title, formatted text, author, and comment count at a glance. Links written inside a note appear as chips you can follow, alongside the task or project the note became.
 
 Opening a note brings up its full text and conversation, and editing happens there too, saved deliberately with Save note instead of quietly while you type.
+
+Contact image uploads now save together with their contact, and replacing,
+removing, or deleting an uploaded image also cleans up the old file.
 
 ### Onboarding that recovers
 
