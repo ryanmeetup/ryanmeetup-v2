@@ -11,6 +11,11 @@ export type TaskActivity = {
     resource_name?: string;
     resource_href?: string;
     project_id?: string;
+    category_id?: string;
+    /** File name of the resource attachment an event was written for. */
+    attachment_name?: string;
+    /** Free text naming what changed, for events with no field-level diff. */
+    detail?: string;
     /** Field-level diff recorded alongside a task save. */
     changes?: TaskChange[];
     [key: string]: unknown;

@@ -130,6 +130,17 @@ export function summarizeTaskChanges(
   );
 }
 
+/**
+ * The diff worth attaching to an "updated the task" row.
+ *
+ * A save that also changed the status writes a separate "moved task" row,
+ * which renders the move as both status pills. Repeating it in the field list
+ * would show one change twice.
+ */
+export function taskUpdateChanges(changes: TaskChange[]) {
+  return changes.filter((change) => change.field !== "status");
+}
+
 export function parseTaskChanges(value: unknown): TaskChange[] {
   if (!Array.isArray(value)) return [];
   const strings = (input: unknown) =>

@@ -44,17 +44,22 @@ export function savedTaskSnapshot(task: Task, categoryIds: string[]) {
 /**
  * Reads back the rows a save or a move wrote on the caller's behalf.
  *
- * Neither comes out of the RPC's own payload: the audit row is written by the
- * `log_task_change` trigger, and a required status reason is stored as the
+ * Neither comes out of the RPC's own payload: the audit rows are written by
+ * the `log_task_change` trigger, and a required status reason is stored as the
  * task's next comment inside the same transaction. The panels read both out of
  * the workspace the client holds, so a response that omits them leaves the
  * activity list and the conversation a page refresh behind the change.
+ *
+ * A save that moves a task *and* edits it writes two rows, which is why this
+ * reads two: handing back only the newest would leave the edit invisible until
+ * a refresh. Both rows carry the transaction's timestamp, so an identical
+ * `created_at` is what identifies the pair -- no clock of ours is involved.
  */
 export async function savedTaskRecords(
   supabase: SupabaseClient,
   taskId: string,
   statusReason: string | null,
-): Promise<{ activity: TaskActivity | null; comment: TaskComment | null }> {
+): Promise<{ activity: TaskActivity[]; comment: TaskComment | null }> {
   const [activity, comment] = await Promise.all([
     supabase
       .from("task_activity")
@@ -62,8 +67,7 @@ export async function savedTaskRecords(
       .eq("task_id", taskId)
       .order("created_at", { ascending: false })
       .order("id", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+      .limit(2),
     statusReason
       ? supabase
           .from("task_comments")
@@ -76,8 +80,12 @@ export async function savedTaskRecords(
       : Promise.resolve({ data: null }),
   ]);
   const reason = comment.data as TaskComment | null;
+  const recent = (activity.data ?? []) as unknown as TaskActivity[];
+  const written = recent.filter(
+    (row) => row.created_at === recent[0]?.created_at,
+  );
   return {
-    activity: (activity.data as TaskActivity | null) ?? null,
+    activity: written,
     // A reason is only stored when the status actually changed, and editing a
     // task already in that status keeps its original. Matching the body is
     // what stops an older comment being handed back as one this save wrote.

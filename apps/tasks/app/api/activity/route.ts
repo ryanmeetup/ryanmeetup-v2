@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { authorize } from "@/lib/server/auth";
-import { databaseFailure } from "@/lib/server/api-response";
+import { apiError, databaseFailure } from "@/lib/server/api-response";
 import { derivePagination, parsePagination } from "@/lib/pagination";
 import { WORKSPACE_COLUMNS } from "@/lib/server/workspace-loader";
 import type { Task } from "@/lib/tasks/task-types";
 import type { TaskActivity } from "@/lib/activity/activity-types";
+import { activityEventKind } from "@/lib/activity/activity-events";
 import {
   ACCESS_PREVIEW_PARAM,
   USER_ACCESS_PREVIEW_PARAM,
@@ -14,6 +15,27 @@ import { getAdminClient } from "@/lib/server/admin-client";
 
 const DAY = 24 * 60 * 60 * 1000;
 
+/** The oldest timestamp a `when` filter admits, or null for "any time". */
+function activityCutoff(when: string | null) {
+  const windowMs =
+    when === "day"
+      ? DAY
+      : when === "week"
+        ? 7 * DAY
+        : when === "month"
+          ? 30 * DAY
+          : null;
+  return windowMs ? new Date(Date.now() - windowMs) : null;
+}
+
+/**
+ * Narrows the task-activity query in SQL.
+ *
+ * Only the filters that map cleanly onto a column belong here. Event kinds
+ * deliberately do not: a kind such as "note" or "comment" spans both sources,
+ * so translating one half of an include list into SQL would drop rows the JS
+ * filter downstream would have kept.
+ */
 function applyActivityFilters<
   T extends {
     eq: (column: string, value: string) => T;
@@ -70,6 +92,25 @@ function applyActivityFilters<
       `(${excludedProjectIds.join(",")})`,
     );
 
+  query = applyActorFilters(query, params);
+
+  const cutoff = activityCutoff(params.get("when"));
+  if (cutoff) query = query.gte("created_at", cutoff.toISOString());
+  return query;
+}
+
+/** The actor half of the filter set, shared by both activity sources. */
+function applyActorFilters<
+  T extends {
+    in: (column: string, values: string[]) => T;
+    not: (column: string, operator: string, value: string | null) => T;
+    or: (filters: string, options?: { referencedTable?: string }) => T;
+  },
+>(query: T, params: URLSearchParams) {
+  const values = (name: string, legacyName?: string) =>
+    (params.get(name) ?? (legacyName ? params.get(legacyName) : null) ?? "")
+      .split(",")
+      .filter(Boolean);
   const people = values("people", "person").filter((value) => value !== "all");
   const excludedPeople = values("excludePeople");
   const personIds = people.filter((value) => value !== "system");
@@ -86,52 +127,6 @@ function applyActivityFilters<
   );
   if (excludedPersonIds.length)
     query = query.not("actor_id", "in", `(${excludedPersonIds.join(",")})`);
-
-  const eventFilter = (event: string) =>
-    event === "created"
-      ? "action.eq.created the task"
-      : event === "updated"
-        ? "action.eq.updated the task"
-        : event === "moved"
-          ? "action.eq.moved task"
-          : event === "checklist"
-            ? "action.ilike.%checklist%"
-            : event === "attachment"
-              ? "action.ilike.%attach%"
-              : null;
-  const events = values("events", "event").filter((value) => value !== "all");
-  const includedEventFilters = events.flatMap((event) => {
-    const filter = eventFilter(event);
-    return filter ? [filter] : [];
-  });
-  if (includedEventFilters.length)
-    query = query.or(includedEventFilters.join(","));
-  for (const event of values("excludeEvents")) {
-    if (event === "created")
-      query = query.not("action", "eq", "created the task");
-    else if (event === "updated")
-      query = query.not("action", "eq", "updated the task");
-    else if (event === "moved") query = query.not("action", "eq", "moved task");
-    else if (event === "checklist")
-      query = query.not("action", "ilike", "%checklist%");
-    else if (event === "attachment")
-      query = query.not("action", "ilike", "%attach%");
-  }
-
-  const when = params.get("when");
-  const windowMs =
-    when === "day"
-      ? DAY
-      : when === "week"
-        ? 7 * DAY
-        : when === "month"
-          ? 30 * DAY
-          : null;
-  if (windowMs)
-    query = query.gte(
-      "created_at",
-      new Date(Date.now() - windowMs).toISOString(),
-    );
   return query;
 }
 
@@ -172,22 +167,53 @@ export async function GET(request: Request) {
     }
   }
 
+  // Resource activity lives in a table only the service role may read, so
+  // without a key the feed would quietly render as task activity alone. A
+  // half-empty page that looks complete is worse than an outage: the two Tasks
+  // instances are configured separately, so one can be misconfigured for weeks
+  // while the other is fine.
+  const admin = getAdminClient();
+  if (!admin)
+    return apiError(
+      503,
+      "SERVICE_UNAVAILABLE",
+      "Activity is temporarily unavailable.",
+    );
+
   let itemQuery = authorization.supabase
     .from("task_activity")
     .select(selection);
   itemQuery = applyActivityFilters(
     itemQuery,
-    new URLSearchParams(),
+    params,
     previewProjectIds,
     previewInaccessibleTaskIds,
   );
-  const result = await itemQuery
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: false })
-    .limit(5000);
+  const cutoff = activityCutoff(params.get("when"));
+  let auditQuery = admin
+    .from("permission_audit_events")
+    .select("id,actor_id,action,target_type,target_id,after_state,created_at")
+    .contains("after_state", { activity: true });
+  auditQuery = applyActorFilters(auditQuery, params);
+  if (cutoff) auditQuery = auditQuery.gte("created_at", cutoff.toISOString());
+
+  const [result, auditResult] = await Promise.all([
+    itemQuery
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(5000),
+    auditQuery
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(5000),
+  ]);
   if (result.error)
     return databaseFailure(request, "activity.list", result.error, {
       error: "Activity could not be loaded. Try again.",
+    });
+  if (auditResult.error)
+    return databaseFailure(request, "activity.resources", auditResult.error, {
+      error: "Resource activity could not be loaded. Try again.",
     });
 
   const rows = (result.data ?? []) as unknown as Array<
@@ -197,21 +223,6 @@ export async function GET(request: Request) {
     ...new Map(rows.map((row) => [row.tasks.id, row.tasks])).values(),
   ];
   const taskById = new Map(tasks.map((task) => [task.id, task]));
-  const admin = getAdminClient();
-  const auditResult = admin
-    ? await admin
-        .from("permission_audit_events")
-        .select(
-          "id,actor_id,action,target_type,target_id,after_state,created_at",
-        )
-        .contains("after_state", { activity: true })
-        .order("created_at", { ascending: false })
-        .limit(2000)
-    : { data: [], error: null };
-  if (auditResult.error)
-    return databaseFailure(request, "activity.resources", auditResult.error, {
-      error: "Resource activity could not be loaded. Try again.",
-    });
 
   const [visibleProjectsResult, visibleCategoriesResult, visibleNotesResult] =
     await Promise.all([
@@ -237,29 +248,82 @@ export async function GET(request: Request) {
     (visibleNotesResult.data ?? []).map((item) => item.id),
   );
 
+  /**
+   * Whether the caller may read one resource event.
+   *
+   * Deletions are the awkward case: the row is gone, so "can you still see it"
+   * can only ever answer no, and the event would be invisible to everyone
+   * (including, before this, to everyone but the person who deleted it). A
+   * resource disappearing is a workspace-level fact in the way an edit to it
+   * is not, so the three top-level deletions are shown to the whole team --
+   * and only those, never the `.attachment.delete` events that share the
+   * `project` and `category` target types.
+   */
+  const workspaceDeletions = new Set([
+    "project.delete",
+    "category.delete",
+    "note.delete",
+  ]);
+  const resourceVisible = (
+    event: {
+      action: string;
+      target_type: string;
+      target_id: string | null;
+    },
+    metadata: Record<string, unknown>,
+  ) => {
+    if (workspaceDeletions.has(event.action)) return true;
+    const scoped = (name: string, visible: Set<string>) => {
+      const value = metadata[name];
+      return typeof value !== "string" || visible.has(value);
+    };
+    switch (event.target_type) {
+      case "project":
+        return Boolean(
+          event.target_id && visibleProjectIds.has(event.target_id),
+        );
+      case "category":
+        return Boolean(
+          event.target_id && visibleCategoryIds.has(event.target_id),
+        );
+      case "note":
+        return Boolean(event.target_id && visibleNoteIds.has(event.target_id));
+      // A calendar event is readable per project *and* per category, matching
+      // the `calendar_events_select` policy. The ids are recorded on the event
+      // itself, so this still resolves after the event is deleted.
+      case "calendar_event":
+        return (
+          scoped("project_id", visibleProjectIds) &&
+          scoped("category_id", visibleCategoryIds)
+        );
+      case "task":
+        return scoped("project_id", visibleProjectIds);
+      // Contacts, contact categories, statuses, access groups, teammates and
+      // workspace settings are not access-scoped: every teammate sees them.
+      case "organization":
+      case "contact_category":
+      case "status":
+      case "status_collection":
+      case "access_group":
+      case "profile":
+      case "workspace":
+        return true;
+      default:
+        return false;
+    }
+  };
+
   const taskActivity = rows.map(({ tasks: relatedTask, ...item }) => {
     void relatedTask;
     return item;
   });
   const resourceActivity = (auditResult.data ?? []).flatMap((event) => {
     const metadata = (event.after_state ?? {}) as Record<string, unknown>;
-    const visible =
-      event.target_type === "project"
-        ? Boolean(event.target_id && visibleProjectIds.has(event.target_id))
-        : event.target_type === "category"
-          ? Boolean(event.target_id && visibleCategoryIds.has(event.target_id))
-          : event.target_type === "note"
-            ? Boolean(
-                event.target_id &&
-                (visibleNoteIds.has(event.target_id) ||
-                  event.actor_id === authorization.user.id),
-              )
-            : event.target_type === "task"
-              ? typeof metadata.project_id === "string"
-                ? visibleProjectIds.has(metadata.project_id)
-                : true
-              : event.target_type === "organization";
-    if (!visible) return [];
+    if (!resourceVisible(event, metadata)) return [];
+    const text = (name: string) =>
+      typeof metadata[name] === "string"
+        ? (metadata[name] as string)
+        : undefined;
     return [
       {
         id: event.id,
@@ -269,18 +333,12 @@ export async function GET(request: Request) {
         details: {
           resource_type: event.target_type,
           resource_id: event.target_id ?? undefined,
-          resource_name:
-            typeof metadata.resource_name === "string"
-              ? metadata.resource_name
-              : undefined,
-          resource_href:
-            typeof metadata.resource_href === "string"
-              ? metadata.resource_href
-              : undefined,
-          project_id:
-            typeof metadata.project_id === "string"
-              ? metadata.project_id
-              : undefined,
+          resource_name: text("resource_name"),
+          resource_href: text("resource_href"),
+          project_id: text("project_id"),
+          category_id: text("category_id"),
+          attachment_name: text("attachment_name"),
+          detail: text("detail"),
         },
         created_at: event.created_at,
       } satisfies TaskActivity,
@@ -294,35 +352,14 @@ export async function GET(request: Request) {
   const excludedPeople = values("excludePeople");
   const includedEvents = values("events");
   const excludedEvents = values("excludeEvents");
-  const eventKind = (item: TaskActivity) => {
-    if (item.action.startsWith("note.")) return "note";
-    if (item.action.startsWith("organization.")) return "organization";
-    if (item.action.startsWith("project.")) return "project";
-    if (item.action.startsWith("category.")) return "category";
-    if (item.action === "task.delete") return "deleted";
-    if (item.action === "created the task") return "created";
-    if (item.action === "updated the task") return "updated";
-    if (item.action === "moved task") return "moved";
-    if (item.action.includes("checklist")) return "checklist";
-    if (item.action.includes("attach")) return "attachment";
-    return "other";
-  };
-  const when = params.get("when");
-  const cutoff =
-    when === "day"
-      ? Date.now() - DAY
-      : when === "week"
-        ? Date.now() - 7 * DAY
-        : when === "month"
-          ? Date.now() - 30 * DAY
-          : null;
+  const cutoffTime = cutoff?.getTime() ?? null;
   const allActivity = [...taskActivity, ...resourceActivity]
     .filter((item) => {
       const task = item.task_id ? taskById.get(item.task_id) : undefined;
       const projectId = task?.project_id ?? item.details.project_id ?? null;
       const projectValue = projectId ?? "none";
       const actorValue = item.actor_id ?? "system";
-      const kind = eventKind(item);
+      const kind = activityEventKind(item.action);
       return (
         (!includedProjects.length || includedProjects.includes(projectValue)) &&
         !excludedProjects.includes(projectValue) &&
@@ -330,7 +367,7 @@ export async function GET(request: Request) {
         !excludedPeople.includes(actorValue) &&
         (!includedEvents.length || includedEvents.includes(kind)) &&
         !excludedEvents.includes(kind) &&
-        (!cutoff || new Date(item.created_at).getTime() >= cutoff) &&
+        (!cutoffTime || new Date(item.created_at).getTime() >= cutoffTime) &&
         (!previewProjectIds ||
           !projectId ||
           previewProjectIds.includes(projectId))

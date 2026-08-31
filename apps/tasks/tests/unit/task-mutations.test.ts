@@ -110,16 +110,22 @@ describe("task mutations", () => {
       true,
     );
 
+    // A save that moves the task *and* edits it records both, the way
+    // `log_task_change` does: the move row carries the status change, so the
+    // edit row lists only the fields it does not already say.
     expect(data.activity).toMatchObject([
+      {
+        task_id: task.id,
+        actor_id: "profile-1",
+        action: "moved task",
+        details: { from_status_id: "todo", status_id: "doing" },
+      },
       {
         task_id: task.id,
         actor_id: "profile-1",
         action: "updated the task",
         details: {
-          changes: [
-            { field: "status", from: "todo", to: "doing" },
-            { field: "categories", added: ["ops"], removed: [] },
-          ],
+          changes: [{ field: "categories", added: ["ops"], removed: [] }],
         },
       },
     ]);

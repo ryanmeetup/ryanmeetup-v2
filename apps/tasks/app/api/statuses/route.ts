@@ -10,6 +10,7 @@ import {
   auditPrivilegedAction,
   privilegedContext,
   readJson,
+  recordWorkspaceActivity,
 } from "@/lib/server/privileged-api";
 
 export async function POST(request: Request) {
@@ -53,6 +54,14 @@ export async function POST(request: Request) {
       "AUDIT_FAILED",
       "The status was created, but its audit record could not be saved.",
     );
+  // A status is workspace-wide furniture: adding, renaming, reordering or
+  // deleting one reshapes every board, so the feed has to explain it.
+  await recordWorkspaceActivity(context.admin, context.user, {
+    action: "status.create",
+    targetType: "status",
+    targetId: data.id,
+    metadata: { resource_name: parsed.data.name },
+  });
   return NextResponse.json({ status: data });
 }
 
@@ -88,6 +97,11 @@ export async function PATCH(request: Request) {
         "AUDIT_FAILED",
         "The statuses were reordered, but the audit record could not be saved.",
       );
+    await recordWorkspaceActivity(context.admin, context.user, {
+      action: "status.reorder",
+      targetType: "status_collection",
+      metadata: { resource_name: `${orderedIds.length} statuses` },
+    });
     return NextResponse.json({ statuses: data ?? [] });
   }
 
@@ -128,6 +142,12 @@ export async function PATCH(request: Request) {
       "AUDIT_FAILED",
       "The status was updated, but its audit record could not be saved.",
     );
+  await recordWorkspaceActivity(context.admin, context.user, {
+    action: "status.update",
+    targetType: "status",
+    targetId: parsed.data.id,
+    metadata: { resource_name: data?.name },
+  });
   return NextResponse.json({ status: data });
 }
 
@@ -169,5 +189,14 @@ export async function DELETE(request: Request) {
       "AUDIT_FAILED",
       "The status was deleted, but its audit record could not be saved.",
     );
+  await recordWorkspaceActivity(context.admin, context.user, {
+    action: "status.delete",
+    targetType: "status",
+    targetId: parsed.data.id,
+    metadata: {
+      resource_name:
+        "name" in data && typeof data.name === "string" ? data.name : undefined,
+    },
+  });
   return NextResponse.json({ id: data.id });
 }

@@ -3,6 +3,7 @@ import { mutate } from "@/lib/mutation-client";
 import {
   summarizeTaskChanges,
   taskChangeSnapshot,
+  taskUpdateChanges,
 } from "@/lib/activity/task-change-summary";
 import type {
   Status,
@@ -51,11 +52,13 @@ export type SavedTask = {
   assignees: TaskAssignee[];
   categories: TaskCategory[];
   /**
-   * The rows the save recorded rather than the caller: the audit entry, and
-   * the comment a required status reason was stored as. Demo mode writes its
-   * own so both paths leave the panels in the same state.
+   * The rows the save recorded rather than the caller: the audit entries, and
+   * the comment a required status reason was stored as. A save that changes a
+   * task's status *and* its fields records both a move and an edit, so this is
+   * a list. Demo mode writes its own so both paths leave the panels in the
+   * same state.
    */
-  activity?: TaskActivity | null;
+  activity?: TaskActivity | TaskActivity[] | null;
   comment?: TaskComment | null;
 };
 
@@ -164,16 +167,40 @@ export function createTaskMutationService(context: MutationContext) {
         // Demo mode has no save transaction, so it records its own audit row
         // and reason comment to keep the panels aligned with the
         // server-backed path.
+        const demoActivity = (
+          action: string,
+          details: TaskActivity["details"] = {},
+        ): TaskActivity => ({
+          id: crypto.randomUUID(),
+          task_id: task.id,
+          actor_id: snapshot.currentProfile.id,
+          action,
+          details,
+          created_at: now,
+        });
         return {
           task,
-          activity: {
-            id: crypto.randomUUID(),
-            task_id: task.id,
-            actor_id: snapshot.currentProfile.id,
-            action: editing ? "updated the task" : "created the task",
-            details: changes.length ? { changes } : {},
-            created_at: now,
-          },
+          // Matches what `log_task_change` writes: a status change and a field
+          // edit in the same save are two rows, not one.
+          activity: !editing
+            ? [demoActivity("created the task")]
+            : [
+                ...(editing.status_id !== task.status_id
+                  ? [
+                      demoActivity("moved task", {
+                        from_status_id: editing.status_id,
+                        status_id: task.status_id,
+                      }),
+                    ]
+                  : []),
+                ...(taskUpdateChanges(changes).length
+                  ? [
+                      demoActivity("updated the task", {
+                        changes: taskUpdateChanges(changes),
+                      }),
+                    ]
+                  : []),
+              ],
           comment: statusReason
             ? reasonComment(task.id, statusReason, snapshot.currentProfile.id)
             : null,
@@ -358,7 +385,7 @@ export function createTaskMutationService(context: MutationContext) {
         try {
           const result = await mutate<{
             task: Task;
-            activity: TaskActivity | null;
+            activity: TaskActivity[];
             comment: TaskComment | null;
           }>("/api/tasks", {
             method: "PATCH",

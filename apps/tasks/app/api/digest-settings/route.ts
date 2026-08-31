@@ -6,6 +6,7 @@ import {
   auditPrivilegedAction,
   privilegedContext,
   readJson,
+  recordWorkspaceActivity,
 } from "@/lib/server/privileged-api";
 import { DIGEST_SETTINGS_COLUMNS } from "@/lib/server/digest-settings";
 import { isMissingRelation } from "@/lib/server/supabase-errors";
@@ -81,6 +82,15 @@ export async function PATCH(request: Request) {
       "AUDIT_FAILED",
       "The digest settings were saved, but the audit record could not be written.",
     );
+
+  await recordWorkspaceActivity(context.admin, context.user, {
+    action: "digest.settings.update",
+    targetType: "workspace",
+    metadata: {
+      resource_name: "Digest settings",
+      detail: Object.keys(parsed.data).join(", ") || undefined,
+    },
+  });
 
   return NextResponse.json({ settings: resolveDigestSettings(data) });
 }

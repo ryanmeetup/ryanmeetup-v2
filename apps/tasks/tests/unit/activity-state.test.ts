@@ -48,9 +48,22 @@ describe("recorded workspace rows", () => {
     ]);
   });
 
+  it("keeps both rows a save that moved and edited a task wrote", () => {
+    const data = withRecordedRows(
+      { activity: [activity("moved"), activity("updated")] },
+      workspace({ activity: [activity("activity-1")] }),
+    );
+
+    expect(data.activity.map((item) => item.id)).toEqual([
+      "moved",
+      "updated",
+      "activity-1",
+    ]);
+  });
+
   it("leaves the workspace alone when a write recorded nothing", () => {
     const current = workspace({ activity: [activity("activity-1")] });
-    const data = withRecordedRows({ activity: null, comment: null }, current);
+    const data = withRecordedRows({ activity: [], comment: null }, current);
 
     expect(data.activity).toBe(current.activity);
     expect(data.comments).toBe(current.comments);

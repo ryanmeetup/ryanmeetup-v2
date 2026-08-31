@@ -6,6 +6,7 @@ import {
   auditPrivilegedAction,
   privilegedContext,
   readJson,
+  recordWorkspaceActivity,
 } from "@/lib/server/privileged-api";
 import {
   INSTANCE_SETTINGS_COLUMNS,
@@ -58,6 +59,17 @@ export async function PATCH(request: Request) {
       "AUDIT_FAILED",
       "The settings were saved, but the audit record could not be written.",
     );
+
+  // Branding and instance settings are workspace-wide: the feed is where a
+  // teammate finds out why the product changed shape under them.
+  await recordWorkspaceActivity(context.admin, context.user, {
+    action: "settings.instance.update",
+    targetType: "workspace",
+    metadata: {
+      resource_name: "Workspace settings",
+      detail: Object.keys(parsed.data).join(", ") || undefined,
+    },
+  });
 
   // Both shapes: `settings` is what the app renders, `overrides` is the raw
   // row the settings form diffs against so it can distinguish a stored value

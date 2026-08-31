@@ -28,7 +28,10 @@ import {
   savedTaskRecords,
   savedTaskSnapshot,
 } from "@/lib/server/tasks/task-change-activity";
-import { summarizeTaskChanges } from "@/lib/activity/task-change-summary";
+import {
+  summarizeTaskChanges,
+  taskUpdateChanges,
+} from "@/lib/activity/task-change-summary";
 import { recordTaskChangeActivity } from "@/lib/server/privileged-api";
 import {
   parseTaskListQuery,
@@ -411,10 +414,12 @@ export async function POST(request: Request): Promise<NextResponse> {
     });
   if (previous)
     await recordTaskChangeActivity(
-      data.task.id,
-      summarizeTaskChanges(
-        previous,
-        savedTaskSnapshot(data.task, parsed.data.categoryIds),
+      data.activity_id,
+      taskUpdateChanges(
+        summarizeTaskChanges(
+          previous,
+          savedTaskSnapshot(data.task, parsed.data.categoryIds),
+        ),
       ),
     );
   // Read after the change summary is attached, so the client is handed the

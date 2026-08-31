@@ -4,6 +4,7 @@ import {
   auditPrivilegedAction,
   privilegedContext,
   readJson,
+  recordWorkspaceActivity,
 } from "@/lib/server/privileged-api";
 import { databaseFailure } from "@/lib/server/api-response";
 import { accessGroupOperationSchema } from "@/lib/server/access-group-operations";
@@ -37,5 +38,20 @@ export async function POST(request: Request) {
       "AUDIT_FAILED",
       "The access change was saved, but its audit record could not be created.",
     );
+  // Who is in which group decides what every teammate can see, so the change
+  // belongs in the feed and not only in the owner-only audit trail.
+  await recordWorkspaceActivity(context.admin, context.user, {
+    action:
+      operation.action === "group.create" ||
+      operation.action === "group.update" ||
+      operation.action === "group.delete"
+        ? `access_group.${operation.action.slice("group.".length)}`
+        : "access_group.membership",
+    targetType: "access_group",
+    targetId,
+    metadata: {
+      resource_name: "name" in operation ? operation.name : undefined,
+    },
+  });
   return NextResponse.json(result);
 }

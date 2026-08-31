@@ -89,35 +89,70 @@ export async function consumeInviteLimit(
  * rather than an unqualified "updated the task". The content write has already
  * succeeded and been audited by this point: a failure here degrades the record
  * to its generic form and must never fail the save.
+ *
+ * The row is named by `save_task` itself. Matching on recency instead, as this
+ * once did, attaches a diff to the wrong save when two land within a minute,
+ * and finds nothing at all when the save also changed the task's status.
  */
 export async function recordTaskChangeActivity(
-  taskId: string,
+  activityId: string | null,
   changes: TaskChange[],
 ) {
-  if (!changes.length) return false;
+  if (!activityId || !changes.length) return false;
   const admin = getAdminClient();
   if (!admin) return false;
-  const recent = await admin
+  const recorded = await admin
     .from("task_activity")
     .select("id,details")
-    .eq("task_id", taskId)
-    .eq("action", "updated the task")
-    .gte("created_at", new Date(Date.now() - 60_000).toISOString())
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: false })
-    .limit(1)
+    .eq("id", activityId)
     .maybeSingle();
-  // No row means the save recorded no update event; never describe an older one.
-  if (recent.error || !recent.data) return false;
-  const details = (recent.data.details ?? {}) as Record<string, unknown>;
-  if (Array.isArray(details.changes)) return false;
+  if (recorded.error || !recorded.data) return false;
+  const details = (recorded.data.details ?? {}) as Record<string, unknown>;
   const { error } = await admin
     .from("task_activity")
     .update({ details: { ...details, changes } })
-    .eq("id", recent.data.id);
+    .eq("id", activityId);
   if (error) {
     console.error("Task change activity write failed", {
-      taskId,
+      activityId,
+      code: error.code,
+    });
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Records a privileged action in the workspace feed.
+ *
+ * `auditPrivilegedAction` writes the compliance trail, which only app owners
+ * read. This is the other half: the things a teammate needs an explanation for
+ * -- a status renamed out from under every board, a project going restricted,
+ * someone appearing in or vanishing from the assignee list. Like the audit
+ * write it never throws; unlike it, a failure is not worth failing a request
+ * that has already succeeded, so it only logs.
+ */
+export async function recordWorkspaceActivity(
+  admin: NonNullable<ReturnType<typeof getAdminClient>>,
+  actor: User,
+  event: {
+    action: string;
+    targetType: string;
+    targetId?: string | null;
+    metadata?: Record<string, unknown>;
+  },
+) {
+  const { error } = await admin.rpc("record_workspace_activity_event", {
+    requested_actor_id: actor.id,
+    requested_action: event.action,
+    requested_target_type: event.targetType,
+    requested_target_id: event.targetId ?? null,
+    requested_metadata: event.metadata ?? {},
+  });
+  if (error) {
+    console.error("Workspace activity write failed", {
+      action: event.action,
+      actorId: actor.id,
       code: error.code,
     });
     return false;

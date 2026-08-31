@@ -6,6 +6,7 @@ import {
   auditPrivilegedAction,
   privilegedContext,
   readJson,
+  recordWorkspaceActivity,
 } from "@/lib/server/privileged-api";
 
 export async function GET(request: Request) {
@@ -85,5 +86,20 @@ export async function POST(request: Request) {
       "AUDIT_FAILED",
       "Category access was saved, but its audit record could not be created.",
     );
+  const { data: category } = await context.supabase
+    .from("work_groups")
+    .select("name")
+    .eq("id", parsed.data.categoryId)
+    .maybeSingle();
+  await recordWorkspaceActivity(context.admin, context.user, {
+    action: "category.access.update",
+    targetType: "category",
+    targetId: parsed.data.categoryId,
+    metadata: {
+      resource_name: category?.name,
+      resource_href: "/categories",
+      detail: `Now ${parsed.data.accessMode}`,
+    },
+  });
   return NextResponse.json({ ok: true });
 }

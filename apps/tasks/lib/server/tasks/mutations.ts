@@ -1,13 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type {
-  Task,
-  TaskAssignee,
-  TaskCategory,
-} from "@/lib/tasks/task-types";
-import type {
-  TaskMoveInput,
-  TaskSaveInput,
-} from "../../api-schema/task";
+import type { Task, TaskAssignee, TaskCategory } from "@/lib/tasks/task-types";
+import type { TaskMoveInput, TaskSaveInput } from "../../api-schema/task";
 
 /**
  * `save_task` and `move_task` raise this SQLSTATE when a status that requires
@@ -22,14 +15,17 @@ export function isMissingStatusReason(error: { code?: string } | null) {
 
 export type SavedTask = {
   task: Task;
+  /**
+   * The `updated the task` row this save wrote, or null when the save changed
+   * no described fields. Named by the transaction so the field-level diff is
+   * attached to the right row.
+   */
+  activity_id: string | null;
   assignees: TaskAssignee[];
   categories: TaskCategory[];
 };
 
-export async function saveTask(
-  supabase: SupabaseClient,
-  input: TaskSaveInput,
-) {
+export async function saveTask(supabase: SupabaseClient, input: TaskSaveInput) {
   const { id, task, categoryIds, statusReason } = input;
   const result = await supabase.rpc("save_task", {
     task_id: id,
@@ -41,10 +37,7 @@ export async function saveTask(
   return { data: result.data as SavedTask, error: result.error };
 }
 
-export async function moveTask(
-  supabase: SupabaseClient,
-  input: TaskMoveInput,
-) {
+export async function moveTask(supabase: SupabaseClient, input: TaskMoveInput) {
   const result = await supabase.rpc("move_task", {
     moved_task_id: input.id,
     next_status_id: input.statusId,

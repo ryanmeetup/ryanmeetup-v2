@@ -53,6 +53,7 @@ import {
   activityFilterCount,
   buildActivityQuery,
 } from "@/lib/activity/activity-query";
+import { ACTIVITY_EVENT_OPTIONS } from "@/lib/activity/activity-events";
 
 function activityDescription(
   row: ActivityPresentationRow,
@@ -97,7 +98,17 @@ function activityDescription(
     return "Task moved";
   }
 
-  return description.label;
+  return description.detail ? (
+    <span>
+      {description.label}
+      <span className="text-black/55 dark:text-white/55">
+        {" \u2014 "}
+        {description.detail}
+      </span>
+    </span>
+  ) : (
+    description.label
+  );
 }
 
 export function ActivityPageClient({
@@ -402,18 +413,7 @@ export function ActivityPageClient({
               onExcludedChange={(values) =>
                 setFilter(setExcludedEvents, values.join(","))
               }
-              options={[
-                { label: "Task created", value: "created" },
-                { label: "Task updated", value: "updated" },
-                { label: "Task moved", value: "moved" },
-                { label: "Task deleted", value: "deleted" },
-                { label: "Checklist", value: "checklist" },
-                { label: "Attachment", value: "attachment" },
-                { label: "Notes", value: "note" },
-                { label: "Contacts", value: "organization" },
-                { label: "Projects", value: "project" },
-                { label: "Categories", value: "category" },
-              ]}
+              options={[...ACTIVITY_EVENT_OPTIONS]}
               stackLabelOnMobile
             />
             <DropdownSelect

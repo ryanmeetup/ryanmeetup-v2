@@ -6,6 +6,7 @@ import {
   auditPrivilegedAction,
   privilegedContext,
   readJson,
+  recordWorkspaceActivity,
 } from "@/lib/server/privileged-api";
 
 export async function GET(request: Request) {
@@ -107,5 +108,23 @@ export async function POST(request: Request) {
       "AUDIT_FAILED",
       "Project visibility was saved, but its audit record could not be created.",
     );
+  // A project going from open to restricted changes what every teammate can
+  // see; the feed is the only place that would explain the change to them.
+  const { data: project } = await context.supabase
+    .from("projects")
+    .select("name")
+    .eq("id", parsed.data.projectId)
+    .maybeSingle();
+  await recordWorkspaceActivity(context.admin, context.user, {
+    action: "project.access.update",
+    targetType: "project",
+    targetId: parsed.data.projectId,
+    metadata: {
+      resource_name: project?.name,
+      resource_href: "/projects",
+      project_id: parsed.data.projectId,
+      detail: `Now ${parsed.data.accessMode}`,
+    },
+  });
   return NextResponse.json({ ok: true });
 }

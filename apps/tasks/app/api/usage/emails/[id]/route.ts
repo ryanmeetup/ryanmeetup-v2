@@ -6,6 +6,7 @@ import {
   auditPrivilegedAction,
   privilegedContext,
   readJson,
+  recordWorkspaceActivity,
 } from "@/lib/server/privileged-api";
 import {
   cancelResendEmail,
@@ -120,6 +121,16 @@ export async function POST(
       `The email was ${delayedUntil ? "delayed" : "canceled"}, but its audit record could not be saved.`,
     );
   }
+
+  await recordWorkspaceActivity(context.admin, context.user, {
+    action: delayedUntil ? "email.delay" : "email.cancel",
+    targetType: "workspace",
+    targetId: null,
+    metadata: {
+      resource_name: email.subject ?? "Scheduled email",
+      detail: delayedUntil ? `Delayed ${DELAY_MINUTES} minutes` : undefined,
+    },
+  });
 
   return NextResponse.json({
     email: {

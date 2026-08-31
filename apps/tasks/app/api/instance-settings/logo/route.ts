@@ -4,6 +4,7 @@ import {
   apiError,
   auditPrivilegedAction,
   privilegedContext,
+  recordWorkspaceActivity,
 } from "@/lib/server/privileged-api";
 import { isAllowedTasksRequestOrigin } from "@/lib/app-url";
 
@@ -76,6 +77,12 @@ export async function POST(request: Request) {
       "AUDIT_FAILED",
       "The logo was uploaded, but the audit record could not be written.",
     );
+
+  await recordWorkspaceActivity(context.admin, context.user, {
+    action: "settings.logo.update",
+    targetType: "workspace",
+    metadata: { resource_name: "Workspace logo" },
+  });
 
   return NextResponse.json({ logoPath: publicUrl });
 }

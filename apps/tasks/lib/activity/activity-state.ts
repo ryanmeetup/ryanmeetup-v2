@@ -16,18 +16,25 @@ import type { WorkspaceData } from "@/lib/workspace/workspace-types";
  */
 export function withRecordedRows(
   recorded: {
-    activity?: TaskActivity | null;
+    /** One row, or the set a single transaction wrote. */
+    activity?: TaskActivity | TaskActivity[] | null;
     comment?: TaskComment | null;
   },
   current: WorkspaceData,
 ): WorkspaceData {
   const { activity, comment } = recorded;
+  const written = activity
+    ? Array.isArray(activity)
+      ? activity
+      : [activity]
+    : [];
+  const writtenIds = new Set(written.map((entry) => entry.id));
   return {
     ...current,
-    activity: activity
+    activity: written.length
       ? [
-          activity,
-          ...current.activity.filter((entry) => entry.id !== activity.id),
+          ...written,
+          ...current.activity.filter((entry) => !writtenIds.has(entry.id)),
         ]
       : current.activity,
     comments: comment

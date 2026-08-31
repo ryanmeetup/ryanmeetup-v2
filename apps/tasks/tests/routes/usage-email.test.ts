@@ -6,6 +6,7 @@ const cancelResendEmail = vi.fn();
 const delayResendEmail = vi.fn();
 const privilegedContext = vi.fn();
 const auditPrivilegedAction = vi.fn();
+const recordWorkspaceActivity = vi.fn();
 const readJson = vi.fn();
 
 vi.mock("@/lib/server/auth", () => ({ authorize }));
@@ -18,6 +19,7 @@ vi.mock("@/lib/server/privileged-api", () => ({
   auditPrivilegedAction,
   privilegedContext,
   readJson,
+  recordWorkspaceActivity,
 }));
 
 const emailId = "4ef9a417-02e9-4d39-ad75-9611e0fcc33c";
@@ -31,6 +33,8 @@ describe("GET /api/usage/emails/[id]", () => {
     delayResendEmail.mockReset();
     privilegedContext.mockReset();
     auditPrivilegedAction.mockReset();
+    recordWorkspaceActivity.mockReset();
+    recordWorkspaceActivity.mockResolvedValue(true);
     readJson.mockReset();
   });
 

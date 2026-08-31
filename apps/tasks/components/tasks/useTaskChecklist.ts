@@ -185,6 +185,12 @@ export function useTaskChecklist({
           ),
       whenFailed: "The checklist item could not be updated.",
     });
+    // Demo mode has no request to write the audit row, so the hook writes its
+    // own -- matching `add`, which already did, and the strings the API uses.
+    if (demoMode)
+      await recordActivity(
+        completed ? "completed a checklist item" : "reopened a checklist item",
+      );
   }
 
   async function remove(item: Subtask) {
@@ -204,6 +210,7 @@ export function useTaskChecklist({
           withRecordedRows({ activity }, current),
       whenFailed: "The checklist item could not be removed.",
     });
+    if (demoMode) await recordActivity("deleted a checklist item");
   }
 
   return {

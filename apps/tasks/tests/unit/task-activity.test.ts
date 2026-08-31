@@ -52,4 +52,28 @@ describe("task activity", () => {
       "Project attachment removed",
     );
   });
+
+  it("names the actions that used to render as raw machine text", () => {
+    expect(taskActivityLabel("project.attachment.update")).toBe(
+      "Project attachment edited",
+    );
+    expect(taskActivityLabel("category.attachment.update")).toBe(
+      "Category attachment edited",
+    );
+    expect(taskActivityLabel("calendar.create")).toBe("Calendar event created");
+    expect(taskActivityLabel("note.comment.delete")).toBe(
+      "Comment on note deleted",
+    );
+    expect(taskActivityLabel("organization.person.remove")).toBe(
+      "Person removed from contact",
+    );
+    expect(taskActivityLabel("contact_category.create")).toBe(
+      "Contact category created",
+    );
+    expect(taskActivityLabel("project.owners.update")).toBe(
+      "Project owners changed",
+    );
+    expect(taskActivityLabel("status.reorder")).toBe("Statuses reordered");
+    expect(taskActivityLabel("team.invite")).toBe("Teammate invited");
+  });
 });

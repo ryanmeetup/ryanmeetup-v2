@@ -41,6 +41,35 @@ describe("activity presentation", () => {
     });
   });
 
+  it("names the attachment a resource attachment event was written for", () => {
+    const item = activity("attachment", "2026-08-13T12:00:00Z", {
+      resource_name: "Fall Launch",
+      resource_href: "/projects",
+      attachment_name: "brief.pdf",
+    });
+    item.task_id = null;
+    item.action = "project.attachment.add";
+    expect(describeActivity(item, [])).toEqual({
+      kind: "text",
+      label: "Project attachment added",
+      detail: "brief.pdf",
+    });
+  });
+
+  it("names the people an owner change added and removed", () => {
+    const item = activity("owners", "2026-08-13T12:00:00Z", {
+      resource_name: "Fall Launch",
+      detail: "Added Sam; Removed Ryan",
+    });
+    item.task_id = null;
+    item.action = "project.owners.update";
+    expect(describeActivity(item, [])).toEqual({
+      kind: "text",
+      label: "Project owners changed",
+      detail: "Added Sam; Removed Ryan",
+    });
+  });
+
   it("retains the category color for category activity", () => {
     const item = activity("category", "2026-08-13T12:00:00Z", {
       resource_id: "operations",

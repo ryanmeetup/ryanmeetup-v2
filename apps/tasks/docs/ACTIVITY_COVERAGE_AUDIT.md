@@ -1,354 +1,226 @@
 # Activity Coverage Audit
 
 Audit date: 2026-08-31
+Status: every finding below has been remediated, except the two noted under
+"Left as they are." The database half ships in
+`supabase/migrations/20260917000000_activity_coverage.sql`.
 
 A trace of every write path in the Tasks app (API routes, RPCs, and database
-triggers) against what `/api/activity` actually reads, filters, and renders.
-The question asked was: **what happens in this workspace that never shows up on
-the Activity page?**
+triggers) against what `/api/activity` reads, filters, and renders. The
+question asked was: **what happens in this workspace that never shows up on the
+Activity page?**
 
 ---
 
-## How activity works today
+## How activity works
 
 Two sources are merged in `app/api/activity/route.ts`:
 
 1. **`task_activity`** — task-scoped rows. Written by the `log_task_change`
-   trigger (`20260731000000_baseline_schema.sql:840`) on every task insert and
-   update, plus explicit inserts from `app/api/task-details/route.ts`
-   (comments, checklist items) and `app/api/task-attachments/route.ts`.
+   trigger on every task insert and update, plus explicit inserts from
+   `app/api/task-details/route.ts` (comments, checklist items) and
+   `app/api/task-attachments/route.ts`.
 2. **`permission_audit_events` filtered to `after_state @> {"activity": true}`**
-   — resource-scoped rows. Written by the triggers added in
-   `20260914000000_transactional_resource_mutations.sql`.
+   — resource-scoped and workspace-scoped rows. Written by the triggers in
+   `20260914000000_transactional_resource_mutations.sql` and
+   `20260917000000_activity_coverage.sql`, and by API routes through
+   `recordWorkspaceActivity` (`lib/server/privileged-api.ts`) — which is the
+   feed's counterpart to `auditPrivilegedAction`, whose
+   `privileged_audit_events` rows only app owners read.
 
-The merged list then passes through a hand-written visibility ladder and a JS
-filter, both in the route, before pagination.
-
-### Actions currently written
-
-| Source | Action strings |
-| --- | --- |
-| `log_task_change` trigger | `created the task`, `moved task`, `updated the task` |
-| `create_subtask_with_activity` | `added checklist item "…"` |
-| `task-details` route | `completed a checklist item`, `reopened a checklist item`, `deleted a checklist item`, `added a comment`, `edited a comment`, `deleted a comment` |
-| `task-attachments` route | `attached "…"`, `removed attachment "…"` |
-| `log_task_deletion` trigger | `task.delete` |
-| `log_workspace_resource_activity` trigger | `project.*`, `category.*`, `organization.*`, `calendar_event.*` (`create` / `update` / `delete` / `archive` / `restore`) |
-| `log_note_workspace_activity` trigger | `note.create/update/archive/restore/delete/convert` |
-| `log_note_comment_workspace_activity` trigger | `note.comment` |
-| `log_resource_attachment_workspace_activity` trigger | `project.attachment.add/update/delete`, `category.attachment.add/update/delete` |
-| `save_contact_with_activity` RPC | `category.create` (for newly created **contact** categories) |
+Event kinds live in `lib/activity/activity-events.ts`, shared by the route's
+filter and the page's chips so the two cannot drift.
 
 ---
 
-## A. Recorded in the database, but the read path silently drops it
+## A. Recorded in the database, but the read path dropped it — resolved
 
-### A1. All calendar activity is invisible
+### A1. All calendar activity was invisible
 
-The trigger at `20260914000000_transactional_resource_mutations.sql:80-85`
-writes `calendar_event.create` / `.update` / `.delete` with
-`target_type = 'calendar_event'`. The visibility ladder in
-`app/api/activity/route.ts:255-268` ends with:
+The visibility ladder ended in `event.target_type === "organization"`, so every
+`calendar_event.*` row evaluated to `false`.
 
-```ts
-: event.target_type === "organization";
-```
+Resolved by giving `calendar_event` a branch that mirrors the
+`calendar_events_select` policy — readable per project _and_ per category. The
+trigger now records `category_id` alongside `project_id`, so the check still
+resolves after the event is deleted. Labels, an event kind, and a "Calendar"
+chip were added with it.
 
-so `calendar_event` evaluates to `false` on every row and is filtered out
-before rendering. Every calendar mutation since that migration is dead weight
-in the audit table.
+### A2. `project.delete` and `category.delete` could never render
 
-Three layers would need fixing, not one:
+Visibility required the row to still exist, which a deletion guarantees it does
+not.
 
-- `route.ts` visibility ladder — add a `calendar_event` branch (gated on the
-  caller's `calendar_events` RLS visibility, which is per-project and
-  per-category, not global).
-- `lib/activity/task-activity.ts` — no labels for `calendar_event.*`.
-- `route.ts` `eventKind()` and `ActivityPageClient` event options — no kind and
-  no filter chip.
+Resolved by treating the three top-level deletions (`project.delete`,
+`category.delete`, `note.delete`) as team-visible: a resource disappearing is a
+workspace-level fact in the way an edit to it is not. Matched on the exact
+action, never on the target type, so the `project.attachment.delete` events
+that share the `project` target type stay access-scoped.
 
-### A2. `project.delete` and `category.delete` can never render
+### A3. Contact-category creation was logged against the wrong table
 
-Visibility for a `project` event requires
-`visibleProjectIds.has(event.target_id)`, but the project row is gone by the
-time anyone reads the feed. Same for `category.delete` against `work_groups`.
+`save_contact_with_activity` emitted `category.create` for a
+`contact_categories` row, which the route then checked against `work_groups`
+ids. It never matched.
 
-The `"Project deleted"` and `"Category deleted"` entries in `taskActivityLabel`
-(`lib/activity/task-activity.ts:35`) are unreachable code.
+Resolved: the event is now `contact_category.create` with target type
+`contact_category` and `resource_href` `/contacts`.
 
-Deletion visibility has to be derived from something that survives the delete —
-the recorded `project_id` in `after_state`, a tombstone, or simply treating
-delete events as team-visible the way `organization` already is.
+### A4. `note.delete` was visible only to the person who deleted it
 
-### A3. Contact-category creation is logged against the wrong table
+Covered by the A2 carve-out; the `actor_id` fallback is gone.
 
-`save_contact_with_activity`
-(`20260914000000_transactional_resource_mutations.sql:541-556`) emits a
-`category.create` event whose `target_id` is a `contact_categories` row. The
-route checks that id against `work_groups` ids, so it never matches and the
-event is always filtered out.
+### A5. A missing service-role key silently removed half the feed
 
-Its `resource_href` is also `/categories`, which is the work-group categories
-page, not the contacts categories surface.
+The route fell back to `{ data: [], error: null }` and rendered normally.
 
-### A4. `note.delete` is visible only to the person who deleted it
-
-```ts
-: event.target_type === "note"
-  ? Boolean(event.target_id &&
-      (visibleNoteIds.has(event.target_id) ||
-       event.actor_id === authorization.user.id))
-```
-
-The note row is gone after a delete, so `visibleNoteIds` never contains it. The
-deleter sees the event via the `actor_id` fallback; nobody else does.
-
-### A5. A missing service-role key silently removes half the feed
-
-`getAdminClient()` returns `null` when neither `SUPABASE_SECRET_KEY` nor
-`SUPABASE_SERVICE_ROLE_KEY` is set, and the route falls back to
-`{ data: [], error: null }`. All project, category, note, contact, and
-task-delete activity disappears and the page renders normally with no error.
-
-This deserves an explicit 503 rather than a silent empty half — particularly
-because the two Tasks instances (RMT and PRD) are configured separately, so one
-can be misconfigured while the other is fine.
+Resolved: no admin client is now a 503. A half-empty page that looks complete
+is worse than an outage, particularly because the two Tasks instances are
+configured separately.
 
 ---
 
-## B. Never recorded at all
+## B. Never recorded at all — resolved
 
 ### B1. Note comment edits and deletes
 
-`log_note_comment_workspace_activity` is `after insert` only
-(`20260914000000_transactional_resource_mutations.sql:167-169`). `PATCH` and
-`DELETE` in `app/api/note-comments/route.ts` leave no trace.
-
-Task comments log added / edited / deleted. Note comments log only added. The
-two read inconsistently for no stated reason.
+`log_note_comment_workspace_activity` was `after insert` only. It now covers
+update and delete, writing `note.comment.update` and `note.comment.delete`; a
+touch that leaves the body unchanged still records nothing.
 
 ### B2. Contact people
 
-Adding a person to a contact, removing one, or changing their name, title,
-emails, phone, or Instagram handle all collapse into a single generic
-`organization.update`, because only the `contacts` parent row carries a
-trigger. `contact_people`, `contact_category_assignments`, and
-`contact_categories` have none.
+Adding, removing, or changing a person collapsed into a generic
+`organization.update`.
 
-### B3. Statuses
+`save_contact_with_activity` replaces people and category assignments
+wholesale, so a row trigger would only ever see delete-all/insert-all. The diff
+is taken inside the transaction instead, emitting
+`organization.person.add/update/remove` naming the person, and
+`organization.categories.update` naming the categories added and removed.
 
-`status.create`, `status.update`, `status.reorder`, and `status.delete` are
-audited in `app/api/statuses/route.ts` but without `activity: true`, so they
-never reach the feed. Renaming or deleting a status reshapes every board in the
-workspace and nobody can see why.
+### B3. Statuses / B4. Access / B5. Team
 
-### B4. Access changes
-
-`project.access.update`, `category.access.update`, and all `access_group`
-create / update / delete operations are audited without `activity: true`. A
-project going from open to restricted — which changes what every teammate can
-see — is invisible.
-
-### B5. Team membership
-
-`team.invite` and `team.remove` — same. Someone appearing in or vanishing from
-assignee dropdowns has no explanation anywhere in the product.
+All audited without reaching the feed. Each route now also calls
+`recordWorkspaceActivity`: `status.create/update/reorder/delete`,
+`project.access.update`, `category.access.update`,
+`access_group.create/update/delete/membership`, `team.invite`, `team.remove`.
+Access changes carry the new mode; team events carry the person's name, read
+before the removal so it survives it.
 
 ### B6. Owner changes
 
-`replace_project_owners_and_update` and `update_category_with_owners` delete and
-reinsert the owners rows inside the transaction. The only trace is a generic
-`project.update` / `category.update` with no named diff, so "who owns this"
-changes are recorded but not described.
+`replace_project_owners_and_update` and `update_category_with_owners` delete
+and reinsert owners inside the transaction. They now emit
+`project.owners.update` / `category.owners.update` with a `detail` naming who
+was added and removed, built by `owner_change_detail`.
 
 ### B7. Other uninstrumented surfaces
 
-- Google Calendar connect / disconnect (`app/api/integrations/google-calendar/`)
-  — no audit and no activity.
-- Instance settings, digest settings, digest runs, email cancel/delay, profile
-  updates, logo uploads — audited without `activity: true`.
-- Task labels — `task_labels` and `labels` have no API route at all, no
-  activity, and no entry in `TASK_CHANGE_FIELDS`.
-- Favorite projects (`app/api/profile/favorite-projects/route.ts`) — no record.
-
-Labels and favorites are arguably fine to leave out. Digest runs and settings
-changes probably are not.
+Now recorded: Google Calendar connect and disconnect, instance settings, logo
+uploads, digest settings, digest runs, and scheduled-email cancel/delay. Each
+write happens after the operation has already succeeded and never fails it.
 
 ---
 
-## C. Recorded, but rendered wrong or unfilterable
+## C. Recorded, but rendered wrong or unfilterable — resolved
 
-### C1. Task comments have no filter chip
+### C1. Task comments had no filter chip
 
-`added a comment`, `edited a comment`, and `deleted a comment` fall through
-every branch of `eventKind()` (`app/api/activity/route.ts:296-306`) to
-`"other"`. The event options list
-(`components/activity/ActivityPageClient.tsx:406-415`) has no "Comments" entry.
+`added a comment` and its siblings fell through `eventKind()` to `"other"`,
+which no chip offered — unreachable by include, unblockable by exclude.
 
-Two practical consequences:
+Resolved: a "Comments" kind covering both task and note comments, and an
+"Other" chip so the fallback is reachable too. Kinds and chips now come from
+one list, and `tests/unit/activity-events.test.ts` asserts every kind the
+mapper can produce has a chip. Resource attachments moved from the "Projects"
+and "Categories" kinds to "Attachments", so one chip reaches every attachment
+in the workspace.
 
-- Selecting **any** event filter hides all comment activity, because `"other"`
-  is never in `includedEvents`.
-- There is no way to filter *for* comments, and no way to exclude them either.
+### C2. `project.attachment.update` rendered as raw machine text
 
-`"other"` is a black hole: unreachable by include, unblockable by exclude.
-`calendar_event.*` lands there too (on top of A1).
+Labelled, along with `category.attachment.update` and every action added here.
 
-### C2. `project.attachment.update` renders as raw machine text
+### C3. Attachment file names were discarded
 
-The attachment trigger emits `.add`, `.delete`, **and** `.update` — the last
-fires when an attachment's `name` or `body` changes
-(`20260914000000_transactional_resource_mutations.sql:194-198`). But
-`taskActivityLabel` only maps `.add` and `.delete`, so the fallback
-
-```ts
-return action.charAt(0).toUpperCase() + action.slice(1);
-```
-
-renders the literal string `Project.attachment.update` in the feed. Same for
-`Category.attachment.update`.
-
-### C3. Attachment file names are discarded
-
-The trigger writes `attachment_name` into `after_state`, but the route's
-mapping (`app/api/activity/route.ts:264-283`) copies only `resource_name`,
-`resource_href`, and `project_id`. So a row reads "Project attachment added —
-Fall Launch" and never names the file.
-
-Task attachments *do* include the file name, because it is baked into the
-action string (`attached "…"`). The two attachment surfaces read differently.
+The route's mapping now carries `attachment_name` and a general-purpose
+`detail`, rendered as a muted suffix after the label.
 
 ---
 
-## D. Task-save diff gaps
+## D. Task-save diff gaps — resolved
 
-### D1. A save that changes status *and* other fields loses the other fields
+### D1. A save that changed status _and_ other fields lost the other fields
 
-This is the sharpest defect in the audit.
+`log_task_change` was a strict if/elsif chain: a status change won and wrote a
+single `moved task` row, so a rename bundled into the same save was never
+recorded anywhere.
 
-`log_task_change` is a strict if/elsif chain: a status change wins and writes a
-single `moved task` row, never an `updated the task` row.
+Resolved: a status change and a field edit are two facts about one save, so
+they are two rows. `savedTaskRecords` hands both back — they share the
+transaction's timestamp, which is what identifies the pair — and the field list
+omits `status`, which the move row already renders as both status pills.
 
-```sql
-if tg_op = 'INSERT' then ... 'created the task'
-elsif old.status_id is distinct from new.status_id then ... 'moved task'
-else ... 'updated the task'
-```
+### D2. Two saves within 60 seconds could drop the second diff
 
-`recordTaskChangeActivity` (`lib/server/privileged-api.ts:94-131`) then looks
-specifically for a recent row whose action is `updated the task`, finds none,
-and returns `false`.
+`recordTaskChangeActivity` matched the most recent `updated the task` row from
+the last minute. `save_task` now returns `activity_id`, the row it actually
+wrote, published on a transaction-local setting by the trigger.
 
-**Rename a task and move it to Done in one save, and the rename is never
-recorded anywhere.** Same for a re-assignment, a due-date change, a project
-move, or a category change bundled into the same save as a status change.
+### D3. Reordering within a column wrote empty "Task updated" rows
 
-### D2. Two saves within 60 seconds can drop the second diff
-
-`recordTaskChangeActivity` selects the most recent `updated the task` row from
-the last 60 seconds and bails if `Array.isArray(details.changes)` is already
-true. Rapid successive saves of the same task can leave the second one as a
-bare "Task updated" with no field list.
-
-### D3. Reordering within a column writes empty "Task updated" rows
-
-`move_task` sets `status_id` (unchanged) and `board_position`, so the trigger
-falls to the `else` branch and logs `updated the task` with no changes
-attached. Every drag-to-reorder produces a contentless row. Noise rather than a
-gap, but it dilutes the feed and inflates the row caps described in E2.
+The trigger now compares the row minus `status_id`, `board_position`, and the
+completion timestamps derived from the status. A drag inside a column, and the
+lifecycle trigger's own writes, record nothing.
 
 ### D4. Field coverage note
 
-`TASK_CHANGE_FIELDS` (`lib/activity/task-change-summary.ts:7-21`) covers 13
-fields and that set looks correct for what a user edits.
+`TASK_CHANGE_FIELDS` covers 13 fields and that set is correct for what a user
+edits.
 
 Worth recording explicitly: auto-archive at completion + 14 days is evaluated
-at *read* time (`set_task_completion_lifecycle` writes the future timestamp;
+at _read_ time (`set_task_completion_lifecycle` writes the future timestamp;
 `lib/tasks/task-view.ts` compares it to the clock), not as a row change. A task
 silently leaving every board on day 14 has no activity row, by design.
 
 ---
 
-## E. Coverage and scale
+## E. Coverage and scale — resolved
 
-### E1. The entire SQL-level filter is dead code
+### E1. The SQL-level filter was dead code
 
-`applyActivityFilters` is roughly 110 lines and is invoked as:
+`applyActivityFilters` was invoked with an always-empty `URLSearchParams`. It
+now receives the real ones. The event-kind branches were deleted rather than
+revived: a kind such as "note" or "comment" spans both sources, so translating
+half an include list into SQL would drop rows the JS filter would have kept.
 
-```ts
-itemQuery = applyActivityFilters(
-  itemQuery,
-  new URLSearchParams(),   // ← always empty
-  previewProjectIds,
-  previewInaccessibleTaskIds,
-);
-```
+### E2. The row caps were a correctness problem
 
-(`app/api/activity/route.ts:174-183`). Only the access-preview branches do
-anything. All real project / people / event / when filtering happens in JS
-afterward, on rows already fetched.
+The route pulled its rows and _then_ applied the date window, so a "Past 30
+days" query could silently return fewer rows than exist. The `when` cutoff, and
+the project and person filters, are now pushed into both queries.
 
-### E2. The row caps are therefore a correctness problem, not just a perf one
+### E3. `permission_audit_events` had no indexes
 
-The route pulls `.limit(5000)` task rows and `.limit(2000)` audit rows, and
-*then* applies the date window and every other filter.
+Added: `created_at desc`, plus a partial index for the `activity: true`
+predicate the feed queries under.
 
-Past those counts, a "Past 30 days" query can return fewer rows than actually
-exist in the last 30 days, with no indication to the user that anything was
-truncated. Pushing at least `when` into the SQL query fixes both the truncation
-and the payload size.
+### E5. Demo mode under-reported
 
-### E3. `permission_audit_events` has no indexes
-
-Beyond its primary key, the table has no index on `created_at` and no GIN index
-on `after_state` (`20260731000000_baseline_schema.sql:1889`). Every Activity
-page load runs a full scan plus a sort with a jsonb containment predicate.
-
-### E4. Other surfaces read a narrower slice
-
-- The dashboard loads only `action = 'moved task'`, limit 20
-  (`app/(workspace)/page.tsx:70-75`).
-- The task detail panel reads only `task_activity` for that one task, so a
-  task's own history never mentions its project being renamed, its category
-  being archived, or its access changing.
-
-### E5. Demo mode under-reports
-
-In `components/tasks/useTaskChecklist.ts`, `add` records checklist activity in
-demo mode but `toggle` and `remove` do not (`persist` is `undefined` and there
-is no `recordActivity` call). The demo feed shows less than the real one for the
-same interactions.
+`useTaskChecklist` recorded `add` in demo mode but not `toggle` or `remove`.
+Both now record, using the same action strings the API writes. Demo saves also
+write the same two rows a real save does.
 
 ---
 
-## Suggested fix order
+## Left as they are
 
-**First — small changes that unblock activity already being written:**
-
-1. **A1 (calendar)** — add the `calendar_event` visibility branch, labels,
-   `eventKind`, and filter option.
-2. **A2 / A3 / A4 (delete visibility)** — a deleted resource cannot be looked up
-   in a "still exists" set; these need an explicit carve-out, plus routing
-   contact-category events away from the `work_groups` check.
-3. **D1 (status + field save collapse)** — this is quietly losing real edits
-   today and is the only item in the audit that loses user intent rather than
-   just failing to display it.
-
-**Second — presentation fixes, roughly one-liners each:**
-
-4. **C1** — add a "Comments" event kind and chip; decide what `"other"` should
-   do when an include filter is active.
-5. **C2** — add `project.attachment.update` / `category.attachment.update`
-   labels.
-6. **C3** — surface `attachment_name` in the route's `details` mapping.
-
-**Third — scale, before the workspace outgrows the caps:**
-
-7. **E1 / E2** — push `when` (at minimum) into SQL, or paginate at the database.
-8. **E3** — index `permission_audit_events (created_at desc)` and consider a
-   partial index for the `activity: true` predicate.
-
-**Then, as product decisions rather than bugs:** B3 (statuses), B4 (access),
-B5 (team) are all workspace-visible changes that currently have audit rows but
-no activity rows. Promoting them is a matter of adding `activity: true` and a
-label, plus deciding who should see them.
+- **E4. Other surfaces read a narrower slice.** The dashboard loads only
+  `action = 'moved task'`, limit 20, which is what that panel is for. The task
+  detail panel reads only `task_activity` for its own task, so a task's history
+  does not mention its project being renamed or its access changing. Both are
+  scope decisions, not defects; widening either is a product change.
+- **Task labels, favorite projects, and profile updates.** `task_labels` has no
+  API route and no entry in `TASK_CHANGE_FIELDS`; favorites and profile
+  preferences are personal, not workspace-visible. None of the three would
+  explain anything to a teammate.

@@ -4,6 +4,7 @@ import {
   apiError,
   auditPrivilegedAction,
   privilegedContext,
+  recordWorkspaceActivity,
 } from "@/lib/server/privileged-api";
 
 export const runtime = "nodejs";
@@ -35,6 +36,12 @@ export async function POST() {
       "AUDIT_FAILED",
       "The digest ran, but the audit record could not be written.",
     );
+
+  await recordWorkspaceActivity(context.admin, context.user, {
+    action: "digest.run",
+    targetType: "workspace",
+    metadata: { resource_name: "Task digest", detail: result.outcome },
+  });
 
   return NextResponse.json(result);
 }
