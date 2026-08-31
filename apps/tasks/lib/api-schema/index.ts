@@ -6,7 +6,7 @@ export {
 } from "./common";
 export { categorySchema } from "./category";
 export { digestSettingsSchema } from "./digest";
-export { httpsUrl, instanceSettingsSchema } from "./instance-settings";
+export { instanceSettingsSchema } from "./instance-settings";
 export { projectCreateSchema, projectPatchSchema } from "./project";
 export { statusCreateSchema, statusPatchSchema } from "./status";
 export { taskMoveSchema, taskSaveSchema } from "./task";

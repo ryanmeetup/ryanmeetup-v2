@@ -25,7 +25,7 @@ const sectionDescriptions: Record<
     "Access groups, membership, and which projects each group can reach.",
   "/admin/usage": "Email quota consumption and recently delivered messages.",
   "/admin/settings":
-    "The name, wordmark, footer, and link preview this instance goes by.",
+    "The name, wordmark, banners, and link preview this instance goes by.",
 };
 
 /**

@@ -4,12 +4,17 @@ import { useState } from "react";
 import { Input, Modal, ModalActions } from "@ryanmeetup/ui";
 import { useInstanceSettingsForm } from "@/hooks/useInstanceSettingsForm";
 import {
-  isFeedbackHref,
+  bannerFields,
+  overridesFromDraft,
+} from "@/lib/admin/instance-settings-fields";
+import {
+  isBannerLinkHref,
   resolveInstanceSettings,
   type InstanceSettings,
   type InstanceSettingsOverrides,
 } from "@/lib/instance";
-import { BetaBannerPreview } from "./BetaBannerPreview";
+import { BannerPreview } from "./BannerPreview";
+import { InstanceSettingField } from "./InstanceSettingField";
 
 const FORM_ID = "instance-banner-form";
 
@@ -47,11 +52,13 @@ function SwitchField({
 }
 
 /**
- * Every control here is seeded from the resolved setting rather than from the
- * stored override, because none of these values has a blank state that means
- * "inherit": an unticked box and an empty link are choices in their own right.
- * Only values that actually change are written, so an untouched dialog still
- * leaves the instance inheriting this deployment's defaults.
+ * The message and the link label are ordinary override fields, so they follow
+ * the Identity dialog: blank inherits what this deployment compiled in.
+ *
+ * The switch and the link are not. Neither has a blank state that could mean
+ * "inherit" — an unticked box and "send people nowhere" are choices in their
+ * own right — so both are seeded from the resolved setting and written only
+ * when they actually change, which leaves an untouched dialog inheriting.
  */
 export function BannerSettingsModal({
   open,
@@ -68,38 +75,32 @@ export function BannerSettingsModal({
   baseSettings: InstanceSettings;
   onSaved: (overrides: InstanceSettingsOverrides) => void;
 }) {
-  // No text fields: the link is not an override-style input, so this dialog
-  // uses the shared form only for validation, saving, and its toasts.
-  const { saving, submit } = useInstanceSettingsForm({
-    fields: [],
+  const { draft, setField, errors, saving, submit } = useInstanceSettingsForm({
+    fields: bannerFields,
     overrides,
     demoMode,
     onSaved,
   });
   const settings = resolveInstanceSettings(overrides, baseSettings);
-  const [enabled, setEnabled] = useState(settings.betaBannerEnabled);
-  const [inWorkspace, setInWorkspace] = useState(settings.feedbackInWorkspace);
-  const [url, setUrl] = useState(settings.feedbackUrl ?? "");
+  const [enabled, setEnabled] = useState(settings.bannerEnabled);
+  const [url, setUrl] = useState(settings.bannerLinkUrl ?? "");
 
   const nextUrl = url.trim() || null;
-  const invalidUrl = Boolean(nextUrl && !isFeedbackHref(nextUrl));
+  const invalidUrl = Boolean(nextUrl && !isBannerLinkHref(nextUrl));
 
   const preview = resolveInstanceSettings(
     {
-      betaBannerEnabled: enabled,
-      feedbackInWorkspace: inWorkspace,
-      feedbackUrl: invalidUrl ? settings.feedbackUrl : nextUrl,
+      ...overridesFromDraft(draft),
+      bannerEnabled: enabled,
+      bannerLinkUrl: invalidUrl ? settings.bannerLinkUrl : nextUrl,
     },
-    settings,
+    baseSettings,
   );
 
   function changes() {
     const body: Record<string, unknown> = {};
-    if (enabled !== settings.betaBannerEnabled)
-      body.betaBannerEnabled = enabled;
-    if (inWorkspace !== settings.feedbackInWorkspace)
-      body.feedbackInWorkspace = inWorkspace;
-    if (nextUrl !== settings.feedbackUrl) body.feedbackUrl = nextUrl;
+    if (enabled !== settings.bannerEnabled) body.bannerEnabled = enabled;
+    if (nextUrl !== settings.bannerLinkUrl) body.bannerLinkUrl = nextUrl;
     return body;
   }
 
@@ -108,8 +109,8 @@ export function BannerSettingsModal({
       open={open}
       setIsOpen={setOpen}
       size="lg"
-      title="Edit beta banner"
-      description="The notice above the workspace, and where it sends someone who has hit a bug or has an idea."
+      title="Edit banner"
+      description="The notice above the workspace: what it says, and where it sends anyone who wants to act on it."
       closable={!saving}
       formId={FORM_ID}
       onSubmit={async (event) => {
@@ -117,7 +118,7 @@ export function BannerSettingsModal({
         const saved = await submit({
           extraBody: changes(),
           extraError: invalidUrl
-            ? "The feedback link needs a full https:// address or a mailto: email link."
+            ? "The banner link needs a full https:// address or a mailto: email link."
             : undefined,
         });
         if (saved) setOpen(false);
@@ -133,31 +134,34 @@ export function BannerSettingsModal({
       }
     >
       <div className="settings-form space-y-5">
-        <BetaBannerPreview settings={preview} />
+        <BannerPreview settings={preview} />
 
         <SwitchField
-          label="Show the beta banner"
-          description="A dismissible notice above the workspace. Turn it off once this deployment is past its beta."
+          label="Show the banner"
+          description="A dismissible notice above the workspace. Turn it off and members see the workspace with nothing above it."
           checked={enabled}
           disabled={saving}
           onChange={setEnabled}
         />
 
-        <SwitchField
-          label="Take feedback as tasks in this workspace"
-          description="Only for a workspace whose own team builds this product. Anywhere else a bug report filed here lands in a backlog nobody who can fix it reads."
-          checked={inWorkspace}
+        <InstanceSettingField
+          spec={bannerFields[0]}
+          defaults={baseSettings}
+          value={draft.bannerMessage}
+          error={errors.bannerMessage}
+          overridden={Boolean(draft.bannerMessage.trim())}
           disabled={saving}
-          onChange={setInWorkspace}
+          onChange={(value) => setField("bannerMessage", value)}
+          onReset={() => setField("bannerMessage", "")}
         />
 
         <div className="space-y-2">
           <Input
-            label="Feedback link"
-            name="feedbackUrl"
+            label="Link"
+            name="bannerLinkUrl"
             value={url}
             maxLength={2048}
-            placeholder="e.g. https://example.com/feedback or mailto:team@example.com"
+            placeholder="e.g. https://example.com/status or mailto:team@example.com"
             error={invalidUrl}
             disabled={saving}
             onChange={(event) => setUrl(event.target.value)}
@@ -171,6 +175,17 @@ export function BannerSettingsModal({
               : "An https page or a mailto address. Leave it empty to offer no link at all."}
           </p>
         </div>
+
+        <InstanceSettingField
+          spec={bannerFields[1]}
+          defaults={baseSettings}
+          value={draft.bannerLinkLabel}
+          error={errors.bannerLinkLabel}
+          overridden={Boolean(draft.bannerLinkLabel.trim())}
+          disabled={saving}
+          onChange={(value) => setField("bannerLinkLabel", value)}
+          onReset={() => setField("bannerLinkLabel", "")}
+        />
       </div>
     </Modal>
   );

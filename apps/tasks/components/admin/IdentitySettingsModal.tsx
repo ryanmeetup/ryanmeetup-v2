@@ -117,8 +117,8 @@ export function IdentitySettingsModal({
           Without an image the instance name is drawn in the display face, which
           scales from the sidebar label to the footer and follows the light and
           dark themes — an uploaded image does neither. An image appears in the
-          sidebar, header, and sign-in card; the footer and link-preview card
-          always use the name as text.
+          sidebar, header, sign-in card, and footer; the link-preview card uses
+          the name as text.
         </p>
 
         {identityFields.map((spec) => (

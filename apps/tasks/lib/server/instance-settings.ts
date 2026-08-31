@@ -19,16 +19,14 @@ import {
 /** Columns of `instance_settings`, in the order the settings form presents them. */
 export const INSTANCE_SETTINGS_COLUMNS = [
   "name",
-  "product_name",
-  "tagline",
   "description",
   "monogram",
   "accent_color",
   "logo_path",
-  "beta_banner_enabled",
-  "feedback_in_workspace",
-  "feedback_url",
-  "footer_variant",
+  "banner_enabled",
+  "banner_message",
+  "banner_link_url",
+  "banner_link_label",
   "footer_subtitle",
   "footer_sections",
   "footer_socials",
@@ -37,9 +35,6 @@ export const INSTANCE_SETTINGS_COLUMNS = [
   "credit_url",
   "credit_suffix",
   "og_alt",
-  "og_headline",
-  "og_tagline",
-  "og_motto",
 ] as const;
 
 type SettingsColumn = (typeof INSTANCE_SETTINGS_COLUMNS)[number];
@@ -51,16 +46,14 @@ type SettingsRow = InstanceSettingsRow;
 
 const columnToKey = {
   name: "name",
-  product_name: "productName",
-  tagline: "tagline",
   description: "description",
   monogram: "monogram",
   accent_color: "accentColor",
   logo_path: "logoPath",
-  beta_banner_enabled: "betaBannerEnabled",
-  feedback_in_workspace: "feedbackInWorkspace",
-  feedback_url: "feedbackUrl",
-  footer_variant: "footerVariant",
+  banner_enabled: "bannerEnabled",
+  banner_message: "bannerMessage",
+  banner_link_url: "bannerLinkUrl",
+  banner_link_label: "bannerLinkLabel",
   footer_subtitle: "footerSubtitle",
   footer_sections: "footerSections",
   footer_socials: "footerSocials",
@@ -69,9 +62,6 @@ const columnToKey = {
   credit_url: "creditUrl",
   credit_suffix: "creditSuffix",
   og_alt: "ogAlt",
-  og_headline: "ogHeadline",
-  og_tagline: "ogTagline",
-  og_motto: "ogMotto",
 } as const satisfies Record<SettingsColumn, keyof InstanceSettings>;
 
 export const instanceSettingsColumn = (key: keyof InstanceSettings) =>

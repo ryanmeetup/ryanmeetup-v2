@@ -11,10 +11,10 @@
  */
 export function AccentEmailPreview({
   accentColor,
-  productName,
+  wordmark,
 }: {
   accentColor: string;
-  productName: string;
+  wordmark: string;
 }) {
   return (
     <figure className="m-0">
@@ -26,7 +26,7 @@ export function AccentEmailPreview({
           <div style={{ borderTop: `4px solid ${accentColor}` }} />
           <div className="border-b border-[#d9dcda] px-3 py-2.5">
             <p className="truncate font-cooper text-[11px] uppercase leading-none text-[#111827]">
-              {productName}
+              {wordmark}
             </p>
             <p className="mt-2 font-cooper text-[13px] leading-none text-[#111827]">
               Your workload rundown

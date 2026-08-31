@@ -1,7 +1,7 @@
 import type { AccessPreview } from "@/lib/workspace/workspace-types";
 import { AccessPreviewBanner } from "./AccessPreviewBanner";
-import { BetaBanner } from "./BetaBanner";
 import { DemoBanner } from "./DemoBanner";
+import { InstanceBanner } from "./InstanceBanner";
 
 export function TaskBanners({
   demoMode,
@@ -12,7 +12,7 @@ export function TaskBanners({
 }) {
   return (
     <div className="sticky top-[6.5rem] z-10 sm:top-16">
-      {demoMode ? <DemoBanner /> : <BetaBanner />}
+      {demoMode ? <DemoBanner /> : <InstanceBanner />}
       <AccessPreviewBanner preview={preview} />
     </div>
   );

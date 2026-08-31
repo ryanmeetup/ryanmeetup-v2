@@ -3,11 +3,11 @@
 import { useSyncExternalStore } from "react";
 import { Banner, IconButton } from "@ryanmeetup/ui";
 import { FiInfo, FiX } from "react-icons/fi";
-import { betaBannerSegments } from "@/lib/beta-banner";
+import { bannerSegments, bannerText } from "@/lib/banner";
 import { useInstance } from "./InstanceProvider";
 
-const dismissalKey = "ryanmeetup.tasks.beta-banner.dismissed.v1";
-const dismissalEvent = "ryanmeetup:beta-banner-dismissed";
+const dismissalKey = "ryanmeetup.tasks.banner.dismissed.v1";
+const dismissalEvent = "ryanmeetup:instance-banner-dismissed";
 
 function subscribe(onStoreChange: () => void) {
   window.addEventListener("storage", onStoreChange);
@@ -19,22 +19,30 @@ function subscribe(onStoreChange: () => void) {
   };
 }
 
-function isVisible() {
-  return localStorage.getItem(dismissalKey) !== "true";
+function readDismissed() {
+  return localStorage.getItem(dismissalKey);
 }
 
 /**
- * Whether this banner appears at all, and where it sends people, belong to the
- * instance — see `lib/beta-banner.ts`. Nothing here names a deployment.
+ * Whether this banner appears at all, what it says, and where it sends people
+ * belong to the instance — see `lib/banner.ts`. Nothing here names a
+ * deployment.
+ *
+ * The dismissal stores the notice that was dismissed rather than a flag,
+ * because the message is editable: an owner who replaces a stale beta notice
+ * with a maintenance window is announcing something new, and a plain flag
+ * would hide it from everyone who had waved the old one away.
  */
-export function BetaBanner() {
-  const segments = betaBannerSegments(useInstance());
-  const dismissed = !useSyncExternalStore(subscribe, isVisible, () => true);
+export function InstanceBanner() {
+  const settings = useInstance();
+  const segments = bannerSegments(settings);
+  const notice = bannerText(settings);
+  const dismissed = useSyncExternalStore(subscribe, readDismissed, () => null);
 
-  if (!segments || dismissed) return null;
+  if (!segments || dismissed === notice) return null;
 
   function dismiss() {
-    localStorage.setItem(dismissalKey, "true");
+    localStorage.setItem(dismissalKey, notice ?? "");
     window.dispatchEvent(new Event(dismissalEvent));
   }
 
@@ -42,12 +50,12 @@ export function BetaBanner() {
     <Banner
       variant="info"
       icon={<FiInfo className="h-6 w-6" aria-hidden />}
-      aria-label="Beta notice"
+      aria-label="Workspace notice"
       mobileInline
       action={
         <IconButton
           type="button"
-          label="Dismiss beta notice"
+          label="Dismiss notice"
           onClick={dismiss}
           className="text-white hover:bg-white/15 focus-visible:ring-white/70 dark:text-white"
         >

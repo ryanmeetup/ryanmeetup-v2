@@ -11,120 +11,70 @@ describe("instanceSettingsSchema", () => {
   it("clears any field with an explicit null", () => {
     // Every column is nullable, and null is how the form drops a stored
     // override so the value goes back to the build-time default.
-    expect(
-      instanceSettingsSchema({ name: null, footerSubtitle: null }),
-    ).toEqual({ name: null, footerSubtitle: null });
+    expect(instanceSettingsSchema({ name: null })).toEqual({ name: null });
   });
 
   it("requires https for every URL, matching the column checks", () => {
-    expect(instanceSettingsSchema({ creditUrl: "https://ryanle.dev" })).toEqual(
-      { creditUrl: "https://ryanle.dev/" },
-    );
-    expect(
-      instanceSettingsSchema({ creditUrl: "http://ryanle.dev" }),
-    ).toBeNull();
     expect(instanceSettingsSchema({ githubUrl: "not a url" })).toBeNull();
   });
 
-  it("accepts an https page or a mailto address as the feedback link", () => {
+  it("accepts an https page or a mailto address as the banner link", () => {
     expect(
-      instanceSettingsSchema({ feedbackUrl: " https://acme.example/bugs " }),
-    ).toEqual({ feedbackUrl: "https://acme.example/bugs" });
+      instanceSettingsSchema({ bannerLinkUrl: " https://acme.example/bugs " }),
+    ).toEqual({ bannerLinkUrl: "https://acme.example/bugs" });
     expect(
-      instanceSettingsSchema({ feedbackUrl: "mailto:team@acme.example" }),
-    ).toEqual({ feedbackUrl: "mailto:team@acme.example" });
-    expect(instanceSettingsSchema({ feedbackUrl: "acme.example" })).toBeNull();
+      instanceSettingsSchema({ bannerLinkUrl: "mailto:team@acme.example" }),
+    ).toEqual({ bannerLinkUrl: "mailto:team@acme.example" });
     expect(
-      instanceSettingsSchema({ feedbackUrl: "javascript:alert(1)" }),
+      instanceSettingsSchema({ bannerLinkUrl: "acme.example" }),
+    ).toBeNull();
+    expect(
+      instanceSettingsSchema({ bannerLinkUrl: "javascript:alert(1)" }),
     ).toBeNull();
     // Clearing it is how an instance offers no link at all.
-    expect(instanceSettingsSchema({ feedbackUrl: null })).toEqual({
-      feedbackUrl: null,
+    expect(instanceSettingsSchema({ bannerLinkUrl: null })).toEqual({
+      bannerLinkUrl: null,
     });
   });
 
-  it("keeps the banner switches off when they are set to false", () => {
+  it("takes the notice and its link label as the instance's own words", () => {
+    expect(
+      instanceSettingsSchema({
+        bannerMessage: "  Read-only until 3pm.  ",
+        bannerLinkLabel: " See the status page ",
+      }),
+    ).toEqual({
+      bannerMessage: "Read-only until 3pm.",
+      bannerLinkLabel: "See the status page",
+    });
+    // Both are one line of chrome above the workspace, so both are bounded.
+    expect(
+      instanceSettingsSchema({ bannerMessage: "x".repeat(201) }),
+    ).toBeNull();
+    expect(
+      instanceSettingsSchema({ bannerLinkLabel: "x".repeat(61) }),
+    ).toBeNull();
+    // Clearing either falls back: the deployment's notice, and a label
+    // derived from the address.
+    expect(
+      instanceSettingsSchema({ bannerMessage: null, bannerLinkLabel: null }),
+    ).toEqual({ bannerMessage: null, bannerLinkLabel: null });
+  });
+
+  it("keeps the banner switch off when it is set to false", () => {
     // `false` is a value, not an absent field: it is how an instance hides the
-    // banner or declines to collect feedback as its own tasks.
-    expect(
-      instanceSettingsSchema({
-        betaBannerEnabled: false,
-        feedbackInWorkspace: false,
-      }),
-    ).toEqual({ betaBannerEnabled: false, feedbackInWorkspace: false });
-    expect(instanceSettingsSchema({ betaBannerEnabled: "yes" })).toBeNull();
+    // banner entirely.
+    expect(instanceSettingsSchema({ bannerEnabled: false })).toEqual({
+      bannerEnabled: false,
+    });
+    expect(instanceSettingsSchema({ bannerEnabled: "yes" })).toBeNull();
   });
 
-  it("keeps emptied footer lists rather than reading them as no change", () => {
-    expect(
-      instanceSettingsSchema({ footerSections: [], footerSocials: [] }),
-    ).toEqual({ footerSections: [], footerSocials: [] });
-  });
-
-  it("validates footer sections and the footer variant", () => {
-    expect(
-      instanceSettingsSchema({
-        footerSections: [
-          {
-            title: "Built with",
-            links: [{ label: "Next.js", url: "nextjs.org" }],
-          },
-        ],
-      }),
-    ).toEqual({
-      footerSections: [
-        {
-          title: "Built with",
-          links: [{ label: "Next.js", url: "https://nextjs.org/" }],
-        },
-      ],
-    });
-    // A column with no heading, and a link with no label, are both rejected.
-    expect(
-      instanceSettingsSchema({ footerSections: [{ title: "", links: [] }] }),
-    ).toBeNull();
-    expect(
-      instanceSettingsSchema({
-        footerSections: [
-          { title: "Docs", links: [{ label: "", url: "https://a.co" }] },
-        ],
-      }),
-    ).toBeNull();
-    expect(instanceSettingsSchema({ footerVariant: "minimal" })).toEqual({
-      footerVariant: "minimal",
-    });
-    expect(instanceSettingsSchema({ footerVariant: "enormous" })).toBeNull();
-  });
-
-  it("validates footer socials against the known platforms", () => {
-    expect(
-      instanceSettingsSchema({
-        footerSocials: [{ platform: "linkedin", url: "linkedin.com/in/x" }],
-      }),
-    ).toEqual({
-      footerSocials: [
-        { platform: "linkedin", url: "https://linkedin.com/in/x" },
-      ],
-    });
-    expect(
-      instanceSettingsSchema({
-        footerSocials: [{ platform: "myspace", url: "https://a.co" }],
-      }),
-    ).toBeNull();
-    // The same network twice would render the same icon twice.
-    expect(
-      instanceSettingsSchema({
-        footerSocials: [
-          { platform: "github", url: "https://github.com/a" },
-          { platform: "github", url: "https://github.com/b" },
-        ],
-      }),
-    ).toBeNull();
-    expect(
-      instanceSettingsSchema({
-        footerSocials: [{ platform: "github", url: "http://github.com/a" }],
-      }),
-    ).toBeNull();
+  it("rejects footer presentation updates", () => {
+    expect(instanceSettingsSchema({ footerSubtitle: "Est. 2019" })).toBeNull();
+    expect(instanceSettingsSchema({ footerSections: [] })).toBeNull();
+    expect(instanceSettingsSchema({ footerSocials: [] })).toBeNull();
+    expect(instanceSettingsSchema({ creditLabel: "Acme" })).toBeNull();
   });
 
   it("rejects unknown keys and empty bodies", () => {

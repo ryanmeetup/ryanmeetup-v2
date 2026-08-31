@@ -1,19 +1,16 @@
-import {
-  instanceDefaults,
-  isFeedbackHref,
-  type InstanceSettings,
-} from "@/lib/instance";
-import { normalizeHttpUrl } from "@ryanmeetup/utils";
+import { instanceDefaults, type InstanceSettings } from "@/lib/instance";
 
-/** Every setting edited as free text. The structured footer values — the
- *  variant, its sections, and its socials — get their own controls. */
+/** Every setting edited as free text. Footer presentation is not editable. */
 export type InstanceTextKey = Exclude<
   keyof InstanceSettings,
   | "footerSections"
   | "footerSocials"
-  | "footerVariant"
-  | "betaBannerEnabled"
-  | "feedbackInWorkspace"
+  | "footerSubtitle"
+  | "creditPrefix"
+  | "creditLabel"
+  | "creditUrl"
+  | "creditSuffix"
+  | "bannerEnabled"
 >;
 
 /** Draft values keyed by setting. `""` means "inherit the default". */
@@ -35,21 +32,7 @@ export const identityFields: InstanceFieldSpec[] = [
     label: "Instance name",
     placeholder: "e.g. Acme Collective",
     maxLength: 80,
-    hint: "The wordmark in the sidebar, header, sign-in card, and footer.",
-  },
-  {
-    key: "productName",
-    label: "Product name",
-    placeholder: "e.g. Acme Tasks",
-    maxLength: 120,
-    hint: "Browser tab titles, email subjects, and link previews.",
-  },
-  {
-    key: "tagline",
-    label: "Tagline",
-    placeholder: "e.g. Task tracker",
-    maxLength: 80,
-    hint: "The small label under the sidebar wordmark.",
+    hint: "The wordmark in the sidebar, header, sign-in card, and footer, and the name in browser tab titles, email subjects, and link previews.",
   },
   {
     key: "description",
@@ -62,84 +45,53 @@ export const identityFields: InstanceFieldSpec[] = [
 ];
 
 /**
- * The beta banner's settings. Unlike the branding fields above, these are
- * edited as explicit values rather than as overrides of a compiled default:
- * "no feedback link" is a real choice an instance makes, and a blank input
+ * The banner's settings. Unlike the branding fields above, these are edited as
+ * explicit values rather than as overrides of a compiled default: "no link"
+ * and "no message" are real choices an instance makes, and a blank input
  * cannot mean both that and "inherit". `BannerSettingsModal` seeds its inputs
- * from the resolved settings and writes only what actually changes.
+ * from the resolved settings and writes only what actually changes, so a
+ * dialog that is opened and closed leaves the instance inheriting.
  */
 export const bannerKeys = [
-  "betaBannerEnabled",
-  "feedbackInWorkspace",
-  "feedbackUrl",
+  "bannerEnabled",
+  "bannerMessage",
+  "bannerLinkUrl",
+  "bannerLinkLabel",
 ] as const satisfies readonly (keyof InstanceSettings)[];
 
-export const footerTextFields: InstanceFieldSpec[] = [
+/**
+ * The two the owner writes. Both are ordinary override fields -- blank inherits
+ * -- so they use the same field idiom as Identity: an empty message falls back
+ * to this deployment's notice, and an empty label lets the link phrase itself
+ * from its address.
+ */
+export const bannerFields: InstanceFieldSpec[] = [
   {
-    key: "footerSubtitle",
-    label: "Footer subtitle",
-    placeholder: "e.g. Est. 2019",
-    maxLength: 80,
-    hint: "The second line of the oversized footer wordmark.",
-  },
-];
-
-export const creditFields: InstanceFieldSpec[] = [
-  {
-    key: "creditLabel",
-    label: "Credit name",
-    placeholder: "e.g. Jordan Rivera",
-    maxLength: 80,
-    hint: "The linked words.",
+    key: "bannerMessage",
+    label: "Message",
+    placeholder: "e.g. Scheduled maintenance this Saturday morning.",
+    maxLength: 200,
+    multiline: true,
+    hint: "One sentence above the workspace. Members can dismiss it, and a rewrite brings it back for everyone.",
   },
   {
-    key: "creditUrl",
-    label: "Credit link",
-    placeholder: "e.g. example.com",
-    maxLength: 2048,
-    hint: "Where the name points.",
-  },
-];
-
-/** The sentence around the link. Rarely touched, so it stays folded away. */
-export const creditWordingFields: InstanceFieldSpec[] = [
-  {
-    key: "creditPrefix",
-    label: "Before the link",
-    placeholder: "e.g. Built by ",
-    maxLength: 80,
-    hint: "Include the trailing space.",
-  },
-  {
-    key: "creditSuffix",
-    label: "After the link",
-    placeholder: "e.g. . All rights reserved.",
-    maxLength: 80,
-  },
-];
-
-export const previewFields: InstanceFieldSpec[] = [
-  {
-    key: "ogHeadline",
-    label: "Headline",
-    placeholder: "e.g. Tasks",
+    key: "bannerLinkLabel",
+    label: "Link label",
+    placeholder: "e.g. Read the details",
     maxLength: 60,
-    hint: "The large words on the card.",
+    hint: "What the link reads as. Blank uses the email address, or “Learn more” for a page.",
   },
-  {
-    key: "ogTagline",
-    label: "Card tagline",
-    placeholder: "e.g. Private workspace for the core team",
-    maxLength: 120,
-    hint: "The line under the headline.",
-  },
-  {
-    key: "ogMotto",
-    label: "Card footer",
-    placeholder: "e.g. Plan it. Assign it. Get it done.",
-    maxLength: 120,
-    hint: "The line beside the status dot.",
-  },
+];
+
+/** The link is an explicit value rather than an override: blank means none. */
+export const bannerLinkKey: InstanceTextKey = "bannerLinkUrl";
+
+/**
+ * The card's words are the instance name and description, edited under
+ * Identity. What is left here is the badge and how the card is described to
+ * anyone who cannot see it.
+ */
+export const previewFields: InstanceFieldSpec[] = [
   {
     key: "monogram",
     label: "Monogram",
@@ -150,7 +102,7 @@ export const previewFields: InstanceFieldSpec[] = [
   {
     key: "ogAlt",
     label: "Alt text",
-    placeholder: "e.g. Acme Tasks — private team workspace",
+    placeholder: "e.g. Acme — private team workspace",
     maxLength: 200,
     multiline: true,
     hint: "Describes the card for screen readers and clients that cannot load the image.",
@@ -167,15 +119,7 @@ export const accentField: InstanceFieldSpec = {
 /** The wordmark is edited through its own upload control, not a text input. */
 export const logoKey: InstanceTextKey = "logoPath";
 
-const urlKeys = new Set<InstanceTextKey>(["creditUrl"]);
-
 export const hexPattern = /^#[0-9a-fA-F]{6}$/;
-
-/** An https URL, or null when the value cannot be one. */
-export function httpsOrNull(value: string) {
-  const url = normalizeHttpUrl(value);
-  return url && url.startsWith("https://") ? url : null;
-}
 
 /** The stored override for a key, or null when the instance inherits it. */
 export function storedText(
@@ -225,11 +169,6 @@ export function validateTextFields(
     if (!value) continue;
     if (value.length > spec.maxLength)
       found[spec.key] = `Keep this to ${spec.maxLength} characters or fewer.`;
-    else if (urlKeys.has(spec.key) && !httpsOrNull(value))
-      found[spec.key] = "Enter a full https:// address.";
-    else if (spec.key === "feedbackUrl" && !isFeedbackHref(value))
-      found[spec.key] =
-        "Enter a full https:// address or a mailto: email link.";
     else if (spec.key === "monogram" && [...value].length !== 1)
       found[spec.key] = "Use exactly one character.";
     else if (spec.key === "accentColor" && !hexPattern.test(value))

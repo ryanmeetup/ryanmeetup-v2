@@ -75,7 +75,7 @@ export function EmailSettingsModal({
       <div className="settings-form space-y-5">
         <AccentEmailPreview
           accentColor={preview.accentColor}
-          productName={preview.productName.toUpperCase()}
+          wordmark={preview.name.toUpperCase()}
         />
         <InstanceSettingField
           spec={accentField}

@@ -2,25 +2,24 @@
 
 import { Banner, IconButton } from "@ryanmeetup/ui";
 import { FiInfo, FiX } from "react-icons/fi";
-import { betaBannerSegments } from "@/lib/beta-banner";
+import { bannerSegments } from "@/lib/banner";
 import type { InstanceSettings } from "@/lib/instance";
 
 /**
  * The banner as members will see it, or the empty state when the instance has
- * turned it off. Deliberately inert: the links are text, and the dismiss
- * control is decorative, so the preview cannot navigate anyone away.
+ * turned it off or left it without anything to say. Deliberately inert: the
+ * links are text, and the dismiss control is decorative, so the preview cannot
+ * navigate anyone away.
  */
-export function BetaBannerPreview({
-  settings,
-}: {
-  settings: InstanceSettings;
-}) {
-  const segments = betaBannerSegments(settings);
+export function BannerPreview({ settings }: { settings: InstanceSettings }) {
+  const segments = bannerSegments(settings);
 
   if (!segments)
     return (
       <p className="rounded-xl border border-dashed border-black/15 p-4 text-sm text-black/55 dark:border-white/15 dark:text-white/55">
-        The banner is off. Members see the workspace with nothing above it.
+        {settings.bannerEnabled
+          ? "The banner has nothing to say. Members see the workspace with nothing above it."
+          : "The banner is off. Members see the workspace with nothing above it."}
       </p>
     );
 
@@ -35,7 +34,7 @@ export function BetaBannerPreview({
         action={
           <IconButton
             type="button"
-            label="Dismiss beta notice"
+            label="Dismiss notice"
             tooltip={false}
             tabIndex={-1}
             aria-hidden

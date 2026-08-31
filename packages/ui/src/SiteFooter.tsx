@@ -24,6 +24,8 @@ export type SiteFooterCredit = {
 
 export type SiteFooterProps = {
   title: string;
+  /** Optional rendered wordmark. `title` remains the accessible fallback. */
+  wordmark?: ReactNode;
   subtitle?: string;
   sections?: SiteFooterSection[];
   socialLinks?: SiteFooterLink[];
@@ -65,6 +67,7 @@ function FooterCredit({ credit }: { credit: SiteFooterCredit }) {
 
 export function SiteFooter({
   title,
+  wordmark,
   subtitle = "",
   sections = [],
   socialLinks = [],
@@ -89,7 +92,7 @@ export function SiteFooter({
               href={homeHref}
               className={`rounded-sm font-cooper text-lg uppercase leading-none tracking-wide text-black dark:text-white ${focusRing}`}
             >
-              {title}
+              {wordmark ?? title}
             </Link>
             {subtitle && (
               <p className="text-[11px] font-semibold uppercase tracking-[0.28em]">
@@ -157,7 +160,7 @@ export function SiteFooter({
               className="title text-4xl sm:text-5xl md:text-6xl"
               size="h2"
             >
-              {title}
+              {wordmark ?? title}
             </Heading>
             {subtitle && (
               <p className="title mt-[2px] text-center font-cooper text-xl uppercase sm:text-2xl md:text-3xl">

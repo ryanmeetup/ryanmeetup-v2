@@ -68,7 +68,7 @@ function hexColor(raw: string | undefined, fallback: string) {
 /** One entry in a footer link section. */
 export type InstanceFooterLink = { label: string; url: string };
 
-/** A titled column of links in the branded footer. */
+/** A titled group of links displayed inline in the Tasks footer. */
 export type InstanceFooterSection = {
   title: string;
   links: InstanceFooterLink[];
@@ -95,31 +95,6 @@ export type InstanceFooterSocial = {
   url: string;
 };
 
-/**
- * How much footer an instance wants.
- *
- * `minimal` is the default: a small wordmark, the section links inline,
- * socials, and the credit. It is the honest baseline for a deployment that has
- * said nothing about itself, because an unconfigured instance has no wordmark
- * worth setting six lines tall.
- *
- * `branded` is the same content as a marketing footer — an oversized wordmark
- * with a subtitle, titled link columns, social icons, and a credit sentence.
- * Every part of it is data, so it is a shape any deployment can fill rather
- * than a reproduction of one organization's footer, but it only pays off once
- * an instance has filled it in, so it is opt-in. `none` removes the footer
- * entirely.
- */
-export const footerVariants = ["branded", "minimal", "none"] as const;
-export type InstanceFooterVariant = (typeof footerVariants)[number];
-
-function footerVariant(raw: string | undefined): InstanceFooterVariant {
-  const candidate = text(raw, "minimal");
-  return (footerVariants as readonly string[]).includes(candidate)
-    ? (candidate as InstanceFooterVariant)
-    : "minimal";
-}
-
 function assetPath(raw: string | undefined) {
   const candidate = optionalText(raw);
   if (!candidate) return null;
@@ -134,25 +109,25 @@ function assetPath(raw: string | undefined) {
 }
 
 /** Shared with the settings form and the API so all three agree. */
-export function isFeedbackHref(value: string) {
+export function isBannerLinkHref(value: string) {
   return (
     /^https:\/\/[^\s]+$/.test(value) || /^mailto:[^\s@]+@[^\s@]+$/.test(value)
   );
 }
 
 /**
- * Where the beta banner sends someone with a bug or an idea. An instance may
- * point anywhere -- a tracker, a form, a shared inbox -- so the only thing the
- * codebase can assert is the shape: an https page or a mailto address.
- * Anything else is a misconfiguration worth failing loudly on, since the value
- * is rendered as a link users are invited to click.
+ * Where the banner's link goes. An instance may point anywhere -- a status
+ * page, a tracker, a form, a shared inbox -- so the only thing the codebase
+ * can assert is the shape: an https page or a mailto address. Anything else is
+ * a misconfiguration worth failing loudly on, since the value is rendered as a
+ * link users are invited to click.
  */
-function feedbackHref(raw: string | undefined, fallback: string | null) {
+function bannerLinkHref(raw: string | undefined, fallback: string | null) {
   const candidate = optionalText(raw) ?? fallback;
   if (!candidate) return null;
-  if (!isFeedbackHref(candidate)) {
+  if (!isBannerLinkHref(candidate)) {
     throw new Error(
-      "NEXT_PUBLIC_INSTANCE_FEEDBACK_URL must be an https:// address or a mailto: link.",
+      "NEXT_PUBLIC_INSTANCE_BANNER_LINK_URL must be an https:// address or a mailto: link.",
     );
   }
   return candidate;
@@ -169,16 +144,15 @@ export const isDemoBuild =
  */
 const configuredName = optionalText(process.env.NEXT_PUBLIC_INSTANCE_NAME);
 const name = configuredName ?? "Workspace";
-const productName = text(
-  process.env.NEXT_PUBLIC_INSTANCE_PRODUCT_NAME,
-  `${name} Tasks`,
-);
 // Neutral for every build, demo or configured. The prefix composes public task
 // keys and changelog versions, so a deployment that has not chosen one should
 // not ship another deployment's initials. An instance sets its own at first
 // deploy, before any keys are shared -- changing it later renames every
 // existing `/task/<key>` link.
-const taskKeyPrefix = keyPrefix(process.env.NEXT_PUBLIC_TASK_KEY_PREFIX, "TASK");
+const taskKeyPrefix = keyPrefix(
+  process.env.NEXT_PUBLIC_TASK_KEY_PREFIX,
+  "TASK",
+);
 
 /**
  * Build-time tier. These compose identifiers, so they are compiled in and shown
@@ -196,12 +170,12 @@ export const instanceBuild = {
 
 /** Runtime tier. Presentational only; overridable from `instance_settings`. */
 export type InstanceSettings = {
-  /** Organization or person the workspace belongs to. Used as the wordmark. */
+  /**
+   * Organization or person the workspace belongs to. It is the wordmark, and
+   * the only name the workspace has: page titles, link previews, and email
+   * headers all read from it rather than from a separate product name.
+   */
   name: string;
-  /** Full product name used in page titles, metadata, and email subjects. */
-  productName: string;
-  /** Short label under the sidebar wordmark. */
-  tagline: string;
   /** Metadata description for search, link previews, and the OG image. */
   description: string;
   /** Single letter shown in the OG image badge. */
@@ -210,24 +184,25 @@ export type InstanceSettings = {
   accentColor: string;
   /** Root-relative path or public URL of an image wordmark. Null uses `name`. */
   logoPath: string | null;
-  /** Whether the "this is a beta" notice appears above the workspace. */
-  betaBannerEnabled: boolean;
+  /** Whether the notice above the workspace appears at all. */
+  bannerEnabled: boolean;
   /**
-   * Whether this workspace takes its own feedback as tasks. True only where
-   * the product is being dogfooded by the people who build it; everywhere else
-   * a bug report filed here would land in a stranger's backlog.
+   * What the notice says. Free text the owner writes, so the banner can carry
+   * a beta warning, a maintenance window, or anything else this instance needs
+   * above the workspace. It never composes the instance name: the wordmark
+   * belongs to one deployment, and the banner speaks for the workspace.
    */
-  feedbackInWorkspace: boolean;
+  bannerMessage: string;
   /**
-   * Where the banner sends people instead: an https page or a mailto address.
-   * Null shows no link.
+   * Where the banner's link goes: an https page or a mailto address. Null
+   * shows no link.
    */
-  feedbackUrl: string | null;
-  /** How much footer to render. See `footerVariants`. */
-  footerVariant: InstanceFooterVariant;
-  /** Second line under the wordmark. Shown by `branded` and `minimal`. */
+  bannerLinkUrl: string | null;
+  /** What the link reads as. Null derives a phrase from the address. */
+  bannerLinkLabel: string | null;
+  /** Second line under the footer wordmark. */
   footerSubtitle: string;
-  /** Titled link columns; `minimal` flattens them into one inline row. */
+  /** Titled link groups, flattened into the footer's inline link row. */
   footerSections: InstanceFooterSection[];
   /** Social icons beside the credit. An empty array drops them. */
   footerSocials: InstanceFooterSocial[];
@@ -236,17 +211,13 @@ export type InstanceSettings = {
   creditLabel: string;
   creditUrl: string;
   creditSuffix: string;
+  /** Describes the link-preview image for readers who cannot see it. */
   ogAlt: string;
-  ogHeadline: string;
-  ogTagline: string;
-  ogMotto: string;
 };
 
 /** Compiled-in defaults, used wherever `instance_settings` has no value. */
 export const instanceDefaults: InstanceSettings = {
   name,
-  productName,
-  tagline: text(process.env.NEXT_PUBLIC_INSTANCE_TAGLINE, "Task tracker"),
   description: text(
     process.env.NEXT_PUBLIC_INSTANCE_DESCRIPTION,
     configuredName
@@ -259,22 +230,24 @@ export const instanceDefaults: InstanceSettings = {
   ).charAt(0),
   accentColor: hexColor(process.env.NEXT_PUBLIC_INSTANCE_ACCENT, "#ee1a25"),
   logoPath: assetPath(process.env.NEXT_PUBLIC_INSTANCE_LOGO_PATH),
-  betaBannerEnabled: flag(process.env.NEXT_PUBLIC_INSTANCE_BETA_BANNER, true),
-  // Off by default. Filing feedback as a task only reaches anyone in the
-  // workspace where this product is being built; every other deployment's
-  // backlog belongs to its own team.
-  feedbackInWorkspace: flag(
-    process.env.NEXT_PUBLIC_INSTANCE_FEEDBACK_IN_WORKSPACE,
-    false,
+  bannerEnabled: flag(process.env.NEXT_PUBLIC_INSTANCE_BANNER, true),
+  // The app is what is in beta, not the organization the workspace belongs to,
+  // so the default sentence names neither. An instance past its beta rewrites
+  // this from /admin/settings or turns the banner off.
+  bannerMessage: text(
+    process.env.NEXT_PUBLIC_INSTANCE_BANNER_MESSAGE,
+    "This workspace is in beta. Found an issue or have an idea?",
   ),
   // Like the build credit below, this names the person who maintains the
   // software rather than whoever the workspace belongs to, so it is the right
-  // default for every deployment except the one where the product is built.
-  feedbackUrl: feedbackHref(
-    process.env.NEXT_PUBLIC_INSTANCE_FEEDBACK_URL,
+  // default for every deployment.
+  bannerLinkUrl: bannerLinkHref(
+    process.env.NEXT_PUBLIC_INSTANCE_BANNER_LINK_URL,
     "mailto:ryan@ryanmeetup.com",
   ),
-  footerVariant: footerVariant(process.env.NEXT_PUBLIC_INSTANCE_FOOTER_VARIANT),
+  bannerLinkLabel: optionalText(
+    process.env.NEXT_PUBLIC_INSTANCE_BANNER_LINK_LABEL,
+  ),
   // Nothing by default: the subtitle sits directly under the wordmark, and an
   // unnamed build has nothing to say there.
   footerSubtitle: text(process.env.NEXT_PUBLIC_INSTANCE_FOOTER_SUBTITLE, ""),
@@ -311,16 +284,7 @@ export const instanceDefaults: InstanceSettings = {
   ),
   ogAlt: text(
     process.env.NEXT_PUBLIC_INSTANCE_OG_ALT,
-    `${productName} — private team workspace`,
-  ),
-  ogHeadline: text(process.env.NEXT_PUBLIC_INSTANCE_OG_HEADLINE, "Tasks"),
-  ogTagline: text(
-    process.env.NEXT_PUBLIC_INSTANCE_OG_TAGLINE,
-    "Private workspace for the core team",
-  ),
-  ogMotto: text(
-    process.env.NEXT_PUBLIC_INSTANCE_OG_MOTTO,
-    "Plan it. Assign it. Get it done.",
+    `${name} — private team workspace`,
   ),
 };
 
@@ -336,19 +300,17 @@ export const instanceDefaults: InstanceSettings = {
  */
 export const demoInstanceSettings: InstanceSettings = {
   name: "Workspace",
-  productName: "Team Tasks",
-  tagline: "Team task tracker",
   description:
     "A shared workspace for planning projects, assigning tasks, and keeping work moving.",
   monogram: "W",
   accentColor: "#2563eb",
   logoPath: null,
-  // The demo replaces the beta notice with its own banner, and it is a public
-  // showcase, so it neither claims a feedback channel nor publishes an address.
-  betaBannerEnabled: false,
-  feedbackInWorkspace: false,
-  feedbackUrl: null,
-  footerVariant: "minimal",
+  // The demo replaces the instance notice with its own banner, and it is a
+  // public showcase, so it neither claims a channel nor publishes an address.
+  bannerEnabled: false,
+  bannerMessage: "This workspace is in beta. Found an issue or have an idea?",
+  bannerLinkUrl: null,
+  bannerLinkLabel: null,
   footerSubtitle: "Team task tracker",
   footerSections: [],
   footerSocials: [],
@@ -356,16 +318,14 @@ export const demoInstanceSettings: InstanceSettings = {
   creditLabel: "Ryan Le",
   creditUrl: "https://ryanle.dev/",
   creditSuffix: ". All Rights Reserved.",
-  ogAlt: "Team Tasks — shared team workspace",
-  ogHeadline: "Tasks",
-  ogTagline: "Shared workspace for your team",
-  ogMotto: "Plan it. Assign it. Get it done.",
+  ogAlt: "Workspace — shared team workspace",
 };
 
 /** Which `InstanceSettings` keys may be cleared back to their default. */
 export const nullableInstanceSettings = [
   "logoPath",
-  "feedbackUrl",
+  "bannerLinkUrl",
+  "bannerLinkLabel",
 ] as const satisfies readonly (keyof InstanceSettings)[];
 
 type NullableKey = (typeof nullableInstanceSettings)[number];
@@ -386,9 +346,7 @@ export function resolveInstanceSettings(
 ): InstanceSettings {
   if (!overrides) return defaults;
   const resolved = { ...defaults };
-  for (const key of Object.keys(
-    defaults,
-  ) as (keyof InstanceSettings)[]) {
+  for (const key of Object.keys(defaults) as (keyof InstanceSettings)[]) {
     const override = overrides[key];
     if (override === undefined) continue;
     if (override === null) {
@@ -398,14 +356,47 @@ export function resolveInstanceSettings(
       continue;
     }
     // Not every setting is a string — the footer sections and socials are
-    // arrays and `footerVariant` is a union — so the assignment is widened
+    // arrays — so the assignment is widened
     // rather than asserted per key. The value was validated on the way in.
     (resolved as Record<string, unknown>)[key] = override;
   }
   return resolved;
 }
 
-/** Title for a route, matching the layout's `%s | <product>` template. */
+/**
+ * The link-preview card carries no copy of its own: it shows the monogram, the
+ * instance name, and the description. The two helpers below are the only thing
+ * `app/opengraph-image.tsx` and `components/admin/InstanceLinkPreview.tsx`
+ * share, since the route renders through Satori and the preview through the
+ * browser. Keeping the fitting rules here is what stops the owner's preview
+ * from disagreeing with the image other apps actually fetch.
+ */
+
+/**
+ * The description as the card shows it. The metadata sentence may run to 400
+ * characters, which the card has no room for, so it is cut back to a word
+ * boundary rather than allowed to push the rest of the layout off the image.
+ */
+export function ogCardDescription(description: string, limit = 150) {
+  if (description.length <= limit) return description;
+  const cut = description.slice(0, limit);
+  const lastSpace = cut.lastIndexOf(" ");
+  const trimmed = lastSpace > 0 ? cut.slice(0, lastSpace) : cut;
+  return `${trimmed.replace(/[.,;:—-]$/, "")}…`;
+}
+
+/**
+ * How far to shrink the name from the card's largest size. A wordmark set for
+ * "Acme" would run off the card at "The Northern Districts Collective", and the
+ * name is free text up to 80 characters, so the size follows its length.
+ */
+export function ogCardNameScale(name: string) {
+  if (name.length <= 14) return 1;
+  if (name.length <= 28) return 0.66;
+  return 0.44;
+}
+
+/** Title for a route, matching the layout's `%s | <name>` template. */
 export function instancePageTitle(settings: InstanceSettings, title: string) {
-  return `${title} | ${settings.productName}`;
+  return `${title} | ${settings.name}`;
 }

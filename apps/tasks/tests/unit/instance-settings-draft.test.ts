@@ -14,28 +14,24 @@ describe("settings dialog drafts", () => {
   it("seeds blanks where the instance inherits, values where it overrides", () => {
     expect(draftForKeys(keys, { name: "Acme" })).toEqual({
       name: "Acme",
-      productName: "",
-      tagline: "",
       description: "",
     });
     expect(draftForKeys(keys, null)).toEqual({
       name: "",
-      productName: "",
-      tagline: "",
       description: "",
     });
   });
 
   it("sends only what changed, and nulls a field that was emptied", () => {
-    const stored = { name: "Acme", tagline: "Tracker" };
+    const stored = { name: "Acme", description: "Where Acme works." };
     const draft = draftForKeys(keys, stored);
     draft.name = "Acme Collective";
     // Clearing a field drops the override so the build default applies again.
-    draft.tagline = "  ";
+    draft.description = "  ";
 
     expect(diffTextKeys(keys, draft, stored)).toEqual({
       name: "Acme Collective",
-      tagline: null,
+      description: null,
     });
   });
 
@@ -45,12 +41,12 @@ describe("settings dialog drafts", () => {
   });
 
   it("scopes a diff to the dialog's own keys", () => {
-    // The footer dialog must never write identity columns, even though the
-    // stored row it was seeded from contains them.
-    const footerKeys: InstanceTextKey[] = ["footerSubtitle"];
-    const draft = { footerSubtitle: "Est. 2019" } as InstanceDraft;
-    expect(diffTextKeys(footerKeys, draft, { name: "Acme" })).toEqual({
-      footerSubtitle: "Est. 2019",
+    const nameKey: InstanceTextKey[] = ["name"];
+    const draft = { name: "Acme Collective" } as InstanceDraft;
+    expect(
+      diffTextKeys(nameKey, draft, { name: "Acme", description: "Stored" }),
+    ).toEqual({
+      name: "Acme Collective",
     });
   });
 

@@ -54,7 +54,7 @@ export function LinkPreviewSettingsModal({
       setIsOpen={setOpen}
       size="lg"
       title="Edit link preview"
-      description="The card other apps show when someone pastes a link to this workspace into Slack, Messages, or Discord. Each field follows from the identity unless you set it."
+      description="The card other apps show when someone pastes a link to this workspace into Slack, Messages, or Discord. It prints the instance name and description from Identity; what is set here is the badge and the alt text."
       closable={!saving}
       formId={FORM_ID}
       onSubmit={async (event) => {

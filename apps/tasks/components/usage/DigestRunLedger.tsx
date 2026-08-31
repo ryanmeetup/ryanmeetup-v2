@@ -60,7 +60,7 @@ export function DigestRunLedger({ runs }: { runs: DigestRun[] }) {
           />
         ) : (
           <>
-            <div className="divide-y divide-black/10 dark:divide-white/10 md:hidden">
+            <div className="divide-y divide-black/10 dark:divide-white/10 xl:hidden">
               {runs.map((run) => (
                 <article key={run.id} className="space-y-2 p-4">
                   <div className="flex items-start justify-between gap-3">
@@ -79,8 +79,8 @@ export function DigestRunLedger({ runs }: { runs: DigestRun[] }) {
               ))}
             </div>
 
-            <div className="hidden overflow-x-auto md:block">
-              <table className="w-full min-w-[720px] table-fixed text-left text-sm">
+            <div className="hidden overflow-hidden xl:block">
+              <table className="w-full table-fixed text-left text-sm">
                 <caption className="sr-only">Recent digest runs</caption>
                 <colgroup>
                   <col className="w-[24%]" />

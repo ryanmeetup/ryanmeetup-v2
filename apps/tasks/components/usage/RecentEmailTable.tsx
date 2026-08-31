@@ -99,12 +99,12 @@ export function RecentEmailTable({ emails }: { emails: ResendEmailSummary[] }) {
         className="rounded-2xl"
       >
         <Card variant="solid" size="none" className="overflow-hidden">
-          <div className="border-b border-black/10 px-4 py-3 dark:border-white/10 md:hidden">
+          <div className="border-b border-black/10 px-4 py-3 dark:border-white/10 xl:hidden">
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-black/50 dark:text-white/50">
               Recent email activity
             </p>
           </div>
-          <div className="divide-y divide-black/10 dark:divide-white/10 md:hidden">
+          <div className="divide-y divide-black/10 dark:divide-white/10 xl:hidden">
             {visibleEmails.map((email) => (
               <article key={email.id} className="space-y-3 p-4">
                 <div className="flex items-start justify-between gap-3">
@@ -141,8 +141,8 @@ export function RecentEmailTable({ emails }: { emails: ResendEmailSummary[] }) {
             )}
           </div>
 
-          <div className="hidden overflow-x-auto md:block">
-            <table className="w-full min-w-[720px] table-fixed text-left text-sm">
+          <div className="hidden overflow-hidden xl:block">
+            <table className="w-full table-fixed text-left text-sm">
               <caption className="sr-only">Recent email activity</caption>
               <colgroup>
                 <col className="w-[38%]" />
@@ -182,7 +182,7 @@ export function RecentEmailTable({ emails }: { emails: ResendEmailSummary[] }) {
                         {email.recipients.join(", ") || "Unavailable"}
                       </span>
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-black/55 dark:text-white/55">
+                    <td className="px-4 py-3 text-black/55 dark:text-white/55">
                       <time dateTime={emailTiming(email).dateTime}>
                         {emailTiming(email).label}
                       </time>

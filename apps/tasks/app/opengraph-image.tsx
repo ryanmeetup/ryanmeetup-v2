@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { ogCardDescription, ogCardNameScale } from "@/lib/instance";
 import { getInstanceSettings } from "@/lib/server/instance-settings";
 
 // Metadata file exports must be static values, so keep this fallback neutral.
@@ -50,71 +51,42 @@ export default async function OpenGraphImage() {
         <div
           style={{
             alignItems: "center",
+            background: "#ffffff",
+            borderRadius: "12px",
+            color: "#09090b",
             display: "flex",
-            fontSize: "22px",
+            fontSize: "26px",
             fontWeight: 700,
-            letterSpacing: "0.14em",
-            textTransform: "uppercase",
+            height: "56px",
+            justifyContent: "center",
+            width: "56px",
           }}
         >
-          <div
-            style={{
-              alignItems: "center",
-              background: "#ffffff",
-              borderRadius: "12px",
-              color: "#09090b",
-              display: "flex",
-              height: "48px",
-              justifyContent: "center",
-              marginRight: "18px",
-              width: "48px",
-            }}
-          >
-            {instance.monogram}
-          </div>
-          {instance.name}
+          {instance.monogram}
         </div>
         <div style={{ display: "flex", flexDirection: "column" }}>
           <div
             style={{
               display: "flex",
-              fontSize: "92px",
+              fontSize: `${Math.round(92 * ogCardNameScale(instance.name))}px`,
               fontWeight: 800,
               letterSpacing: "-0.055em",
-              lineHeight: 1,
+              lineHeight: 1.05,
             }}
           >
-            {instance.ogHeadline}
+            {instance.name}
           </div>
           <div
             style={{
               color: "rgba(255,255,255,0.68)",
               display: "flex",
               fontSize: "28px",
+              lineHeight: 1.4,
               marginTop: "24px",
             }}
           >
-            {instance.ogTagline}
+            {ogCardDescription(instance.description)}
           </div>
-        </div>
-        <div
-          style={{
-            alignItems: "center",
-            color: "rgba(255,255,255,0.52)",
-            display: "flex",
-            fontSize: "20px",
-          }}
-        >
-          <div
-            style={{
-              background: "#4ade80",
-              borderRadius: "999px",
-              height: "10px",
-              marginRight: "12px",
-              width: "10px",
-            }}
-          />
-          {instance.ogMotto}
         </div>
       </div>
     </div>,

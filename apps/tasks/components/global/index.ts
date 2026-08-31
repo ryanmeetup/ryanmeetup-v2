@@ -1,7 +1,7 @@
 export { AccessPreviewBanner } from "./AccessPreviewBanner";
-export { BetaBanner } from "./BetaBanner";
 export { DemoBanner } from "./DemoBanner";
 export { CountBadge } from "./CountBadge";
+export { InstanceBanner } from "./InstanceBanner";
 export {
   InstanceProvider,
   useInstance,

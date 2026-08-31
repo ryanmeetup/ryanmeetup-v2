@@ -33,7 +33,7 @@ import type { ProjectStatus } from "@/lib/resources/resource-types";
 import { useSidebarSections } from "@/hooks/useSidebarSections";
 import { withAccessPreview } from "@/lib/access/access-preview";
 import { projectStatusDetails } from "@/lib/resources/project-status";
-import { InstanceWordmark, useInstance } from "@/components/global";
+import { InstanceWordmark } from "@/components/global";
 
 /**
  * A filled dot in this sidebar already means "category identity", so project
@@ -112,7 +112,6 @@ export function TasksSidebar({
   onCreateCategory: () => void;
   onCreateProject: () => void;
 }) {
-  const { tagline } = useInstance();
   const isOwner =
     !data.accessPreview &&
     (demoMode || data.currentProfile.app_role === "owner");
@@ -208,9 +207,6 @@ export function TasksSidebar({
           >
             <InstanceWordmark />
           </p>
-          <p className="text-[9px] font-semibold uppercase tracking-[0.28em] text-black/45 dark:text-white/45">
-            {tagline}
-          </p>
         </Link>
         {mobile && (
           <button
@@ -223,7 +219,7 @@ export function TasksSidebar({
           </button>
         )}
       </div>
-      <nav className="mt-8 space-y-1" aria-label="Main navigation">
+      <nav className="mt-4 space-y-1" aria-label="Main navigation">
         <Link
           href={withAccessPreview("/", data.accessPreview)}
           onClick={closeSidebar}

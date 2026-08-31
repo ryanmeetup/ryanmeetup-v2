@@ -10,9 +10,6 @@ import { useWorkspaceData } from "@/hooks/useWorkspaceData";
 import {
   accentField,
   identityFields,
-  creditFields,
-  creditWordingFields,
-  footerTextFields,
   logoKey,
   previewFields,
   bannerKeys,
@@ -28,27 +25,22 @@ import {
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { AccentEmailPreview } from "./AccentEmailPreview";
 import { AdminPageShell } from "./AdminPageShell";
+import { BannerPreview } from "./BannerPreview";
 import { BannerSettingsModal } from "./BannerSettingsModal";
-import { BetaBannerPreview } from "./BetaBannerPreview";
 import { EmailSettingsModal } from "./EmailSettingsModal";
-import { FooterPreview } from "./FooterPreview";
-import { FooterSettingsModal } from "./FooterSettingsModal";
 import { IdentitySettingsModal } from "./IdentitySettingsModal";
 import { InstanceLinkPreview } from "./InstanceLinkPreview";
 import { LinkPreviewSettingsModal } from "./LinkPreviewSettingsModal";
 
-type Dialog = "identity" | "banner" | "footer" | "preview" | "email";
+type Dialog = "identity" | "banner" | "preview" | "email";
 
 /** Which text keys each dialog owns, for the "N customized" counts. */
 const dialogKeys: Record<Dialog, InstanceTextKey[]> = {
   identity: [...identityFields.map((field) => field.key), logoKey],
-  footer: [...footerTextFields, ...creditFields, ...creditWordingFields].map(
-    (field) => field.key,
-  ),
   preview: previewFields.map((field) => field.key),
   email: [accentField.key],
-  // The banner's settings are two switches and a link, none of them plain
-  // text, so they are counted from the stored row rather than from a draft.
+  // The banner mixes a switch, a link, and two text overrides, so it is
+  // counted from the stored row rather than from a draft.
   banner: [],
 };
 
@@ -56,7 +48,7 @@ const dialogKeys: Record<Dialog, InstanceTextKey[]> = {
  * One concern on the overview: what it looks like right now, and a way in.
  *
  * The page deliberately holds no draft state and no save button. Each concern
- * is edited and written independently, so a change to the footer can never be
+ * is edited and written independently, so an identity change can never be
  * bundled into the same request as a change to the link preview.
  */
 function SettingsCard({
@@ -142,13 +134,6 @@ export function AdminSettingsPageClient({
       ? bannerKeys.filter(
           (key) => stored?.[key] !== null && stored?.[key] !== undefined,
         ).length
-      : 0) +
-    (name === "footer"
-      ? [
-          stored?.footerVariant,
-          stored?.footerSections,
-          stored?.footerSocials,
-        ].filter((value) => value !== null && value !== undefined).length
       : 0);
 
   function saved(next: InstanceSettingsOverrides) {
@@ -205,16 +190,6 @@ export function AdminSettingsPageClient({
             </dd>
 
             <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-black/55 dark:text-white/55">
-              Product name
-            </dt>
-            <dd className="text-sm">{settings.productName}</dd>
-
-            <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-black/55 dark:text-white/55">
-              Tagline
-            </dt>
-            <dd className="text-sm">{settings.tagline}</dd>
-
-            <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-black/55 dark:text-white/55">
               Description
             </dt>
             <dd className="text-sm text-black/70 dark:text-white/70">
@@ -224,29 +199,19 @@ export function AdminSettingsPageClient({
         </SettingsCard>
 
         <SettingsCard
-          title="Beta banner"
-          description="The notice above the workspace, and where it sends someone with a bug or an idea. Only the workspace whose team builds this product should collect that as tasks of its own."
+          title="Banner"
+          description="The notice above the workspace: a beta warning, a maintenance window, or anything else this instance needs to say, with an optional link to act on it."
           customized={countFor("banner")}
           onEdit={() => setDialog("banner")}
           editLabel="Edit banner"
         >
-          <BetaBannerPreview settings={settings} />
-        </SettingsCard>
-
-        <SettingsCard
-          title="Footer"
-          description="The footer at the bottom of this page. Branded is a layout, not a preset — the wordmark, link columns, socials, and credit are all yours."
-          customized={countFor("footer")}
-          onEdit={() => setDialog("footer")}
-          editLabel="Edit footer"
-        >
-          <FooterPreview settings={settings} />
+          <BannerPreview settings={settings} />
         </SettingsCard>
 
         <div className="grid gap-6 xl:grid-cols-2">
           <SettingsCard
             title="Link preview"
-            description="The card other apps show when a link to this workspace is pasted into Slack, Messages, or Discord. The workspace is noindex, so this never reaches a search engine."
+            description="The card other apps show when a link to this workspace is pasted into Slack, Messages, or Discord. It prints the name and description from Identity. The workspace is noindex, so this never reaches a search engine."
             customized={countFor("preview")}
             onEdit={() => setDialog("preview")}
             editLabel="Edit link preview"
@@ -263,7 +228,7 @@ export function AdminSettingsPageClient({
           >
             <AccentEmailPreview
               accentColor={settings.accentColor}
-              productName={settings.productName.toUpperCase()}
+              wordmark={settings.name.toUpperCase()}
             />
           </SettingsCard>
         </div>
@@ -330,14 +295,6 @@ export function AdminSettingsPageClient({
       )}
       {dialog === "banner" && (
         <BannerSettingsModal
-          key={JSON.stringify(stored)}
-          open
-          setOpen={(open) => !open && setDialog(null)}
-          {...dialogProps}
-        />
-      )}
-      {dialog === "footer" && (
-        <FooterSettingsModal
           key={JSON.stringify(stored)}
           open
           setOpen={(open) => !open && setDialog(null)}

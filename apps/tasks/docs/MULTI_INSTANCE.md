@@ -215,7 +215,7 @@ Choose the task key prefix carefully. It appears in every task URL
 The three Supabase variables must all come from the new project, and the
 temptation to paste the working instance's values in while debugging a signup
 or redirect problem is the single most expensive mistake available here. It
-does not fail loudly: the app comes up, signs in, and serves the *first*
+does not fail loudly: the app comes up, signs in, and serves the _first_
 instance's users, projects, and categories under the second instance's domain.
 Anything written in that state lands in the wrong database.
 
@@ -248,9 +248,8 @@ deployment from `main`. Then confirm on the running site that
 
 1. Sign in at `https://tasks.example.com/login`.
 2. Open `/admin` — if it 404s, `app_role` is not `owner`; revisit step 4.
-3. `/admin/settings`: set the name, product name, tagline, description, accent,
-   logo, and footer. Blank fields inherit the compiled default, shown as the
-   input's placeholder.
+3. `/admin/settings`: set the name, description, accent, and logo. Blank fields
+   inherit the compiled default, shown as the input's placeholder.
 4. `/admin` overview: confirm every integration reports Configured or Connected.
 5. `/admin/statuses`: confirm the six seeded statuses, adjust to taste.
 6. `/admin/access`: invite your team.
@@ -277,23 +276,27 @@ called from client modules and URL parsing. They cannot vary per request, and
 editing one at runtime would break every existing task link. `/admin/settings`
 shows them read-only with the variable that changes them.
 
-**Runtime (`InstanceSettings`).** Everything presentational: name, product name,
-tagline, description, monogram, accent, logo, footer composition, and link
-preview copy. Every one of these is optional. A blank field on
-`/admin/settings` is not a missing value — it stores NULL, which means "inherit
-the build-time default", and the form shows that default as the input's
-placeholder so the two are always distinguishable. `lib/server/instance-settings.ts` reads the `instance_settings`
+**Runtime (`InstanceSettings`).** Presentational values include the name,
+description, monogram, accent, logo, fixed footer content, and the link
+preview's badge and alt text. There is one name, not two: the instance name is
+the wordmark, the page title, the digest email's header, and the words printed
+on the link-preview card, which composes from the identity rather than carrying
+copy of its own. For editable values, a blank field on `/admin/settings` is not a missing value — it stores
+NULL, which means "inherit the build-time default", and the form shows that
+default as the input's placeholder so the two are always distinguishable.
+`lib/server/instance-settings.ts` reads the `instance_settings`
 singleton, layers it over the compiled defaults, and caches the result per
 request. `app/layout.tsx` seeds `InstanceProvider` so client components read the
 resolved values synchronously through `useInstance()`.
 
 The compiled defaults are unbranded. A deployment that sets nothing and has no
-stored row presents as an unnamed **Workspace**, with a **minimal** footer, no
-footer subtitle, and no social links, rather than borrowing another
+stored row presents as an unnamed **Workspace**, with no footer subtitle or
+social links, rather than borrowing another
 deployment's identity — so a new instance is never mistaken for Ryan Meetup
-before its owner has configured it. The larger `branded` footer is opt-in for
-the same reason: it is a marketing layout that only reads well once an instance
-has a wordmark, columns, and socials worth showing at that scale.
+before its owner has configured it. Tasks always uses the same compact footer
+layout; owners customize its wordmark, links, socials, and credit rather than
+choosing a different presentation. Only the wordmark is runtime-editable; the
+remaining footer content comes from the compiled defaults.
 Ryan Meetup is an instance like any other: it names itself through the variables
 below or `/admin/settings`, and a Ryan Meetup deployment that sets neither will
 render as `Workspace`. `tests/unit/instance.test.ts` covers defaults, env
@@ -324,49 +327,44 @@ The table below is the durable reference.
 | Task key prefix (`TASK-142`)              | `NEXT_PUBLIC_TASK_KEY_PREFIX`, consumed by `lib/tasks/task-key.ts`                           |
 | Changelog version format (`TASK v5`)      | `NEXT_PUBLIC_CHANGELOG_VERSION_PREFIX`, defaults to the task key prefix                      |
 | Digest email branding                     | `lib/server/task-digest-email.ts`                                                            |
-| Footer composition, socials, credit       | `components/navigation/TasksFooter.tsx`, `packages/ui/src/SiteFooter.tsx`                    |
+| Fixed footer content, socials, credit     | `components/navigation/TasksFooter.tsx`, `packages/ui/src/SiteFooter.tsx`                    |
 | Social platform icons and labels          | `lib/instance-socials.tsx`                                                                   |
 | Accent color outside Tailwind tokens      | `NEXT_PUBLIC_INSTANCE_ACCENT`                                                                |
-| Beta banner and where feedback goes       | `/admin/settings` → Beta banner; `lib/beta-banner.ts` composes the sentence                  |
+| Banner notice and where its link goes     | `/admin/settings` → Banner; `lib/banner.ts` composes the sentence                            |
 
 ### Environment variables
 
 All are optional and client-visible. Because Next.js inlines `NEXT_PUBLIC_*`
-values at build time, a change requires a rebuild, not just a restart. For every
-runtime-tier value these are only the **default**: a stored `instance_settings`
-value wins, and `/admin/settings` is the easier place to change it.
+values at build time, a change requires a rebuild, not just a restart. Editable
+identity values are defaults that a stored `instance_settings` value can
+override. Footer presentation is fixed from its compiled values; only the
+identity wordmark or logo displayed in its existing slot changes at runtime.
 
-| Variable                               | Default                                                                                 |
-| -------------------------------------- | --------------------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_INSTANCE_NAME`            | `Workspace` — Ryan Meetup's own deployment sets this to `Ryan Meetup`                   |
-| `NEXT_PUBLIC_INSTANCE_PRODUCT_NAME`    | `<name> Tasks`                                                                          |
-| `NEXT_PUBLIC_INSTANCE_TAGLINE`         | `Task tracker`                                                                          |
-| `NEXT_PUBLIC_INSTANCE_DESCRIPTION`     | derived from a configured name; otherwise a generic shared-workspace sentence           |
-| `NEXT_PUBLIC_TASK_KEY_PREFIX`          | `TASK` — 1-10 alphanumerics starting with a letter; Ryan Meetup sets `RMT`               |
-| `NEXT_PUBLIC_CHANGELOG_VERSION_PREFIX` | the task key prefix                                                                     |
-| `NEXT_PUBLIC_INSTANCE_ACCENT`          | `#ee1a25` — six-digit hex                                                               |
-| `NEXT_PUBLIC_INSTANCE_LOGO_PATH`       | none; root-relative path in `public/`                                                   |
-| `NEXT_PUBLIC_INSTANCE_MONOGRAM`        | first letter of the name                                                                |
-| `NEXT_PUBLIC_INSTANCE_BETA_BANNER`     | `true` — `false` hides the beta notice                                                  |
-| `NEXT_PUBLIC_INSTANCE_FEEDBACK_IN_WORKSPACE` | `false` — `true` invites feedback as tasks in this workspace                       |
-| `NEXT_PUBLIC_INSTANCE_FEEDBACK_URL`    | `mailto:ryan@ryanmeetup.com` — an `https://` page or a `mailto:` address                |
-| `NEXT_PUBLIC_INSTANCE_OG_ALT`          | `<product name> — private team workspace`                                               |
-| `NEXT_PUBLIC_INSTANCE_OG_HEADLINE`     | `Tasks`                                                                                 |
-| `NEXT_PUBLIC_INSTANCE_OG_TAGLINE`      | `Private workspace for the core team`                                                   |
-| `NEXT_PUBLIC_INSTANCE_OG_MOTTO`        | `Plan it. Assign it. Get it done.`                                                      |
-| `NEXT_PUBLIC_INSTANCE_FOOTER_VARIANT`  | `minimal` — one of `branded`, `minimal`, `none`                                         |
-| `NEXT_PUBLIC_INSTANCE_FOOTER_SUBTITLE` | none — Ryan Meetup's own deployment sets `NO BRYANS ALLOWED`                            |
-| `NEXT_PUBLIC_INSTANCE_CREDIT_PREFIX`   | `Website designed and developed by `                                                    |
-| `NEXT_PUBLIC_INSTANCE_CREDIT_LABEL`    | `Ryan Le`                                                                               |
-| `NEXT_PUBLIC_INSTANCE_CREDIT_URL`      | `https://ryanle.dev/`                                                                   |
-| `NEXT_PUBLIC_INSTANCE_CREDIT_SUFFIX`   | `. All Rights Reserved.`                                                                |
+| Variable                                 | Default                                                                       |
+| ---------------------------------------- | ----------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_INSTANCE_NAME`              | `Workspace` — Ryan Meetup's own deployment sets this to `Ryan Meetup`         |
+| `NEXT_PUBLIC_INSTANCE_DESCRIPTION`       | derived from a configured name; otherwise a generic shared-workspace sentence |
+| `NEXT_PUBLIC_TASK_KEY_PREFIX`            | `TASK` — 1-10 alphanumerics starting with a letter; Ryan Meetup sets `RMT`    |
+| `NEXT_PUBLIC_CHANGELOG_VERSION_PREFIX`   | the task key prefix                                                           |
+| `NEXT_PUBLIC_INSTANCE_ACCENT`            | `#ee1a25` — six-digit hex                                                     |
+| `NEXT_PUBLIC_INSTANCE_LOGO_PATH`         | none; root-relative path in `public/`                                         |
+| `NEXT_PUBLIC_INSTANCE_MONOGRAM`          | first letter of the name                                                      |
+| `NEXT_PUBLIC_INSTANCE_BANNER`            | `true` — `false` hides the notice above the workspace                         |
+| `NEXT_PUBLIC_INSTANCE_BANNER_MESSAGE`    | `This workspace is in beta. Found an issue or have an idea?`                  |
+| `NEXT_PUBLIC_INSTANCE_BANNER_LINK_URL`   | `mailto:ryan@ryanmeetup.com` — an `https://` page or a `mailto:` address      |
+| `NEXT_PUBLIC_INSTANCE_BANNER_LINK_LABEL` | none — the label is derived from the address                                  |
+| `NEXT_PUBLIC_INSTANCE_OG_ALT`            | `<name> — private team workspace`                                             |
+| `NEXT_PUBLIC_INSTANCE_FOOTER_SUBTITLE`   | none — Ryan Meetup's own deployment sets `NO BRYANS ALLOWED`                  |
+| `NEXT_PUBLIC_INSTANCE_CREDIT_PREFIX`     | `Website designed and developed by `                                          |
+| `NEXT_PUBLIC_INSTANCE_CREDIT_LABEL`      | `Ryan Le`                                                                     |
+| `NEXT_PUBLIC_INSTANCE_CREDIT_URL`        | `https://ryanle.dev/`                                                         |
+| `NEXT_PUBLIC_INSTANCE_CREDIT_SUFFIX`     | `. All Rights Reserved.`                                                      |
 
 The footer link columns and social icons have no environment variables: they
 are lists rather than scalars, so the compiled defaults in `lib/instance.ts`
-are the only build-time values and `/admin/settings` is where an instance
-changes them. The default sections describe the stack the app is built on,
-which is true of every deployment; the default socials list is **empty**,
-because accounts belong to an instance rather than to the codebase.
+are their source of truth. The default sections describe the stack the app is
+built on, which is true of every deployment; the default socials list is
+**empty**, because accounts belong to an instance rather than to the codebase.
 
 Notes on the design:
 
@@ -383,38 +381,39 @@ Notes on the design:
   release history, so every instance shows the same entries under its own
   prefix. If an instance should have its own entries, scope
   `changelogDirectory` in `lib/server/changelog.ts` per instance.
-- **The beta banner is the one place the maintainer is named, and that is
+- **The banner says whatever the instance writes, and never composes the
+  instance name.** A sentence assembled from the wordmark — "ACME is in beta."
+  — reads as though the product were named after whoever the workspace belongs
+  to; the name is one deployment's identity, not this app's. The compiled
+  default announces the beta without naming anyone, and an instance replaces it
+  from **Banner** on `/admin/settings` with a maintenance window, a policy
+  note, or anything else it needs above the workspace.
+- **The banner link is the one place the maintainer is named, and that is
   deliberate.** Its default destination is `mailto:ryan@ryanmeetup.com` for the
   same reason the build credit is: it names who wrote and maintains the
   software, which is true of every deployment, rather than who the workspace
-  belongs to. `feedbackInWorkspace` is the opposite — it is off everywhere
-  except `tasks.ryanmeetup.com`, where this product is dogfooded, because a
-  bug report filed as a task in anyone else's workspace lands in a backlog
-  nobody who can fix it reads. Both, plus the link and whether the banner
-  appears at all, are edited under **Beta banner** on `/admin/settings`.
-- The banner's three settings are the exception to "blank means inherit". They
-  are seeded from the resolved value and written explicitly, because an
-  unticked box and an empty link are choices in their own right; only values
-  that actually change are sent, so an untouched dialog still inherits.
-- `footerSections` and `footerSocials` are lists, and NULL versus `[]` matters:
-  NULL means "no override stored", so the compiled default content stands,
-  while an empty array is the owner deliberately dropping the columns or the
-  icons.
-- **The footer is a layout, not a preset.** `SiteFooter`'s `branded` variant is
-  a generalized shape — oversized wordmark and subtitle, up to three titled
-  link columns, social icons, and a credit sentence — with every part supplied
-  by the caller. Nothing in the renderer knows about Ryan Meetup; the "Built
-  with" column is simply this build's default content, and an instance replaces
-  it from `/admin/settings`. `minimal` is the default variant, so opting *up*
-  to `branded` is the deliberate act, not opting down. Do not reintroduce instance-specific strings into
-  `TasksFooter` or `SiteFooter`; add a setting instead.
+  belongs to. An unlabelled link phrases itself from its address — `Email
+ryan@ryanmeetup.com` for a mailbox, `Learn more` for a page — so an instance
+  only writes a label when it wants different words.
+- The switch and the link are the exception to "blank means inherit". They are
+  seeded from the resolved value and written explicitly, because an unticked
+  box and an empty link are choices in their own right; only values that
+  actually change are sent, so an untouched dialog still inherits. The message
+  and the link label are ordinary overrides: blank falls back to the compiled
+  notice and to the derived label.
+- **Tasks has one compact footer layout.** Its uploaded instance logo (or text
+  fallback) comes from editable identity settings and renders in the current
+  wordmark slot. Its subtitle, inline links, social icons, and credit sentence
+  are fixed; Tasks exposes no footer editor, presentation variants, or hide
+  control. The shared `SiteFooter` still provides the larger marketing layout
+  to the public sites.
 - **Socials are a list keyed by platform**, not a column per network, so the
   four Ryan Meetup happens to use do not read as the only ones that exist.
   Adding a network is an entry in `socialPlatforms` plus the two maps in
   `lib/instance-socials.tsx` — no migration and no new form field.
-- Every URL setting is validated as **https** on the way in. The columns carry
-  a `~ '^https://'` check, so `normalizeHttpUrl` alone was not enough — see
-  `httpsUrl` in `lib/api-schema/index.ts`.
+- Editable destination URLs are validated at the API boundary. The banner link
+  accepts `https` and `mailto`, while uploaded logo paths are
+  limited to root-relative or `https` locations.
 - Deployment-level settings — Supabase, Resend, Google, app URL, cron secret —
   were already environment-driven and needed no change. They are reported
   read-only on `/admin/settings` via `lib/server/integration-health.ts`, which
@@ -447,6 +446,7 @@ Notes on the design:
   so a forged cookie gets the real app. The preview is per-browser, writes
   nothing, expires in four hours, and is left from the demo banner, since
   entering it hides the admin section that turned it on.
+
 - **The brand theme is shared.** `packages/brand/theme.css` provides Cooper
   Black and the nametag red to every app in the monorepo. A second instance
   currently inherits the Ryan Meetup look apart from

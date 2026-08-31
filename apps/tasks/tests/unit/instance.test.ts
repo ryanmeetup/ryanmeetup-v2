@@ -23,7 +23,6 @@ describe("instance identity", () => {
     const instance = instanceDefaults;
 
     expect(instance.name).toBe("Workspace");
-    expect(instance.productName).toBe("Workspace Tasks");
     expect(instanceBuild.taskKeyPrefix).toBe("TASK");
     expect(instanceBuild.changelogVersionPrefix).toBe("TASK");
     expect(instance.accentColor).toBe("#ee1a25");
@@ -32,13 +31,13 @@ describe("instance identity", () => {
     expect(instance.description).toBe(
       "A shared workspace for planning projects, assigning tasks, and keeping work moving.",
     );
-    expect(instance.ogAlt).toBe("Workspace Tasks — private team workspace");
+    expect(instance.ogAlt).toBe("Workspace — private team workspace");
     // No organization is named, so there is nothing to put under the wordmark
     // and no accounts to link.
     expect(instance.footerSubtitle).toBe("");
     expect(instance.footerSocials).toEqual([]);
     expect(instancePageTitle(instance, "Dashboard")).toBe(
-      "Dashboard | Workspace Tasks",
+      "Dashboard | Workspace",
     );
   });
 
@@ -46,7 +45,6 @@ describe("instance identity", () => {
     const { instanceDefaults } = await loadInstance();
     const identity = [
       instanceDefaults.name,
-      instanceDefaults.productName,
       instanceDefaults.description,
       instanceDefaults.footerSubtitle,
       instanceDefaults.ogAlt,
@@ -65,7 +63,6 @@ describe("instance identity", () => {
     ).instanceDefaults;
 
     expect(instance.name).toBe("Ryan Meetup");
-    expect(instance.productName).toBe("Ryan Meetup Tasks");
     expect(instance.monogram).toBe("R");
     expect(instance.footerSubtitle).toBe("NO BRYANS ALLOWED");
     expect(instance.description).toBe(
@@ -73,14 +70,15 @@ describe("instance identity", () => {
     );
   });
 
-  it("derives the product name, description, and monogram from the instance name", async () => {
+  it("derives the description, monogram, and titles from the instance name", async () => {
     const { instanceDefaults: instance, instancePageTitle } =
       await loadInstance({ NEXT_PUBLIC_INSTANCE_NAME: "Ryan Le" });
 
-    expect(instance.productName).toBe("Ryan Le Tasks");
     expect(instance.monogram).toBe("R");
     expect(instance.description).toContain("Ryan Le core team");
-    expect(instancePageTitle(instance, "Notes")).toBe("Notes | Ryan Le Tasks");
+    // The instance name is the only name: it titles every page on its own,
+    // with no separate product name after it.
+    expect(instancePageTitle(instance, "Notes")).toBe("Notes | Ryan Le");
   });
 
   it("keeps neutral task keys for a configured deployment", async () => {
@@ -108,20 +106,16 @@ describe("instance identity", () => {
   it("lets an instance override every derived value", async () => {
     const { instanceDefaults: instance } = await loadInstance({
       NEXT_PUBLIC_INSTANCE_NAME: "Ryan Le",
-      NEXT_PUBLIC_INSTANCE_PRODUCT_NAME: "Personal Workspace",
       NEXT_PUBLIC_INSTANCE_DESCRIPTION: "My own projects.",
       NEXT_PUBLIC_INSTANCE_MONOGRAM: "L",
       NEXT_PUBLIC_INSTANCE_ACCENT: "#0f766e",
       NEXT_PUBLIC_INSTANCE_LOGO_PATH: "/instance-logo.svg",
-      NEXT_PUBLIC_INSTANCE_TAGLINE: "Personal tracker",
     });
 
-    expect(instance.productName).toBe("Personal Workspace");
     expect(instance.description).toBe("My own projects.");
     expect(instance.monogram).toBe("L");
     expect(instance.accentColor).toBe("#0f766e");
     expect(instance.logoPath).toBe("/instance-logo.svg");
-    expect(instance.tagline).toBe("Personal tracker");
   });
 
   it("provides neutral branding for the zero-configuration demo", async () => {
@@ -129,9 +123,6 @@ describe("instance identity", () => {
 
     expect(demoInstanceSettings).toMatchObject({
       name: "Workspace",
-      productName: "Team Tasks",
-      tagline: "Team task tracker",
-      footerVariant: "minimal",
       footerSections: [],
       footerSocials: [],
     });
@@ -225,6 +216,50 @@ describe("instance-scoped changelog versions", () => {
   });
 });
 
+/**
+ * The Open Graph route and the admin preview render the same card through two
+ * different engines, so these helpers are the only thing keeping the owner's
+ * preview honest about the image other apps fetch.
+ */
+describe("link preview card fitting", () => {
+  it("prints a description that fits as it was written", async () => {
+    const { ogCardDescription } = await loadInstance();
+    const short = "Where the Acme team plans projects and tracks work.";
+
+    expect(ogCardDescription(short)).toBe(short);
+  });
+
+  it("cuts a long description back to a word boundary", async () => {
+    const { ogCardDescription } = await loadInstance();
+    const long = `${"word ".repeat(60)}end`;
+    const fitted = ogCardDescription(long);
+
+    expect(fitted.length).toBeLessThanOrEqual(151);
+    expect(fitted.endsWith("…")).toBe(true);
+    // Cut between words, never mid-word and never leaving a dangling space.
+    expect(fitted).not.toMatch(/\s…$/);
+    expect(fitted.slice(0, -1).split(" ").at(-1)).toBe("word");
+  });
+
+  it("drops trailing punctuation left behind by the cut", async () => {
+    const { ogCardDescription } = await loadInstance();
+
+    expect(ogCardDescription("Plan work, assign it, ship it.", 15)).toBe(
+      "Plan work…",
+    );
+  });
+
+  it("shrinks the name as it gets longer, so it stays on the card", async () => {
+    const { ogCardNameScale } = await loadInstance();
+
+    expect(ogCardNameScale("Ryan Meetup")).toBe(1);
+    expect(ogCardNameScale("Acme Collective")).toBeLessThan(1);
+    expect(ogCardNameScale("The Northern Districts Collective")).toBeLessThan(
+      ogCardNameScale("Acme Collective"),
+    );
+  });
+});
+
 describe("runtime instance overrides", () => {
   it("layers stored values over the compiled defaults", async () => {
     const { instanceDefaults, resolveInstanceSettings } = await loadInstance();
@@ -235,7 +270,7 @@ describe("runtime instance overrides", () => {
       name: "Ryan Le",
       accentColor: "#0f766e",
       // Untouched keys keep the compiled default, including derived ones.
-      productName: instanceDefaults.productName,
+      monogram: instanceDefaults.monogram,
       footerSubtitle: instanceDefaults.footerSubtitle,
     });
   });
@@ -266,80 +301,100 @@ describe("runtime instance overrides", () => {
   });
 });
 
-describe("instance feedback destination", () => {
-  it("points at the maintainer until an instance says otherwise", async () => {
+describe("instance banner", () => {
+  it("announces the beta without naming the workspace", async () => {
     const { instanceDefaults } = await loadInstance();
 
+    // The wordmark belongs to one deployment; the app is what is in beta, so
+    // the compiled notice names neither an organization nor a product.
+    expect(instanceDefaults.bannerEnabled).toBe(true);
+    expect(instanceDefaults.bannerMessage).toBe(
+      "This workspace is in beta. Found an issue or have an idea?",
+    );
+    expect(instanceDefaults.bannerMessage).not.toContain(instanceDefaults.name);
+
     // Like the build credit, this names who maintains the software rather
-    // than whose workspace this is, so it holds for every deployment except
-    // the one where the product is built.
-    expect(instanceDefaults.betaBannerEnabled).toBe(true);
-    expect(instanceDefaults.feedbackInWorkspace).toBe(false);
-    expect(instanceDefaults.feedbackUrl).toBe("mailto:ryan@ryanmeetup.com");
+    // than whose workspace this is, so it holds for every deployment.
+    expect(instanceDefaults.bannerLinkUrl).toBe("mailto:ryan@ryanmeetup.com");
+    expect(instanceDefaults.bannerLinkLabel).toBeNull();
   });
 
   it("neither claims a channel nor publishes an address in the demo", async () => {
     const { demoInstanceSettings } = await loadInstance();
 
-    expect(demoInstanceSettings.betaBannerEnabled).toBe(false);
-    expect(demoInstanceSettings.feedbackInWorkspace).toBe(false);
-    expect(demoInstanceSettings.feedbackUrl).toBeNull();
+    expect(demoInstanceSettings.bannerEnabled).toBe(false);
+    expect(demoInstanceSettings.bannerLinkUrl).toBeNull();
+    expect(demoInstanceSettings.bannerLinkLabel).toBeNull();
+  });
+
+  it("lets a build write its own notice and label", async () => {
+    const { instanceDefaults } = await loadInstance({
+      NEXT_PUBLIC_INSTANCE_BANNER_MESSAGE: "Read-only until Monday.",
+      NEXT_PUBLIC_INSTANCE_BANNER_LINK_LABEL: "See the status page",
+    });
+
+    expect(instanceDefaults.bannerMessage).toBe("Read-only until Monday.");
+    expect(instanceDefaults.bannerLinkLabel).toBe("See the status page");
   });
 
   it("takes an https page or a mailto address", async () => {
     const page = await loadInstance({
-      NEXT_PUBLIC_INSTANCE_FEEDBACK_URL: "https://acme.example/feedback",
+      NEXT_PUBLIC_INSTANCE_BANNER_LINK_URL: "https://acme.example/feedback",
     });
-    expect(page.instanceDefaults.feedbackUrl).toBe(
+    expect(page.instanceDefaults.bannerLinkUrl).toBe(
       "https://acme.example/feedback",
     );
 
     const inbox = await loadInstance({
-      NEXT_PUBLIC_INSTANCE_FEEDBACK_URL: "mailto:team@acme.example",
+      NEXT_PUBLIC_INSTANCE_BANNER_LINK_URL: "mailto:team@acme.example",
     });
-    expect(inbox.instanceDefaults.feedbackUrl).toBe("mailto:team@acme.example");
+    expect(inbox.instanceDefaults.bannerLinkUrl).toBe(
+      "mailto:team@acme.example",
+    );
   });
 
   it("rejects anything that is not a linkable destination", async () => {
     await expect(
-      loadInstance({ NEXT_PUBLIC_INSTANCE_FEEDBACK_URL: "acme.example" }),
-    ).rejects.toThrow(/FEEDBACK_URL/);
+      loadInstance({ NEXT_PUBLIC_INSTANCE_BANNER_LINK_URL: "acme.example" }),
+    ).rejects.toThrow(/BANNER_LINK_URL/);
     await expect(
       loadInstance({
-        NEXT_PUBLIC_INSTANCE_FEEDBACK_URL: "javascript:alert(1)",
+        NEXT_PUBLIC_INSTANCE_BANNER_LINK_URL: "javascript:alert(1)",
       }),
-    ).rejects.toThrow(/FEEDBACK_URL/);
+    ).rejects.toThrow(/BANNER_LINK_URL/);
   });
 
-  it("lets the dogfooding instance take feedback as its own tasks", async () => {
+  it("lets a build past its beta ship with the banner off", async () => {
     const { instanceDefaults } = await loadInstance({
-      NEXT_PUBLIC_INSTANCE_FEEDBACK_IN_WORKSPACE: "true",
-      NEXT_PUBLIC_INSTANCE_BETA_BANNER: "false",
+      NEXT_PUBLIC_INSTANCE_BANNER: "false",
     });
 
-    expect(instanceDefaults.feedbackInWorkspace).toBe(true);
-    expect(instanceDefaults.betaBannerEnabled).toBe(false);
+    expect(instanceDefaults.bannerEnabled).toBe(false);
   });
 
   it("lets a stored row turn the banner off and drop the link", async () => {
     const { resolveInstanceSettings } = await loadInstance();
     const resolved = resolveInstanceSettings({
-      betaBannerEnabled: false,
-      feedbackUrl: null,
+      bannerEnabled: false,
+      bannerLinkUrl: null,
     });
 
-    expect(resolved.betaBannerEnabled).toBe(false);
-    expect(resolved.feedbackUrl).toBeNull();
+    expect(resolved.bannerEnabled).toBe(false);
+    expect(resolved.bannerLinkUrl).toBeNull();
+  });
+
+  it("falls back to the deployment's notice when the row clears it", async () => {
+    const { instanceDefaults, resolveInstanceSettings } = await loadInstance();
+    const resolved = resolveInstanceSettings({ bannerMessage: null });
+
+    expect(resolved.bannerMessage).toBe(instanceDefaults.bannerMessage);
   });
 });
 
-describe("instance footer composition", () => {
-  it("ships a minimal footer carrying the stack column and author credit", async () => {
+describe("instance footer content", () => {
+  it("ships the stack links and author credit used by the compact footer", async () => {
     const { instanceDefaults } = await loadInstance();
 
-    // The marketing-scale `branded` layout is opt-in: an instance that has not
-    // named itself has no wordmark worth setting six lines tall.
-    expect(instanceDefaults.footerVariant).toBe("minimal");
     expect(instanceDefaults.footerSections).toHaveLength(1);
     expect(instanceDefaults.footerSections[0].title).toBe("Built with");
     expect(
@@ -358,16 +413,14 @@ describe("instance footer composition", () => {
     expect(instanceDefaults.creditSuffix).toBe(". All Rights Reserved.");
   });
 
-  it("lets an instance opt up to the branded footer and its own credit sentence", async () => {
+  it("lets an instance customize its credit sentence", async () => {
     const { resolveInstanceSettings } = await loadInstance();
     const resolved = resolveInstanceSettings({
-      footerVariant: "branded",
       creditPrefix: "Built by ",
       creditLabel: "Acme",
       creditSuffix: ".",
     });
 
-    expect(resolved.footerVariant).toBe("branded");
     expect(resolved.creditPrefix).toBe("Built by ");
     expect(resolved.creditSuffix).toBe(".");
   });
@@ -401,13 +454,5 @@ describe("instance footer composition", () => {
     expect(
       resolveInstanceSettings({ footerSections: [], footerSocials: [] }),
     ).toMatchObject({ footerSections: [], footerSocials: [] });
-  });
-
-  it("ignores an unrecognized footer variant from the environment", async () => {
-    const { instanceDefaults } = await loadInstance({
-      NEXT_PUBLIC_INSTANCE_FOOTER_VARIANT: "enormous",
-    });
-
-    expect(instanceDefaults.footerVariant).toBe("minimal");
   });
 });
