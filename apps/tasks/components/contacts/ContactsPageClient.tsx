@@ -9,7 +9,7 @@ import {
   ConfirmationDialog,
   EmptyState,
   IconButton,
-  Modal,
+  ManagementSurface,
   PendingResults,
   SearchInput,
   toast,
@@ -28,7 +28,6 @@ import {
   FiTrash2,
 } from "react-icons/fi";
 import { CountBadge, WorkspacePageShell } from "@/components/global";
-import { createClient } from "@/lib/supabase/client";
 import {
   CONTACT_GROUPS,
   type Contact,
@@ -177,21 +176,6 @@ export function ContactsPageClient({
     setSaving(true);
     try {
       let result: { contact: Contact };
-      let imageUrl = draft.imageUrl;
-      if (imageFile && !demoMode) {
-        const extension =
-          imageFile.type.split("/")[1] === "jpeg"
-            ? "jpg"
-            : imageFile.type.split("/")[1];
-        const path = `${data.currentProfile.id}/${crypto.randomUUID()}.${extension}`;
-        const storage = createClient().storage.from("organization-images");
-        const uploaded = await storage.upload(path, imageFile, {
-          contentType: imageFile.type,
-          cacheControl: "31536000",
-        });
-        if (uploaded.error) throw uploaded.error;
-        imageUrl = storage.getPublicUrl(path).data.publicUrl;
-      }
       if (demoMode) {
         const now = new Date().toISOString();
         result = {
@@ -200,7 +184,9 @@ export function ContactsPageClient({
             display_name: draft.displayName.trim(),
             image_url: imageFile
               ? URL.createObjectURL(imageFile)
-              : imageUrl || null,
+              : draft.imageUrl ||
+                (draft.retainImage ? (editing?.image_url ?? null) : null),
+            image_path: imageFile ? "demo" : null,
             contact_group: draft.contactGroup || null,
             notes: draft.notes.trim() || null,
             created_at: editing?.created_at ?? now,
@@ -219,9 +205,17 @@ export function ContactsPageClient({
           },
         };
       } else {
+        const body = imageFile
+          ? (() => {
+              const formData = new FormData();
+              formData.set("contact", JSON.stringify(draft));
+              formData.set("file", imageFile);
+              return formData;
+            })()
+          : JSON.stringify(draft);
         result = await mutate("/api/contacts", {
           method: draft.id ? "PATCH" : "POST",
-          body: JSON.stringify({ ...draft, imageUrl }),
+          body,
         });
       }
       setContacts((current) => {
@@ -274,9 +268,7 @@ export function ContactsPageClient({
         setSidebarOpen={setSidebarOpen}
         contentClassName="p-3 sm:p-6 lg:p-6 xl:p-8"
       >
-        <Modal
-          open
-          setIsOpen={() => undefined}
+        <ManagementSurface
           title={
             <>
               Contacts{" "}
@@ -328,8 +320,6 @@ export function ContactsPageClient({
               )}
             </>
           }
-          size="xl"
-          embedded
         >
           <div className="sticky top-0 z-20 -mx-1 mb-4 bg-white px-1 pb-3 dark:bg-[#181818]">
             <SearchInput
@@ -548,7 +538,7 @@ export function ContactsPageClient({
               </div>
             )}
           </PendingResults>
-        </Modal>
+        </ManagementSurface>
       </WorkspacePageShell>
 
       {editing !== undefined && (

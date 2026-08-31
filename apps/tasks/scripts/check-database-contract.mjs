@@ -54,4 +54,21 @@ if (!health?.contractOk) {
   process.exit(1);
 }
 
+const contactsResponse = await fetch(
+  `${url}/rest/v1/contacts?select=image_path&limit=0`,
+  {
+    headers: {
+      apikey: secret,
+      authorization: `Bearer ${secret}`,
+    },
+    signal: AbortSignal.timeout(15_000),
+  },
+);
+if (!contactsResponse.ok) {
+  console.error(
+    "Database contract preflight failed: contacts.image_path is missing.",
+  );
+  process.exit(1);
+}
+
 console.log(`Database contract preflight passed for ${projectRef}.`);

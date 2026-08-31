@@ -1,96 +1,89 @@
 import { isContactGroup, type ContactDraftPerson } from "./contact-types";
 import { formatInstagramHandle, normalizeHttpUrl } from "@ryanmeetup/utils";
-
-type JsonObject = Record<string, unknown>;
-
-const isObject = (value: unknown): value is JsonObject =>
-  Boolean(value) && typeof value === "object" && !Array.isArray(value);
-
-const cleanText = (value: unknown, max: number, required = false) => {
-  if (typeof value !== "string") return null;
-  const text = value.trim();
-  return (!required || text) && text.length <= max ? text : null;
-};
-
-const isUuid = (value: unknown): value is string =>
-  typeof value === "string" &&
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    value,
-  );
+import {
+  isUuid,
+  nullableTrimmedText,
+  objectWithKeys,
+  requiredTrimmedText,
+  uuidList,
+} from "@/lib/api-schema/shared";
 
 export function contactSaveSchema(value: unknown) {
-  if (!isObject(value)) return null;
   const allowed = [
     "id",
     "displayName",
     "imageUrl",
+    "retainImage",
     "contactGroup",
     "notes",
     "categoryIds",
     "newCategoryNames",
     "people",
   ];
-  if (Object.keys(value).some((key) => !allowed.includes(key))) return null;
-  if (value.id !== undefined && !isUuid(value.id)) return null;
-  const displayName = cleanText(value.displayName, 160, true);
-  const notes = cleanText(value.notes, 5000);
-  const rawImageUrl = cleanText(value.imageUrl, 2048);
-  const contactGroup = cleanText(value.contactGroup, 80);
+  const body = objectWithKeys(value, allowed);
+  if (!body) return null;
+  if (body.id !== undefined && !isUuid(body.id)) return null;
+  const displayName = requiredTrimmedText(body.displayName, 160);
+  const notes = nullableTrimmedText(body.notes, 5000);
+  const rawImageUrl = nullableTrimmedText(body.imageUrl, 2048);
+  const retainImage = body.retainImage === true;
+  const contactGroup = nullableTrimmedText(body.contactGroup, 80);
   if (
     !displayName ||
-    notes === null ||
-    rawImageUrl === null ||
-    contactGroup === null ||
+    notes === undefined ||
+    rawImageUrl === undefined ||
+    contactGroup === undefined ||
     (contactGroup && !isContactGroup(contactGroup))
   )
     return null;
   const imageUrl = rawImageUrl ? normalizeHttpUrl(rawImageUrl) : null;
   if (rawImageUrl && !imageUrl) return null;
-  if (!Array.isArray(value.categoryIds) || value.categoryIds.length > 100)
-    return null;
-  const categoryIds = [...new Set(value.categoryIds)];
-  if (!categoryIds.every(isUuid)) return null;
+  const categoryIds = uuidList(body.categoryIds);
+  if (!categoryIds) return null;
   if (
-    !Array.isArray(value.newCategoryNames) ||
-    value.newCategoryNames.length > 100
+    !Array.isArray(body.newCategoryNames) ||
+    body.newCategoryNames.length > 100
   )
     return null;
   const newCategoryNames = [
-    ...new Set(value.newCategoryNames.map((name) => cleanText(name, 80, true))),
+    ...new Set(
+      body.newCategoryNames.map((name) => requiredTrimmedText(name, 80)),
+    ),
   ];
   if (newCategoryNames.some((name) => !name)) return null;
-  if (!Array.isArray(value.people) || value.people.length > 100) return null;
+  if (!Array.isArray(body.people) || body.people.length > 100) return null;
   const people: ContactDraftPerson[] = [];
-  for (const person of value.people) {
-    if (!isObject(person)) return null;
-    if (
-      Object.keys(person).some(
-        (key) =>
-          ![
-            "id",
-            "full_name",
-            "title",
-            "emails",
-            "phone",
-            "instagram_handle",
-          ].includes(key),
-      ) ||
-      (person.id !== undefined && !isUuid(person.id))
-    )
-      return null;
-    const fullName = cleanText(person.full_name, 160, true);
-    const title = cleanText(person.title ?? "", 160);
-    const phone = cleanText(person.phone ?? "", 40);
+  for (const value of body.people) {
+    const person = objectWithKeys(value, [
+      "id",
+      "full_name",
+      "title",
+      "emails",
+      "phone",
+      "instagram_handle",
+    ]);
+    if (!person || (person.id !== undefined && !isUuid(person.id))) return null;
+    const fullName = requiredTrimmedText(person.full_name, 160);
+    const title = nullableTrimmedText(person.title ?? "", 160);
+    const phone = nullableTrimmedText(person.phone ?? "", 40);
     const instagramText =
       typeof person.instagram_handle === "string"
         ? person.instagram_handle
         : "";
-    const instagram = cleanText(formatInstagramHandle(instagramText), 100);
-    if (!fullName || title === null || phone === null || instagram === null)
+    const instagram = nullableTrimmedText(
+      formatInstagramHandle(instagramText),
+      100,
+    );
+    if (
+      !fullName ||
+      title === undefined ||
+      phone === undefined ||
+      instagram === undefined
+    )
       return null;
     if (!Array.isArray(person.emails) || person.emails.length > 1) return null;
     const emails = [
-      ...new Set(person.emails.map((email) => cleanText(email, 254, true))),
+      ...new Set(person.emails.map((email) => requiredTrimmedText(email, 254))),
     ];
     if (
       emails.some(
@@ -108,19 +101,21 @@ export function contactSaveSchema(value: unknown) {
     });
   }
   return {
-    id: value.id as string | undefined,
+    id: body.id as string | undefined,
     displayName,
     imageUrl: imageUrl || null,
+    retainImage,
     contactGroup: contactGroup || null,
     notes: notes || null,
-    categoryIds: categoryIds as string[],
+    categoryIds,
     newCategoryNames: newCategoryNames as string[],
     people,
   };
 }
 
 export function contactDeleteSchema(value: unknown) {
-  return isObject(value) && Object.keys(value).length === 1 && isUuid(value.id)
-    ? { id: value.id }
+  const body = objectWithKeys(value, ["id"]);
+  return body && Object.keys(body).length === 1 && isUuid(body.id)
+    ? { id: body.id }
     : null;
 }

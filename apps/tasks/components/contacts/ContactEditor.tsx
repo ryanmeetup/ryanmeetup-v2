@@ -47,7 +47,8 @@ const editorFormId = "contact-editor-form";
 const makeDraft = (contact?: Contact | null): ContactDraft => ({
   id: contact?.id,
   displayName: contact?.display_name ?? "",
-  imageUrl: contact?.image_url ?? "",
+  imageUrl: contact?.image_path ? "" : (contact?.image_url ?? ""),
+  retainImage: Boolean(contact?.image_path),
   contactGroup: contact?.contact_group ?? "",
   notes: contact?.notes ?? "",
   categoryIds: contact?.categories.map((category) => category.id) ?? [],
@@ -103,7 +104,11 @@ export function ContactEditor({
     }
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
-    setDraft((current) => ({ ...current, imageUrl: "" }));
+    setDraft((current) => ({
+      ...current,
+      imageUrl: "",
+      retainImage: false,
+    }));
     setImageError("");
   }
   const updatePerson = (index: number, patch: Partial<ContactDraftPerson>) =>
@@ -286,12 +291,34 @@ export function ContactEditor({
                     setDraft((current) => ({
                       ...current,
                       imageUrl: event.target.value,
+                      retainImage: false,
                     }));
                     setImagePreview(event.target.value || null);
                     setImageError("");
                   }}
                 />
               </div>
+              {imagePreview && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="w-full sm:w-auto"
+                  disabled={saving}
+                  onClick={() => {
+                    setImageFile(null);
+                    setImagePreview(null);
+                    setImageError("");
+                    setDraft((current) => ({
+                      ...current,
+                      imageUrl: "",
+                      retainImage: false,
+                    }));
+                  }}
+                >
+                  Remove image
+                </Button>
+              )}
               <DropdownSelect
                 variant="field"
                 label="Group"

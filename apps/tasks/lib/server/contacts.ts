@@ -13,6 +13,7 @@ export function shapeContact(row: ContactRow): Contact {
     id: row.id,
     display_name: row.display_name,
     image_url: row.image_url,
+    image_path: row.image_path,
     contact_group: row.contact_group,
     notes: row.notes,
     created_at: row.created_at,
@@ -34,7 +35,9 @@ export async function loadContacts(supabase: SupabaseClient) {
     .order("display_name");
   return {
     ...result,
-    data: result.data?.map((row) => shapeContact(row as unknown as ContactRow)),
+    data: result.data?.map((row) =>
+      resolveContactImage(supabase, shapeContact(row as unknown as ContactRow)),
+    ),
   };
 }
 
@@ -54,7 +57,20 @@ export async function loadContact(supabase: SupabaseClient, id: string) {
   return {
     ...result,
     data: result.data
-      ? shapeContact(result.data as unknown as ContactRow)
+      ? resolveContactImage(
+          supabase,
+          shapeContact(result.data as unknown as ContactRow),
+        )
       : null,
+  };
+}
+
+function resolveContactImage(supabase: SupabaseClient, contact: Contact) {
+  if (!contact.image_path) return contact;
+  return {
+    ...contact,
+    image_url: supabase.storage
+      .from("organization-images")
+      .getPublicUrl(contact.image_path).data.publicUrl,
   };
 }

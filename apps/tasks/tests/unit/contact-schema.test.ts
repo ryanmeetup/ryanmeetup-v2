@@ -4,6 +4,7 @@ import { contactSaveSchema } from "@/lib/contacts/contact-schema";
 const contact = (contactGroup: unknown) => ({
   displayName: "Fallen Media",
   imageUrl: "",
+  retainImage: false,
   contactGroup,
   notes: "",
   categoryIds: [],
@@ -24,5 +25,12 @@ describe("contactSaveSchema", () => {
 
   it("rejects an unsupported contact group", () => {
     expect(contactSaveSchema(contact("News"))).toBeNull();
+  });
+
+  it("accepts a request to retain a server-owned image", () => {
+    expect(
+      contactSaveSchema({ ...contact("Brand Partner"), retainImage: true })
+        ?.retainImage,
+    ).toBe(true);
   });
 });

@@ -31,6 +31,7 @@ export type Contact = {
   id: string;
   display_name: string;
   image_url: string | null;
+  image_path: string | null;
   contact_group: ContactGroup | null;
   notes: string | null;
   created_at: string;
@@ -45,6 +46,7 @@ export type ContactDraft = {
   id?: string;
   displayName: string;
   imageUrl: string;
+  retainImage: boolean;
   contactGroup: ContactGroup | "";
   notes: string;
   categoryIds: string[];
@@ -53,4 +55,4 @@ export type ContactDraft = {
 };
 
 export const CONTACT_COLUMNS =
-  "id,display_name,image_url,contact_group,notes,created_at,updated_at,contact_people(id,full_name,title,emails,phone,instagram_handle),contact_category_assignments(contact_categories(id,name,color))";
+  "id,display_name,image_url,image_path,contact_group,notes,created_at,updated_at,contact_people(id,full_name,title,emails,phone,instagram_handle),contact_category_assignments(contact_categories(id,name,color))";
