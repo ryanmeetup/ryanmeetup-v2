@@ -1,8 +1,6 @@
 import { parsePagination } from "../../pagination";
+import { isUuid } from "@/lib/api-schema/shared";
 import { parseCategoryTagFilterValue } from "@/lib/tasks/task-filter-values";
-
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const dateValue = (date: Date) => date.toISOString().slice(0, 10);
 
@@ -16,11 +14,10 @@ export const TASK_EXACT_FILTERS = [
 
 export function parseTaskListQuery(params: URLSearchParams, now = new Date()) {
   const parseCategoryIds = (name: string) =>
-    (params.get(name) ?? "").split(",").filter((id) => UUID_PATTERN.test(id));
+    (params.get(name) ?? "").split(",").filter(isUuid);
   const includedCategoryIds = parseCategoryIds("categories");
   const legacyCategory = params.get("category");
-  if (legacyCategory && UUID_PATTERN.test(legacyCategory))
-    includedCategoryIds.push(legacyCategory);
+  if (isUuid(legacyCategory)) includedCategoryIds.push(legacyCategory);
   const parseDueDays = (name: string) =>
     (params.get(name) ?? "")
       .split(",")
@@ -33,7 +30,7 @@ export function parseTaskListQuery(params: URLSearchParams, now = new Date()) {
   const parseTags = (name: string) =>
     (params.get(name) ?? "").split(",").flatMap((value) => {
       const filter = parseCategoryTagFilterValue(value);
-      return filter && UUID_PATTERN.test(filter.categoryId) ? [filter] : [];
+      return filter && isUuid(filter.categoryId) ? [filter] : [];
     });
   const { requestedPage, pageSize } = parsePagination(params);
   return {
