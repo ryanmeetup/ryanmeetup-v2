@@ -3,7 +3,6 @@
 import { useState } from "react";
 import {
   Button,
-  Card,
   ConfirmationDialog,
   IconButton,
   Input,
@@ -21,13 +20,13 @@ import {
   FiTrash2,
 } from "react-icons/fi";
 import type { Status } from "@/lib/tasks/task-types";
-import { ManagementCardTitle } from "@/components/global";
 import { errorMessage } from "@/lib/presentation";
 import { mutate } from "@/lib/mutation-client";
 
 /**
  * Owner-only status management, rendered as a page section at /admin/statuses.
- * It was a header modal until the admin section gave it a permanent home.
+ * The list is the whole page: adding a status happens in `StatusCreateModal`,
+ * opened from the page header.
  */
 export function StatusSettings({
   statuses,
@@ -40,9 +39,6 @@ export function StatusSettings({
   onStatusCompletionChange: (id: string, isCompleted: boolean) => void;
   demoMode: boolean;
 }) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [color, setColor] = useState("#ee1a25");
   const [editingStatusId, setEditingStatusId] = useState<string | null>(null);
   const [editingStatusName, setEditingStatusName] = useState("");
   const [editingStatusDescription, setEditingStatusDescription] = useState("");
@@ -51,50 +47,13 @@ export function StatusSettings({
   const [settingActionPending, setSettingActionPending] = useState(false);
 
   async function statusRequest<T>(
-    method: "POST" | "PATCH" | "DELETE",
+    method: "PATCH" | "DELETE",
     body: Record<string, unknown>,
   ) {
     return mutate<T>("/api/statuses", {
       method,
       body: JSON.stringify(body),
     });
-  }
-
-  async function add() {
-    const nextName = name.trim();
-    if (!nextName || settingActionPending) return;
-    setSettingActionPending(true);
-    let item: Status = {
-      id: crypto.randomUUID(),
-      name: nextName,
-      description: description.trim() || null,
-      color,
-      sort_order: statuses.length,
-      order_revision: statuses[0]?.order_revision ?? 0,
-      is_default: false,
-      is_completed: false,
-      requires_reason: false,
-    };
-    try {
-      if (!demoMode) {
-        const result = await statusRequest<{ status: typeof item }>("POST", {
-          name: item.name,
-          description: item.description,
-          color: item.color,
-        });
-        item = result.status;
-      }
-      onStatusesChange((current) => [...current, item]);
-      setName("");
-      setDescription("");
-      toast.success(`${item.name} added.`);
-    } catch (error) {
-      toast.error(
-        errorMessage(error, "The status could not be added."),
-      );
-    } finally {
-      setSettingActionPending(false);
-    }
   }
 
   function beginEdit(item: Status) {
@@ -476,64 +435,6 @@ export function StatusSettings({
             </div>
           ))}
       </div>
-
-      <Card size="lg">
-        <ManagementCardTitle>New status</ManagementCardTitle>
-        <p className="mt-1 text-sm text-black/60 dark:text-white/60">
-          Adds a column to every board in the workspace.
-        </p>
-        <form
-          id="create-status-form"
-          className="mt-4 space-y-4"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void add();
-          }}
-        >
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
-            <Input
-              label="Status name"
-              required
-              name="setting-name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="Blocked"
-            />
-            <label className="date-field">
-              <span>
-                Color <span className="text-red-500">*</span>
-              </span>
-              <input
-                type="color"
-                className="color-input !h-11 !w-11"
-                value={color}
-                required
-                onChange={(event) => setColor(event.target.value)}
-              />
-            </label>
-          </div>
-          <Textarea
-            id="setting-description"
-            label="Brief description"
-            name="setting-description"
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-            placeholder="What belongs in this column?"
-            maxLength={240}
-            rows={2}
-          />
-          <div className="flex justify-end">
-            <Button
-              type="submit"
-              size="sm"
-              loading={settingActionPending}
-              loadingText="Adding..."
-            >
-              Add status
-            </Button>
-          </div>
-        </form>
-      </Card>
 
       <ConfirmationDialog
         open={Boolean(statusToDelete)}

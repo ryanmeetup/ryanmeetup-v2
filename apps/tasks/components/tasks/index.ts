@@ -1,4 +1,5 @@
 export { TaskApp } from "./TaskApp";
+export { StatusCreateModal } from "./StatusCreateModal";
 export { StatusSettings } from "./TaskAdministration";
 export { NewTaskModal } from "./NewTaskModal";
 export { TaskCategoryBadge } from "./TaskCategoryBadge";

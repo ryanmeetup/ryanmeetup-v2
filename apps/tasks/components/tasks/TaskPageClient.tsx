@@ -186,7 +186,7 @@ export function TaskPageClient({
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
         setData={setData}
-        contentClassName="mx-4 min-w-0 max-w-6xl space-y-5 py-4 sm:mx-6 sm:space-y-6 sm:py-6 lg:mx-8 lg:py-8 2xl:mx-auto"
+        contentClassName="mx-auto w-full min-w-0 max-w-[84rem] space-y-5 p-4 sm:space-y-6 sm:p-6 lg:p-8"
       >
         <div className="min-w-0 space-y-2">
           <Breadcrumbs
@@ -205,7 +205,7 @@ export function TaskPageClient({
               },
             ]}
           />
-          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] items-start gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] xl:gap-6">
+          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] items-start gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,480px)] xl:gap-6">
             <h1 className="min-w-0 break-words text-3xl font-bold leading-tight sm:text-4xl">
               {task.title}
             </h1>
@@ -238,7 +238,7 @@ export function TaskPageClient({
           </div>
         </div>
 
-        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] items-start gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(320px,480px)]">
           <div className="contents min-w-0 xl:block xl:space-y-6">
             <Card className="order-1 min-w-0 space-y-5">
               <div>

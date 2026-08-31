@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { FiColumns } from "react-icons/fi";
+import { FiColumns, FiPlus } from "react-icons/fi";
+import { Button } from "@ryanmeetup/ui";
 import { PageHeader } from "@/components/global";
-import { StatusSettings } from "@/components/tasks";
+import { StatusCreateModal, StatusSettings } from "@/components/tasks";
 import { useWorkspaceData } from "@/hooks/useWorkspaceData";
+import type { Status } from "@/lib/tasks/task-types";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { AdminPageShell } from "./AdminPageShell";
 
@@ -17,6 +19,13 @@ export function AdminStatusesPageClient({
 }) {
   const { data, setData } = useWorkspaceData(initialData, demoMode);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+
+  const updateStatuses = (update: (current: Status[]) => Status[]) =>
+    setData((current) => ({
+      ...current,
+      statuses: update(current.statuses),
+    }));
 
   return (
     <AdminPageShell
@@ -30,16 +39,22 @@ export function AdminStatusesPageClient({
         icon={FiColumns}
         title="Statuses"
         description="The shared task columns, their order, which ones complete work, and which ones require a reason."
+        actions={
+          <Button
+            size="sm"
+            leftIcon={<FiPlus />}
+            /* Rides up beside the title instead of the header's bottom edge. */
+            className="w-full sm:w-auto sm:self-start"
+            onClick={() => setCreateOpen(true)}
+          >
+            New status
+          </Button>
+        }
       />
       <StatusSettings
         statuses={data.statuses}
         demoMode={demoMode}
-        onStatusesChange={(update) =>
-          setData((current) => ({
-            ...current,
-            statuses: update(current.statuses),
-          }))
-        }
+        onStatusesChange={updateStatuses}
         onStatusCompletionChange={(id, isCompleted) => {
           const now = new Date().toISOString();
           const archiveDelayMs = 14 * 24 * 60 * 60 * 1000;
@@ -68,6 +83,13 @@ export function AdminStatusesPageClient({
             }),
           }));
         }}
+      />
+      <StatusCreateModal
+        open={createOpen}
+        setOpen={setCreateOpen}
+        statuses={data.statuses}
+        onStatusesChange={updateStatuses}
+        demoMode={demoMode}
       />
     </AdminPageShell>
   );

@@ -3,7 +3,6 @@
 import type { FormEvent } from "react";
 import { Modal, ModalActions, Textarea } from "@ryanmeetup/ui";
 import type { Status } from "@/lib/tasks/task-types";
-import { statusReasonPrompt } from "@/lib/tasks/task-status-reason";
 
 const formId = "status-reason-form";
 
@@ -43,8 +42,8 @@ export function StatusReasonDialog({
         if (!next && !pending) onCancel();
       }}
       title={status ? `Move to ${status.name}` : "Move task"}
-      description="This status needs a reason. It is saved as a comment on the task."
-      size="md"
+      description="Saved as a comment on the task."
+      maxWidth="36rem"
       actions={
         <ModalActions
           confirmForm={formId}
@@ -61,7 +60,7 @@ export function StatusReasonDialog({
         <Textarea
           id="status-reason"
           name="status-reason"
-          label={status ? statusReasonPrompt(status) : "Why is this moving?"}
+          label="Reason"
           required
           autoFocus
           rows={4}
