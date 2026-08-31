@@ -30,6 +30,17 @@ jobs:
         working-directory: .
       - name: Lint tasks workspace
         run: npm run lint
-      - run: npm test
+      - name: Type-check tasks workspace
+        run: npm run typecheck
+      - name: Test tasks workspace with coverage
+        run: npm run test:coverage
+      - name: Upload Tasks coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tasks-coverage
+          path: coverage/tasks
+          if-no-files-found: error
+          retention-days: 14
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
