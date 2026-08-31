@@ -16,18 +16,62 @@ export type BannerSegment =
 
 type BannerSettings = Pick<
   InstanceSettings,
-  "bannerEnabled" | "bannerMessage" | "bannerLinkUrl" | "bannerLinkLabel"
+  | "name"
+  | "bannerEnabled"
+  | "bannerMessage"
+  | "bannerLinkUrl"
+  | "bannerLinkLabel"
 >;
+
+/** The address a mailto sends to, without the prefill it may carry. */
+function mailtoAddress(href: string) {
+  return href.slice("mailto:".length).split("?")[0];
+}
+
+/**
+ * The draft a bare mailto opens with.
+ *
+ * A banner that invites a bug report and then opens an empty message gets
+ * empty messages back, so the link seeds the subject and the two things
+ * whoever reads it will otherwise have to ask for. The subject names the
+ * workspace because the address on the other end may take mail from more than
+ * one instance -- it is metadata for the recipient's inbox, not part of the
+ * notice, which still names nothing.
+ *
+ * Only a bare address is filled in. An owner who wrote their own query string
+ * has already said what the message should look like, and an https link is
+ * left exactly as it was given.
+ */
+export function bannerMailtoHref(href: string, workspace: string) {
+  if (!href.startsWith("mailto:") || href.includes("?")) return href;
+
+  const subject = `Feedback: ${workspace}`;
+  const body = [
+    "What's the issue or idea?",
+    "",
+    "",
+    "Where in the workspace (page, task, or link):",
+    "",
+    "",
+    "Anything else that would help (screenshot, browser):",
+    "",
+  ].join("\n");
+
+  return `mailto:${mailtoAddress(href)}?subject=${encodeURIComponent(
+    subject,
+  )}&body=${encodeURIComponent(body)}`;
+}
 
 /**
  * What the link reads as. An instance that has not written a label gets one
  * derived from the address, since a bare mailto: URL is not something to show
- * a member and "Learn more" says as much as a page's own URL would.
+ * a member and "Learn more" says as much as a page's own URL would. Only the
+ * address is read out: the prefilled subject and body are for the mail client.
  */
 export function bannerLinkText(href: string, label: string | null) {
   if (label?.trim()) return label.trim();
   return href.startsWith("mailto:")
-    ? `Email ${href.slice("mailto:".length)}`
+    ? `Email ${mailtoAddress(href)}`
     : "Learn more";
 }
 
@@ -54,7 +98,7 @@ export function bannerSegments(
   if (message) segments.push({ kind: "text", value: `${message} ` });
   segments.push({
     kind: "link",
-    href: bannerLinkUrl,
+    href: bannerMailtoHref(bannerLinkUrl, settings.name),
     value: bannerLinkText(bannerLinkUrl, bannerLinkLabel),
   });
   return segments;

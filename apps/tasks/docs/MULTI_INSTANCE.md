@@ -395,12 +395,23 @@ Notes on the design:
   belongs to. An unlabelled link phrases itself from its address — `Email
 ryan@ryanmeetup.com` for a mailbox, `Learn more` for a page — so an instance
   only writes a label when it wants different words.
+- **A bare `mailto:` opens a prefilled draft.** `bannerMailtoHref` in
+  `lib/banner.ts` seeds the subject and the two questions whoever reads the
+  mail would otherwise have to ask, because a banner that invites a bug report
+  and opens an empty message gets empty messages back. The subject names the
+  workspace — inbox metadata for an address that may take mail from more than
+  one instance, not part of the notice. Stored settings stay a plain address,
+  and an owner who writes their own query string, or an `https://` page, is
+  left exactly as given.
 - The switch and the link are the exception to "blank means inherit". They are
   seeded from the resolved value and written explicitly, because an unticked
   box and an empty link are choices in their own right; only values that
   actually change are sent, so an untouched dialog still inherits. The message
   and the link label are ordinary overrides: blank falls back to the compiled
-  notice and to the derived label.
+  notice and to the derived label. Because a cleared link is stored as `NULL`,
+  `banner_link_url` carries the maintainer address as a column default: a row
+  created by saving some *other* setting would otherwise read as an instance
+  that had chosen to send people nowhere.
 - **Tasks has one compact footer layout.** Its uploaded instance logo (or text
   fallback) comes from editable identity settings and renders in the current
   wordmark slot. Its subtitle, inline links, social icons, and credit sentence

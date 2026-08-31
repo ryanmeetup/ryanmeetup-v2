@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { bannerSegments, bannerText } from "@/lib/banner";
+import { bannerMailtoHref, bannerSegments, bannerText } from "@/lib/banner";
 
 const base = {
+  name: "RYAN MEETUP",
   bannerEnabled: true,
   bannerMessage: "This workspace is in beta. Found an issue or have an idea?",
   bannerLinkUrl: "mailto:ryan@ryanmeetup.com",
@@ -65,11 +66,20 @@ describe("bannerSegments", () => {
       value: "Learn more",
     });
 
+    // The address is what is read out; the draft the link opens with is for
+    // the mail client, not the sentence.
     expect(bannerSegments(base)?.at(-1)).toEqual({
       kind: "link",
-      href: "mailto:ryan@ryanmeetup.com",
+      href: bannerMailtoHref("mailto:ryan@ryanmeetup.com", "RYAN MEETUP"),
       value: "Email ryan@ryanmeetup.com",
     });
+
+    expect(
+      bannerSegments({
+        ...base,
+        bannerLinkUrl: "mailto:ryan@ryanmeetup.com?subject=Hello",
+      })?.at(-1)?.value,
+    ).toBe("Email ryan@ryanmeetup.com");
   });
 
   it("drops the link when there is nowhere to send anyone", () => {
@@ -90,5 +100,30 @@ describe("bannerSegments", () => {
   it("says nothing at all once an instance turns the banner off", () => {
     expect(bannerSegments({ ...base, bannerEnabled: false })).toBeNull();
     expect(bannerText({ ...base, bannerEnabled: false })).toBeNull();
+  });
+});
+
+describe("bannerMailtoHref", () => {
+  it("opens a draft the reader can act on", () => {
+    const href = bannerMailtoHref("mailto:ryan@ryanmeetup.com", "RYAN MEETUP");
+    const url = new URL(href);
+
+    expect(url.protocol).toBe("mailto:");
+    expect(url.pathname).toBe("ryan@ryanmeetup.com");
+    // The subject names the workspace so an address that takes mail from more
+    // than one instance can tell them apart. The notice itself still does not.
+    expect(url.searchParams.get("subject")).toBe("Feedback: RYAN MEETUP");
+    expect(url.searchParams.get("body")).toContain("What's the issue or idea?");
+    expect(url.searchParams.get("body")).toContain("Where in the workspace");
+  });
+
+  it("leaves a destination the owner already composed alone", () => {
+    // Their own subject, and an https page, are both instructions in their
+    // own right; neither gets a template appended to it.
+    const written = "mailto:team@acme.example?subject=Bug";
+    expect(bannerMailtoHref(written, "Acme")).toBe(written);
+    expect(bannerMailtoHref("https://acme.example/status", "Acme")).toBe(
+      "https://acme.example/status",
+    );
   });
 });
