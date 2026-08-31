@@ -8,9 +8,11 @@ If you are standing up a second instance, read this first and then
 
 ## The short version
 
-- Every schema change is a migration file in `supabase/migrations`, applied with
-  `supabase db push`. **Never change the schema only in the dashboard, and never
-  delete an applied migration file.**
+- Every schema change is a migration file in `supabase/migrations`. **Never let
+  a dashboard edit be the only record of a change, and never delete an applied
+  migration file.** RMT receives the file with `supabase db push`; PRD is not
+  reachable from this machine and receives the same SQL through its dashboard
+  SQL Editor.
 - `20260731000000_baseline_schema.sql` reproduces the entire database from
   nothing. `supabase/seed.sql` adds the rows a workspace needs to be usable.
 - Verify any change with `supabase db reset` followed by
@@ -71,6 +73,12 @@ is why the baseline is generated rather than written.
 `public` set wrong on any of the three attachment buckets would expose every
 uploaded file.
 
+Contact uploads are stored by their server-owned `contacts.image_path`; the
+public URL is derived only when contacts are read. Replacing, removing, or
+deleting a contact image retires the previous object after the database write
+succeeds. External image URLs remain supported in `contacts.image_url` and are
+never treated as storage objects owned by the app.
+
 ### The seed
 
 `supabase/seed.sql` inserts the six default statuses. `handle_new_user` installs
@@ -110,9 +118,8 @@ is no longer valid," so the cause is only visible in the server log.
 That row cannot live in the seed: `access_groups.created_by` is `not null` and
 references `profiles`, and the seed runs before any user exists.
 `handle_new_user` creates the tier itself when none is there yet, so the first
-signup on a new instance bootstraps it. The linked project must receive that
-function change directly; chronological migration files are not retained in
-this repository.
+signup on a new instance bootstraps it. The function lives in the baseline, and
+any later change to it ships as its own committed migration like anything else.
 
 The linked schema marks this tier explicitly with `access_groups.is_default`.
 `provision_workspace_member` creates or repairs the profile, starter statuses,
@@ -222,7 +229,10 @@ like.
    to see exactly what it changes relative to production.
 3. Run `npm test`. (`npm run test:e2e` is hermetic and will not exercise it.)
 4. Commit the file. This is the step that was being skipped.
-5. `supabase db push` to apply it to each instance's project.
+5. Apply it to both projects. RMT is reachable from this machine, so run
+   `supabase db push` yourself. PRD is not, so hand Ryan the migration's SQL as
+   one complete, paste-ready block for its dashboard SQL Editor, with a
+   verification query and the result to expect.
 
 Code that reads a table added by a migration that may not be applied yet can
 tolerate a missing relation through `isMissingRelation` in
@@ -235,19 +245,21 @@ database failure must propagate rather than be swallowed.
 
 - **Apply `20260907000000` to the second instance.** The Ryan Meetup project
   already has every object in it, so mark it applied there rather than running
-  it; the personal project needs it pushed:
+  it:
 
   ```sh
   supabase link --project-ref lvfaartgcpphuokoswcm   # Ryan Meetup Tasks
   supabase migration repair --status applied 20260907000000
-
-  supabase link --project-ref vjsnobmfsfrsnwukfaoq   # projects.ryanle.dev
-  supabase db push
   ```
 
-- **Every migration must be pushed to both projects.** A schema change applied
-  to one and not the other is the beginning of exactly the drift this document
-  was written to end.
+  `projects.ryanle.dev` (`vjsnobmfsfrsnwukfaoq`) still needs the change, and
+  this machine's Supabase login cannot reach it. It does not get CLI commands:
+  hand over the migration's SQL as one paste-ready block for the PRD dashboard
+  SQL Editor, with a verification query, stated explicitly as running on PRD.
+
+- **Every migration must reach both projects.** A schema change applied to one
+  and not the other is the beginning of exactly the drift this document was
+  written to end.
 
 ## The provisioning-contract drift
 
@@ -268,7 +280,7 @@ them. The cost only appeared when a second instance was built from this
 repository: `projects.ryanle.dev` came up on its own project without the
 contract, and `scripts/check-database-contract.mjs` refused the deploy with a
 404 on `beginner_flow_health`. The last deployment that had succeeded was built
-against the *first* instance's credentials, so the second instance served the
+against the _first_ instance's credentials, so the second instance served the
 first instance's data while looking healthy.
 
 The recovery was mechanical, and is the recipe for any future divergence:

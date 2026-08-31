@@ -177,14 +177,13 @@ The UI calls `work_groups` “categories.” Preserve that product terminology a
 the UI/domain boundary and the existing table name at the database boundary;
 do not introduce a second competing name casually.
 
-Apply database changes directly to the linked project and verify the resulting
-live objects. Put change SQL in a temporary file, preferably outside the
-repository, and delete it after successful application and verification. If a
-tool requires `supabase/migrations`, the file there is temporary and must be
-removed before handoff. Do not commit migration files, register ephemeral files
-with `supabase db push`, or make CI depend on reconstructing the production
-schema locally. Keep database changes idempotent where practical and document
-security-sensitive behavior in the access-control specification.
+Schema changes follow the repository policy in the root `AGENTS.md` under
+"Supabase database changes": every change is a committed migration file in
+`supabase/migrations`, verified with `supabase db reset` and `supabase db diff
+--linked` before it is applied. Never apply a schema change by hand, and never
+delete an applied migration file. Keep changes idempotent where practical and
+document security-sensitive behavior in the access-control specification.
+`docs/DATABASE.md` has the full workflow and the history behind it.
 
 ### Who applies database fixes, per instance
 
@@ -248,8 +247,8 @@ rather than failing through an API call.
   not replace these compact controls with exposed text-and-icon buttons unless
   the action is the card's primary call to action or the text is needed to
   prevent ambiguity.
-- Full-page resource-management screens must use the same embedded `Modal`
-  shell established by Projects and Work Groups: the page title and concise
+- Full-page resource-management screens must use the shared `ManagementSurface`
+  established by Projects and Work Groups: the page title and concise
   description belong in the shell header, the primary page action belongs in
   its `actions` slot, and the resource controls, results, and empty state belong
   in the bordered shell body. Use the standard Tasks page padding
