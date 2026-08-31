@@ -1,0 +1,63 @@
+{
+  "manifest_version": "0.4",
+  "name": "rmt-tasks-read",
+  "display_name": "Ryan Meetup Tasks (Read Only)",
+  "version": "0.1.0",
+  "description": "Read-only access to Ryan Meetup tasks, notes, comments, projects, contacts, calendar data, and work metrics.",
+  "long_description": "Connects Claude Desktop to the private Ryan Meetup Tasks workspace through a dedicated read-only API. It cannot create, edit, delete, or upload workspace data.",
+  "author": {
+    "name": "Ryan Meetup"
+  },
+  "server": {
+    "type": "node",
+    "entry_point": "dist/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/dist/index.js"],
+      "env": {
+        "RMT_MCP_API_URL": "${user_config.api_url}",
+        "RMT_MCP_READ_TOKEN": "${user_config.read_token}"
+      }
+    }
+  },
+  "tools": [
+    { "name": "get_workspace_overview", "description": "Read workspace catalogs, data counts, and integration summary." },
+    { "name": "search_workspace", "description": "Search tasks, notes, projects, categories, and contacts." },
+    { "name": "list_tasks", "description": "List and filter tasks, including archived work when requested." },
+    { "name": "get_task", "description": "Read one task with comments, checklist, activity, and attachment metadata." },
+    { "name": "list_notes", "description": "List workspace notes." },
+    { "name": "get_note", "description": "Read one note and its comments." },
+    { "name": "list_comments", "description": "List task and note comments with their author and parent context." },
+    { "name": "list_activity", "description": "Read task activity history." },
+    { "name": "list_calendar_events", "description": "Read workspace calendar events." },
+    { "name": "list_projects", "description": "List projects." },
+    { "name": "get_project", "description": "Read a project with tasks, owners, grants, and attachments." },
+    { "name": "list_categories", "description": "List work categories." },
+    { "name": "get_category", "description": "Read a category with tasks, owners, grants, and attachments." },
+    { "name": "list_contacts", "description": "Read the contacts directory and its people." },
+    { "name": "get_work_metrics", "description": "Calculate throughput, aging, workload, and cycle-time evidence." },
+    { "name": "list_governance_activity", "description": "Read owner-only audit and access-control records." }
+  ],
+  "keywords": ["tasks", "notes", "productivity", "analytics", "read-only"],
+  "compatibility": {
+    "claude_desktop": ">=1.0.0",
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": { "node": ">=20.9.0" }
+  },
+  "user_config": {
+    "api_url": {
+      "type": "string",
+      "title": "RMT Tasks API URL",
+      "description": "Keep the default unless you are developing against localhost.",
+      "required": true,
+      "default": "https://tasks.ryanmeetup.com"
+    },
+    "read_token": {
+      "type": "string",
+      "title": "Read token",
+      "description": "Dedicated RMT MCP read token. This is not a Supabase key.",
+      "sensitive": true,
+      "required": true
+    }
+  }
+}
