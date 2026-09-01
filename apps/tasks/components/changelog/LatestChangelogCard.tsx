@@ -24,19 +24,22 @@ export function LatestChangelogCard({
   preview?: AccessPreview;
   release: ChangelogRelease;
 }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const contentId = useId();
   const actionsId = useId();
 
   useEffect(() => {
     const desktopQuery = window.matchMedia("(min-width: 1024px)");
-    const keepDesktopExpanded = (event: MediaQueryListEvent) => {
-      if (event.matches) setCollapsed(false);
+    const syncCollapsedState = (matches: boolean) => {
+      setCollapsed(!matches);
     };
+    const handleDesktopChange = (event: MediaQueryListEvent) =>
+      syncCollapsedState(event.matches);
 
-    desktopQuery.addEventListener("change", keepDesktopExpanded);
+    syncCollapsedState(desktopQuery.matches);
+    desktopQuery.addEventListener("change", handleDesktopChange);
     return () =>
-      desktopQuery.removeEventListener("change", keepDesktopExpanded);
+      desktopQuery.removeEventListener("change", handleDesktopChange);
   }, []);
 
   return (
@@ -51,11 +54,11 @@ export function LatestChangelogCard({
         </span>
 
         <div className="min-w-0">
-          <h2 className="flex flex-wrap items-center gap-2 text-lg font-semibold">
+          <h2 className="text-lg font-semibold leading-7">
             {release.title}
             <Pill
               size="sm"
-              className="!border-emerald-500/30 !bg-emerald-500/10 !px-2 !py-0.5 !text-[9px] !tracking-[0.18em] !text-emerald-800 dark:!text-emerald-200"
+              className="ml-2 align-middle !border-emerald-500/30 !bg-emerald-500/10 !px-2 !py-0.5 !text-[9px] !tracking-[0.18em] !text-emerald-800 dark:!text-emerald-200"
             >
               {release.version}
             </Pill>
