@@ -193,9 +193,10 @@ describe("instance-scoped changelog versions", () => {
     const { changelog, latestChangelogRelease } =
       await import("@/lib/server/changelog");
 
-    expect(latestChangelogRelease.version).toBe("PRS v6");
-    expect(latestChangelogRelease.releaseNumber).toBe(6);
+    expect(latestChangelogRelease.version).toBe("PRS v7");
+    expect(latestChangelogRelease.releaseNumber).toBe(7);
     expect(changelog.map((release) => release.version)).toEqual([
+      "PRS v7",
       "PRS v6",
       "PRS v5",
       "PRS v4",
@@ -212,7 +213,7 @@ describe("instance-scoped changelog versions", () => {
     });
     const { latestChangelogRelease } = await import("@/lib/server/changelog");
 
-    expect(latestChangelogRelease.version).toBe("Workspace v6");
+    expect(latestChangelogRelease.version).toBe("Workspace v7");
   });
 });
 
