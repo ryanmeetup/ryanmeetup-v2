@@ -71,4 +71,21 @@ if (!contactsResponse.ok) {
   process.exit(1);
 }
 
+const contactMethodsResponse = await fetch(
+  `${url}/rest/v1/contact_people?select=email_methods,phone_methods&limit=0`,
+  {
+    headers: {
+      apikey: secret,
+      authorization: `Bearer ${secret}`,
+    },
+    signal: AbortSignal.timeout(15_000),
+  },
+);
+if (!contactMethodsResponse.ok) {
+  console.error(
+    "Database contract preflight failed: labeled contact methods are missing.",
+  );
+  process.exit(1);
+}
+
 console.log(`Database contract preflight passed for ${projectRef}.`);

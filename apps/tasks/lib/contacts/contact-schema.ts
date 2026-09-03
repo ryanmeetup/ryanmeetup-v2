@@ -1,4 +1,8 @@
-import { isContactGroup, type ContactDraftPerson } from "./contact-types";
+import {
+  isContactGroup,
+  type ContactDraftPerson,
+  type ContactMethod,
+} from "./contact-types";
 import { formatInstagramHandle, normalizeHttpUrl } from "@ryanmeetup/utils";
 import {
   isUuid,
@@ -59,13 +63,12 @@ export function contactSaveSchema(value: unknown) {
       "full_name",
       "title",
       "emails",
-      "phone",
+      "phones",
       "instagram_handle",
     ]);
     if (!person || (person.id !== undefined && !isUuid(person.id))) return null;
     const fullName = requiredTrimmedText(person.full_name, 160);
     const title = nullableTrimmedText(person.title ?? "", 160);
-    const phone = nullableTrimmedText(person.phone ?? "", 40);
     const instagramText =
       typeof person.instagram_handle === "string"
         ? person.instagram_handle
@@ -74,29 +77,17 @@ export function contactSaveSchema(value: unknown) {
       formatInstagramHandle(instagramText),
       100,
     );
-    if (
-      !fullName ||
-      title === undefined ||
-      phone === undefined ||
-      instagram === undefined
-    )
+    if (!fullName || title === undefined || instagram === undefined)
       return null;
-    if (!Array.isArray(person.emails) || person.emails.length > 1) return null;
-    const emails = [
-      ...new Set(person.emails.map((email) => requiredTrimmedText(email, 254))),
-    ];
-    if (
-      emails.some(
-        (email) => !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
-      )
-    )
-      return null;
+    const emails = contactMethods(person.emails, "email");
+    const phones = contactMethods(person.phones, "phone");
+    if (!emails || !phones) return null;
     people.push({
       id: person.id as string | undefined,
       full_name: fullName,
       title: title || null,
-      emails: emails as string[],
-      phone: phone || null,
+      emails,
+      phones,
       instagram_handle: instagram || null,
     });
   }
@@ -111,6 +102,33 @@ export function contactSaveSchema(value: unknown) {
     newCategoryNames: newCategoryNames as string[],
     people,
   };
+}
+
+function contactMethods(value: unknown, kind: "email" | "phone") {
+  if (!Array.isArray(value) || value.length > 10) return null;
+  const methods: ContactMethod[] = [];
+  const seen = new Set<string>();
+  for (const item of value) {
+    const method = objectWithKeys(item, ["label", "value"]);
+    if (!method) return null;
+    const label = nullableTrimmedText(method.label ?? "", 40);
+    const methodValue = requiredTrimmedText(
+      method.value,
+      kind === "email" ? 254 : 40,
+    );
+    if (
+      label === undefined ||
+      !methodValue ||
+      (kind === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(methodValue))
+    )
+      return null;
+    const normalized =
+      kind === "email" ? methodValue.toLowerCase() : methodValue;
+    if (seen.has(normalized)) return null;
+    seen.add(normalized);
+    methods.push({ label: label || null, value: normalized });
+  }
+  return methods;
 }
 
 export function contactDeleteSchema(value: unknown) {

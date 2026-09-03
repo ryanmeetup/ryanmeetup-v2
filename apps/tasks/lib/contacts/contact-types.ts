@@ -18,12 +18,17 @@ export type ContactGroup = (typeof CONTACT_GROUPS)[number];
 export const isContactGroup = (value: unknown): value is ContactGroup =>
   typeof value === "string" && CONTACT_GROUPS.includes(value as ContactGroup);
 
+export type ContactMethod = {
+  label: string | null;
+  value: string;
+};
+
 export type ContactPerson = {
   id: string;
   full_name: string;
   title: string | null;
-  emails: string[];
-  phone: string | null;
+  emails: ContactMethod[];
+  phones: ContactMethod[];
   instagram_handle: string | null;
 };
 
@@ -55,4 +60,4 @@ export type ContactDraft = {
 };
 
 export const CONTACT_COLUMNS =
-  "id,display_name,image_url,image_path,contact_group,notes,created_at,updated_at,contact_people(id,full_name,title,emails,phone,instagram_handle),contact_category_assignments(contact_categories(id,name,color))";
+  "id,display_name,image_url,image_path,contact_group,notes,created_at,updated_at,contact_people(id,full_name,title,emails:email_methods,phones:phone_methods,instagram_handle),contact_category_assignments(contact_categories(id,name,color))";

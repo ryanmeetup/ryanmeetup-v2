@@ -51,8 +51,14 @@ export function useContactSave({
               id: person.id ?? crypto.randomUUID(),
               full_name: person.full_name.trim(),
               title: person.title?.trim() || null,
-              emails: person.emails.map((email) => email.trim().toLowerCase()),
-              phone: person.phone?.trim() || null,
+              emails: person.emails.map((method) => ({
+                label: method.label?.trim() || null,
+                value: method.value.trim().toLowerCase(),
+              })),
+              phones: person.phones.map((method) => ({
+                label: method.label?.trim() || null,
+                value: method.value.trim(),
+              })),
               instagram_handle:
                 formatInstagramHandle(person.instagram_handle ?? "") || null,
             })),

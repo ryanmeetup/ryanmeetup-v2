@@ -13,6 +13,7 @@ overview:
   - See server-written comments, attachments, and activity without refreshing
   - Give each workspace one name and write its notice banner
   - Give configured deployments read-only MCP access for trusted assistants
+  - Keep multiple labeled email addresses and phone numbers for each contact
 ---
 
 ## New
@@ -42,6 +43,10 @@ Creating or editing a task, project, category, contact, or calendar event now us
 ### Tasks can have a crew
 
 Assign a task to several teammates without replacing the people already on it. My Tasks, dashboard counts, search, and weekday digests now recognize shared assignments everywhere they appear.
+
+### Every way to reach someone
+
+Each person on a contact can now have multiple email addresses and phone numbers, with useful labels such as Personal, Work cell, or Office. Every saved method stays searchable and appears as its own email or call link in the contact directory.
 
 ### Task cards with less label clutter
 

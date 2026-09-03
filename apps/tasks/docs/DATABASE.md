@@ -79,6 +79,12 @@ deleting a contact image retires the previous object after the database write
 succeeds. External image URLs remain supported in `contacts.image_url` and are
 never treated as storage objects owned by the app.
 
+Contact people keep labeled, repeatable addresses in `email_methods` and
+`phone_methods`. The older `emails` and `phone` columns remain as a
+compatibility projection so an older app deployment can continue saving during
+a rolling migration; `save_contact_with_methods` writes both representations in
+one transaction.
+
 ### The seed
 
 `supabase/seed.sql` inserts the six default statuses. `handle_new_user` installs

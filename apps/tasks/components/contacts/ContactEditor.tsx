@@ -28,6 +28,7 @@ import {
 import type {
   Contact,
   ContactDraft,
+  ContactMethod,
   ContactDraftPerson,
 } from "@/lib/contacts/contact-types";
 import { CONTACT_GROUPS } from "@/lib/contacts/contact-types";
@@ -37,7 +38,7 @@ const blankPerson = (): ContactDraftPerson => ({
   full_name: "",
   title: null,
   emails: [],
-  phone: null,
+  phones: [],
   instagram_handle: null,
 });
 
@@ -55,9 +56,114 @@ const makeDraft = (contact?: Contact | null): ContactDraft => ({
   people:
     contact?.people.map((person) => ({
       ...person,
-      emails: person.emails.slice(0, 1),
+      emails: person.emails.map((method) => ({ ...method })),
+      phones: person.phones.map((method) => ({ ...method })),
     })) ?? [],
 });
+
+function ContactMethodsEditor({
+  kind,
+  personIndex,
+  methods,
+  disabled,
+  onChange,
+}: {
+  kind: "email" | "phone";
+  personIndex: number;
+  methods: ContactMethod[];
+  disabled: boolean;
+  onChange: (methods: ContactMethod[]) => void;
+}) {
+  const noun = kind === "email" ? "email address" : "phone number";
+  const icon =
+    kind === "email" ? <FiMail aria-hidden /> : <FiPhone aria-hidden />;
+  return (
+    <fieldset className="space-y-3">
+      <legend className="text-xs font-semibold uppercase tracking-[0.16em] text-black/60 dark:text-white/60">
+        {kind === "email" ? "Email addresses" : "Phone numbers"}
+      </legend>
+      {methods.map((method, index) => (
+        <div
+          key={index}
+          className="grid items-end gap-3 rounded-xl border border-black/10 bg-white/60 p-3 dark:border-white/10 dark:bg-black/10 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto]"
+        >
+          <Input
+            label={`${kind === "email" ? "Email" : "Phone"} label`}
+            name={`person-${personIndex}-${kind}-${index}-label`}
+            value={method.label ?? ""}
+            maxLength={40}
+            placeholder={kind === "email" ? "Work" : "Work cell"}
+            disabled={disabled}
+            onChange={(event) =>
+              onChange(
+                methods.map((item, methodIndex) =>
+                  methodIndex === index
+                    ? { ...item, label: event.target.value }
+                    : item,
+                ),
+              )
+            }
+          />
+          <Input
+            label={
+              index === 0
+                ? noun[0].toUpperCase() + noun.slice(1)
+                : `Additional ${noun}`
+            }
+            name={`person-${personIndex}-${kind}-${index}-value`}
+            type={kind === "email" ? "email" : "text"}
+            inputMode={kind === "phone" ? "tel" : "email"}
+            required
+            value={method.value}
+            maxLength={kind === "email" ? 254 : 40}
+            placeholder={
+              kind === "email" ? "name@example.com" : "(555) 555-0123"
+            }
+            disabled={disabled}
+            onChange={(event) =>
+              onChange(
+                methods.map((item, methodIndex) =>
+                  methodIndex === index
+                    ? {
+                        ...item,
+                        value:
+                          kind === "phone"
+                            ? formatPhoneNumber(event.target.value)
+                            : event.target.value,
+                      }
+                    : item,
+                ),
+              )
+            }
+          />
+          <IconButton
+            label={`Remove ${method.label?.trim() || noun}`}
+            variant="danger"
+            disabled={disabled}
+            onClick={() =>
+              onChange(
+                methods.filter((_, methodIndex) => methodIndex !== index),
+              )
+            }
+          >
+            <FiTrash2 aria-hidden />
+          </IconButton>
+        </div>
+      ))}
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        className="w-full sm:w-auto"
+        leftIcon={icon}
+        disabled={disabled || methods.length >= 10}
+        onClick={() => onChange([...methods, { label: null, value: "" }])}
+      >
+        Add {noun}
+      </Button>
+    </fieldset>
+  );
+}
 
 type ContactEditorProps = {
   contact?: Contact | null;
@@ -125,7 +231,13 @@ export function ContactEditor(props: ContactEditorProps) {
   const valid =
     !imageError &&
     Boolean(draft.displayName.trim()) &&
-    draft.people.every((person) => person.full_name.trim());
+    draft.people.every(
+      (person) =>
+        person.full_name.trim() &&
+        [...person.emails, ...person.phones].every((method) =>
+          method.value.trim(),
+        ),
+    );
   const indexedPeople = useMemo(
     () => draft.people.map((person, index) => ({ person, index })),
     [draft.people],
@@ -142,8 +254,8 @@ export function ContactEditor(props: ContactEditorProps) {
       [
         person.full_name,
         person.title,
-        person.emails[0],
-        person.phone,
+        ...person.emails.flatMap((method) => [method.label, method.value]),
+        ...person.phones.flatMap((method) => [method.label, method.value]),
         person.instagram_handle,
       ]
         .filter(Boolean)
@@ -448,22 +560,6 @@ export function ContactEditor(props: ContactEditorProps) {
                   }
                 />
                 <Input
-                  label="Email address"
-                  name={`person-${activePersonIndex}-email`}
-                  type="email"
-                  disabled={saving}
-                  value={activePerson.emails[0] ?? ""}
-                  maxLength={254}
-                  placeholder="name@example.com"
-                  onChange={(event) =>
-                    updatePerson(activePersonIndex, {
-                      emails: event.target.value ? [event.target.value] : [],
-                    })
-                  }
-                />
-              </div>
-              <div className="mt-4 grid gap-4 lg:grid-cols-3">
-                <Input
                   label="Title"
                   name={`person-${activePersonIndex}-title`}
                   value={activePerson.title ?? ""}
@@ -476,19 +572,28 @@ export function ContactEditor(props: ContactEditorProps) {
                     })
                   }
                 />
-                <Input
-                  label="Phone number"
-                  name={`person-${activePersonIndex}-phone`}
-                  value={activePerson.phone ?? ""}
-                  maxLength={40}
-                  inputMode="tel"
+              </div>
+              <div className="mt-4 grid gap-5 xl:grid-cols-2">
+                <ContactMethodsEditor
+                  kind="email"
+                  personIndex={activePersonIndex}
+                  methods={activePerson.emails}
                   disabled={saving}
-                  onChange={(event) =>
-                    updatePerson(activePersonIndex, {
-                      phone: formatPhoneNumber(event.target.value),
-                    })
+                  onChange={(emails) =>
+                    updatePerson(activePersonIndex, { emails })
                   }
                 />
+                <ContactMethodsEditor
+                  kind="phone"
+                  personIndex={activePersonIndex}
+                  methods={activePerson.phones}
+                  disabled={saving}
+                  onChange={(phones) =>
+                    updatePerson(activePersonIndex, { phones })
+                  }
+                />
+              </div>
+              <div className="mt-4 max-w-xl">
                 <Input
                   label="Instagram handle"
                   name={`person-${activePersonIndex}-instagram`}
@@ -518,7 +623,13 @@ export function ContactEditor(props: ContactEditorProps) {
                 <Button
                   type="button"
                   size="sm"
-                  disabled={!activePerson.full_name.trim() || saving}
+                  disabled={
+                    !activePerson.full_name.trim() ||
+                    [...activePerson.emails, ...activePerson.phones].some(
+                      (method) => !method.value.trim(),
+                    ) ||
+                    saving
+                  }
                   onClick={() => {
                     setActivePersonIndex(null);
                     setPersonBeforeEdit(null);
@@ -568,14 +679,28 @@ export function ContactEditor(props: ContactEditorProps) {
                         {person.emails[0] && (
                           <span className="flex min-w-0 items-center gap-1.5">
                             <FiMail aria-hidden className="shrink-0" />
-                            <span className="truncate">{person.emails[0]}</span>
+                            <span className="truncate">
+                              {person.emails[0].label
+                                ? `${person.emails[0].label}: `
+                                : ""}
+                              {person.emails[0].value}
+                              {person.emails.length > 1
+                                ? ` +${person.emails.length - 1}`
+                                : ""}
+                            </span>
                           </span>
                         )}
-                        {person.phone && (
+                        {person.phones[0] && (
                           <span className="flex min-w-0 items-center gap-1.5">
                             <FiPhone aria-hidden className="shrink-0" />
                             <span className="truncate">
-                              {formatPhoneNumber(person.phone)}
+                              {person.phones[0].label
+                                ? `${person.phones[0].label}: `
+                                : ""}
+                              {formatPhoneNumber(person.phones[0].value)}
+                              {person.phones.length > 1
+                                ? ` +${person.phones.length - 1}`
+                                : ""}
                             </span>
                           </span>
                         )}
@@ -588,7 +713,7 @@ export function ContactEditor(props: ContactEditorProps) {
                           </span>
                         )}
                         {!person.emails[0] &&
-                          !person.phone &&
+                          !person.phones[0] &&
                           !person.instagram_handle && (
                             <span>No contact details</span>
                           )}
@@ -600,7 +725,12 @@ export function ContactEditor(props: ContactEditorProps) {
                       onClick={() => {
                         setPersonBeforeEdit({
                           ...person,
-                          emails: [...person.emails],
+                          emails: person.emails.map((method) => ({
+                            ...method,
+                          })),
+                          phones: person.phones.map((method) => ({
+                            ...method,
+                          })),
                         });
                         setRemovePersonOnCancel(false);
                         setActivePersonIndex(index);

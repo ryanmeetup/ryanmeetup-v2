@@ -50,8 +50,8 @@ function contactSearchText(contact: Contact) {
     ...contact.people.flatMap((person) => [
       person.full_name,
       person.title,
-      ...person.emails,
-      person.phone,
+      ...person.emails.flatMap((method) => [method.label, method.value]),
+      ...person.phones.flatMap((method) => [method.label, method.value]),
       person.instagram_handle,
     ]),
   ]
@@ -447,29 +447,42 @@ export function ContactsPageClient({
                                                 </p>
                                               )}
                                               <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-sm text-black/65 dark:text-white/65">
-                                                {person.emails
-                                                  .slice(0, 1)
-                                                  .map((email) => (
-                                                    <a
-                                                      key={email}
-                                                      className="inline-flex items-center gap-1.5 hover:text-black dark:hover:text-white"
-                                                      href={`mailto:${email}`}
-                                                    >
-                                                      <FiMail aria-hidden />
-                                                      {email}
-                                                    </a>
-                                                  ))}
-                                                {person.phone && (
+                                                {person.emails.map((email) => (
                                                   <a
+                                                    key={`${email.label ?? ""}-${email.value}`}
                                                     className="inline-flex items-center gap-1.5 hover:text-black dark:hover:text-white"
-                                                    href={`tel:${person.phone}`}
+                                                    href={`mailto:${email.value}`}
+                                                  >
+                                                    <FiMail aria-hidden />
+                                                    <span>
+                                                      {email.label && (
+                                                        <span className="mr-1 text-black/45 dark:text-white/45">
+                                                          {email.label}:
+                                                        </span>
+                                                      )}
+                                                      {email.value}
+                                                    </span>
+                                                  </a>
+                                                ))}
+                                                {person.phones.map((phone) => (
+                                                  <a
+                                                    key={`${phone.label ?? ""}-${phone.value}`}
+                                                    className="inline-flex items-center gap-1.5 hover:text-black dark:hover:text-white"
+                                                    href={`tel:${phone.value}`}
                                                   >
                                                     <FiPhone aria-hidden />
-                                                    {formatPhoneNumber(
-                                                      person.phone,
-                                                    )}
+                                                    <span>
+                                                      {phone.label && (
+                                                        <span className="mr-1 text-black/45 dark:text-white/45">
+                                                          {phone.label}:
+                                                        </span>
+                                                      )}
+                                                      {formatPhoneNumber(
+                                                        phone.value,
+                                                      )}
+                                                    </span>
                                                   </a>
-                                                )}
+                                                ))}
                                                 {person.instagram_handle && (
                                                   <a
                                                     className="inline-flex items-center gap-1.5 hover:text-black dark:hover:text-white"

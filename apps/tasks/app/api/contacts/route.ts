@@ -172,7 +172,7 @@ async function save(request: Request) {
   }
 
   const { data: contact, error } = await authorization.supabase.rpc(
-    "save_contact_with_activity",
+    "save_contact_with_methods",
     {
       contact_id: contactId,
       contact_is_new: !parsed.data.id,

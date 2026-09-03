@@ -81,6 +81,10 @@ describe("POST /api/contacts", () => {
 
     expect(response.status).toBe(500);
     expect(uploadContactImage).toHaveBeenCalledOnce();
+    expect(rpc).toHaveBeenCalledWith(
+      "save_contact_with_methods",
+      expect.objectContaining({ people: [] }),
+    );
     expect(removeContactImage).toHaveBeenCalledOnce();
     expect(removeContactImage).toHaveBeenCalledWith(
       "user-1/contact-1/image-1.jpg",
