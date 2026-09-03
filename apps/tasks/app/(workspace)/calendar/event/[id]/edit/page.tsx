@@ -51,12 +51,10 @@ export default async function EditCalendarEventPage({
     );
   }
 
-  const loaded = await loadWorkspacePage([
-    "profiles",
-    "statuses",
-    "categories",
-    "projects",
-  ]);
+  const loaded = await loadWorkspacePage(
+    ["profiles", "statuses", "categories", "projects"],
+    { area: "calendar" },
+  );
   const events = requireQueryData(
     "calendar events",
     await loaded.supabase

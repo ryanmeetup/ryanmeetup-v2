@@ -45,12 +45,10 @@ export default async function EditContactPage({
     );
   }
 
-  const loaded = await loadWorkspacePage([
-    "profiles",
-    "statuses",
-    "categories",
-    "projects",
-  ]);
+  const loaded = await loadWorkspacePage(
+    ["profiles", "statuses", "categories", "projects"],
+    { area: "contacts" },
+  );
   // RLS hides a contact this member cannot reach, and `.single()` reports that
   // the same way it reports one that does not exist. Both are a 404; anything
   // else is a real failure and still propagates.

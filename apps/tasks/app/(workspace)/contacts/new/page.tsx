@@ -35,12 +35,10 @@ export default async function NewContactPage({
     );
   }
 
-  const { data } = await loadWorkspacePage([
-    "profiles",
-    "statuses",
-    "categories",
-    "projects",
-  ]);
+  const { data } = await loadWorkspacePage(
+    ["profiles", "statuses", "categories", "projects"],
+    { area: "contacts" },
+  );
   return (
     <ContactEditorPageClient
       initialData={data}

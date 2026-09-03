@@ -11,7 +11,13 @@ import {
   USER_ACCESS_PREVIEW_PARAM,
 } from "@/lib/access/access-preview";
 import { resolveAccessPreview } from "@/lib/server/access-preview";
+import {
+  canViewWorkspaceArea,
+  WORKSPACE_AREA_KEYS,
+  type WorkspaceAreaKey,
+} from "@/lib/access/workspace-areas";
 import { getAdminClient } from "@/lib/server/admin-client";
+import { isMissingFunction } from "@/lib/server/supabase-errors";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -138,12 +144,29 @@ export async function GET(request: Request) {
   const selection = `${WORKSPACE_COLUMNS.activity},tasks!inner(${WORKSPACE_COLUMNS.tasks})`;
   let previewProjectIds: string[] | undefined;
   let previewInaccessibleTaskIds: string[] = [];
+  // Resource activity is read with the service-role key, so nothing about a
+  // locked page filters itself out. Which pages the caller reaches has to be
+  // asked for explicitly and applied below.
+  const areaResult = await authorization.supabase.rpc(
+    "accessible_workspace_areas",
+    { requested_areas: WORKSPACE_AREA_KEYS },
+  );
+  if (areaResult.error && !isMissingFunction(areaResult.error.code))
+    return databaseFailure(request, "activity.page-access", areaResult.error, {
+      error: "Activity permissions could not be resolved. Try again.",
+    });
+  let accessibleAreas: WorkspaceAreaKey[] = areaResult.error
+    ? [...WORKSPACE_AREA_KEYS]
+    : ((areaResult.data ?? []) as WorkspaceAreaKey[]);
   const requestedGroupPreview = params.get(ACCESS_PREVIEW_PARAM) ?? undefined;
   const requestedUserPreview =
     params.get(USER_ACCESS_PREVIEW_PARAM) ?? undefined;
+  // Asked once: it gates both the access preview and the owner-only page
+  // access events below.
+  const { data: isOwner } = await authorization.supabase.rpc("is_app_owner");
+  const callerIsOwner = isOwner === true;
   if (requestedGroupPreview || requestedUserPreview) {
-    const { data: isOwner } = await authorization.supabase.rpc("is_app_owner");
-    if (isOwner) {
+    if (callerIsOwner) {
       const { data: projects, error: projectsError } =
         await authorization.supabase.from("projects").select("id");
       if (projectsError)
@@ -163,6 +186,9 @@ export async function GET(request: Request) {
       if (resolved) {
         previewProjectIds = resolved.projectIds;
         previewInaccessibleTaskIds = resolved.preview.inaccessibleTaskIds ?? [];
+        accessibleAreas = resolved.preview.accessibleAreas ?? [
+          ...WORKSPACE_AREA_KEYS,
+        ];
       }
     }
   }
@@ -264,6 +290,22 @@ export async function GET(request: Request) {
     "category.delete",
     "note.delete",
   ]);
+  const canView = (area: WorkspaceAreaKey) =>
+    canViewWorkspaceArea(accessibleAreas, area);
+  /**
+   * The page a resource event belongs to, when it belongs to one. A member who
+   * cannot open Notes must not read that a note was written, edited, or
+   * deleted -- including through the workspace-deletion exception below, which
+   * exists so a disappearing resource stays legible, not so a locked page
+   * leaks through it.
+   */
+  const eventArea = (targetType: string): WorkspaceAreaKey | null => {
+    if (targetType === "note") return "notes";
+    if (targetType === "organization" || targetType === "contact_category")
+      return "contacts";
+    if (targetType === "calendar_event") return "calendar";
+    return null;
+  };
   const resourceVisible = (
     event: {
       action: string;
@@ -272,6 +314,8 @@ export async function GET(request: Request) {
     },
     metadata: Record<string, unknown>,
   ) => {
+    const area = eventArea(event.target_type);
+    if (area && !canView(area)) return false;
     if (workspaceDeletions.has(event.action)) return true;
     const scoped = (name: string, visible: Set<string>) => {
       const value = metadata[name];
@@ -308,6 +352,10 @@ export async function GET(request: Request) {
       case "profile":
       case "workspace":
         return true;
+      // Which groups reach which page is owner-only administrative data, and
+      // this feed is read with the service-role key, so it is gated here.
+      case "workspace_area":
+        return callerIsOwner;
       default:
         return false;
     }

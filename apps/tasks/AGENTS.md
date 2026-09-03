@@ -151,8 +151,8 @@ props when a component can receive a narrower view model or controller.
 ## Authorization and data privacy
 
 Read `docs/access-control-spec.md` before changing access groups, categories,
-projects, tasks, attachments, membership, RLS, or privileged APIs. Its security
-invariants are requirements, not implementation suggestions.
+projects, tasks, attachments, membership, page access, RLS, or privileged APIs.
+Its security invariants are requirements, not implementation suggestions.
 
 - Supabase RLS and database functions are the security boundary. UI filtering,
   hidden controls, access previews, and route-level checks are defense in depth,
@@ -160,9 +160,15 @@ invariants are requirements, not implementation suggestions.
 - Authorization must fail closed. Missing grants, ownership metadata, or
   rollout state must deny access or block the migration; never broaden access.
 - App ownership, organizational tiers, lateral teams, project grants, category
-  restrictions, and projectless-task rules are distinct concepts. Reuse the
-  canonical selectors and RPCs instead of approximating effective permission
-  in a component.
+  restrictions, page restrictions, and projectless-task rules are distinct
+  concepts. Reuse the canonical selectors and RPCs instead of approximating
+  effective permission in a component.
+- A whole page can be locked behind access groups. The lockable pages are the
+  registry in `lib/access/workspace-areas.ts`; a page reads its own gate
+  through `loadWorkspacePage({ area })` and `authorize({ area })`, and the
+  sidebar hides what the member cannot open. Adding a lockable page means an
+  entry there, the RLS predicate for its tables, and the guard on its routes —
+  never a new boolean on `access_groups`.
 - Owner-only access metadata must not be selected into regular-member payloads.
   Use the privileged server client only inside the established privileged API
   boundary and only after the corresponding authorization check.

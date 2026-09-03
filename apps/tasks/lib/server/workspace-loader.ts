@@ -1,6 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import {
+  WORKSPACE_AREA_KEYS,
+  type WorkspaceAreaKey,
+} from "@/lib/access/workspace-areas";
+import { APPLY_MIGRATIONS_HINT, isMissingFunction } from "./supabase-errors";
+import {
   TASK_ASSIGNEE_COLUMNS,
   TASK_CATEGORY_COLUMNS,
   TASK_COLUMNS,
@@ -69,6 +74,7 @@ export type WorkspaceCollection = Exclude<
   | "taskReferences"
   | "projectTaskCounts"
   | "resourceAttachmentCounts"
+  | "accessibleAreas"
 >;
 
 export const TASK_PAGE_SIZE = 50;
@@ -116,7 +122,38 @@ const emptyWorkspace = (): Omit<WorkspaceData, "currentProfile"> => ({
   taskLabels: [],
   taskCategories: [],
   canManageCategories: false,
+  accessibleAreas: [],
 });
+
+/**
+ * Which lockable pages this member reaches, asked once per workspace load so
+ * the sidebar, the page guards, and the API routes share one answer.
+ *
+ * The registry is passed in rather than read from the database, so the set of
+ * pages stays in `lib/access/workspace-areas.ts`. A build whose migrations have
+ * not been applied yet has no function to call and no RLS restricting the
+ * pages either, so treating every page as open there is the state of the
+ * database, not a widened one; every other failure propagates.
+ */
+async function loadAccessibleAreas(
+  supabase: SupabaseClient,
+): Promise<WorkspaceAreaKey[]> {
+  const { data, error } = await supabase.rpc("accessible_workspace_areas", {
+    requested_areas: WORKSPACE_AREA_KEYS,
+  });
+  if (error) {
+    if (!isMissingFunction(error.code))
+      throw new WorkspaceLoadError("workspace area access", error);
+    console.warn("Page access is not enforced yet", {
+      hint: APPLY_MIGRATIONS_HINT,
+    });
+    return [...WORKSPACE_AREA_KEYS];
+  }
+  return (Array.isArray(data) ? data : []).filter(
+    (area): area is WorkspaceAreaKey =>
+      WORKSPACE_AREA_KEYS.includes(area as WorkspaceAreaKey),
+  );
+}
 
 export async function loadWorkspace(
   supabase: SupabaseClient,
@@ -169,15 +206,17 @@ export async function loadWorkspace(
       supabase.from("task_categories").select(columns.taskCategories),
   };
 
-  const [profileResult, categoryManagerResult, ...results] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select(columns.currentProfile)
-      .eq("id", userId)
-      .maybeSingle(),
-    supabase.rpc("can_manage_categories"),
-    ...collections.map((collection) => queries[collection]()),
-  ]);
+  const [profileResult, categoryManagerResult, accessibleAreas, ...results] =
+    await Promise.all([
+      supabase
+        .from("profiles")
+        .select(columns.currentProfile)
+        .eq("id", userId)
+        .maybeSingle(),
+      supabase.rpc("can_manage_categories"),
+      loadAccessibleAreas(supabase),
+      ...collections.map((collection) => queries[collection]()),
+    ]);
   if (profileResult.error) {
     throw new WorkspaceLoadError("current profile", profileResult.error);
   }
@@ -199,5 +238,6 @@ export async function loadWorkspace(
     ...workspace,
     currentProfile: profileResult.data,
     canManageCategories: Boolean(categoryManagerResult.data),
+    accessibleAreas,
   } as WorkspaceData;
 }

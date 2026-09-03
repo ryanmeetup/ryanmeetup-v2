@@ -32,6 +32,7 @@ import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import type { ProjectStatus } from "@/lib/resources/resource-types";
 import { useSidebarSections } from "@/hooks/useSidebarSections";
 import { withAccessPreview } from "@/lib/access/access-preview";
+import { canViewWorkspaceArea } from "@/lib/access/workspace-areas";
 import { projectStatusDetails } from "@/lib/resources/project-status";
 import {
   desktopEditorTrigger,
@@ -156,6 +157,11 @@ export function TasksSidebar({
   const isContacts = pathname === "/contacts";
   const isCalendar = pathname === "/calendar";
   const isTasksRoute = isBoard || pathname.startsWith("/task/");
+  // A page an owner locked behind access groups leaves the navigation, so the
+  // sidebar never offers a link that answers with a 404. The route guard and
+  // RLS still refuse a member who types the path.
+  const canView = (area: Parameters<typeof canViewWorkspaceArea>[1]) =>
+    canViewWorkspaceArea(data.accessibleAreas, area);
   const selectedProjectIsFavorite = favoriteProjects.some(
     (project) =>
       project.id === selectedProject || project.name === selectedProject,
@@ -240,22 +246,26 @@ export function TasksSidebar({
           <FiGrid />
           Tasks
         </Link>
-        <Link
-          href={withAccessPreview("/notes", data.accessPreview)}
-          onClick={closeSidebar}
-          className={linkClass(isNotes)}
-        >
-          <FiFileText />
-          Notes
-        </Link>
-        <Link
-          href={withAccessPreview("/contacts", data.accessPreview)}
-          onClick={closeSidebar}
-          className={linkClass(isContacts)}
-        >
-          <FiUsers />
-          Contacts
-        </Link>
+        {canView("notes") && (
+          <Link
+            href={withAccessPreview("/notes", data.accessPreview)}
+            onClick={closeSidebar}
+            className={linkClass(isNotes)}
+          >
+            <FiFileText />
+            Notes
+          </Link>
+        )}
+        {canView("contacts") && (
+          <Link
+            href={withAccessPreview("/contacts", data.accessPreview)}
+            onClick={closeSidebar}
+            className={linkClass(isContacts)}
+          >
+            <FiUsers />
+            Contacts
+          </Link>
+        )}
         <Link
           href={withAccessPreview("/activity", data.accessPreview)}
           onClick={closeSidebar}
@@ -264,14 +274,16 @@ export function TasksSidebar({
           <FiClock />
           Activity
         </Link>
-        <Link
-          href={withAccessPreview("/calendar", data.accessPreview)}
-          onClick={closeSidebar}
-          className={linkClass(isCalendar)}
-        >
-          <FiCalendar />
-          Calendar
-        </Link>
+        {canView("calendar") && (
+          <Link
+            href={withAccessPreview("/calendar", data.accessPreview)}
+            onClick={closeSidebar}
+            className={linkClass(isCalendar)}
+          >
+            <FiCalendar />
+            Calendar
+          </Link>
+        )}
       </nav>
       {(isOwner || canManageCategories) && (
         <section className="mt-4 border-y border-black/10 py-3 dark:border-white/10">

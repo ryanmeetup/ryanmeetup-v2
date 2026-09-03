@@ -1,5 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AccessPreview } from "@/lib/workspace/workspace-types";
+import {
+  WORKSPACE_AREA_KEYS,
+  type WorkspaceAreaKey,
+} from "@/lib/access/workspace-areas";
+import { isMissingRelation } from "./supabase-errors";
 import { requireQueryData, requireQueryResult } from "./workspace-loader";
 
 type PreviewCategory = {
@@ -9,7 +14,10 @@ type PreviewCategory = {
 
 type PreviewCategoryGrant = { category_id: string; group_id: string };
 
-type PreviewGroupCalendarAccess = { id: string; calendar_access?: boolean | null };
+type PreviewGroupCalendarAccess = {
+  id: string;
+  calendar_access?: boolean | null;
+};
 
 export function grantsCalendarAccessForPreview(
   groups: PreviewGroupCalendarAccess[],
@@ -17,8 +25,68 @@ export function grantsCalendarAccessForPreview(
 ) {
   const effectiveGroupIds = new Set(groupIds);
   return groups.some(
-    (group) => effectiveGroupIds.has(group.id) && group.calendar_access === true,
+    (group) =>
+      effectiveGroupIds.has(group.id) && group.calendar_access === true,
   );
+}
+
+type PreviewAreaRow = { area: string; access_mode: "open" | "restricted" };
+type PreviewAreaGrant = { area: string; group_id: string };
+
+/**
+ * The same rule `can_view_workspace_area` applies, projected for the preview:
+ * a page with no restricted row is open, a restricted page needs a selected
+ * group the subject reaches, and workspace-wide content authority reaches
+ * every page. Diagnostic only — it never authorizes a request.
+ */
+export function accessibleAreasForPreview(
+  areas: PreviewAreaRow[],
+  grants: PreviewAreaGrant[],
+  groupIds: string[],
+  hasGlobalAccess: boolean,
+): WorkspaceAreaKey[] {
+  if (hasGlobalAccess) return [...WORKSPACE_AREA_KEYS];
+  const restricted = new Set(
+    areas
+      .filter((area) => area.access_mode === "restricted")
+      .map((area) => area.area),
+  );
+  const effectiveGroupIds = new Set(groupIds);
+  const grantedAreas = new Set(
+    grants
+      .filter((grant) => effectiveGroupIds.has(grant.group_id))
+      .map((grant) => grant.area),
+  );
+  return WORKSPACE_AREA_KEYS.filter(
+    (area) => !restricted.has(area) || grantedAreas.has(area),
+  );
+}
+
+async function resolveAreaAccess(
+  supabase: SupabaseClient,
+  groupIds: string[],
+  hasGlobalAccess: boolean,
+): Promise<{ accessibleAreas: WorkspaceAreaKey[] }> {
+  if (hasGlobalAccess) return { accessibleAreas: [...WORKSPACE_AREA_KEYS] };
+  const [areasResult, grantsResult] = await Promise.all([
+    supabase.from("workspace_area_access").select("area, access_mode"),
+    supabase.from("workspace_area_group_grants").select("area, group_id"),
+  ]);
+  // Before the migration lands there is nothing restricting a page, so the
+  // preview shows what the database would actually allow: all of them.
+  if (
+    isMissingRelation(areasResult.error?.code) ||
+    isMissingRelation(grantsResult.error?.code)
+  )
+    return { accessibleAreas: [...WORKSPACE_AREA_KEYS] };
+  return {
+    accessibleAreas: accessibleAreasForPreview(
+      requireQueryData("preview page access", areasResult),
+      requireQueryData("preview page grants", grantsResult),
+      groupIds,
+      false,
+    ),
+  };
 }
 
 export function accessibleCategoryIdsForPreview(
@@ -134,11 +202,18 @@ export async function resolveAccessPreview(
               requireQueryData("preview open projects", result),
             ),
         ]);
-    const categoryAccess = await resolveCategoryAccess(
-      supabase,
-      inheritedGroupIds,
-      group.grants_global_content,
-    );
+    const [categoryAccess, areaAccess] = await Promise.all([
+      resolveCategoryAccess(
+        supabase,
+        inheritedGroupIds,
+        group.grants_global_content,
+      ),
+      resolveAreaAccess(
+        supabase,
+        inheritedGroupIds,
+        group.grants_global_content,
+      ),
+    ]);
     return {
       preview: {
         kind: "group",
@@ -149,6 +224,7 @@ export async function resolveAccessPreview(
           inheritedGroupIds,
         ),
         ...categoryAccess,
+        ...areaAccess,
       },
       projectIds: group.grants_global_content
         ? options.allProjectIds
@@ -185,6 +261,7 @@ export async function resolveAccessPreview(
         subjectProfile: profile,
         calendarAccess: true,
         ...categoryAccess,
+        ...(await resolveAreaAccess(supabase, [], true)),
       },
       projectIds: options.allProjectIds,
     };
@@ -197,7 +274,9 @@ export async function resolveAccessPreview(
       .eq("profile_id", profile.id),
     supabase
       .from("access_groups")
-      .select("id, kind, hierarchy_rank, grants_global_content, calendar_access"),
+      .select(
+        "id, kind, hierarchy_rank, grants_global_content, calendar_access",
+      ),
   ]);
   const membershipRows = requireQueryData(
     "preview access memberships",
@@ -235,6 +314,7 @@ export async function resolveAccessPreview(
         subjectProfile: profile,
         calendarAccess,
         ...categoryAccess,
+        ...(await resolveAreaAccess(supabase, directGroupIds, true)),
       },
       projectIds: options.allProjectIds,
     };
@@ -245,9 +325,7 @@ export async function resolveAccessPreview(
           .from("project_group_grants")
           .select("project_id")
           .in("group_id", groupIds)
-          .then((result) =>
-            requireQueryData("preview project grants", result),
-          )
+          .then((result) => requireQueryData("preview project grants", result))
       : Promise.resolve([]),
     supabase
       .from("projects")
@@ -267,7 +345,10 @@ export async function resolveAccessPreview(
       ...ownedProjects.map((owner) => owner.project_id),
     ]),
   ];
-  const categoryAccess = await resolveCategoryAccess(supabase, groupIds, false);
+  const [categoryAccess, areaAccess] = await Promise.all([
+    resolveCategoryAccess(supabase, groupIds, false),
+    resolveAreaAccess(supabase, groupIds, false),
+  ]);
   return {
     preview: {
       kind: "user",
@@ -276,6 +357,7 @@ export async function resolveAccessPreview(
       subjectProfile: profile,
       calendarAccess,
       ...categoryAccess,
+      ...areaAccess,
     },
     projectIds,
   };

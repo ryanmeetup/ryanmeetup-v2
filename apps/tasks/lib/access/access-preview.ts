@@ -52,6 +52,7 @@ export function applyAccessPreview(
   return {
     ...data,
     accessPreview: preview,
+    accessibleAreas: preview.accessibleAreas ?? data.accessibleAreas,
     currentProfile:
       preview.kind === "user" && preview.subjectProfile
         ? preview.subjectProfile

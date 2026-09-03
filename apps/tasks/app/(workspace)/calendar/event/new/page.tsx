@@ -60,7 +60,9 @@ export default async function NewCalendarEventPage({
     );
   }
 
-  const loaded = await loadWorkspacePage([...CALENDAR_COLLECTIONS]);
+  const loaded = await loadWorkspacePage([...CALENDAR_COLLECTIONS], {
+    area: "calendar",
+  });
   const events = requireQueryData(
     "calendar events",
     await loaded.supabase

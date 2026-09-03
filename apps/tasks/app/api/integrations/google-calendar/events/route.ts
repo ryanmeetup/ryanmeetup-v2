@@ -31,7 +31,7 @@ async function previewCalendarAccess(
 }
 
 export async function GET(request: Request) {
-  const authorization = await authorize({ onboarded: true });
+  const authorization = await authorize({ onboarded: true, area: "calendar" });
   if ("response" in authorization) return authorization.response;
   const params = new URL(request.url).searchParams;
   const requestedGroupPreview = params.get(ACCESS_PREVIEW_PARAM) ?? undefined;
@@ -48,10 +48,18 @@ export async function GET(request: Request) {
         ? await canViewWorkspaceGoogleCalendar(authorization.supabase)
         : preview;
     if (!allowed)
-      return apiError(403, "FORBIDDEN", "You do not have access to the shared calendar.");
+      return apiError(
+        403,
+        "FORBIDDEN",
+        "You do not have access to the shared calendar.",
+      );
   } catch (error) {
     console.error("Google Calendar permission could not be resolved", error);
-    return apiError(503, "SERVICE_UNAVAILABLE", "Calendar access is unavailable.");
+    return apiError(
+      503,
+      "SERVICE_UNAVAILABLE",
+      "Calendar access is unavailable.",
+    );
   }
   const month = params.get("month") ?? "";
   if (!googleCalendarMonthRange(month))

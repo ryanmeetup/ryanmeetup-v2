@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       : null,
   );
   if ("response" in parsed) return parsed.response;
-  const authorization = await authorize({ onboarded: true });
+  const authorization = await authorize({ onboarded: true, area: "notes" });
   if ("response" in authorization) return authorization.response;
   const noteId = parsed.data.noteId;
   const body = commentBody(parsed.data.body);
@@ -47,7 +47,7 @@ export async function PATCH(request: Request) {
     isJsonObject(value) ? (value as { id?: unknown; body?: unknown }) : null,
   );
   if ("response" in parsed) return parsed.response;
-  const authorization = await authorize({ onboarded: true });
+  const authorization = await authorize({ onboarded: true, area: "notes" });
   if ("response" in authorization) return authorization.response;
   const id = parsed.data.id;
   const body = commentBody(parsed.data.body);
@@ -75,7 +75,7 @@ export async function DELETE(request: Request) {
     isJsonObject(value) && isUuid(value.id) ? (value as { id: string }) : null,
   );
   if ("response" in parsed) return parsed.response;
-  const authorization = await authorize({ onboarded: true });
+  const authorization = await authorize({ onboarded: true, area: "notes" });
   if ("response" in authorization) return authorization.response;
   const result = await authorization.supabase
     .from("note_comments")

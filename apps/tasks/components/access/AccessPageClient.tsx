@@ -56,6 +56,10 @@ import {
   TeamTaskStats,
 } from "./TeamMemberDetails";
 import { AccessGroupGrid } from "./AccessGroupGrid";
+import {
+  WorkspaceAreaAccessPanel,
+  type WorkspaceAreaAccess,
+} from "./WorkspaceAreaAccessPanel";
 import type {
   AccessGroup,
   GroupMember,
@@ -79,6 +83,8 @@ export function AccessPageClient({
   initialProfiles,
   initialGroups,
   initialMembers,
+  initialAreaAccess,
+  areaAccessEnforced,
   userMetadata,
 }: {
   currentUserId: string;
@@ -86,6 +92,8 @@ export function AccessPageClient({
   initialProfiles: Profile[];
   initialGroups: AccessGroup[];
   initialMembers: GroupMember[];
+  initialAreaAccess: WorkspaceAreaAccess[];
+  areaAccessEnforced: boolean;
   userMetadata: UserAccessMetadata[];
 }) {
   const [data, setData] = useState(initialData);
@@ -417,6 +425,26 @@ export function AccessPageClient({
             groups={groups}
             members={members}
             profiles={profiles}
+          />
+        </section>
+
+        <section
+          aria-labelledby="pages-heading"
+          className="space-y-4 border-t border-black/10 pt-8 dark:border-white/10"
+        >
+          <div>
+            <h2 id="pages-heading" className="text-xl font-semibold">
+              Page access
+            </h2>
+            <p className="mt-1 text-sm text-black/65 dark:text-white/65">
+              Lock a whole page behind access groups. A restricted page leaves
+              the sidebar for everyone who cannot open it.
+            </p>
+          </div>
+          <WorkspaceAreaAccessPanel
+            groups={groups}
+            initialAccess={initialAreaAccess}
+            enforced={areaAccessEnforced}
           />
         </section>
 

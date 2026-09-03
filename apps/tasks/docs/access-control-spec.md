@@ -46,6 +46,33 @@ groups is therefore workspace-manager-only.
 Category ownership is descriptive metadata. Category creation, editing, and
 visibility remain limited to members with workspace-wide content management.
 
+## Pages
+
+Notes, Contacts, and the Calendar can each be locked as a whole. The set of
+lockable pages is owned by the application registry in
+`lib/access/workspace-areas.ts`, not by the database; `workspace_area_access`
+holds a row only for a page an app owner has configured.
+
+- A page with no row is open to every onboarded member.
+- A restricted page is available only through its selected access groups and
+  workspace-wide content authority. A restricted page with no selected groups
+  is therefore workspace-manager-only.
+- Setting a page's mode replaces its complete selected-group set atomically. A
+  failed or incomplete write must never broaden access.
+- Page access is checked before every other check on that page's content, and
+  it gates the whole surface: the rows, the route, the sidebar entry, the API
+  boundary, and the page's resource activity.
+- Which groups reach a page is owner-only administrative data. Members never
+  read `workspace_area_access` or `workspace_area_group_grants`; they ask
+  `accessible_workspace_areas`, which answers about themselves only. Every
+  change must be audited.
+- `access_groups.calendar_access` remains a sub-permission of the Calendar
+  page: it decides whether the synced Google feed renders for a member who can
+  already open the page, never whether the page opens.
+- Contact images live in a public storage bucket, so an existing image URL
+  stays reachable regardless of page access; what page access decides for that
+  bucket is who may add, replace, or remove an image.
+
 ## Tasks and related content
 
 - A project task is visible only when the member can access its project and
@@ -64,9 +91,16 @@ visibility remain limited to members with workspace-wide content management.
 
 - Access preview is an owner-only diagnostic projection. It must include open
   projects, named project ownership, group inheritance, workspace-wide access,
-  and category restrictions, but it never authorizes a request.
+  category restrictions, and page restrictions, but it never authorizes a
+  request. Previewing a subject who cannot open a page answers the way that
+  subject's own request would.
 - Required authorization lookups fail closed. Missing rows, failed functions,
   or unavailable access metadata deny the operation rather than falling back
   to wider access.
-- Project and category visibility mutations must preserve audit records and
-  expose pending or error state in the UI.
+- Project, category, and page visibility mutations must preserve audit records
+  and expose pending or error state in the UI.
+- The one tolerated absence is a migration that has not been applied yet: with
+  no `accessible_workspace_areas` function and no policy referencing it, no
+  page is restricted, so treating every page as open reports the database's
+  actual state rather than widening it. Any other failure of an area lookup
+  denies.

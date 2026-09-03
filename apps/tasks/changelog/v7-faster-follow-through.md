@@ -14,6 +14,7 @@ overview:
   - Give each workspace one name and write its notice banner
   - Give configured deployments read-only MCP access for trusted assistants
   - Keep multiple labeled email addresses and phone numbers for each contact
+  - Lock the Notes, Contacts, or Calendar page to selected access groups
 ---
 
 ## New
@@ -33,6 +34,10 @@ Owners can mark a status as requiring an explanation. Moving a task into one of 
 ### Read-only access for trusted assistants
 
 Deployments configured for it can now offer a read-only MCP connection for Claude Desktop. A trusted assistant can inspect tasks, projects, categories, notes, contacts, calendars, activity, and workspace metrics without receiving any ability to create, edit, delete, or upload workspace data.
+
+### Lock a whole page to the people who need it
+
+Notes, Contacts, and the Calendar can each now be restricted to selected access groups from **Admin → Access → Page access**. A restricted page disappears from the sidebar for everyone who cannot open it, and its content — notes and their comments, the contact directory, calendar events and the synced Google feed — is refused at the database, not merely hidden. Pages stay open to everyone until an owner restricts them, and app owners and tiers with workspace-wide content access always keep every page.
 
 ## Improved
 

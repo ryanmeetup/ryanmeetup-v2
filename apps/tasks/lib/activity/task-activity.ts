@@ -50,6 +50,7 @@ export function taskActivityLabel(action: string) {
     "category.delete": "Category deleted",
     "category.owners.update": "Category owners changed",
     "category.access.update": "Category access changed",
+    "workspace_area.access.update": "Page access changed",
     "category.attachment.add": "Category attachment added",
     "category.attachment.update": "Category attachment edited",
     "category.attachment.delete": "Category attachment removed",

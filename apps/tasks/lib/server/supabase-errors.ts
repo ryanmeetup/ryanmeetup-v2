@@ -39,3 +39,14 @@ export const isNoRowsFound = (code?: string) => code === "PGRST116";
  * goes through `databaseFailure`, which never repeats what the database said.
  */
 export const isRejectedResourceValue = (code?: string) => code === "RS001";
+
+/**
+ * Whether a Supabase error means the database function itself does not exist.
+ *
+ * `42883` is Postgres `undefined_function`; `PGRST202` is PostgREST reporting
+ * a function absent from its schema cache. Same narrow purpose as
+ * `isMissingRelation`: tolerate an RPC a pending migration has not created
+ * yet. Never use it to swallow a function that exists and failed.
+ */
+export const isMissingFunction = (code?: string) =>
+  code === "42883" || code === "PGRST202";

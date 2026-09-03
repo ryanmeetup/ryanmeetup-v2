@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { WORKSPACE_AREA_KEYS } from "@/lib/access/workspace-areas";
 
 const authorize = vi.fn();
 const getAdminClient = vi.fn();
@@ -65,12 +66,33 @@ const inOrder = (events: ReturnType<typeof auditEvent>[]) =>
     ).toISOString(),
   }));
 
+/**
+ * Answers the two RPCs the route asks about the caller: whether they are an
+ * app owner, and which lockable pages they reach.
+ */
+const rpcFor = (
+  { owner = false, areas = [...WORKSPACE_AREA_KEYS] } = {} as {
+    owner?: boolean;
+    areas?: string[];
+  },
+) =>
+  vi.fn(async (name: string) =>
+    name === "is_app_owner"
+      ? { data: owner, error: null }
+      : name === "accessible_workspace_areas"
+        ? { data: areas, error: null }
+        : { data: null, error: null },
+  );
+
 /** Runs the route against one set of audit rows and returns the actions kept. */
-async function visibleActions(events: ReturnType<typeof auditEvent>[]) {
+async function visibleActions(
+  events: ReturnType<typeof auditEvent>[],
+  caller: { owner?: boolean; areas?: string[] } = {},
+) {
   authorize.mockResolvedValue({
     user: { id: userId },
     supabase: {
-      rpc: vi.fn(),
+      rpc: rpcFor(caller),
       from: (table: string) =>
         builderFor(
           table === "projects"
@@ -100,7 +122,7 @@ describe("GET /api/activity", () => {
   it("refuses to render half a feed when the service key is missing", async () => {
     authorize.mockResolvedValue({
       user: { id: userId },
-      supabase: { rpc: vi.fn(), from: () => builderFor([]) },
+      supabase: { rpc: rpcFor(), from: () => builderFor([]) },
     });
     getAdminClient.mockReturnValue(null);
     const { GET } = await import("@/app/api/activity/route");
@@ -172,6 +194,53 @@ describe("GET /api/activity", () => {
     ]);
     expect(activity).toHaveLength(1);
     expect(activity[0].details.resource_href).toBe("/contacts");
+  });
+
+  it("hides note, contact, and calendar activity from a member locked out of those pages", async () => {
+    const events = [
+      auditEvent("note.delete", {
+        target_type: "note",
+        target_id: noteId,
+        after_state: { resource_name: "Gone note" },
+      }),
+      auditEvent("contact_category.create", {
+        target_type: "contact_category",
+        target_id: "contact-category-1",
+        after_state: { resource_name: "Venues" },
+      }),
+      auditEvent("calendar.delete", {
+        target_type: "calendar_event",
+        target_id: "event-3",
+        after_state: { resource_name: "Unscoped" },
+      }),
+      auditEvent("status.delete", {
+        target_type: "status",
+        target_id: "status-1",
+        after_state: { resource_name: "In Review" },
+      }),
+    ];
+    const locked = await visibleActions(events, { areas: [] });
+    expect(locked.activity.map((item) => item.action)).toEqual([
+      "status.delete",
+    ]);
+    const unlocked = await visibleActions(events, { areas: ["notes"] });
+    expect(unlocked.activity.map((item) => item.action)).toEqual([
+      "note.delete",
+      "status.delete",
+    ]);
+  });
+
+  it("shows page-access changes to app owners only", async () => {
+    const event = auditEvent("workspace_area.access.update", {
+      target_type: "workspace_area",
+      after_state: { resource_name: "Contacts", detail: "Now restricted" },
+    });
+    const member = await visibleActions([event]);
+    expect(member.activity).toHaveLength(0);
+    const owner = await visibleActions([event], { owner: true });
+    expect(owner.activity.map((item) => item.details.resource_name)).toEqual([
+      "Contacts",
+    ]);
   });
 
   it("carries the attachment file name and free-text detail through", async () => {

@@ -55,9 +55,19 @@ The authorization model lives almost entirely in SQL: `is_app_owner`,
 `can_view_task`, `can_edit_project`, `can_access_category`,
 `project_permission_for`, `member_has_group_access` and their siblings, plus the
 transactional writers `save_task`, `move_task`, `create_status`,
-`reorder_statuses`, `save_contact`, and `set_category_access`. A policy missed
-during a hand rebuild is a silent data leak rather than a visible error, which
-is why the baseline is generated rather than written.
+`reorder_statuses`, `save_contact`, `set_category_access`, and
+`set_workspace_area_access`. A policy missed during a hand rebuild is a silent
+data leak rather than a visible error, which is why the baseline is generated
+rather than written.
+
+`20260924000000_workspace_area_access.sql` adds the last of those: two tables
+(`workspace_area_access`, `workspace_area_group_grants`) and
+`can_view_workspace_area`, which the Notes, Contacts, and Calendar policies now
+sit behind. Both tables are owner-only; members reach the answer through
+`accessible_workspace_areas`, a `security definer` function that reports on the
+caller alone. The set of lockable pages lives in
+`lib/access/workspace-areas.ts`, so adding one is a registry entry plus a
+policy, not a new column.
 
 ### Storage buckets
 

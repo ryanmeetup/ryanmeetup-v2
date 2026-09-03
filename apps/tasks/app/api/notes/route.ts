@@ -20,7 +20,7 @@ export async function POST(request: Request) {
       : null,
   );
   if ("response" in parsed) return parsed.response;
-  const authorization = await authorize({ onboarded: true });
+  const authorization = await authorize({ onboarded: true, area: "notes" });
   if ("response" in authorization) return authorization.response;
   const input = parsed.data;
   const body = requiredTrimmedText(input.body, 10000);
@@ -72,7 +72,7 @@ export async function PATCH(request: Request) {
       : null,
   );
   if ("response" in parsed) return parsed.response;
-  const authorization = await authorize({ onboarded: true });
+  const authorization = await authorize({ onboarded: true, area: "notes" });
   if ("response" in authorization) return authorization.response;
   const input = parsed.data;
   if (!isUuid(input.id))
@@ -128,7 +128,7 @@ export async function DELETE(request: Request) {
     isJsonObject(value) && isUuid(value.id) ? (value as { id: string }) : null,
   );
   if ("response" in parsed) return parsed.response;
-  const authorization = await authorize({ onboarded: true });
+  const authorization = await authorize({ onboarded: true, area: "notes" });
   if ("response" in authorization) return authorization.response;
   const result = await authorization.supabase
     .from("notes")

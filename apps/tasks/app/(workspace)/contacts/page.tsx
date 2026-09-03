@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { ContactsPageClient } from "@/components/contacts";
 import {
   ACCESS_PREVIEW_PARAM,
   applyAccessPreview,
   USER_ACCESS_PREVIEW_PARAM,
 } from "@/lib/access/access-preview";
+import { canViewWorkspaceArea } from "@/lib/access/workspace-areas";
 import { resolveAccessPreview } from "@/lib/server/access-preview";
 import { demoContacts, demoData } from "@/lib/workspace/demo-data";
 import { loadContacts } from "@/lib/server/contacts";
@@ -42,14 +44,17 @@ export default async function ContactsPage({
         demoMode
       />
     );
-  const loaded = await loadWorkspacePage([
-    "profiles",
-    "statuses",
-    "categories",
-    "projects",
-    "tasks",
-    "taskCategories",
-  ]);
+  const loaded = await loadWorkspacePage(
+    [
+      "profiles",
+      "statuses",
+      "categories",
+      "projects",
+      "tasks",
+      "taskCategories",
+    ],
+    { area: "contacts" },
+  );
   const contactsResult = await loadContacts(loaded.supabase);
   // Contacts are a workspace-wide directory: no project or category scoping to
   // narrow here, only the workspace data the shell and sidebar read.
@@ -74,6 +79,11 @@ export default async function ContactsPage({
       }
     }
   }
+  // Previewing a group that cannot reach this page must answer the way the
+  // member does, the way a task outside the preview's projects already 404s.
+  if (!canViewWorkspaceArea(initialData.accessibleAreas, "contacts"))
+    notFound();
+
   return (
     <ContactsPageClient
       initialData={initialData}

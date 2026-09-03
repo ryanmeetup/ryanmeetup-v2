@@ -124,7 +124,7 @@ async function readContactSaveRequest(request: Request) {
 async function save(request: Request) {
   const parsed = await readContactSaveRequest(request);
   if ("response" in parsed) return parsed.response;
-  const authorization = await authorize({ onboarded: true });
+  const authorization = await authorize({ onboarded: true, area: "contacts" });
   if ("response" in authorization) return authorization.response;
   const contactId = parsed.data.id ?? crypto.randomUUID();
   const existing = parsed.data.id
@@ -222,7 +222,7 @@ export const PATCH = save;
 export async function DELETE(request: Request) {
   const parsed = await readJson(request, contactDeleteSchema);
   if ("response" in parsed) return parsed.response;
-  const authorization = await authorize({ onboarded: true });
+  const authorization = await authorize({ onboarded: true, area: "contacts" });
   if ("response" in authorization) return authorization.response;
   const result = await authorization.supabase
     .from("contacts")

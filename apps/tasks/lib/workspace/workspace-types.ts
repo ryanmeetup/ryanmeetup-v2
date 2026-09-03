@@ -1,4 +1,5 @@
 import type { TaskActivity } from "@/lib/activity/activity-types";
+import type { WorkspaceAreaKey } from "@/lib/access/workspace-areas";
 import type { PaginationState } from "@/lib/pagination";
 import type {
   Category,
@@ -37,6 +38,7 @@ export type AccessPreview = {
   subjectProfile?: Profile;
   accessibleCategoryIds?: string[];
   inaccessibleTaskIds?: string[];
+  accessibleAreas?: WorkspaceAreaKey[];
   calendarAccess?: boolean;
 };
 
@@ -62,6 +64,12 @@ export type WorkspaceData = {
   profiles: Profile[];
   currentProfile: Profile;
   canManageCategories: boolean;
+  /**
+   * The lockable pages this member reaches. Absent only in demo mode, where
+   * there is no server to ask and every page is open. See
+   * `lib/access/workspace-areas.ts`.
+   */
+  accessibleAreas?: WorkspaceAreaKey[];
   subtasks: Subtask[];
   comments: TaskComment[];
   activity: TaskActivity[];

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { NotesPageClient } from "@/components/notes";
 import {
   ACCESS_PREVIEW_PARAM,
@@ -6,6 +7,7 @@ import {
   notesForPreview,
   USER_ACCESS_PREVIEW_PARAM,
 } from "@/lib/access/access-preview";
+import { canViewWorkspaceArea } from "@/lib/access/workspace-areas";
 import { resolveAccessPreview } from "@/lib/server/access-preview";
 import {
   demoData,
@@ -48,14 +50,17 @@ export default async function NotesPage({
         demoMode
       />
     );
-  const loaded = await loadWorkspacePage([
-    "profiles",
-    "statuses",
-    "categories",
-    "projects",
-    "tasks",
-    "taskCategories",
-  ]);
+  const loaded = await loadWorkspacePage(
+    [
+      "profiles",
+      "statuses",
+      "categories",
+      "projects",
+      "tasks",
+      "taskCategories",
+    ],
+    { area: "notes" },
+  );
   let initialData = loaded.data;
   let notes = requireQueryData(
     "notes",
@@ -96,6 +101,10 @@ export default async function NotesPage({
       }
     }
   }
+  // Previewing a group that cannot reach this page must answer the way the
+  // member does, the way a task outside the preview's projects already 404s.
+  if (!canViewWorkspaceArea(initialData.accessibleAreas, "notes")) notFound();
+
   return (
     <NotesPageClient
       initialData={initialData}

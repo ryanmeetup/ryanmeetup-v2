@@ -31,7 +31,7 @@ async function syncToGoogle(
 export async function POST(request: Request) {
   const parsed = await readJson(request, (value) => calendarEventSchema(value));
   if ("response" in parsed) return parsed.response;
-  const authorization = await authorize({ onboarded: true });
+  const authorization = await authorize({ onboarded: true, area: "calendar" });
   if ("response" in authorization) return authorization.response;
   const result = await authorization.supabase
     .from("calendar_events")
@@ -56,7 +56,7 @@ export async function PATCH(request: Request) {
     calendarEventSchema(value, true),
   );
   if ("response" in parsed) return parsed.response;
-  const authorization = await authorize({ onboarded: true });
+  const authorization = await authorize({ onboarded: true, area: "calendar" });
   if ("response" in authorization) return authorization.response;
   const result = await authorization.supabase
     .from("calendar_events")
@@ -81,7 +81,7 @@ export async function PATCH(request: Request) {
 export async function DELETE(request: Request) {
   const parsed = await readJson(request, calendarEventDeleteSchema);
   if ("response" in parsed) return parsed.response;
-  const authorization = await authorize({ onboarded: true });
+  const authorization = await authorize({ onboarded: true, area: "calendar" });
   if ("response" in authorization) return authorization.response;
   const result = await authorization.supabase
     .from("calendar_events")

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  accessibleAreasForPreview,
   accessibleCategoryIdsForPreview,
   grantsCalendarAccessForPreview,
 } from "@/lib/server/access-preview";
@@ -59,5 +60,46 @@ describe("access preview calendar visibility", () => {
 
   it("hides the workspace calendar from a group with no memberships", () => {
     expect(grantsCalendarAccessForPreview(groups, [])).toBe(false);
+  });
+});
+
+const areaRows = [
+  { area: "notes", access_mode: "open" as const },
+  { area: "contacts", access_mode: "restricted" as const },
+  { area: "calendar", access_mode: "restricted" as const },
+];
+
+describe("access preview page visibility", () => {
+  it("leaves a page with no row open", () => {
+    expect(accessibleAreasForPreview([], [], ["ryan"], false)).toEqual([
+      "notes",
+      "contacts",
+      "calendar",
+    ]);
+  });
+
+  it("closes a restricted page that names no group", () => {
+    expect(accessibleAreasForPreview(areaRows, [], ["ryan"], false)).toEqual([
+      "notes",
+    ]);
+  });
+
+  it("opens a restricted page only to a selected group", () => {
+    const grants = [
+      { area: "contacts", group_id: "ryan" },
+      { area: "calendar", group_id: "r-suite" },
+    ];
+
+    expect(
+      accessibleAreasForPreview(areaRows, grants, ["ryan"], false),
+    ).toEqual(["notes", "contacts"]);
+  });
+
+  it("gives workspace-wide content authority every page", () => {
+    expect(accessibleAreasForPreview(areaRows, [], [], true)).toEqual([
+      "notes",
+      "contacts",
+      "calendar",
+    ]);
   });
 });

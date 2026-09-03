@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { CalendarPageClient } from "@/components/calendar";
 import {
   ACCESS_PREVIEW_PARAM,
@@ -6,6 +7,7 @@ import {
   calendarEventsForPreview,
   USER_ACCESS_PREVIEW_PARAM,
 } from "@/lib/access/access-preview";
+import { canViewWorkspaceArea } from "@/lib/access/workspace-areas";
 import { resolveAccessPreview } from "@/lib/server/access-preview";
 import { demoCalendarEvents, demoData } from "@/lib/workspace/demo-data";
 import { CALENDAR_EVENT_COLUMNS } from "@/lib/calendar/calendar-types";
@@ -27,7 +29,6 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: { absolute: await pageTitle("Calendar") } };
 }
 
-
 export default async function CalendarPage({
   searchParams,
 }: {
@@ -35,7 +36,8 @@ export default async function CalendarPage({
 }) {
   const initialMonth = new Date().toISOString().slice(0, 7);
   const query = await searchParams;
-  const googleStatus = typeof query.google === "string" ? query.google : undefined;
+  const googleStatus =
+    typeof query.google === "string" ? query.google : undefined;
   const requestedGroupPreview =
     typeof query[ACCESS_PREVIEW_PARAM] === "string"
       ? query[ACCESS_PREVIEW_PARAM]
@@ -60,16 +62,19 @@ export default async function CalendarPage({
         initialMonth={initialMonth}
       />
     );
-  const loaded = await loadWorkspacePage([
-    "profiles",
-    "statuses",
-    "categories",
-    "projects",
-    "tasks",
-    "subtasks",
-    "taskAssignees",
-    "taskCategories",
-  ]);
+  const loaded = await loadWorkspacePage(
+    [
+      "profiles",
+      "statuses",
+      "categories",
+      "projects",
+      "tasks",
+      "subtasks",
+      "taskAssignees",
+      "taskCategories",
+    ],
+    { area: "calendar" },
+  );
   let initialData = loaded.data;
   let events = requireQueryData(
     "calendar events",
@@ -105,6 +110,11 @@ export default async function CalendarPage({
       }
     }
   }
+  // Previewing a group that cannot reach this page must answer the way the
+  // member does, the way a task outside the preview's projects already 404s.
+  if (!canViewWorkspaceArea(initialData.accessibleAreas, "calendar"))
+    notFound();
+
   const { googleCanManage, googleCanView, integration, googleConnection } =
     await loadGoogleCalendarAccess(loaded.supabase, {
       owner: loaded.data.currentProfile.app_role === "owner",
@@ -115,7 +125,10 @@ export default async function CalendarPage({
     try {
       googleEvents = await listGoogleCalendarEvents(integration, initialMonth);
     } catch (error) {
-      console.error("Google Calendar could not be loaded on the calendar page", error);
+      console.error(
+        "Google Calendar could not be loaded on the calendar page",
+        error,
+      );
     }
   }
   return (
