@@ -7,34 +7,29 @@ export function TaskCategoryBadge({
   category: Category;
   tags?: string[];
 }) {
+  const tagSummary = tags.length > 0 ? tags.join(", ") : null;
+
   return (
     <span
-      className="inline-flex flex-wrap items-center gap-1"
-      aria-label={`${category.name} category${tags.length > 0 ? `; tags: ${tags.join(", ")}` : ""}`}
+      className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/70 dark:text-white/75"
+      aria-label={`${category.name} category${tagSummary ? `; tags: ${tagSummary}` : ""}`}
+      title={tagSummary ? `${category.name}: ${tagSummary}` : undefined}
+      style={{
+        borderColor: `${category.color}66`,
+        backgroundColor: `${category.color}22`,
+      }}
     >
-      <span
+      <i
         aria-hidden="true"
-        className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/70 dark:text-white/75"
-        style={{
-          borderColor: `${category.color}66`,
-          backgroundColor: `${category.color}22`,
-        }}
-      >
-        <i
-          className="h-1.5 w-1.5 shrink-0 rounded-full"
-          style={{ backgroundColor: category.color }}
-        />
-        {category.name}
-      </span>
-      {tags.map((tag) => (
-        <span
-          key={tag}
-          aria-hidden="true"
-          className="inline-flex items-center rounded-full border border-black/10 bg-black/[0.03] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-black/60 dark:border-white/10 dark:bg-white/[0.06] dark:text-white/65"
-        >
-          {tag}
+        className="h-1.5 w-1.5 shrink-0 rounded-full"
+        style={{ backgroundColor: category.color }}
+      />
+      <span aria-hidden="true">{category.name}</span>
+      {tags.length > 0 && (
+        <span aria-hidden="true" className="text-black/45 dark:text-white/50">
+          · +{tags.length}
         </span>
-      ))}
+      )}
     </span>
   );
 }
