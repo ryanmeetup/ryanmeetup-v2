@@ -31,6 +31,7 @@ export function useCalendarEventEditor({
   events,
   googleEvents,
   googleSyncAvailable,
+  initialDraft,
   previewing,
   setEvents,
   setGoogleEvents,
@@ -40,11 +41,20 @@ export function useCalendarEventEditor({
   events: CalendarEvent[];
   googleEvents: GoogleCalendarEvent[];
   googleSyncAvailable: boolean;
+  /**
+   * Opens the editor already holding this draft. The calendar page leaves it
+   * unset and opens the editor from a click; the dedicated editor routes pass
+   * one, since on a route the form is the whole page and must be there on the
+   * first paint rather than after an effect.
+   */
+  initialDraft?: CalendarEventDraft | null;
   previewing: boolean;
   setEvents: Dispatch<SetStateAction<CalendarEvent[]>>;
   setGoogleEvents: Dispatch<SetStateAction<GoogleCalendarEvent[]>>;
 }) {
-  const [draft, setDraft] = useState<CalendarEventDraft | null>(null);
+  const [draft, setDraft] = useState<CalendarEventDraft | null>(
+    initialDraft ?? null,
+  );
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const publishedGoogleIds = useMemo(
@@ -70,6 +80,30 @@ export function useCalendarEventEditor({
     value: CalendarEventDraft[K],
   ) {
     setDraft((current) => (current ? { ...current, [key]: value } : current));
+  }
+
+  // One dialog covers both kinds, so switching between them carries over what
+  // still applies and clears the fields the other kind does not have. The
+  // "Out of office" default is treated as a placeholder rather than typing.
+  function changeKind(kind: CalendarEventKind) {
+    setDraft((current) => {
+      if (!current || current.kind === kind) return current;
+      const awayTitle = blankCalendarDraft("away", current.startDate).title;
+      return {
+        ...current,
+        kind,
+        title:
+          kind === "away" && !current.title.trim()
+            ? awayTitle
+            : kind === "important" && current.title === awayTitle
+              ? ""
+              : current.title,
+        profileId:
+          kind === "away" ? current.profileId || currentProfile.id : "",
+        projectId: kind === "important" ? current.projectId : "",
+        categoryId: kind === "important" ? current.categoryId : "",
+      };
+    });
   }
 
   function openNew(kind: CalendarEventKind, date: string) {
@@ -187,6 +221,7 @@ export function useCalendarEventEditor({
 
   return {
     canEdit,
+    changeKind,
     deleting,
     draft,
     editingEvent,

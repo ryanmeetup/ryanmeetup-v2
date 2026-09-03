@@ -16,7 +16,6 @@ import {
   IconButton,
   Input,
   ManagementSurface,
-  Modal,
   ModalActions,
   MultiSelect,
   PendingResults,
@@ -42,9 +41,13 @@ import {
 import { withAccessPreview } from "@/lib/access/access-preview";
 import {
   CountBadge,
+  desktopEditorTrigger,
+  EditorSurface,
+  mobileEditorTrigger,
   ManagementCard,
   ManagementCardTitle,
   ResourceOwnerSelect,
+  useEditorReturnPath,
 } from "@/components/global";
 import type { Category } from "@/lib/resources/resource-types";
 import type { CategoryController } from "./category-workspace";
@@ -91,6 +94,13 @@ type CategoriesModalOptions = {
   createOnly?: boolean;
   editCategoryId?: string | null;
   readOnly?: boolean;
+  /**
+   * `"page"` renders the create and edit forms as the dedicated mobile routes
+   * instead of dialogs. `backHref` is where their back control returns to.
+   * See `docs/MOBILE_EDITOR_SURFACES.md`.
+   */
+  presentation?: "modal" | "page";
+  backHref?: string;
 };
 
 type CategoriesModalCommonProps = {
@@ -124,12 +134,28 @@ export function CategoriesModal({
 }: CategoriesModalProps) {
   const setOpen = modal?.setOpen;
   const { view: data, commands, demoMode } = controller;
+  /**
+   * Where the mobile editor routes return to. This surface is embedded on both
+   * `/categories` and `/projects`, so the page it is actually on is the honest
+   * answer rather than a hardcoded default.
+   */
+  const listPath = useEditorReturnPath();
   const {
     embedded = false,
     createOnly: createOnlyOption,
     editCategoryId = null,
     readOnly = false,
+    presentation = "modal",
+    backHref = "/categories",
   } = options ?? {};
+  /**
+   * The editor routes mount this component with `createOnly` or
+   * `editCategoryId` set, so only those two surfaces ever render as a page.
+   */
+  const surface =
+    presentation === "page"
+      ? ({ presentation: "page", backHref } as const)
+      : ({ presentation: "modal" } as const);
   const createOnly = createOnlyOption ?? !embedded;
   const { onCreate, onCategoryUpdated } = events ?? {};
   const resourceMutations = useResourceMutations("category");
@@ -665,15 +691,25 @@ export function CategoriesModal({
           description="Categories make work easier to scan and filter across projects."
           actions={
             onCreate && !readOnly ? (
-              <Button
-                type="button"
-                size="sm"
-                className="w-full sm:w-auto"
-                leftIcon={<FiPlus aria-hidden />}
-                onClick={onCreate}
-              >
-                New Category
-              </Button>
+              <>
+                <Button.Link
+                  href={`/categories/new?from=${encodeURIComponent(listPath)}`}
+                  size="sm"
+                  className={`w-full ${mobileEditorTrigger}`}
+                  leftIcon={<FiPlus aria-hidden />}
+                >
+                  New Category
+                </Button.Link>
+                <Button
+                  type="button"
+                  size="sm"
+                  className={desktopEditorTrigger}
+                  leftIcon={<FiPlus aria-hidden />}
+                  onClick={onCreate}
+                >
+                  New Category
+                </Button>
+              </>
             ) : undefined
           }
         >
@@ -685,9 +721,10 @@ export function CategoriesModal({
     if (!modal) return null;
 
     return (
-      <Modal
+      <EditorSurface
+        {...surface}
         open={modal.open && !editingId}
-        setIsOpen={modal.setOpen}
+        setOpen={modal.setOpen}
         title={title}
         actions={
           <ModalActions
@@ -726,7 +763,7 @@ export function CategoriesModal({
         }
       >
         {children}
-      </Modal>
+      </EditorSurface>
     );
   };
 
@@ -985,9 +1022,19 @@ export function CategoriesModal({
                         )}
                         {!readOnly && (
                           <>
+                            {/* Route on a phone, dialog from `sm` up. */}
+                            <IconButton.Link
+                              href={`/categories/${category.id}/edit?from=${encodeURIComponent(listPath)}`}
+                              label={`Edit “${category.name}”`}
+                              variant="edit"
+                              className={mobileEditorTrigger}
+                            >
+                              <FiEdit2 />
+                            </IconButton.Link>
                             <IconButton
                               label={`Edit “${category.name}”`}
                               variant="edit"
+                              className={desktopEditorTrigger}
                               onClick={() => beginEdit(category)}
                             >
                               <FiEdit2 />
@@ -1054,9 +1101,9 @@ export function CategoriesModal({
                 .map((item) => item.profile_id),
             );
           return (
-            <Modal
-              open
-              setIsOpen={(nextOpen) => {
+            <EditorSurface
+              {...surface}
+              setOpen={(nextOpen) => {
                 if (!nextOpen) closeEditor();
               }}
               title={`Edit ${category.name}`}
@@ -1213,7 +1260,7 @@ export function CategoriesModal({
                   }
                 />
               </form>
-            </Modal>
+            </EditorSurface>
           );
         })()}
       <ConfirmationDialog

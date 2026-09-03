@@ -22,16 +22,45 @@ test("opens the important-date editor from the calendar", async ({
   await openDemoCalendar(page, baseURL);
 
   await expect(page.locator("[data-calendar-month-grid]")).toBeVisible();
-  await page.getByRole("button", { name: "Add date", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Add to calendar", exact: true })
+    .click();
 
-  const editor = page.getByRole("dialog", { name: "Add important date" });
+  const editor = page.getByRole("dialog", { name: "Add to calendar" });
   await expect(
-    editor.getByRole("heading", { name: "Add important date" }),
+    editor.getByRole("heading", { name: "Add to calendar" }),
   ).toBeVisible();
+  await expect(
+    editor.getByRole("button", { name: /What are you adding\?/ }),
+  ).toContainText("Important date");
   await expect(editor.getByLabel("Title")).toBeVisible();
   await expect(editor.getByLabel("Start date")).toBeVisible();
   await expect(editor.getByLabel("End date")).toBeVisible();
   await expect(editor.getByRole("checkbox", { name: "All day" })).toBeChecked();
+});
+
+test("switches the one editor between a date and time away", async ({
+  page,
+  baseURL,
+}) => {
+  await openDemoCalendar(page, baseURL);
+
+  await page
+    .getByRole("button", { name: "Add to calendar", exact: true })
+    .click();
+  const editor = page.getByRole("dialog", { name: "Add to calendar" });
+  await expect(
+    editor.getByRole("button", { name: "Visibility" }),
+  ).toBeVisible();
+
+  await editor.getByRole("button", { name: /What are you adding\?/ }).click();
+  await page.getByRole("option", { name: "Time away" }).click();
+
+  await expect(
+    editor.getByRole("button", { name: /Who will be away\?/ }),
+  ).toBeVisible();
+  await expect(editor.getByLabel("Title")).toHaveValue("Out of office");
+  await expect(editor.getByRole("button", { name: "Visibility" })).toBeHidden();
 });
 
 test.describe("mobile calendar", () => {
@@ -46,7 +75,7 @@ test.describe("mobile calendar", () => {
     await expect(page.locator("[data-calendar-month-grid]")).toBeHidden();
     await expect(page.locator("[data-calendar-mobile-agenda]")).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Add date", exact: true }),
+      page.getByRole("button", { name: "Add to calendar", exact: true }),
     ).toBeVisible();
   });
 });

@@ -17,9 +17,14 @@ import {
   FiMoreHorizontal,
   FiPlus,
   FiUsers,
-  FiUserX,
 } from "react-icons/fi";
-import { CountBadge, WorkspacePageShell } from "@/components/global";
+import {
+  CountBadge,
+  desktopEditorTrigger,
+  mobileEditorTrigger,
+  useEditorReturnPath,
+  WorkspacePageShell,
+} from "@/components/global";
 import { GoogleEventModal } from "./GoogleEventModal";
 import {
   TaskCategoryBadge,
@@ -62,7 +67,29 @@ const dayFormatter = new Intl.DateTimeFormat("en-US", {
 });
 const calendarSidebarStorageKey = "ryanmeetup.tasks.calendar-sidebar-open";
 
-function Item({ item, onOpen }: { item: CalendarItem; onOpen: () => void }) {
+/**
+ * Where a phone goes to change this item. Workspace events get their editor
+ * route; a Google import is read-only in Tasks, and a task tile already links
+ * to the task, so both are left to the button's own behavior.
+ */
+function calendarEventEditHref(item: CalendarItem, returnPath: string) {
+  if (item.google || item.href || !item.event) return undefined;
+  return `/calendar/event/${item.event.id}/edit?from=${encodeURIComponent(returnPath)}`;
+}
+
+function Item({
+  item,
+  onOpen,
+  editHref,
+}: {
+  item: CalendarItem;
+  onOpen: () => void;
+  /**
+   * The dedicated mobile edit route for this item, when there is one. Google
+   * tiles have none: they are read-only in Tasks on every screen size.
+   */
+  editHref?: string;
+}) {
   const sourceClassName =
     item.source === "google"
       ? "bg-blue-500/10 hover:bg-blue-500/15 dark:bg-blue-400/10 dark:hover:bg-blue-400/15"
@@ -103,19 +130,31 @@ function Item({ item, onOpen }: { item: CalendarItem; onOpen: () => void }) {
       </Link>
     );
   return (
-    <button
-      type="button"
-      className={`${className} w-full`}
-      style={{ borderColor: item.color }}
-      // A Google tile opens a read-only dialog rather than the editor, which is
-      // worth saying where the tile itself only shows a title and a time.
-      aria-label={
-        item.google ? `${item.title} — view event details` : undefined
-      }
-      onClick={onOpen}
-    >
-      {content}
-    </button>
+    <>
+      {/* Route on a phone, dialog from `sm` up — see editor-routes.ts. */}
+      {editHref && (
+        <Link
+          href={editHref}
+          className={`${className} w-full ${mobileEditorTrigger}`}
+          style={{ borderColor: item.color }}
+        >
+          {content}
+        </Link>
+      )}
+      <button
+        type="button"
+        className={`${className} w-full ${editHref ? desktopEditorTrigger : ""}`}
+        style={{ borderColor: item.color }}
+        // A Google tile opens a read-only dialog rather than the editor, which
+        // is worth saying where the tile itself only shows a title and a time.
+        aria-label={
+          item.google ? `${item.title} — view event details` : undefined
+        }
+        onClick={onOpen}
+      >
+        {content}
+      </button>
+    </>
   );
 }
 
@@ -167,6 +206,7 @@ export function CalendarPageClient({
   initialMonth: string;
   demoMode: boolean;
 }) {
+  const returnPath = useEditorReturnPath();
   const [data, setData] = useState(initialData);
   const [events, setEvents] = useState(initialEvents);
   const [month, setMonth] = useState(initialMonth);
@@ -285,7 +325,14 @@ export function CalendarPageClient({
     return (
       <>
         {layout.awayItems.map((item) => (
-          <Item key={item.id} item={item} onOpen={() => openItem(item)} />
+          <Item
+            key={item.id}
+            item={item}
+            onOpen={() => openItem(item)}
+            editHref={
+              previewing ? undefined : calendarEventEditHref(item, returnPath)
+            }
+          />
         ))}
         {layout.taskItems.length > 0 && (
           <TaskSummary
@@ -297,7 +344,14 @@ export function CalendarPageClient({
           />
         )}
         {layout.otherItems.map((item) => (
-          <Item key={item.id} item={item} onOpen={() => openItem(item)} />
+          <Item
+            key={item.id}
+            item={item}
+            onOpen={() => openItem(item)}
+            editHref={
+              previewing ? undefined : calendarEventEditHref(item, returnPath)
+            }
+          />
         ))}
         {layout.hiddenCount > 0 && (
           <button
@@ -342,46 +396,35 @@ export function CalendarPageClient({
           actions={
             previewing ? (
               <Tooltip content="Exit access preview to change the calendar">
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="w-full sm:w-auto"
-                    leftIcon={<FiUserX />}
-                    disabled
-                  >
-                    Log time away
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="w-full sm:w-auto"
-                    leftIcon={<FiPlus />}
-                    disabled
-                  >
-                    Add date
-                  </Button>
-                </div>
-              </Tooltip>
-            ) : (
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="w-full sm:w-auto"
-                  leftIcon={<FiUserX />}
-                  onClick={() => openNew("away")}
-                >
-                  Log time away
-                </Button>
                 <Button
                   size="sm"
                   className="w-full sm:w-auto"
                   leftIcon={<FiPlus />}
+                  disabled
+                >
+                  Add to calendar
+                </Button>
+              </Tooltip>
+            ) : (
+              <>
+                {/* Route on a phone, dialog from `sm` up — see editor-routes.ts. */}
+                <Button.Link
+                  href={`/calendar/event/new?date=${today || `${month}-01`}&from=${encodeURIComponent(returnPath)}`}
+                  size="sm"
+                  className={`w-full ${mobileEditorTrigger}`}
+                  leftIcon={<FiPlus />}
+                >
+                  Add to calendar
+                </Button.Link>
+                <Button
+                  size="sm"
+                  className={desktopEditorTrigger}
+                  leftIcon={<FiPlus />}
                   onClick={() => openNew("important")}
                 >
-                  Add date
+                  Add to calendar
                 </Button>
-              </div>
+              </>
             )
           }
         >
@@ -492,12 +535,11 @@ export function CalendarPageClient({
               const status = data.statuses.find(
                 (candidate) => candidate.id === task?.status_id,
               );
-              const assigneeIds = new Set([
-                ...(task?.assignee_id ? [task.assignee_id] : []),
-                ...data.taskAssignees
+              const assigneeIds = new Set(
+                data.taskAssignees
                   .filter((assignment) => assignment.task_id === task?.id)
                   .map((assignment) => assignment.profile_id),
-              ]);
+              );
               const assignees = data.profiles.filter((profile) =>
                 assigneeIds.has(profile.id),
               );

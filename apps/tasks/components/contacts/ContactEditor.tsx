@@ -12,7 +12,6 @@ import {
   DropdownSelect,
   IconButton,
   Input,
-  Modal,
   ModalActions,
   SearchInput,
   Textarea,
@@ -32,7 +31,7 @@ import type {
   ContactDraftPerson,
 } from "@/lib/contacts/contact-types";
 import { CONTACT_GROUPS } from "@/lib/contacts/contact-types";
-import { CountBadge } from "@/components/global";
+import { CountBadge, EditorSurface } from "@/components/global";
 
 const blankPerson = (): ContactDraftPerson => ({
   full_name: "",
@@ -60,19 +59,24 @@ const makeDraft = (contact?: Contact | null): ContactDraft => ({
     })) ?? [],
 });
 
-export function ContactEditor({
-  contact,
-  open,
-  saving,
-  onClose,
-  onSave,
-}: {
+type ContactEditorProps = {
   contact?: Contact | null;
   open: boolean;
   saving: boolean;
   onClose: () => void;
   onSave: (draft: ContactDraft, imageFile: File | null) => void;
-}) {
+} & (
+  | { presentation?: "modal" }
+  /** The mobile route. See `docs/MOBILE_EDITOR_SURFACES.md`. */
+  | { presentation: "page"; backHref: string }
+);
+
+export function ContactEditor(props: ContactEditorProps) {
+  const { contact, open, saving, onClose, onSave } = props;
+  const surface =
+    props.presentation === "page"
+      ? ({ presentation: "page", backHref: props.backHref } as const)
+      : ({ presentation: "modal" } as const);
   const [draft, setDraft] = useState(() => makeDraft(contact));
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState(contact?.image_url ?? null);
@@ -178,9 +182,12 @@ export function ContactEditor({
   }
 
   return (
-    <Modal
+    <EditorSurface
+      {...surface}
       open={open}
-      setIsOpen={(next) => !next && !saving && onClose()}
+      setOpen={(next) => {
+        if (!next && !saving) onClose();
+      }}
       title={contact ? `Edit ${contact.display_name}` : "New Contact"}
       description="Manage this contact and the people you know there."
       size="xl"
@@ -624,6 +631,6 @@ export function ContactEditor({
             )}
         </section>
       </form>
-    </Modal>
+    </EditorSurface>
   );
 }

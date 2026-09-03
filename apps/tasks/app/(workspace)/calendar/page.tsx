@@ -7,22 +7,17 @@ import {
   USER_ACCESS_PREVIEW_PARAM,
 } from "@/lib/access/access-preview";
 import { resolveAccessPreview } from "@/lib/server/access-preview";
-import { demoData } from "@/lib/workspace/demo-data";
-import {
-  CALENDAR_EVENT_COLUMNS,
-  type CalendarEvent,
-} from "@/lib/calendar/calendar-types";
+import { demoCalendarEvents, demoData } from "@/lib/workspace/demo-data";
+import { CALENDAR_EVENT_COLUMNS } from "@/lib/calendar/calendar-types";
 import { requireQueryData } from "@/lib/server/workspace-loader";
 import {
   isWorkspaceDemo,
   loadWorkspacePage,
 } from "@/lib/server/workspace-page-loader";
 import {
-  canViewWorkspaceGoogleCalendar,
-  googleCalendarConnection,
   isGoogleCalendarConfigured,
-  loadGoogleCalendarIntegration,
   listGoogleCalendarEvents,
+  loadGoogleCalendarAccess,
 } from "@/lib/server/google-calendar";
 import type { GoogleCalendarEvent } from "@/lib/calendar/google-calendar-types";
 import type { AccessPreview } from "@/lib/workspace/workspace-types";
@@ -32,62 +27,6 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: { absolute: await pageTitle("Calendar") } };
 }
 
-const demoEvents: CalendarEvent[] = [
-  {
-    id: "demo-away",
-    kind: "away",
-    title: "Taylor is away",
-    description: "Back online Monday.",
-    starts_at: "2026-08-27T00:00:00",
-    ends_at: "2026-08-30T23:59:00",
-    all_day: true,
-    recurrence: null,
-    project_id: null,
-    category_id: null,
-    profile_id: "taylor",
-    created_by: "taylor",
-    created_at: "2026-08-20T12:00:00Z",
-    updated_at: "2026-08-20T12:00:00Z",
-  },
-  {
-    id: "demo-important",
-    kind: "important",
-    title: "Launch venue decision",
-    description: "Final go/no-go date.",
-    starts_at: "2026-08-24T00:00:00",
-    ends_at: "2026-08-24T23:59:00",
-    all_day: true,
-    recurrence: null,
-    project_id: "fall-launch",
-    category_id: null,
-    profile_id: null,
-    created_by: "taylor",
-    created_at: "2026-08-20T12:00:00Z",
-    updated_at: "2026-08-20T12:00:00Z",
-  },
-  {
-    id: "demo-recurring",
-    kind: "important",
-    title: "Weekly team sync",
-    description: "Same time every week until launch.",
-    starts_at: "2026-08-26T00:00:00",
-    ends_at: "2026-08-26T23:59:00",
-    all_day: true,
-    recurrence: {
-      frequency: "weekly",
-      interval: 1,
-      weekdays: [3],
-      monthlyMode: "date",
-      ends: { type: "never" },
-    },
-    project_id: null,
-    category_id: null,
-    profile_id: null,
-    created_by: "taylor",
-    created_at: "2026-08-20T12:00:00Z",
-    updated_at: "2026-08-20T12:00:00Z",
-  },
-];
 
 export default async function CalendarPage({
   searchParams,
@@ -110,7 +49,7 @@ export default async function CalendarPage({
     return (
       <CalendarPageClient
         initialData={demoData}
-        initialEvents={demoEvents}
+        initialEvents={demoCalendarEvents}
         initialGoogleEvents={[]}
         googleConnection={{ connected: false }}
         googleConfigured={false}
@@ -166,28 +105,11 @@ export default async function CalendarPage({
       }
     }
   }
-  // A preview is read-only, so it never offers connection management.
-  const googleCanManage =
-    !preview && loaded.data.currentProfile.app_role === "owner";
-  let googleCanView = googleCanManage;
-  if (preview) {
-    googleCanView = preview.calendarAccess === true;
-  } else if (!googleCanView) {
-    try {
-      googleCanView = await canViewWorkspaceGoogleCalendar(loaded.supabase);
-    } catch (error) {
-      console.error("Google Calendar permission could not be resolved", error);
-    }
-  }
-  let integration = null;
-  if (googleCanView || googleCanManage) {
-    try {
-      integration = await loadGoogleCalendarIntegration();
-    } catch (error) {
-      console.error("Google Calendar connection could not be loaded", error);
-    }
-  }
-  const googleConnection = googleCalendarConnection(integration);
+  const { googleCanManage, googleCanView, integration, googleConnection } =
+    await loadGoogleCalendarAccess(loaded.supabase, {
+      owner: loaded.data.currentProfile.app_role === "owner",
+      preview,
+    });
   let googleEvents: GoogleCalendarEvent[] = [];
   if (googleCanView && integration) {
     try {

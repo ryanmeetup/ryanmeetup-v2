@@ -49,6 +49,115 @@ test("keeps stale board results inert while a search is pending", async ({
   ).toBeVisible();
 });
 
+test("keeps category tags subordinate across task surfaces", async ({
+  page,
+  baseURL,
+}) => {
+  await enterDemoWorkspace(page, baseURL);
+  await page.goto("/board");
+  await page.waitForLoadState("networkidle");
+
+  const categoryBadge = page.getByLabel(
+    "Product / Tools category; tags: Bug",
+    { exact: true },
+  );
+  await expect(categoryBadge).toContainText("Product / Tools· +1");
+  await expect(categoryBadge.getByText("Bug", { exact: true }))
+    .toHaveCount(0);
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  await page
+    .getByRole("link", {
+      name: "Go to Fix confirmation email copy details",
+      exact: true,
+    })
+    .click();
+  await page.waitForLoadState("networkidle");
+
+  const categoriesSection = page
+    .getByRole("main")
+    .getByText("Categories", { exact: true })
+    .locator("..");
+  await expect(
+    categoriesSection.getByText("Product / Tools", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    categoriesSection.getByText("Bug", { exact: true }),
+  ).toBeVisible();
+});
+
+test("preserves existing assignees when another person is added", async ({
+  page,
+  baseURL,
+}) => {
+  await enterDemoWorkspace(page, baseURL);
+  await page.goto("/board");
+  await page.waitForLoadState("networkidle");
+
+  await page.getByRole("button", { name: "Open Confirm launch venue" }).click();
+  const assignees = page.getByRole("button", { name: "Assignees" });
+  await expect(assignees).toContainText("Taylor Brooks, Alex Morgan");
+  await assignees.click();
+  await page.getByRole("option", { name: "Jordan Lee" }).click();
+  await assignees.click();
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByRole("heading", { name: "Edit Task" })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Open Confirm launch venue" }).click();
+  await expect(
+    page.getByRole("button", { name: "Assignees" }),
+  ).toContainText("Taylor Brooks, Alex Morgan +1");
+});
+
+test("shows shared assignments in My Tasks", async ({ page, baseURL }) => {
+  await enterDemoWorkspace(page, baseURL);
+  await page.goto("/board");
+  await page.waitForLoadState("networkidle");
+
+  await page.getByRole("button", { name: "Mine" }).click();
+  await expect(
+    page.getByRole("button", { name: "Open Confirm launch venue" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Open Publish onboarding checklist" }),
+  ).toHaveCount(0);
+});
+
+test("returns to the task after saving from the mobile editor", async ({
+  page,
+  baseURL,
+}) => {
+  await enterDemoWorkspace(page, baseURL);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/task/RMT-5/edit?from=%2Ftask%2FRMT-5");
+  await page.waitForLoadState("networkidle");
+
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page).toHaveURL(/\/task\/RMT-5$/);
+  await expect(
+    page.getByRole("heading", { name: "Confirm launch venue" }),
+  ).toBeVisible();
+});
+
+test("keeps the mobile duplicate editor open for create another", async ({
+  page,
+  baseURL,
+}) => {
+  await enterDemoWorkspace(page, baseURL);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/task/RMT-5/edit?from=%2Ftask%2FRMT-5");
+  await page.waitForLoadState("networkidle");
+
+  await page.getByRole("button", { name: "Duplicate task" }).click();
+  await page.getByRole("checkbox", { name: "Create another" }).check();
+  await page.getByRole("button", { name: "Create task" }).click();
+
+  await expect(page).toHaveURL(/\/task\/RMT-5\/edit/);
+  await expect(
+    page.getByRole("heading", { name: "A new thing to do" }),
+  ).toBeVisible();
+});
+
 test("updates category owners through the resource editor", async ({
   page,
   baseURL,
@@ -87,9 +196,9 @@ test("saves and deletes a calendar item", async ({ page, baseURL }) => {
   await page.waitForLoadState("networkidle");
 
   const title = `Coverage checkpoint ${Date.now()}`;
-  await page.getByRole("button", { name: "Add date" }).click();
+  await page.getByRole("button", { name: "Add to calendar" }).click();
   const createDialog = page.getByRole("dialog", {
-    name: "Add important date",
+    name: "Add to calendar",
   });
   await createDialog.getByLabel("Title").fill(title);
   await createDialog.getByRole("button", { name: "Save" }).click();

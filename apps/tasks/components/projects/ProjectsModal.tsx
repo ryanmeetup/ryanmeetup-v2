@@ -16,7 +16,6 @@ import {
   FilterChip,
   IconButton,
   ManagementSurface,
-  Modal,
   ModalActions,
   PendingResults,
   Pill,
@@ -41,9 +40,13 @@ import { withAccessPreview } from "@/lib/access/access-preview";
 import { mutate } from "@/lib/mutation-client";
 import {
   CountBadge,
+  desktopEditorTrigger,
+  EditorSurface,
+  mobileEditorTrigger,
   ManagementCard,
   ManagementCardTitle,
   ResourceOwnerSelect,
+  useEditorReturnPath,
 } from "@/components/global";
 import { errorMessage } from "@/lib/presentation";
 import type { Project } from "@/lib/resources/resource-types";
@@ -84,6 +87,13 @@ type ProjectsModalOptions = {
   readOnly?: boolean;
   showOwnerNames?: boolean;
   initialDraft?: { name?: string; description?: string } | null;
+  /**
+   * `"page"` renders the create and edit forms as the dedicated mobile routes
+   * instead of dialogs. `backHref` is where their back control returns to.
+   * See `docs/MOBILE_EDITOR_SURFACES.md`.
+   */
+  presentation?: "modal" | "page";
+  backHref?: string;
 };
 
 type ProjectsModalCommonProps = {
@@ -133,6 +143,12 @@ export function ProjectsModal({
   const setOpen = modal?.setOpen;
   const { data, setData, demoMode } = workspace;
   const favorites = useProjectFavorites({ data, setData, demoMode });
+  /**
+   * Where the mobile editor routes return to. This surface is embedded on both
+   * `/projects` and `/categories`, so the page it is actually on is the honest
+   * answer rather than a hardcoded default.
+   */
+  const listPath = useEditorReturnPath();
   const {
     embedded = false,
     createOnly = false,
@@ -140,7 +156,17 @@ export function ProjectsModal({
     readOnly = false,
     showOwnerNames = false,
     initialDraft = null,
+    presentation = "modal",
+    backHref = "/projects",
   } = options ?? {};
+  /**
+   * The editor routes mount this component with `createOnly` or
+   * `editProjectId` set, so only those two surfaces ever render as a page.
+   */
+  const surface =
+    presentation === "page"
+      ? ({ presentation: "page", backHref } as const)
+      : ({ presentation: "modal" } as const);
   const { onCreate, onProjectUpdated, onCreated } = events ?? {};
   const resourceMutations = useResourceMutations("project");
   const directEditProject = editProjectId
@@ -738,9 +764,19 @@ export function ProjectsModal({
         )}
         {!readOnly && (
           <>
+            {/* Route on a phone, dialog from `sm` up — see editor-routes.ts. */}
+            <IconButton.Link
+              href={`/projects/${project.id}/edit?from=${encodeURIComponent(listPath)}`}
+              label={`Edit “${project.name}”`}
+              variant="edit"
+              className={mobileEditorTrigger}
+            >
+              <FiEdit2 />
+            </IconButton.Link>
             <IconButton
               label={`Edit “${project.name}”`}
               variant="edit"
+              className={desktopEditorTrigger}
               onClick={() => beginRename(project)}
             >
               <FiEdit2 />
@@ -868,15 +904,25 @@ export function ProjectsModal({
           description="Projects collect related work across categories. Set owners and access groups while creating or editing each work stream."
           actions={
             onCreate && !readOnly ? (
-              <Button
-                type="button"
-                size="sm"
-                className="w-full sm:w-auto"
-                leftIcon={<FiPlus aria-hidden />}
-                onClick={onCreate}
-              >
-                New project
-              </Button>
+              <>
+                <Button.Link
+                  href={`/projects/new?from=${encodeURIComponent(listPath)}`}
+                  size="sm"
+                  className={`w-full ${mobileEditorTrigger}`}
+                  leftIcon={<FiPlus aria-hidden />}
+                >
+                  New project
+                </Button.Link>
+                <Button
+                  type="button"
+                  size="sm"
+                  className={desktopEditorTrigger}
+                  leftIcon={<FiPlus aria-hidden />}
+                  onClick={onCreate}
+                >
+                  New project
+                </Button>
+              </>
             ) : undefined
           }
         >
@@ -888,9 +934,10 @@ export function ProjectsModal({
     if (!modal) return null;
 
     return (
-      <Modal
+      <EditorSurface
+        {...surface}
         open={modal.open && !editProjectId}
-        setIsOpen={modal.setOpen}
+        setOpen={modal.setOpen}
         title={title}
         actions={
           <ModalActions
@@ -927,7 +974,7 @@ export function ProjectsModal({
         }
       >
         {children}
-      </Modal>
+      </EditorSurface>
     );
   };
 
@@ -1058,9 +1105,9 @@ export function ProjectsModal({
             savedAccessMode !== editingAccessMode ||
             !sameIds(savedAccessGroupIds, editingAccessGroupIds);
           return (
-            <Modal
-              open
-              setIsOpen={(nextOpen) => {
+            <EditorSurface
+              {...surface}
+              setOpen={(nextOpen) => {
                 if (!nextOpen) closeEditor();
               }}
               title={`Edit ${project.name}`}
@@ -1189,7 +1236,7 @@ export function ProjectsModal({
                   }
                 />
               </form>
-            </Modal>
+            </EditorSurface>
           );
         })()}
       <ConfirmationDialog

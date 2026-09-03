@@ -27,15 +27,18 @@ import {
   FiPlus,
   FiTrash2,
 } from "react-icons/fi";
-import { CountBadge, WorkspacePageShell } from "@/components/global";
 import {
-  CONTACT_GROUPS,
-  type Contact,
-  type ContactDraft,
-} from "@/lib/contacts/contact-types";
+  CountBadge,
+  desktopEditorTrigger,
+  mobileEditorTrigger,
+  useEditorReturnPath,
+  WorkspacePageShell,
+} from "@/components/global";
+import { CONTACT_GROUPS, type Contact } from "@/lib/contacts/contact-types";
 import { mutate } from "@/lib/mutation-client";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { ContactEditor } from "./ContactEditor";
+import { useContactSave } from "./useContactSave";
 import { errorMessage } from "@/lib/presentation";
 
 function contactSearchText(contact: Contact) {
@@ -70,8 +73,14 @@ export function ContactsPageClient({
   const [contacts, setContacts] = useState(initialContacts);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [editing, setEditing] = useState<Contact | null | undefined>();
+  const returnPath = useEditorReturnPath();
+  const { saving, saveContact } = useContactSave({
+    demoMode,
+    editing,
+    setContacts,
+    onSaved: () => setEditing(undefined),
+  });
   const [deleting, setDeleting] = useState<Contact | null>(null);
-  const [saving, setSaving] = useState(false);
   const [deletingPending, setDeletingPending] = useState(false);
   const previewing = Boolean(data.accessPreview);
   const [expandedPeopleIds, setExpandedPeopleIds] = useState<Set<string>>(
@@ -172,71 +181,6 @@ export function ContactsPageClient({
     setExpandedPeopleIds(new Set(sortedContacts.map((contact) => contact.id)));
   }
 
-  async function saveContact(draft: ContactDraft, imageFile: File | null) {
-    setSaving(true);
-    try {
-      let result: { contact: Contact };
-      if (demoMode) {
-        const now = new Date().toISOString();
-        result = {
-          contact: {
-            id: draft.id ?? crypto.randomUUID(),
-            display_name: draft.displayName.trim(),
-            image_url: imageFile
-              ? URL.createObjectURL(imageFile)
-              : draft.imageUrl ||
-                (draft.retainImage ? (editing?.image_url ?? null) : null),
-            image_path: imageFile ? "demo" : null,
-            contact_group: draft.contactGroup || null,
-            notes: draft.notes.trim() || null,
-            created_at: editing?.created_at ?? now,
-            updated_at: now,
-            categories: editing?.categories ?? [],
-            people: draft.people.map((person) => ({
-              ...person,
-              id: person.id ?? crypto.randomUUID(),
-              full_name: person.full_name.trim(),
-              title: person.title?.trim() || null,
-              emails: person.emails.map((email) => email.trim().toLowerCase()),
-              phone: person.phone?.trim() || null,
-              instagram_handle:
-                formatInstagramHandle(person.instagram_handle ?? "") || null,
-            })),
-          },
-        };
-      } else {
-        const body = imageFile
-          ? (() => {
-              const formData = new FormData();
-              formData.set("contact", JSON.stringify(draft));
-              formData.set("file", imageFile);
-              return formData;
-            })()
-          : JSON.stringify(draft);
-        result = await mutate("/api/contacts", {
-          method: draft.id ? "PATCH" : "POST",
-          body,
-        });
-      }
-      setContacts((current) => {
-        const exists = current.some(
-          (contact) => contact.id === result.contact.id,
-        );
-        return exists
-          ? current.map((contact) =>
-              contact.id === result.contact.id ? result.contact : contact,
-            )
-          : [...current, result.contact];
-      });
-      setEditing(undefined);
-      toast.success(draft.id ? "Contact updated." : "Contact added.");
-    } catch (error) {
-      toast.error(errorMessage(error, "The contact could not be saved."));
-    } finally {
-      setSaving(false);
-    }
-  }
-
   async function deleteContact() {
     if (!deleting) return;
     setDeletingPending(true);
@@ -308,15 +252,26 @@ export function ContactsPageClient({
                   </Button>
                 </Tooltip>
               ) : (
-                <Button
-                  type="button"
-                  size="sm"
-                  className="w-full sm:w-auto"
-                  leftIcon={<FiPlus aria-hidden />}
-                  onClick={() => setEditing(null)}
-                >
-                  New Contact
-                </Button>
+                <>
+                  {/* Route on a phone, dialog from `sm` up — see editor-routes.ts. */}
+                  <Button.Link
+                    href={`/contacts/new?from=${encodeURIComponent(returnPath)}`}
+                    size="sm"
+                    className={`w-full ${mobileEditorTrigger}`}
+                    leftIcon={<FiPlus aria-hidden />}
+                  >
+                    New Contact
+                  </Button.Link>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className={desktopEditorTrigger}
+                    leftIcon={<FiPlus aria-hidden />}
+                    onClick={() => setEditing(null)}
+                  >
+                    New Contact
+                  </Button>
+                </>
               )}
             </>
           }
@@ -412,9 +367,18 @@ export function ContactsPageClient({
                                     </div>
                                     {!previewing && (
                                       <div className="flex shrink-0 gap-1">
+                                        <IconButton.Link
+                                          href={`/contacts/${contact.id}/edit?from=${encodeURIComponent(returnPath)}`}
+                                          label={`Edit “${contact.display_name}”`}
+                                          variant="edit"
+                                          className={mobileEditorTrigger}
+                                        >
+                                          <FiEdit2 />
+                                        </IconButton.Link>
                                         <IconButton
                                           label={`Edit “${contact.display_name}”`}
                                           variant="edit"
+                                          className={desktopEditorTrigger}
                                           onClick={() => setEditing(contact)}
                                         >
                                           <FiEdit2 />

@@ -5,28 +5,22 @@ import {
   Button,
   DropdownSelect,
   Input,
-  Modal,
   ModalActions,
   Textarea,
 } from "@ryanmeetup/ui";
+import { EditorSurface } from "@/components/global";
 import { FiTrash2 } from "react-icons/fi";
-import { workspaceTimeZoneLabel } from "@/lib/calendar/calendar-types";
+import {
+  workspaceTimeZoneLabel,
+  type CalendarEventKind,
+} from "@/lib/calendar/calendar-types";
 import { profileDisplayName } from "@/lib/presentation";
 import type { Category, Project } from "@/lib/resources/resource-types";
 import type { Profile } from "@/lib/workspace/workspace-types";
 import { CalendarRecurrenceFields } from "./CalendarRecurrenceFields";
 import type { useCalendarEventEditor } from "./useCalendarEventEditor";
 
-export function CalendarEventEditorModal({
-  categories,
-  currentProfileId,
-  editor,
-  googleEmail,
-  googleSyncAvailable,
-  previewing,
-  profiles,
-  projects,
-}: {
+type CalendarEventEditorProps = {
   categories: Category[];
   currentProfileId: string;
   editor: ReturnType<typeof useCalendarEventEditor>;
@@ -35,9 +29,30 @@ export function CalendarEventEditorModal({
   previewing: boolean;
   profiles: Profile[];
   projects: Project[];
-}) {
+} & (
+  | { presentation?: "modal" }
+  /** The mobile route. See `docs/MOBILE_EDITOR_SURFACES.md`. */
+  | { presentation: "page"; backHref: string }
+);
+
+export function CalendarEventEditorModal(props: CalendarEventEditorProps) {
+  const {
+    categories,
+    currentProfileId,
+    editor,
+    googleEmail,
+    googleSyncAvailable,
+    previewing,
+    profiles,
+    projects,
+  } = props;
+  const surface =
+    props.presentation === "page"
+      ? ({ presentation: "page", backHref: props.backHref } as const)
+      : ({ presentation: "modal" } as const);
   const {
     canEdit,
+    changeKind,
     deleting,
     draft,
     editingEvent,
@@ -49,17 +64,16 @@ export function CalendarEventEditorModal({
   const profileMap = new Map(profiles.map((profile) => [profile.id, profile]));
 
   return (
-    <Modal
+    <EditorSurface
+      {...surface}
       open={Boolean(draft)}
-      setIsOpen={(open) => {
+      setOpen={(open) => {
         if (!open && !saving) setDraft(null);
       }}
       title={
         draft?.id
           ? `Edit ${draft.kind === "away" ? "time away" : "important date"}`
-          : draft?.kind === "away"
-            ? "Log time away"
-            : "Add important date"
+          : "Add to calendar"
       }
       description={
         draft?.kind === "away"
@@ -118,6 +132,18 @@ export function CalendarEventEditorModal({
                 </>
               )}
             </div>
+          )}
+          {!draft.id && canEdit && (
+            <DropdownSelect
+              variant="field"
+              label="What are you adding?"
+              value={draft.kind}
+              onChange={(value) => changeKind(value as CalendarEventKind)}
+              options={[
+                { label: "Important date", value: "important" },
+                { label: "Time away", value: "away" },
+              ]}
+            />
           )}
           {draft.kind === "away" &&
             (canEdit ? (
@@ -311,6 +337,6 @@ export function CalendarEventEditorModal({
           )}
         </div>
       )}
-    </Modal>
+    </EditorSurface>
   );
 }

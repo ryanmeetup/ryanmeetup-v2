@@ -17,7 +17,6 @@ const task = (overrides: Partial<Task> = {}): Task => ({
   description: null,
   status_id: "todo",
   project_id: null,
-  assignee_id: null,
   created_by: "ryan",
   reported_by: "ryan",
   start_date: null,

@@ -136,7 +136,10 @@ export function encryptGoogleRefreshToken(token: string) {
     encryptionKey(config.tokenKey),
     iv,
   );
-  const encrypted = Buffer.concat([cipher.update(token, "utf8"), cipher.final()]);
+  const encrypted = Buffer.concat([
+    cipher.update(token, "utf8"),
+    cipher.final(),
+  ]);
   return ["v1", iv, cipher.getAuthTag(), encrypted]
     .map((part) =>
       typeof part === "string" ? part : part.toString("base64url"),
@@ -204,9 +207,7 @@ export async function loadGoogleCalendarIntegration() {
   return result.data as GoogleCalendarIntegrationRow | null;
 }
 
-export async function canViewWorkspaceGoogleCalendar(
-  supabase: SupabaseClient,
-) {
+export async function canViewWorkspaceGoogleCalendar(supabase: SupabaseClient) {
   const result = await supabase.rpc("can_view_workspace_calendar");
   if (result.error) throw result.error;
   return result.data === true;
@@ -295,7 +296,8 @@ export async function googleAccountEmail(accessToken: string) {
   const profile = await googleJson<{ email?: string }>(GOOGLE_USERINFO_URL, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
-  if (!profile.email) throw new Error("Google did not return an account email.");
+  if (!profile.email)
+    throw new Error("Google did not return an account email.");
   return profile.email;
 }
 
@@ -350,7 +352,10 @@ export function googleCalendarEventDetails(event: GoogleEvent) {
     tentative: event.status === "tentative" || undefined,
     organizer:
       organizerName || organizerEmail
-        ? { name: organizerName || undefined, email: organizerEmail || undefined }
+        ? {
+            name: organizerName || undefined,
+            email: organizerEmail || undefined,
+          }
         : undefined,
     conference: conference.length ? conference : undefined,
     attachments: attachments.length ? attachments : undefined,
@@ -419,10 +424,7 @@ export async function listGoogleCalendarEvents(
   return events;
 }
 
-function eventUrl(
-  connection: GoogleCalendarIntegrationRow,
-  eventId?: string,
-) {
+function eventUrl(connection: GoogleCalendarIntegrationRow, eventId?: string) {
   const calendarId = encodeURIComponent(connection.calendar_id);
   const base = `${GOOGLE_CALENDAR_URL}/calendars/${calendarId}/events`;
   return eventId ? `${base}/${encodeURIComponent(eventId)}` : base;
@@ -517,9 +519,7 @@ export async function syncWorkspaceEventToGoogle(
       : null;
   const connection = await loadGoogleCalendarIntegration();
   if (!connection)
-    return publish
-      ? "No workspace Google Calendar is connected."
-      : null;
+    return publish ? "No workspace Google Calendar is connected." : null;
   if (publish) await publishWorkspaceEventToGoogle(connection, event);
   else await removeWorkspaceEventFromGoogle(connection, event.id);
   return null;
@@ -534,13 +534,63 @@ export async function revokeGoogleCalendar(
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
-        token: decryptGoogleRefreshToken(
-          connection.encrypted_refresh_token,
-        ),
+        token: decryptGoogleRefreshToken(connection.encrypted_refresh_token),
       }),
       cache: "no-store",
     });
   } catch (error) {
     console.error("Google Calendar token revocation failed", error);
   }
+}
+
+/**
+ * Who may see and manage the workspace Google Calendar on this request, plus
+ * the connection row that answers "is it connected, and as whom".
+ *
+ * Shared by the calendar page and the calendar editor routes so they agree on
+ * whether to offer publishing. Every Google failure is logged and degraded to
+ * "not connected" rather than thrown: the calendar and its editor must still
+ * work when Google does not.
+ */
+export async function loadGoogleCalendarAccess(
+  supabase: SupabaseClient,
+  {
+    owner,
+    preview,
+  }: {
+    owner: boolean;
+    /**
+     * The active access preview, when there is one. A preview is read-only, so
+     * it never manages the connection and its own grant decides what it sees.
+     * Pass the preview itself rather than its flag: a preview whose
+     * `calendarAccess` is undefined is still a preview.
+     */
+    preview?: { calendarAccess?: boolean } | null;
+  },
+) {
+  const googleCanManage = !preview && owner;
+  let googleCanView = googleCanManage;
+  if (preview) {
+    googleCanView = preview.calendarAccess === true;
+  } else if (!googleCanView) {
+    try {
+      googleCanView = await canViewWorkspaceGoogleCalendar(supabase);
+    } catch (error) {
+      console.error("Google Calendar permission could not be resolved", error);
+    }
+  }
+  let integration = null;
+  if (googleCanView || googleCanManage) {
+    try {
+      integration = await loadGoogleCalendarIntegration();
+    } catch (error) {
+      console.error("Google Calendar connection could not be loaded", error);
+    }
+  }
+  return {
+    googleCanManage,
+    googleCanView,
+    integration,
+    googleConnection: googleCalendarConnection(integration),
+  };
 }

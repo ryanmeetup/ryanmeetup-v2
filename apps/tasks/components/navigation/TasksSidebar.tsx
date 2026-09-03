@@ -33,7 +33,11 @@ import type { ProjectStatus } from "@/lib/resources/resource-types";
 import { useSidebarSections } from "@/hooks/useSidebarSections";
 import { withAccessPreview } from "@/lib/access/access-preview";
 import { projectStatusDetails } from "@/lib/resources/project-status";
-import { InstanceWordmark } from "@/components/global";
+import {
+  desktopEditorTrigger,
+  InstanceWordmark,
+  mobileEditorTrigger,
+} from "@/components/global";
 
 /**
  * A filled dot in this sidebar already means "category identity", so project
@@ -281,25 +285,50 @@ export function TasksSidebar({
               <FiChevronDown className="ml-auto" aria-hidden />
             </DropdownMenuButton>
             <DropdownMenuItems align="start" className="w-56">
+              {/*
+                Each entry is a pair: a phone follows the link to the dedicated
+                editor route, and from `sm` up the button opens the dialog over
+                the current page. See components/global/editor-routes.ts.
+              */}
               {isOwner && (
-                <DropdownMenuItem
-                  onClick={() => {
-                    closeSidebar();
-                    onCreateProject();
-                  }}
-                >
-                  <FiFolder aria-hidden /> New project
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuItem.Link
+                    href={`/projects/new?from=${encodeURIComponent(pathname)}`}
+                    className={mobileEditorTrigger}
+                    onClick={closeSidebar}
+                  >
+                    <FiFolder aria-hidden /> New project
+                  </DropdownMenuItem.Link>
+                  <DropdownMenuItem
+                    className={desktopEditorTrigger}
+                    onClick={() => {
+                      closeSidebar();
+                      onCreateProject();
+                    }}
+                  >
+                    <FiFolder aria-hidden /> New project
+                  </DropdownMenuItem>
+                </>
               )}
               {canManageCategories && (
-                <DropdownMenuItem
-                  onClick={() => {
-                    closeSidebar();
-                    onCreateCategory();
-                  }}
-                >
-                  <FiTag aria-hidden /> New category
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuItem.Link
+                    href={`/categories/new?from=${encodeURIComponent(pathname)}`}
+                    className={mobileEditorTrigger}
+                    onClick={closeSidebar}
+                  >
+                    <FiTag aria-hidden /> New category
+                  </DropdownMenuItem.Link>
+                  <DropdownMenuItem
+                    className={desktopEditorTrigger}
+                    onClick={() => {
+                      closeSidebar();
+                      onCreateCategory();
+                    }}
+                  >
+                    <FiTag aria-hidden /> New category
+                  </DropdownMenuItem>
+                </>
               )}
             </DropdownMenuItems>
           </DropdownMenu>

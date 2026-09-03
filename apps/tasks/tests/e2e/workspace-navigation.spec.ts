@@ -174,5 +174,8 @@ test.describe("mobile workspace navigation", () => {
     await expect(
       page.getByRole("button", { name: "Open navigation" }),
     ).toBeVisible();
+    await expect(
+      page.getByRole("tooltip", { name: "Open navigation" }),
+    ).not.toBeVisible();
   });
 });
