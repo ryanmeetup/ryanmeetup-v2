@@ -241,21 +241,46 @@ migration can land in either order. `instance_settings` and `digest_settings`
 both do this. That tolerance is only ever for a missing table — every other
 database failure must propagate rather than be swallowed.
 
+### Messages a migration writes for the person reading them
+
+A function that validates its input before it writes raises `RS001`, not
+`23514`. `23514` is the SQLSTATE Postgres uses for a check constraint, so the
+API cannot tell a sentence a migration authored apart from `new row for
+relation "projects" violates check constraint ...`, and answers both with "Some
+of the submitted information is no longer valid." `RS001` is what makes the
+message returnable: `isRejectedResourceValue` in
+`lib/server/supabase-errors.ts` sends it back verbatim, the way
+`isMissingStatusReason` returns `TK001` from `save_task`. `23514` keeps the
+generic wording, because its text describes the table rather than the person.
+
+Only raise it for something the person can change -- an owner who has not
+finished onboarding, access groups on a project that is not restricted -- and
+write the message as the sentence you want them to read. A raise about a
+workspace that is set up wrong, like
+`grant_new_project_to_creator_groups` above, is not one of these.
+
 ## Outstanding
 
-- **Apply `20260907000000` to the second instance.** The Ryan Meetup project
-  already has every object in it, so mark it applied there rather than running
-  it:
+- **PRD is eleven migrations behind: `20260913000000` through `20260923000000`.**
+  Read from PRD's own history on 2026-09-01 — its latest applied version is
+  `20260912000000`. `20260907000000` did reach it; the entry that said
+  otherwise outlived the fact, which is the failure mode this section has.
+  PRD does not get CLI commands: hand over the SQL as one paste-ready block
+  for its dashboard SQL Editor, with a verification query, stated explicitly
+  as running on PRD.
 
-  ```sh
-  supabase link --project-ref lvfaartgcpphuokoswcm   # Ryan Meetup Tasks
-  supabase migration repair --status applied 20260907000000
+- **Ask PRD what it has rather than trusting this section.** Nothing in the
+  repository records what PRD holds, and a note here is only true until the
+  next migration lands. Run this in the PRD SQL Editor and compare against
+  `supabase/migrations`:
+
+  ```sql
+  select version from supabase_migrations.schema_migrations
+  order by version desc limit 5;
   ```
 
-  `projects.ryanle.dev` (`vjsnobmfsfrsnwukfaoq`) still needs the change, and
-  this machine's Supabase login cannot reach it. It does not get CLI commands:
-  hand over the migration's SQL as one paste-ready block for the PRD dashboard
-  SQL Editor, with a verification query, stated explicitly as running on PRD.
+  A handover block should end by inserting its versions into that table, or
+  the next reading of it is wrong again.
 
 - **Every migration must reach both projects.** A schema change applied to one
   and not the other is the beginning of exactly the drift this document was

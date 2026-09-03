@@ -35,6 +35,18 @@ Deployments configured for it can now offer a read-only MCP connection for Claud
 
 ## Improved
 
+### Big editors get room to breathe on phones
+
+Creating or editing a task, project, category, contact, or calendar event now uses a full mobile page with reachable actions and returns you to the exact filtered view you came from. Desktop keeps the familiar dialogs.
+
+### Tasks can have a crew
+
+Assign a task to several teammates without replacing the people already on it. My Tasks, dashboard counts, search, and weekday digests now recognize shared assignments everywhere they appear.
+
+### Task cards with less label clutter
+
+Task cards now keep each category together as one colored badge and summarize its selected tags with a small count. The task page shows those tag names beneath the category they refine, so the extra detail stays available without turning every categorization into another competing badge.
+
 ### Changes appear while they are still fresh
 
 Comments, checklist updates, attachments, and activity written by the server now appear as soon as the save finishes instead of waiting for a refresh. Project and category attachment changes also refresh across open views and connected teammates.
