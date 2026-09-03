@@ -11,6 +11,7 @@ export * from "./DropdownMenu";
 export * from "./DropdownSelect";
 export * from "./useDropdownSearch";
 export * from "./useProximityOptions";
+export * from "./EditorPage";
 export * from "./EmptyState";
 export * from "./ErrorCallout";
 export * from "./FilterBar";

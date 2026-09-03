@@ -7,7 +7,9 @@ import {
   MenuItems,
   Transition,
 } from "@headlessui/react";
+import NextLink from "next/link";
 import type {
+  AnchorHTMLAttributes,
   ButtonHTMLAttributes,
   ComponentProps,
   ReactNode,
@@ -15,9 +17,10 @@ import type {
 
 export type DropdownMenuProps = ComponentProps<typeof Menu>;
 
-export type DropdownMenuButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  unstyled?: boolean;
-};
+export type DropdownMenuButtonProps =
+  ButtonHTMLAttributes<HTMLButtonElement> & {
+    unstyled?: boolean;
+  };
 
 export type DropdownMenuItemsProps = Omit<
   ComponentProps<typeof MenuItems>,
@@ -32,6 +35,15 @@ export type DropdownMenuItemProps = Omit<
   "children"
 > & {
   children: ReactNode;
+  destructive?: boolean;
+};
+
+export type DropdownMenuItemLinkProps = Omit<
+  AnchorHTMLAttributes<HTMLAnchorElement>,
+  "children" | "href"
+> & {
+  children: ReactNode;
+  href: string;
   destructive?: boolean;
 };
 
@@ -98,6 +110,29 @@ const DropdownMenuItem = ({
   </MenuItem>
 );
 
+/**
+ * A menu entry that navigates. Same styling as `DropdownMenuItem`, but a real
+ * anchor, so it can be opened in a new tab and read as a link — which the
+ * mobile editor routes need, since their triggers are links by design.
+ */
+const DropdownMenuItemLink = ({
+  children,
+  className,
+  destructive = false,
+  href,
+  ...props
+}: DropdownMenuItemLinkProps) => (
+  <MenuItem>
+    <NextLink
+      href={href}
+      className={`group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition focus:outline-none data-focus:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50 dark:data-focus:bg-white/10 ${destructive ? "text-red-700 dark:text-red-400" : "text-black dark:text-white"} ${className ?? ""}`}
+      {...props}
+    >
+      {children}
+    </NextLink>
+  </MenuItem>
+);
+
 const DropdownMenuSeparator = ({ className }: { className?: string }) => (
   <div
     role="separator"
@@ -105,10 +140,13 @@ const DropdownMenuSeparator = ({ className }: { className?: string }) => (
   />
 );
 
+DropdownMenuItem.Link = DropdownMenuItemLink;
+
 export {
   DropdownMenu,
   DropdownMenuButton,
   DropdownMenuItem,
+  DropdownMenuItemLink,
   DropdownMenuItems,
   DropdownMenuSeparator,
 };

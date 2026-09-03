@@ -9,6 +9,7 @@ import {
 import { MdClose as Close, MdKeyboardArrowDown } from "react-icons/md";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEventHandler, ReactNode } from "react";
+import { EditorFooter, EditorHeader } from "./editorChrome";
 import { IconButton } from "./IconButton";
 
 export type ModalSize = "sm" | "md" | "lg" | "xl" | "2xl" | "full";
@@ -43,13 +44,6 @@ export type ModalProps = {
   formId?: string;
   onSubmit?: FormEventHandler<HTMLFormElement>;
 };
-
-/**
- * Footer action groups own their children's widths: stacked and full-width on
- * mobile, inline and hugging their content from `sm` up.
- */
-const footerActionGroup =
-  "flex gap-3 [&>*]:w-full [&>span>*]:w-full sm:flex-row sm:items-center sm:gap-2 sm:[&>*]:w-auto sm:[&>span>*]:w-auto";
 
 const overlayStyles =
   "fixed inset-0 flex w-screen items-center justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]";
@@ -121,29 +115,28 @@ const Modal = ({
 
   const cardStyle =
     maxHeight || maxWidth
-      ? { ...(maxHeight ? { maxHeight } : {}), ...(maxWidth ? { maxWidth } : {}) }
+      ? {
+          ...(maxHeight ? { maxHeight } : {}),
+          ...(maxWidth ? { maxWidth } : {}),
+        }
       : undefined;
   const cardClassName = `mx-auto flex w-full min-h-0 flex-col ${maxWidth ? "" : sizeStyles[size]} ${maxHeight ? "" : "max-h-[min(42rem,calc(100dvh-max(1rem,env(safe-area-inset-top))-max(1rem,env(safe-area-inset-bottom))))] sm:max-h-[calc(100dvh-max(1rem,env(safe-area-inset-top))-max(1rem,env(safe-area-inset-bottom)))]"} overflow-hidden rounded-2xl border border-black/15 bg-white shadow-[0_24px_80px_rgba(0,0,0,0.35)] ring-1 ring-black/5 dark:border-white/20 dark:bg-[#181818] dark:shadow-[0_28px_100px_rgba(0,0,0,0.85)] dark:ring-white/10 ${panelClassName ?? ""}`;
 
   const cardContent = (
     <>
-      <div className="flex w-full shrink-0 items-start justify-between gap-4 border-b border-black/10 px-6 pb-4 pt-6 dark:border-white/10">
-        <div className="min-w-0">
-          <DialogTitle className="text-xl font-cooper text-black md:text-2xl dark:text-white">
-            {title}
-          </DialogTitle>
-          {description && (
-            <DialogDescription className="mt-3 text-sm leading-relaxed text-black/65 dark:text-white/65">
-              {description}
-            </DialogDescription>
-          )}
-        </div>
-        {closable && (
-          <IconButton label="Close dialog" onClick={() => setIsOpen(false)}>
-            <Close className="h-5 w-5" />
-          </IconButton>
-        )}
-      </div>
+      <EditorHeader
+        title={title}
+        description={description}
+        titleAs={DialogTitle}
+        descriptionAs={DialogDescription}
+        action={
+          closable && (
+            <IconButton label="Close dialog" onClick={() => setIsOpen(false)}>
+              <Close className="h-5 w-5" />
+            </IconButton>
+          )
+        }
+      />
       <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
         <div
           ref={scrollContainerRef}
@@ -172,29 +165,11 @@ const Modal = ({
           </div>
         )}
       </div>
-      {(footerContent || supportingActions || actions) && (
-        <div className="shrink-0 border-t border-black/10 px-6 py-4 dark:border-white/10">
-          {footerContent}
-          {(supportingActions || actions) && (
-            <div
-              className={`flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between ${footerContent ? "mt-4 border-t border-black/10 pt-4 dark:border-white/10" : ""}`}
-            >
-              {supportingActions && (
-                <div className="flex flex-wrap items-center gap-2">
-                  {supportingActions}
-                </div>
-              )}
-              {actions && (
-                <div
-                  className={`${footerActionGroup} flex-col-reverse sm:ml-auto sm:justify-end`}
-                >
-                  {actions}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+      <EditorFooter
+        actions={actions}
+        supportingActions={supportingActions}
+        footerContent={footerContent}
+      />
     </>
   );
 
