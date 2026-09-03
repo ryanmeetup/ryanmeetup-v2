@@ -1,5 +1,9 @@
-import { describe, expect, it } from "vitest";
-import { hasDraftAutosaveContent } from "@/lib/tasks/task-drafts";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  hasDraftAutosaveContent,
+  readTaskDrafts,
+  saveTaskDraft,
+} from "@/lib/tasks/task-drafts";
 import type { TaskDraft } from "@/lib/tasks/task-mutations";
 
 const contextualDraft: TaskDraft = {
@@ -37,5 +41,85 @@ describe("hasDraftAutosaveContent", () => {
         due_date: "2026-08-10",
       }),
     ).toBe(true);
+  });
+
+  it("recognizes checklist content in task details", () => {
+    expect(
+      hasDraftAutosaveContent(contextualDraft, {
+        checklist: [{ id: "person-1", title: "Jamie" }],
+        files: [],
+        urls: [],
+        comment: "",
+      }),
+    ).toBe(true);
+  });
+});
+
+describe("saved task details", () => {
+  const values = new Map<string, string>();
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    values.clear();
+  });
+
+  it("round trips checklists, links, and comments", () => {
+    vi.stubGlobal("localStorage", {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+    });
+    vi.stubGlobal("window", { dispatchEvent: vi.fn() });
+    vi.stubGlobal("CustomEvent", class CustomEvent {});
+
+    saveTaskDraft(
+      "ryan",
+      { ...contextualDraft, title: "Prepare 1099s" },
+      "draft-1099",
+      {
+        checklist: [
+          { id: "person-1", title: "Jamie" },
+          { id: "person-2", title: "Morgan" },
+        ],
+        files: [],
+        urls: [{ id: "tax-guide", url: "https://www.irs.gov/1099" }],
+        comment: "Confirm mailing addresses first.",
+      },
+    );
+
+    expect(readTaskDrafts("ryan")).toEqual([
+      expect.objectContaining({
+        id: "draft-1099",
+        details: {
+          checklist: [
+            { id: "person-1", title: "Jamie" },
+            { id: "person-2", title: "Morgan" },
+          ],
+          files: [],
+          urls: [{ id: "tax-guide", url: "https://www.irs.gov/1099" }],
+          comment: "Confirm mailing addresses first.",
+        },
+      }),
+    ]);
+  });
+
+  it("opens older drafts with empty task details", () => {
+    vi.stubGlobal("localStorage", {
+      getItem: () =>
+        JSON.stringify([
+          {
+            id: "legacy-draft",
+            draft: contextualDraft,
+            updatedAt: "2026-09-03T12:00:00.000Z",
+          },
+        ]),
+    });
+    vi.stubGlobal("window", {});
+
+    expect(readTaskDrafts("ryan")[0]?.details).toEqual({
+      checklist: [],
+      files: [],
+      urls: [],
+      comment: "",
+    });
   });
 });

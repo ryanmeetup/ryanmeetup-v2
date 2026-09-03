@@ -79,11 +79,14 @@ export function NewTaskModal(props: NewTaskModalProps) {
   const detailsOpenByDefault = data.currentProfile.task_details_open_by_default;
   const [detailsOpen, setDetailsOpen] = useState(detailsOpenByDefault);
   const [newTaskDetails, setNewTaskDetails] =
-    useState<NewTaskDetailsDraft>(emptyNewTaskDetails);
+    useState<NewTaskDetailsDraft>(
+      () => initialDraft?.details ?? emptyNewTaskDetails(),
+    );
 
   useEffect(() => {
     if (open && !opened.current && initialDraft) {
       setDraft(initialDraft.draft);
+      setNewTaskDetails(initialDraft.details ?? emptyNewTaskDetails());
       draftId.current = initialDraft.id;
     }
     if (open && !opened.current) {
@@ -98,7 +101,7 @@ export function NewTaskModal(props: NewTaskModalProps) {
       !open ||
       saving ||
       !draftTouched.current ||
-      !hasDraftAutosaveContent(draft)
+      !hasDraftAutosaveContent(draft, newTaskDetails)
     )
       return;
     const timer = window.setTimeout(() => {
@@ -106,6 +109,7 @@ export function NewTaskModal(props: NewTaskModalProps) {
         data.currentProfile.id,
         draft,
         draftId.current ?? undefined,
+        newTaskDetails,
       );
       draftId.current = saved.id;
       toast.success(draftSavedStatus("auto"), {
@@ -114,15 +118,20 @@ export function NewTaskModal(props: NewTaskModalProps) {
       });
     }, taskDraftAutosaveDelayMs);
     return () => window.clearTimeout(timer);
-  }, [data.currentProfile.id, draft, open, saving]);
+  }, [data.currentProfile.id, draft, newTaskDetails, open, saving]);
 
   function updateDraft(nextDraft: SetStateAction<TaskDraft>) {
     draftTouched.current = true;
     setDraft(nextDraft);
   }
 
+  function updateTaskDetails(nextDetails: SetStateAction<NewTaskDetailsDraft>) {
+    draftTouched.current = true;
+    setNewTaskDetails(nextDetails);
+  }
+
   function saveAsDraft() {
-    if (!hasDraftContent(draft)) {
+    if (!hasDraftContent(draft, newTaskDetails)) {
       toast.error("Add a title or a few details before saving a draft.");
       return;
     }
@@ -130,6 +139,7 @@ export function NewTaskModal(props: NewTaskModalProps) {
       data.currentProfile.id,
       draft,
       draftId.current ?? undefined,
+      newTaskDetails,
     );
     draftId.current = saved.id;
     toast.success(draftSavedStatus("manual"));
@@ -139,7 +149,10 @@ export function NewTaskModal(props: NewTaskModalProps) {
   function setModalOpen(nextOpen: boolean) {
     setOpen(nextOpen);
     if (!nextOpen && !saving) {
-      if (!hasDraftContent(draft)) setDraft(newWorkspaceTaskDraft(data));
+      if (!hasDraftContent(draft, newTaskDetails)) {
+        setDraft(newWorkspaceTaskDraft(data));
+        setNewTaskDetails(emptyNewTaskDetails());
+      }
       setCreateAnother(false);
       setMessage("");
     }
@@ -236,7 +249,7 @@ export function NewTaskModal(props: NewTaskModalProps) {
         createAnother,
         setCreateAnother,
         details: newTaskDetails,
-        setDetails: setNewTaskDetails,
+        setDetails: updateTaskDetails,
         onSaveDraft: saveAsDraft,
       }}
     />

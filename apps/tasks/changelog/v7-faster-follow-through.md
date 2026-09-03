@@ -65,6 +65,8 @@ Contact image uploads now save together with their contact, and replacing, remov
 
 Modals now require a deliberate close action, protecting longer edits from an accidental backdrop click.
 
+Saved task drafts now keep their checklist, linked attachments, and opening comment, so returning to a draft brings the task details back with it.
+
 ### One identity across the workspace
 
 A workspace now uses one instance name for page titles, digest emails, link previews, the sidebar wordmark, and the footer. Link previews draw their name and description directly from Identity, and the compact footer is now the consistent treatment across signed-in pages, sign-in screens, and demo mode.

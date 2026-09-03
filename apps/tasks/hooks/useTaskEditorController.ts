@@ -98,13 +98,18 @@ export function useTaskEditorController({
     setDraftState(next);
   }
 
+  function setTaskDetails(next: SetStateAction<NewTaskDetailsDraft>) {
+    touched.current = true;
+    setDetails(next);
+  }
+
   useEffect(() => {
     if (
       !open ||
       saving ||
       editing ||
       !touched.current ||
-      !hasDraftAutosaveContent(draft)
+      !hasDraftAutosaveContent(draft, details)
     )
       return;
     const timer = window.setTimeout(() => {
@@ -112,6 +117,7 @@ export function useTaskEditorController({
         data.currentProfile.id,
         draft,
         draftId.current ?? undefined,
+        details,
       );
       draftId.current = saved.id;
       toast.success(draftSavedStatus("auto"), {
@@ -120,7 +126,7 @@ export function useTaskEditorController({
       });
     }, taskDraftAutosaveDelayMs);
     return () => window.clearTimeout(timer);
-  }, [data.currentProfile.id, draft, editing, open, saving]);
+  }, [data.currentProfile.id, details, draft, editing, open, saving]);
 
   function openCreate(statusId = defaults.statusId) {
     setMessage("");
@@ -188,7 +194,7 @@ export function useTaskEditorController({
   }
 
   function saveAsDraft() {
-    if (!hasDraftContent(draft)) {
+    if (!hasDraftContent(draft, details)) {
       toast.error("Add a title or a few details before saving a draft.");
       return;
     }
@@ -196,6 +202,7 @@ export function useTaskEditorController({
       data.currentProfile.id,
       draft,
       draftId.current ?? undefined,
+      details,
     );
     draftId.current = saved.id;
     toast.success(draftSavedStatus("manual"));
@@ -299,7 +306,7 @@ export function useTaskEditorController({
           createAnother,
           setCreateAnother,
           details,
-          setDetails,
+          setDetails: setTaskDetails,
           onSaveDraft: saveAsDraft,
         } as const),
     editing,

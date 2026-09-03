@@ -1,8 +1,10 @@
 import type { TaskDraft } from "./task-mutations";
+import type { NewTaskDetailsDraft } from "./task-types";
 
 export type StoredTaskDraft = {
   id: string;
   draft: TaskDraft;
+  details?: NewTaskDetailsDraft;
   updatedAt: string;
 };
 
@@ -21,6 +23,34 @@ export function draftSavedStatus(kind: "auto" | "manual", date = new Date()) {
 
 function storageKey(profileId: string) {
   return `${storagePrefix}${profileId}`;
+}
+
+function storedTaskDetails(value: unknown): NewTaskDetailsDraft {
+  if (!value || typeof value !== "object")
+    return { checklist: [], files: [], urls: [], comment: "" };
+
+  const details = value as Partial<NewTaskDetailsDraft>;
+  return {
+    checklist: Array.isArray(details.checklist)
+      ? details.checklist.filter(
+          (item): item is { id: string; title: string } =>
+            Boolean(item) &&
+            typeof item.id === "string" &&
+            typeof item.title === "string",
+        )
+      : [],
+    // Browser File objects cannot be represented safely in local storage.
+    files: [],
+    urls: Array.isArray(details.urls)
+      ? details.urls.filter(
+          (item): item is { id: string; url: string } =>
+            Boolean(item) &&
+            typeof item.id === "string" &&
+            typeof item.url === "string",
+        )
+      : [],
+    comment: typeof details.comment === "string" ? details.comment : "",
+  };
 }
 
 export function readTaskDrafts(profileId: string): StoredTaskDraft[] {
@@ -45,6 +75,7 @@ export function readTaskDrafts(profileId: string): StoredTaskDraft[] {
         const { assignee_id: legacyAssigneeId, ...draft } = legacyDraft;
         return {
           ...item,
+          details: storedTaskDetails(item.details),
           draft: {
             ...draft,
             assignee_ids:
@@ -65,8 +96,14 @@ export function saveTaskDraft(
   profileId: string,
   draft: TaskDraft,
   id = crypto.randomUUID(),
+  details?: NewTaskDetailsDraft,
 ) {
-  const saved = { id, draft, updatedAt: new Date().toISOString() };
+  const saved: StoredTaskDraft = {
+    id,
+    draft,
+    details: storedTaskDetails(details),
+    updatedAt: new Date().toISOString(),
+  };
   const drafts = readTaskDrafts(profileId).filter((item) => item.id !== id);
   localStorage.setItem(
     storageKey(profileId),
@@ -82,24 +119,41 @@ export function deleteTaskDraft(profileId: string, id: string) {
   window.dispatchEvent(new CustomEvent(taskDraftsChangedEvent));
 }
 
-export function hasDraftContent(draft: TaskDraft) {
+function hasTaskDetailsContent(details?: NewTaskDetailsDraft) {
+  return Boolean(
+    details?.checklist.length ||
+    details?.files.length ||
+    details?.urls.length ||
+    details?.comment.trim(),
+  );
+}
+
+export function hasDraftContent(
+  draft: TaskDraft,
+  details?: NewTaskDetailsDraft,
+) {
   return Boolean(
     draft.title.trim() ||
     draft.description?.trim() ||
     draft.project_id ||
     draft.assignee_ids.length ||
     draft.due_date ||
-    draft.category_ids.length,
+    draft.category_ids.length ||
+    hasTaskDetailsContent(details),
   );
 }
 
-export function hasDraftAutosaveContent(draft: TaskDraft) {
+export function hasDraftAutosaveContent(
+  draft: TaskDraft,
+  details?: NewTaskDetailsDraft,
+) {
   return Boolean(
     draft.title.trim() ||
     draft.description?.trim() ||
     draft.start_date ||
     draft.due_date ||
     draft.due_time ||
-    draft.reminder_at,
+    draft.reminder_at ||
+    hasTaskDetailsContent(details),
   );
 }
