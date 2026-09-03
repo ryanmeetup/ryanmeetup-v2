@@ -213,8 +213,8 @@ const Tooltip = ({
     <span
       ref={triggerRef}
       className={`relative inline-flex ${triggerClassName ?? ""}`}
-      onFocus={() => {
-        if (!disabled) setOpen(true);
+      onFocus={(event) => {
+        if (!disabled && event.target.matches(":focus-visible")) setOpen(true);
       }}
       onBlur={handleBlur}
       onClick={closeTooltip}
@@ -228,7 +228,10 @@ const Tooltip = ({
     >
       {cloneElement(children, {
         "aria-describedby":
-          [children.props["aria-describedby"], open && !disabled ? id : undefined]
+          [
+            children.props["aria-describedby"],
+            open && !disabled ? id : undefined,
+          ]
             .filter(Boolean)
             .join(" ") || undefined,
       })}

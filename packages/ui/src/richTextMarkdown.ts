@@ -100,7 +100,10 @@ function renderList(
 }
 
 const markdownToHtml = (markdown: unknown) => {
-  const lines = normalizeRichTextValue(markdown).split("\n");
+  const normalizedMarkdown = normalizeRichTextValue(markdown);
+  if (!normalizedMarkdown) return "<p></p>";
+
+  const lines = normalizedMarkdown.split("\n");
   const blocks: string[] = [];
   let index = 0;
   while (index < lines.length) {

@@ -6,6 +6,10 @@ import {
 } from "../src/richTextMarkdown";
 
 describe("rich text Markdown", () => {
+  it("renders an empty value as a truly empty editor paragraph", () => {
+    expect(markdownToHtml("")).toBe("<p></p>");
+  });
+
   it("parses ATX headings at every supported level", () => {
     expect(parseHeadingLine("# Test heading")).toEqual({
       level: 1,
