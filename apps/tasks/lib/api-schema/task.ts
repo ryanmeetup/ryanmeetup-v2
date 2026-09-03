@@ -29,7 +29,6 @@ type TaskInput = Pick<
   | "description"
   | "status_id"
   | "project_id"
-  | "assignee_id"
   | "reported_by"
   | "start_date"
   | "due_date"
@@ -44,6 +43,7 @@ export function taskSaveSchema(value: unknown) {
   const body = objectWithKeys(value, [
     "id",
     "task",
+    "assigneeIds",
     "categoryIds",
     "statusReason",
   ]);
@@ -53,6 +53,7 @@ export function taskSaveSchema(value: unknown) {
   const statusId = parseUuid(task.status_id);
   const reportedBy = parseUuid(task.reported_by);
   const categoryIds = uuidList(body.categoryIds);
+  const assigneeIds = uuidList(body.assigneeIds);
   const categoryTags = task.category_tags ?? {};
   const id = body.id === undefined ? null : parseUuid(body.id);
   const schedule = normalizeTaskSchedule(task);
@@ -65,6 +66,7 @@ export function taskSaveSchema(value: unknown) {
     (body.id !== undefined && !id) ||
     !priorities.includes(task.priority as Priority) ||
     !categoryIds?.length ||
+    !assigneeIds ||
     !schedule ||
     !categoryTags ||
     typeof categoryTags !== "object" ||
@@ -82,6 +84,7 @@ export function taskSaveSchema(value: unknown) {
       ...schedule,
     },
     categoryIds,
+    assigneeIds,
     statusReason: statusReason || null,
   };
 }

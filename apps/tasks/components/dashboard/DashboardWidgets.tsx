@@ -58,9 +58,13 @@ export function DashboardTaskList({
   return (
     <ul className="divide-y divide-black/10 dark:divide-white/10">
       {tasks.map((task) => {
-        const assignee = task.assignee_id
-          ? profiles.get(task.assignee_id)
-          : undefined;
+        const assignees = data.taskAssignees
+          .filter((row) => row.task_id === task.id)
+          .flatMap((row) => {
+            const profile = profiles.get(row.profile_id);
+            return profile ? [profile] : [];
+          });
+        const assignee = assignees[0];
         return (
           <li key={task.id}>
             <Link
@@ -82,7 +86,9 @@ export function DashboardTaskList({
                       src={assignee?.avatar_url}
                       size="sm"
                     />
-                    {assignee ? profileDisplayName(assignee) : "Unassigned"}
+                    {assignee
+                      ? `${profileDisplayName(assignee)}${assignees.length > 1 ? ` +${assignees.length - 1}` : ""}`
+                      : "Unassigned"}
                   </span>
                 </span>
               </span>

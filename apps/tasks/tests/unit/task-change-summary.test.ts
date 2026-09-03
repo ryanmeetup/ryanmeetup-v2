@@ -14,7 +14,7 @@ const snapshot = (
     description: "Call around",
     status_id: "todo",
     project_id: null,
-    assignee_id: null,
+    assignee_ids: [],
     reported_by: "ryan",
     start_date: null,
     due_date: null,
@@ -36,13 +36,13 @@ describe("task change summary", () => {
       snapshot(),
       snapshot({
         status_id: "doing",
-        assignee_id: "sam",
+        assignee_ids: ["sam", "alex"],
         due_date: "2026-09-01",
       }),
     );
     expect(changes).toEqual([
       { field: "status", from: "todo", to: "doing" },
-      { field: "assignee", from: null, to: "sam" },
+      { field: "assignee", added: ["alex", "sam"], removed: [] },
       { field: "due_date", from: null, to: "2026-09-01" },
     ]);
   });

@@ -234,22 +234,16 @@ export function TaskFields({
             ]}
           />
         )}
-        <DropdownSelect
-          variant="field"
-          label="Assignee"
-          proximityValue={options.currentProfileId}
-          value={draft.assignee_id ?? ""}
-          onChange={(assignee_id) =>
-            patch({ assignee_id: assignee_id || null })
-          }
-          options={[
-            { label: "Unassigned", value: "" },
-            ...options.profiles.map((item) => ({
+        <MultiSelect
+          label="Assignees"
+          placeholder="Unassigned"
+          value={draft.assignee_ids}
+          onChange={(assignee_ids) => patch({ assignee_ids })}
+          options={options.profiles.map((item) => ({
               avatar: { name: profileDisplayName(item), src: item.avatar_url },
               label: profileDisplayName(item),
               value: item.id,
-            })),
-          ]}
+            }))}
         />
         {density === "full" && (
           <DropdownSelect

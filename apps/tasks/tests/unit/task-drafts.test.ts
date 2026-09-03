@@ -7,7 +7,7 @@ const contextualDraft: TaskDraft = {
   description: "",
   status_id: "todo",
   project_id: "tasks-site",
-  assignee_id: null,
+  assignee_ids: [],
   reported_by: "ryan",
   start_date: null,
   due_date: null,

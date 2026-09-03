@@ -8,7 +8,7 @@ export function emptyTaskDraft(statusId: string, author: Profile): TaskDraft {
     description: "",
     status_id: statusId,
     project_id: null,
-    assignee_id: author.assign_new_tasks_to_self ? author.id : null,
+    assignee_ids: author.assign_new_tasks_to_self ? [author.id] : [],
     reported_by: author.id,
     start_date: null,
     due_date: null,
@@ -41,6 +41,7 @@ export function newWorkspaceTaskDraft(data: WorkspaceData) {
 export function taskDraftFromTask(
   task: Task,
   categoryIds: Iterable<string>,
+  assigneeIds: Iterable<string>,
 ): TaskDraft {
   return {
     title: task.title,
@@ -49,7 +50,7 @@ export function taskDraftFromTask(
     project_id: task.project_id,
     category_ids: [...categoryIds],
     category_tags: task.category_tags ?? {},
-    assignee_id: task.assignee_id,
+    assignee_ids: [...assigneeIds],
     reported_by: task.reported_by,
     start_date: task.start_date,
     due_date: task.due_date,
@@ -65,6 +66,7 @@ export function taskDraftFromTask(
 export function editTaskDraft(
   task: Task,
   categoryIds: Iterable<string>,
+  assigneeIds: Iterable<string>,
 ): TaskDraft {
-  return taskDraftFromTask(task, categoryIds);
+  return taskDraftFromTask(task, categoryIds, assigneeIds);
 }

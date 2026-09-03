@@ -35,6 +35,7 @@ import {
 import { recordTaskChangeActivity } from "@/lib/server/privileged-api";
 import {
   parseTaskListQuery,
+  resolveAssigneeTaskFilters,
   TASK_EXACT_FILTERS,
 } from "@/lib/server/tasks/list-query";
 
@@ -49,6 +50,10 @@ export async function GET(request: Request): Promise<NextResponse> {
     boundary,
     includedCategoryIds,
     excludedCategoryIds,
+    includedAssigneeIds,
+    excludedAssigneeIds,
+    includeUnassigned,
+    excludeUnassigned,
     paginated,
     requestedPage,
     pageSize,
@@ -85,7 +90,7 @@ export async function GET(request: Request): Promise<NextResponse> {
       }
     }
   }
-  const [includedRows, excludedRows] = await Promise.all([
+  const [includedRows, excludedRows, assignmentRows] = await Promise.all([
     includedCategoryIds.length
       ? supabase
           .from("task_categories")
@@ -98,13 +103,19 @@ export async function GET(request: Request): Promise<NextResponse> {
           .select("task_id")
           .in("category_id", excludedCategoryIds)
       : Promise.resolve({ data: [], error: null }),
+    includedAssigneeIds.length ||
+    excludedAssigneeIds.length ||
+    includeUnassigned ||
+    excludeUnassigned
+      ? supabase.from("task_assignees").select(TASK_ASSIGNEE_COLUMNS)
+      : Promise.resolve({ data: [], error: null }),
   ]);
-  if (includedRows.error || excludedRows.error)
+  if (includedRows.error || excludedRows.error || assignmentRows.error)
     return databaseFailure(
       request,
-      "tasks.category-filters",
-      includedRows.error ?? excludedRows.error!,
-      { error: "Category filters could not be applied. Try again." },
+      "tasks.relation-filters",
+      includedRows.error ?? excludedRows.error ?? assignmentRows.error!,
+      { error: "Task filters could not be applied. Try again." },
     );
   const includedTaskIds = [
     ...new Set((includedRows.data ?? []).map((row) => row.task_id)),
@@ -112,6 +123,16 @@ export async function GET(request: Request): Promise<NextResponse> {
   const excludedTaskIds = [
     ...new Set((excludedRows.data ?? []).map((row) => row.task_id)),
   ];
+  const {
+    assignedTaskIds,
+    includedAssigneeTaskIds,
+    excludedAssigneeTaskIds,
+    assignedWithoutIncludedAssignee,
+  } = resolveAssigneeTaskFilters(
+    assignmentRows.data ?? [],
+    includedAssigneeIds,
+    excludedAssigneeIds,
+  );
   const tagResults = await Promise.all(
     [...includedTags, ...excludedTags].map(({ categoryId, tag }) =>
       supabase
@@ -172,6 +193,34 @@ export async function GET(request: Request): Promise<NextResponse> {
   }
   if (previewInaccessibleTaskIds.length)
     query = query.not("id", "in", `(${previewInaccessibleTaskIds.join(",")})`);
+  if (includeUnassigned) {
+    if (assignedWithoutIncludedAssignee.length)
+      query = query.not(
+        "id",
+        "in",
+        `(${assignedWithoutIncludedAssignee.join(",")})`,
+      );
+  } else if (includedAssigneeIds.length) {
+    query = query.in(
+      "id",
+      includedAssigneeTaskIds.length
+        ? includedAssigneeTaskIds
+        : ["00000000-0000-0000-0000-000000000000"],
+    );
+  }
+  if (excludeUnassigned)
+    query = query.in(
+      "id",
+      assignedTaskIds.length
+        ? assignedTaskIds
+        : ["00000000-0000-0000-0000-000000000000"],
+    );
+  if (excludedAssigneeTaskIds.length)
+    query = query.not(
+      "id",
+      "in",
+      `(${excludedAssigneeTaskIds.join(",")})`,
+    );
 
   for (const [includeParam, excludeParam, column] of TASK_EXACT_FILTERS) {
     const included = (params.get(includeParam) ?? "")
@@ -278,6 +327,34 @@ export async function GET(request: Request): Promise<NextResponse> {
         "in",
         `(${previewInaccessibleTaskIds.join(",")})`,
       );
+    if (includeUnassigned) {
+      if (assignedWithoutIncludedAssignee.length)
+        corrected = corrected.not(
+          "id",
+          "in",
+          `(${assignedWithoutIncludedAssignee.join(",")})`,
+        );
+    } else if (includedAssigneeIds.length) {
+      corrected = corrected.in(
+        "id",
+        includedAssigneeTaskIds.length
+          ? includedAssigneeTaskIds
+          : ["00000000-0000-0000-0000-000000000000"],
+      );
+    }
+    if (excludeUnassigned)
+      corrected = corrected.in(
+        "id",
+        assignedTaskIds.length
+          ? assignedTaskIds
+          : ["00000000-0000-0000-0000-000000000000"],
+      );
+    if (excludedAssigneeTaskIds.length)
+      corrected = corrected.not(
+        "id",
+        "in",
+        `(${excludedAssigneeTaskIds.join(",")})`,
+      );
     for (const [includeParam, excludeParam, column] of TASK_EXACT_FILTERS) {
       const included = (params.get(includeParam) ?? "")
         .split(",")
@@ -377,6 +454,11 @@ export async function GET(request: Request): Promise<NextResponse> {
           .in("task_id", taskIds),
       ])
     : [{ data: [] }, { data: [] }, { data: [] }];
+  const relationError = categories.error ?? assignees.error ?? labels.error;
+  if (relationError)
+    return databaseFailure(request, "tasks.list-relations", relationError, {
+      error: "Task details could not be loaded. Try again.",
+    });
   return NextResponse.json({
     tasks,
     taskCategories: categories.data ?? [],
@@ -418,7 +500,11 @@ export async function POST(request: Request): Promise<NextResponse> {
       taskUpdateChanges(
         summarizeTaskChanges(
           previous,
-          savedTaskSnapshot(data.task, parsed.data.categoryIds),
+          savedTaskSnapshot(
+            data.task,
+            parsed.data.categoryIds,
+            parsed.data.assigneeIds,
+          ),
         ),
       ),
     );

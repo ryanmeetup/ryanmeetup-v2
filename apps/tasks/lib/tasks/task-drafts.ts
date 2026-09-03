@@ -38,14 +38,23 @@ export function readTaskDrafts(profileId: string): StoredTaskDraft[] {
           typeof item.updatedAt === "string" &&
           typeof item.draft === "object",
       )
-      .map((item) => ({
-        ...item,
-        draft: {
-          ...item.draft,
-          category_tags: item.draft.category_tags ?? {},
-          status_reason: item.draft.status_reason ?? "",
-        },
-      }))
+      .map((item) => {
+        const legacyDraft = item.draft as TaskDraft & {
+          assignee_id?: unknown;
+        };
+        const { assignee_id: legacyAssigneeId, ...draft } = legacyDraft;
+        return {
+          ...item,
+          draft: {
+            ...draft,
+            assignee_ids:
+              draft.assignee_ids ??
+              (typeof legacyAssigneeId === "string" ? [legacyAssigneeId] : []),
+            category_tags: draft.category_tags ?? {},
+            status_reason: draft.status_reason ?? "",
+          },
+        };
+      })
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   } catch {
     return [];
@@ -78,7 +87,7 @@ export function hasDraftContent(draft: TaskDraft) {
     draft.title.trim() ||
     draft.description?.trim() ||
     draft.project_id ||
-    draft.assignee_id ||
+    draft.assignee_ids.length ||
     draft.due_date ||
     draft.category_ids.length,
   );

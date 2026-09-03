@@ -1,18 +1,44 @@
 import { parsePagination } from "../../pagination";
 import { isUuid } from "@/lib/api-schema/shared";
 import { parseCategoryTagFilterValue } from "@/lib/tasks/task-filter-values";
+import type { TaskAssignee } from "@/lib/tasks/task-types";
 
 const dateValue = (date: Date) => date.toISOString().slice(0, 10);
 
 export const TASK_EXACT_FILTERS = [
   ["status", "excludeStatuses", "status_id"],
   ["project", "excludeProjects", "project_id"],
-  ["assignee", "excludeAssignees", "assignee_id"],
   ["reporter", "excludeReporters", "reported_by"],
   ["priority", "excludePriorities", "priority"],
 ] as const;
 
+export function resolveAssigneeTaskFilters(
+  rows: TaskAssignee[],
+  includedAssigneeIds: string[],
+  excludedAssigneeIds: string[],
+) {
+  const assignedTaskIds = [...new Set(rows.map((row) => row.task_id))];
+  const taskIdsFor = (profileIds: string[]) => [
+    ...new Set(
+      rows
+        .filter((row) => profileIds.includes(row.profile_id))
+        .map((row) => row.task_id),
+    ),
+  ];
+  const includedAssigneeTaskIds = taskIdsFor(includedAssigneeIds);
+  return {
+    assignedTaskIds,
+    includedAssigneeTaskIds,
+    excludedAssigneeTaskIds: taskIdsFor(excludedAssigneeIds),
+    assignedWithoutIncludedAssignee: assignedTaskIds.filter(
+      (taskId) => !includedAssigneeTaskIds.includes(taskId),
+    ),
+  };
+}
+
 export function parseTaskListQuery(params: URLSearchParams, now = new Date()) {
+  const parseAssigneeIds = (name: string) =>
+    (params.get(name) ?? "").split(",").filter(isUuid);
   const parseCategoryIds = (name: string) =>
     (params.get(name) ?? "").split(",").filter(isUuid);
   const includedCategoryIds = parseCategoryIds("categories");
@@ -38,6 +64,14 @@ export function parseTaskListQuery(params: URLSearchParams, now = new Date()) {
     boundary: now.toISOString(),
     includedCategoryIds,
     excludedCategoryIds: parseCategoryIds("excludeCategories"),
+    includedAssigneeIds: parseAssigneeIds("assignee"),
+    excludedAssigneeIds: parseAssigneeIds("excludeAssignees"),
+    includeUnassigned: (params.get("assignee") ?? "")
+      .split(",")
+      .includes("unassigned"),
+    excludeUnassigned: (params.get("excludeAssignees") ?? "")
+      .split(",")
+      .includes("unassigned"),
     paginated: params.get("paginated") === "1",
     requestedPage,
     pageSize,

@@ -100,6 +100,7 @@ function WorkspaceChrome({
             categories={data.categories}
             statuses={data.statuses}
             profiles={data.profiles}
+            taskAssignees={data.taskAssignees}
           />
           <TaskHeaderActions
             profile={data.currentProfile}

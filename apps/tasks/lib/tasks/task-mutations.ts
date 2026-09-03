@@ -24,7 +24,6 @@ export type TaskDraft = Pick<
   | "description"
   | "status_id"
   | "project_id"
-  | "assignee_id"
   | "reported_by"
   | "start_date"
   | "due_date"
@@ -32,6 +31,7 @@ export type TaskDraft = Pick<
   | "reminder_at"
   | "priority"
 > & {
+  assignee_ids: string[];
   category_ids: string[];
   category_tags: Record<string, string[]>;
   /**
@@ -103,6 +103,7 @@ export function createTaskMutationService(context: MutationContext) {
     async save(draft: TaskDraft, editing: Task | null): Promise<SavedTask> {
       const snapshot = context.getData();
       const {
+        assignee_ids: assigneeIds,
         category_ids: categoryIds,
         status_reason: rawReason,
         ...rawTaskDraft
@@ -152,6 +153,9 @@ export function createTaskMutationService(context: MutationContext) {
           ? summarizeTaskChanges(
               taskChangeSnapshot({
                 ...editing,
+                assignee_ids: snapshot.taskAssignees
+                  .filter((item) => item.task_id === editing.id)
+                  .map((item) => item.profile_id),
                 category_ids: snapshot.taskCategories
                   .filter((item) => item.task_id === editing.id)
                   .map((item) => item.category_id),
@@ -159,6 +163,7 @@ export function createTaskMutationService(context: MutationContext) {
               }),
               taskChangeSnapshot({
                 ...task,
+                assignee_ids: assigneeIds,
                 category_ids: categoryIds,
                 category_tags: task.category_tags ?? {},
               }),
@@ -204,9 +209,10 @@ export function createTaskMutationService(context: MutationContext) {
           comment: statusReason
             ? reasonComment(task.id, statusReason, snapshot.currentProfile.id)
             : null,
-          assignees: task.assignee_id
-            ? [{ task_id: task.id, profile_id: task.assignee_id }]
-            : [],
+          assignees: assigneeIds.map((profile_id) => ({
+            task_id: task.id,
+            profile_id,
+          })),
           categories: categoryIds.map((category_id) => ({
             task_id: task.id,
             category_id,
@@ -218,6 +224,7 @@ export function createTaskMutationService(context: MutationContext) {
         body: JSON.stringify({
           id: editing?.id,
           task: taskDraft,
+          assigneeIds,
           categoryIds,
           statusReason,
         }),
@@ -226,12 +233,13 @@ export function createTaskMutationService(context: MutationContext) {
         task: result.task,
         activity: result.activity,
         comment: result.comment,
-        // The submitted assignee is the authoritative post-transaction value.
+        // The submitted assignees are the authoritative post-transaction set.
         // The RPC relation payload can briefly be empty, which otherwise makes
         // the board render the saved task as unassigned until a full refresh.
-        assignees: taskDraft.assignee_id
-          ? [{ task_id: result.task.id, profile_id: taskDraft.assignee_id }]
-          : [],
+        assignees: assigneeIds.map((profile_id) => ({
+          task_id: result.task.id,
+          profile_id,
+        })),
         // The submitted IDs are the authoritative post-transaction category
         // set. Keeping them here avoids a stale or incomplete RPC relation
         // payload temporarily removing a task from a category-filtered board.

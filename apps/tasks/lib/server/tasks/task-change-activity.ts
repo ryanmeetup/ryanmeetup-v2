@@ -19,24 +19,35 @@ export async function loadTaskChangeSnapshot(
   supabase: SupabaseClient,
   taskId: string,
 ): Promise<TaskChangeSnapshot | null> {
-  const [task, categories] = await Promise.all([
+  const [task, assignees, categories] = await Promise.all([
     supabase.from("tasks").select(TASK_COLUMNS).eq("id", taskId).maybeSingle(),
+    supabase
+      .from("task_assignees")
+      .select("profile_id")
+      .eq("task_id", taskId),
     supabase
       .from("task_categories")
       .select("category_id")
       .eq("task_id", taskId),
   ]);
-  if (task.error || categories.error || !task.data) return null;
+  if (task.error || assignees.error || categories.error || !task.data)
+    return null;
   return savedTaskSnapshot(
     task.data as unknown as Task,
     (categories.data ?? []).map((row) => row.category_id as string),
+    (assignees.data ?? []).map((row) => row.profile_id as string),
   );
 }
 
-export function savedTaskSnapshot(task: Task, categoryIds: string[]) {
+export function savedTaskSnapshot(
+  task: Task,
+  categoryIds: string[],
+  assigneeIds: string[],
+) {
   return taskChangeSnapshot({
     ...task,
     category_ids: categoryIds,
+    assignee_ids: assigneeIds,
     category_tags: task.category_tags ?? {},
   });
 }

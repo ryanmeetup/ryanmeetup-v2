@@ -11,7 +11,7 @@ import {
   FiTag,
   FiUsers,
 } from "react-icons/fi";
-import type { Task } from "@/lib/tasks/task-types";
+import type { Task, TaskAssignee } from "@/lib/tasks/task-types";
 import type { Profile } from "@/lib/workspace/workspace-types";
 import type {
   TaskSearchGroup,
@@ -34,6 +34,7 @@ type Props = {
   projectNames: ReadonlyMap<string, string>;
   statusNames: ReadonlyMap<string, string>;
   profilesById: ReadonlyMap<string, Profile>;
+  taskAssignees: TaskAssignee[];
   remoteTotalCount: number | null;
   allResultsHref: string;
   filterHref: (name: string, value: string) => string;
@@ -71,7 +72,7 @@ function TaskResultItem({
   onSelect,
   projectName,
   statusName,
-  assignee,
+  assignees,
 }: {
   task: Task;
   id: string;
@@ -80,7 +81,7 @@ function TaskResultItem({
   onSelect: () => void;
   projectName?: string;
   statusName?: string;
-  assignee?: Profile;
+  assignees: Profile[];
 }) {
   return (
     <button
@@ -114,14 +115,17 @@ function TaskResultItem({
             <FiFlag aria-hidden />
             <TaskPriorityBadge priority={task.priority} size="compact" />
           </span>
-          {assignee && (
+          {assignees.length > 0 && (
             <span className="inline-flex min-w-0 items-center gap-1.5">
               <Avatar
-                name={profileDisplayName(assignee)}
-                src={assignee.avatar_url}
+                name={profileDisplayName(assignees[0])}
+                src={assignees[0].avatar_url}
                 size="sm"
               />
-              <span className="truncate">{profileDisplayName(assignee)}</span>
+              <span className="truncate">
+                {profileDisplayName(assignees[0])}
+                {assignees.length > 1 ? ` +${assignees.length - 1}` : ""}
+              </span>
             </span>
           )}
           {task.due_date && (
@@ -155,6 +159,7 @@ export function TaskSearchResults(props: Props) {
     projectNames,
     statusNames,
     profilesById,
+    taskAssignees,
     remoteTotalCount,
     allResultsHref,
     filterHref,
@@ -225,11 +230,12 @@ export function TaskSearchResults(props: Props) {
                         : undefined
                     }
                     statusName={statusNames.get(task.status_id)}
-                    assignee={
-                      task.assignee_id
-                        ? profilesById.get(task.assignee_id)
-                        : undefined
-                    }
+                    assignees={taskAssignees
+                      .filter((row) => row.task_id === task.id)
+                      .flatMap((row) => {
+                        const profile = profilesById.get(row.profile_id);
+                        return profile ? [profile] : [];
+                      })}
                   />
                 ))}
               </section>

@@ -3,6 +3,7 @@ import { authorize } from "@/lib/server/auth";
 import { databaseFailure } from "@/lib/server/api-response";
 import { WORKSPACE_COLUMNS } from "@/lib/server/workspace-loader";
 import { parseTaskKey } from "@/lib/tasks/task-key";
+import { TASK_ASSIGNEE_COLUMNS } from "@/lib/workspace/database-shapes";
 
 const SEARCH_LIMIT = 25;
 const MIN_QUERY_LENGTH = 3;
@@ -59,8 +60,24 @@ export async function GET(request: Request) {
       error: "Tasks could not be searched. Try again.",
     });
 
+  const tasks = result.data ?? [];
+  const assignees = tasks.length
+    ? await authorization.supabase
+        .from("task_assignees")
+        .select(TASK_ASSIGNEE_COLUMNS)
+        .in(
+          "task_id",
+          tasks.map((task) => task.id),
+        )
+    : { data: [], error: null };
+  if (assignees.error)
+    return databaseFailure(request, "tasks.search-assignees", assignees.error, {
+      error: "Task assignees could not be loaded. Try again.",
+    });
+
   return NextResponse.json({
-    tasks: result.data ?? [],
+    tasks,
+    taskAssignees: assignees.data ?? [],
     totalCount: result.count ?? 0,
   });
 }

@@ -19,3 +19,8 @@ export function parseTaskKey(value: string) {
 export function taskPath(task: { task_number: number }) {
   return `/task/${taskKey(task)}`;
 }
+
+/** The dedicated mobile edit route. See `docs/MOBILE_EDITOR_SURFACES.md`. */
+export function taskEditPath(task: { task_number: number }) {
+  return `${taskPath(task)}/edit`;
+}

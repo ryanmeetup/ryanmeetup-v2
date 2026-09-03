@@ -34,16 +34,7 @@ import { taskKey, taskPath } from "@/lib/tasks/task-key";
 import { taskEditorView } from "@/lib/tasks/task-editor-view";
 import { taskDraftValidationMessage } from "@/lib/tasks/task-draft-validation";
 
-export function NewTaskModal({
-  data,
-  demoMode,
-  open,
-  setData,
-  setOpen,
-  initialDraft,
-  duplicateOf,
-  onCreated,
-}: {
+type NewTaskModalProps = {
   data: WorkspaceData;
   demoMode: boolean;
   open: boolean;
@@ -53,7 +44,27 @@ export function NewTaskModal({
   /** Seeds the form from an existing task; mount this modal fresh to apply it. */
   duplicateOf?: { task: Task; draft: TaskDraft } | null;
   onCreated?: (task: Task) => void | Promise<void>;
-}) {
+} & ({ presentation?: "modal" } | { presentation: "page"; backHref: string });
+
+export function NewTaskModal(props: NewTaskModalProps) {
+  const {
+    data,
+    demoMode,
+    open,
+    setData,
+    setOpen,
+    initialDraft,
+    duplicateOf,
+    onCreated,
+  } = props;
+  /**
+   * `/task/new` renders the same flow as a page. Everything below is shared;
+   * only the surface `TaskEditor` renders into changes.
+   */
+  const surface =
+    props.presentation === "page"
+      ? ({ presentation: "page", backHref: props.backHref } as const)
+      : ({} as const);
   const [draft, setDraft] = useState(
     () =>
       duplicateOf?.draft ?? initialDraft?.draft ?? newWorkspaceTaskDraft(data),
@@ -187,7 +198,7 @@ export function NewTaskModal({
           status_id: draft.status_id,
           priority: draft.priority,
           project_id: draft.project_id,
-          assignee_id: draft.assignee_id,
+          assignee_ids: [...draft.assignee_ids],
           category_ids: [...draft.category_ids],
         });
       } else {
@@ -209,6 +220,7 @@ export function NewTaskModal({
 
   return (
     <TaskEditor
+      {...surface}
       modal={{ open, setOpen: setModalOpen, detailsOpen, setDetailsOpen }}
       form={{
         draft,

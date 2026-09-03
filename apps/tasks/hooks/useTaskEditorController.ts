@@ -6,6 +6,7 @@ import type { Task } from "@/lib/tasks/task-types";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import type {
   createTaskMutationService,
+  SavedTask,
   TaskDraft,
 } from "@/lib/tasks/task-mutations";
 import {
@@ -38,6 +39,7 @@ export function useTaskEditorController({
   setData,
   demoMode,
   mutations,
+  assigneesByTask,
   categoriesByTask,
   defaults,
   afterSave,
@@ -48,15 +50,19 @@ export function useTaskEditorController({
   setData: React.Dispatch<React.SetStateAction<WorkspaceData>>;
   demoMode: boolean;
   mutations: MutationService;
+  assigneesByTask: Map<string, Set<string>>;
   categoriesByTask: Map<string, Set<string>>;
   defaults: {
     statusId: string;
     categoryIds: string[];
     projectId: string | null;
-    assigneeId: string | null;
+    assigneeIds: string[];
     priority: TaskDraft["priority"];
   };
-  afterSave: () => void | Promise<void>;
+  afterSave: (
+    saved: SavedTask,
+    outcome: { editing: boolean; createAnother: boolean },
+  ) => void | Promise<void>;
 }) {
   const [open, setOpen] = useState(Boolean(initialEditing));
   const [detailsOpen, setDetailsOpen] = useState(
@@ -71,6 +77,9 @@ export function useTaskEditorController({
           initialData.taskCategories
             .filter((row) => row.task_id === initialEditing.id)
             .map((row) => row.category_id),
+          initialData.taskAssignees
+            .filter((row) => row.task_id === initialEditing.id)
+            .map((row) => row.profile_id),
         )
       : emptyTaskDraft(defaults.statusId, initialData.currentProfile),
   );
@@ -130,7 +139,9 @@ export function useTaskEditorController({
       project_id: defaults.projectId,
       // A filtered assignee is an explicit choice; the profile preference is
       // only the fallback when the view is not narrowed to one person.
-      assignee_id: defaults.assigneeId ?? blank.assignee_id,
+      assignee_ids: defaults.assigneeIds.length
+        ? [...defaults.assigneeIds]
+        : blank.assignee_ids,
       priority: defaults.priority,
     });
     setOpen(true);
@@ -143,7 +154,13 @@ export function useTaskEditorController({
     setDetailsOpen(data.currentProfile.task_details_open_by_default);
     setCreateAnother(false);
     draftId.current = null;
-    setDraftState(editTaskDraft(task, categoriesByTask.get(task.id) ?? []));
+    setDraftState(
+      editTaskDraft(
+        task,
+        categoriesByTask.get(task.id) ?? [],
+        assigneesByTask.get(task.id) ?? [],
+      ),
+    );
     setOpen(true);
   }
 
@@ -163,6 +180,7 @@ export function useTaskEditorController({
     touched.current = false;
     setDraftState((current) => ({
       ...current,
+      assignee_ids: [...current.assignee_ids],
       category_ids: [...current.category_ids],
       category_tags: { ...current.category_tags },
     }));
@@ -218,7 +236,10 @@ export function useTaskEditorController({
         deleteTaskDraft(data.currentProfile.id, draftId.current);
         draftId.current = null;
       }
-      await afterSave();
+      await afterSave(saved, {
+        editing: Boolean(editing),
+        createAnother: !editing && createAnother,
+      });
       if (!editing && createAnother) {
         touched.current = false;
         setDuplicatedFrom(null);
@@ -227,7 +248,7 @@ export function useTaskEditorController({
           priority: draft.priority,
           category_ids: [...draft.category_ids],
           project_id: draft.project_id,
-          assignee_id: draft.assignee_id,
+          assignee_ids: [...draft.assignee_ids],
         });
         toast.successWithLink("Task created. Add the next one:", {
           href: taskPath(saved.task),

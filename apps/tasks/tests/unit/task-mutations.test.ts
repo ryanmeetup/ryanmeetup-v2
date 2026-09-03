@@ -67,7 +67,7 @@ describe("task mutations", () => {
       title: "Chapter request",
       status_id: "todo",
       project_id: null,
-      assignee_id: null,
+      assignee_ids: [],
       reported_by: "profile-1",
       description: null,
       start_date: null,
@@ -258,7 +258,6 @@ describe("task mutations", () => {
       id: "task-1",
       title: "Chapter request",
       project_id: "ryanmeetup-project",
-      assignee_id: assigneeId,
     } as Task;
     vi.mocked(mutate).mockResolvedValue({
       task,
@@ -270,7 +269,7 @@ describe("task mutations", () => {
       description: null,
       status_id: "status-1",
       project_id: task.project_id,
-      assignee_id: assigneeId,
+      assignee_ids: [assigneeId, "profile-2"],
       reported_by: "profile-reporter",
       start_date: null,
       due_date: null,
@@ -291,6 +290,7 @@ describe("task mutations", () => {
 
     expect(saved.assignees).toEqual([
       { task_id: task.id, profile_id: assigneeId },
+      { task_id: task.id, profile_id: "profile-2" },
     ]);
   });
 
@@ -311,7 +311,7 @@ describe("task mutations", () => {
       description: null,
       status_id: "status-1",
       project_id: task.project_id,
-      assignee_id: null,
+      assignee_ids: [],
       reported_by: "profile-reporter",
       start_date: null,
       due_date: null,

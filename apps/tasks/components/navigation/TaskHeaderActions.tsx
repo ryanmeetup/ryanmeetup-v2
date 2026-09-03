@@ -21,7 +21,13 @@ import {
   FiUser,
 } from "react-icons/fi";
 import type { Profile } from "@/lib/workspace/workspace-types";
-import { ThemeToggle, useTheme } from "@/components/global";
+import {
+  desktopEditorTrigger,
+  mobileEditorTrigger,
+  ThemeToggle,
+  useEditorReturnPath,
+  useTheme,
+} from "@/components/global";
 import { ADMIN_ROOT } from "@/lib/admin/admin-routes";
 import { HeaderProfileControls } from "./HeaderProfileControls";
 import { createClient } from "@/lib/supabase/client";
@@ -39,10 +45,10 @@ export function TaskHeaderActions({
   onNewTask: () => void;
 }) {
   const router = useRouter();
+  const returnPath = useEditorReturnPath();
   const { theme, setTheme } = useTheme();
   // Demo builds hide /admin entirely, so the entry points go with it.
-  const isOwner =
-    !previewing && !demoMode && profile.app_role === "owner";
+  const isOwner = !previewing && !demoMode && profile.app_role === "owner";
   const profileName = profileDisplayName(profile);
   return (
     <>
@@ -70,19 +76,13 @@ export function TaskHeaderActions({
             </DropdownMenuButton>
             <DropdownMenuItems align="end">
               <div className="flex items-center gap-3 px-3 py-2.5">
-                <Avatar
-                  name={profileName}
-                  src={profile.avatar_url}
-                  size="md"
-                />
+                <Avatar name={profileName} src={profile.avatar_url} size="md" />
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-semibold">
                     {profileName}
                   </span>
                   <span className="block text-[10px] uppercase tracking-widest text-black/45 dark:text-white/45">
-                    {profile.app_role === "owner"
-                      ? "Owner"
-                      : "Team member"}
+                    {profile.app_role === "owner" ? "Owner" : "Team member"}
                     {demoMode ? " · Demo" : ""}
                   </span>
                 </span>
@@ -171,15 +171,33 @@ export function TaskHeaderActions({
             </Button>
           </Tooltip>
         ) : (
-          <Button
-            size="sm"
-            leftIcon={<FiPlus />}
-            onClick={onNewTask}
-            aria-label="New task"
-            className="gap-0 px-3 [&>span:last-child]:hidden sm:gap-2 sm:px-4 sm:[&>span:last-child]:inline"
-          >
-            New task
-          </Button>
+          <>
+            {/*
+              One control, two surfaces. A phone follows the link to the
+              dedicated create page; from `sm` up the button opens the dialog
+              over whatever the author was looking at. Both are always rendered
+              and the breakpoint hides one, so the choice never depends on
+              JavaScript measuring the viewport.
+            */}
+            <Button.Link
+              href={`/task/new?from=${encodeURIComponent(returnPath)}`}
+              size="sm"
+              leftIcon={<FiPlus />}
+              aria-label="New task"
+              className={`gap-0 px-3 [&>span:last-child]:hidden ${mobileEditorTrigger}`}
+            >
+              New task
+            </Button.Link>
+            <Button
+              size="sm"
+              leftIcon={<FiPlus />}
+              onClick={onNewTask}
+              aria-label="New task"
+              className={`gap-2 px-4 ${desktopEditorTrigger}`}
+            >
+              New task
+            </Button>
+          </>
         )}
         <span className="hidden sm:inline-flex">
           <ThemeToggle />

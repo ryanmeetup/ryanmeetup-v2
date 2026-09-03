@@ -11,7 +11,7 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import { FiLoader, FiSearch, FiX } from "react-icons/fi";
 import type { Category, Project } from "@/lib/resources/resource-types";
-import type { Status, Task } from "@/lib/tasks/task-types";
+import type { Status, Task, TaskAssignee } from "@/lib/tasks/task-types";
 import type { Profile } from "@/lib/workspace/workspace-types";
 import {
   findRelatedTaskSearchResults,
@@ -39,12 +39,14 @@ export function TaskSearch({
   categories = [],
   statuses = [],
   profiles = [],
+  taskAssignees = [],
 }: {
   tasks: Task[];
   projects?: Project[];
   categories?: Category[];
   statuses?: Status[];
   profiles?: Profile[];
+  taskAssignees?: TaskAssignee[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -53,6 +55,9 @@ export function TaskSearch({
   const [query, setQuery] = useState("");
   const [deferredQuery, setDeferredQuery] = useState("");
   const [remoteTasks, setRemoteTasks] = useState<Task[] | null>(null);
+  const [remoteTaskAssignees, setRemoteTaskAssignees] = useState<
+    TaskAssignee[] | null
+  >(null);
   const [remoteTotalCount, setRemoteTotalCount] = useState<number | null>(null);
   const [isFetching, setIsFetching] = useState(false);
   const isTooShort = query.trim().length < TASK_SEARCH_MIN_LENGTH;
@@ -98,17 +103,20 @@ export function TaskSearch({
         if (!response.ok) throw new Error("Task search failed");
         return (await response.json()) as {
           tasks?: Task[];
+          taskAssignees?: TaskAssignee[];
           totalCount?: number;
         };
       })
       .then((result) => {
         setRemoteTasks(result.tasks ?? []);
+        setRemoteTaskAssignees(result.taskAssignees ?? []);
         setRemoteTotalCount(result.totalCount ?? 0);
       })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError")
           return;
         setRemoteTasks(null);
+        setRemoteTaskAssignees(null);
         setRemoteTotalCount(null);
       })
       .finally(() => {
@@ -149,6 +157,7 @@ export function TaskSearch({
     setQuery("");
     setDeferredQuery("");
     setRemoteTasks(null);
+    setRemoteTaskAssignees(null);
     setRemoteTotalCount(null);
     setIsFetching(false);
     if (close) reset();
@@ -246,6 +255,7 @@ export function TaskSearch({
           projectNames={projectNames}
           statusNames={statusNames}
           profilesById={profilesById}
+          taskAssignees={remoteTaskAssignees ?? taskAssignees}
           remoteTotalCount={remoteTotalCount}
           allResultsHref={taskSearchAllHref(deferredQuery, preview)}
           filterHref={(name, value) =>

@@ -127,14 +127,15 @@ export function TaskApp({
     [data.taskCategories],
   );
   const assigneesByTask = useMemo(
-    () => indexTaskAssignees(data.tasks, data.taskAssignees),
-    [data.taskAssignees, data.tasks],
+    () => indexTaskAssignees(data.taskAssignees),
+    [data.taskAssignees],
   );
   const { queryFilters, selectedProject, selectedStatus, statuses } = resolved;
   const { clock } = filters;
   const visibleTasks = useMemo(
     () =>
       deriveVisibleTasks({
+        assigneesByTask,
         categoriesByTask,
         clock,
         filters: queryFilters,
@@ -144,6 +145,7 @@ export function TaskApp({
         visibility,
       }),
     [
+      assigneesByTask,
       categoriesByTask,
       clock,
       queryFilters,
@@ -167,12 +169,15 @@ export function TaskApp({
     setData,
     demoMode,
     mutations,
+    assigneesByTask,
     categoriesByTask,
     defaults: {
       statusId: selectedStatus?.id ?? statuses[1]?.id ?? statuses[0]?.id ?? "",
       categoryIds: resolved.includedCategoryIds,
       projectId: selectedProject?.id ?? null,
-      assigneeId: resolved.selectedAssignee?.id ?? null,
+      assigneeIds: resolved.selectedAssignee
+        ? [resolved.selectedAssignee.id]
+        : [],
       priority: resolved.selectedPriority ?? "medium",
     },
     afterSave: async () => {

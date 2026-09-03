@@ -134,7 +134,7 @@ export function noteConversionDraft(
         statuses[0]?.id ??
         "",
       project_id: null,
-      assignee_id: null,
+      assignee_ids: [],
       reported_by: reporterId,
       start_date: null,
       due_date: null,

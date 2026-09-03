@@ -14,6 +14,7 @@ const save = (extra: Record<string, unknown>) =>
       reported_by: reporterId,
       priority: "medium",
     },
+    assigneeIds: [],
     categoryIds: [categoryId],
     ...extra,
   });

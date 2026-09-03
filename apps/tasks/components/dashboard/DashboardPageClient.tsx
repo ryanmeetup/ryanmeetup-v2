@@ -122,9 +122,21 @@ export function DashboardPageClient({
     () => data.tasks.filter((task) => !completedStatusIds.has(task.status_id)),
     [completedStatusIds, data.tasks],
   );
+  const assigneesByTask = useMemo(() => {
+    const result = new Map<string, Set<string>>();
+    data.taskAssignees.forEach((row) => {
+      const ids = result.get(row.task_id) ?? new Set<string>();
+      ids.add(row.profile_id);
+      result.set(row.task_id, ids);
+    });
+    return result;
+  }, [data.taskAssignees]);
   const assignedToMe = useMemo(
-    () => activeTasks.filter((task) => task.assignee_id === subjectId),
-    [activeTasks, subjectId],
+    () =>
+      activeTasks.filter((task) =>
+        assigneesByTask.get(task.id)?.has(subjectId),
+      ),
+    [activeTasks, assigneesByTask, subjectId],
   );
   const reportedByMe = useMemo(
     () => activeTasks.filter((task) => task.reported_by === subjectId),
@@ -137,10 +149,14 @@ export function DashboardPageClient({
       .filter((task) => {
         if (!task.due_date) return false;
         const due = new Date(`${task.due_date}T23:59:59`);
-        return due >= now && due <= soon && task.assignee_id === subjectId;
+        return (
+          due >= now &&
+          due <= soon &&
+          Boolean(assigneesByTask.get(task.id)?.has(subjectId))
+        );
       })
       .sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? ""));
-  }, [activeTasks, subjectId]);
+  }, [activeTasks, assigneesByTask, subjectId]);
   const relevantTaskIds = useMemo(
     () => new Set([...assignedToMe, ...reportedByMe].map((task) => task.id)),
     [reportedByMe, assignedToMe],

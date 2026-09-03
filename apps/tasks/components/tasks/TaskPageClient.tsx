@@ -31,14 +31,19 @@ import {
   FiUser,
   FiUserCheck,
 } from "react-icons/fi";
-import { useInstancePageTitle, WorkspacePageShell } from "@/components/global";
+import {
+  desktopEditorTrigger,
+  mobileEditorTrigger,
+  useInstancePageTitle,
+  WorkspacePageShell,
+} from "@/components/global";
 import { useWorkspaceData } from "@/hooks/useWorkspaceData";
 import { withAccessPreview } from "@/lib/access/access-preview";
 import {
   createTaskMutationService,
   type TaskDraft,
 } from "@/lib/tasks/task-mutations";
-import { taskKey, taskPath } from "@/lib/tasks/task-key";
+import { taskEditPath, taskKey, taskPath } from "@/lib/tasks/task-key";
 import { errorMessage } from "@/lib/presentation";
 import { formatTimestampDate } from "@/lib/date-format";
 import { taskDraftFromTask } from "@/lib/tasks/task-draft-factory";
@@ -91,7 +96,12 @@ export function TaskPageClient({
 
   const status = data.statuses.find((item) => item.id === task.status_id);
   const project = data.projects.find((item) => item.id === task.project_id);
-  const assignee = data.profiles.find((item) => item.id === task.assignee_id);
+  const assigneeIds = new Set(
+    data.taskAssignees
+      .filter((item) => item.task_id === task.id)
+      .map((item) => item.profile_id),
+  );
+  const assignees = data.profiles.filter((item) => assigneeIds.has(item.id));
   const reporter = data.profiles.find((item) => item.id === task.reported_by);
   const categoryIds = new Set(
     data.taskCategories
@@ -99,10 +109,7 @@ export function TaskPageClient({
       .map((item) => item.category_id),
   );
   const categories = data.categories.filter((item) => categoryIds.has(item.id));
-  const tags = categories.flatMap((category) =>
-    (task.category_tags?.[category.id] ?? []).map((tag) => ({ category, tag })),
-  );
-  const makeDraft = () => taskDraftFromTask(task, categoryIds);
+  const makeDraft = () => taskDraftFromTask(task, categoryIds, assigneeIds);
   const [draft, setDraft] = useState<TaskDraft>(makeDraft);
 
   useEffect(() => {
@@ -210,9 +217,27 @@ export function TaskPageClient({
               {task.title}
             </h1>
             <div className="flex shrink-0 items-center gap-2 sm:justify-self-end xl:w-full xl:self-end xl:justify-end">
-              <Button size="sm" leftIcon={<FiEdit3 />} onClick={openEditor}>
-                Edit task
-              </Button>
+              {!data.accessPreview && (
+                <>
+                  {/* Route on a phone, dialog from `sm` up — see editor-routes.ts. */}
+                  <Button.Link
+                    href={taskEditPath(task)}
+                    size="sm"
+                    leftIcon={<FiEdit3 />}
+                    className={mobileEditorTrigger}
+                  >
+                    Edit task
+                  </Button.Link>
+                  <Button
+                    size="sm"
+                    leftIcon={<FiEdit3 />}
+                    onClick={openEditor}
+                    className={desktopEditorTrigger}
+                  >
+                    Edit task
+                  </Button>
+                </>
+              )}
               <DropdownMenu>
                 <DropdownMenuButton
                   unstyled
@@ -225,13 +250,17 @@ export function TaskPageClient({
                   <DropdownMenuItem onClick={copyLink}>
                     <FiLink aria-hidden /> Copy link
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    destructive
-                    onClick={() => setTaskPendingDelete(task)}
-                  >
-                    <FiTrash2 aria-hidden /> Delete task
-                  </DropdownMenuItem>
+                  {!data.accessPreview && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        destructive
+                        onClick={() => setTaskPendingDelete(task)}
+                      >
+                        <FiTrash2 aria-hidden /> Delete task
+                      </DropdownMenuItem>
+                    </>
+                  )}
                 </DropdownMenuItems>
               </DropdownMenu>
             </div>
@@ -261,51 +290,34 @@ export function TaskPageClient({
                   <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-black/45 dark:text-white/45">
                     Categories
                   </p>
-                  <div className="flex flex-wrap gap-2">
-                    {categories.map((category) => (
-                      <span
-                        key={category.id}
-                        className="inline-flex items-center gap-2 rounded-full border px-2.5 py-1.5 text-xs font-semibold text-black/75 dark:text-white/80"
-                        style={{
-                          borderColor: `${category.color}99`,
-                          backgroundColor: `${category.color}12`,
-                        }}
-                      >
-                        <i
-                          className="h-2 w-2 rounded-full"
-                          style={{ backgroundColor: category.color }}
-                        />
-                        {category.name}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {tags.length > 0 && (
-                <div>
-                  <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-black/45 dark:text-white/45">
-                    Tags
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {tags.map(({ category, tag }) => (
-                      <span
-                        key={`${category.id}-${tag}`}
-                        title={category.name}
-                        aria-label={`${category.name} / ${tag}`}
-                        className="inline-flex items-center gap-2 rounded-full border px-2.5 py-1.5 text-xs font-medium text-black/70 dark:text-white/75"
-                        style={{
-                          borderColor: `${category.color}99`,
-                          backgroundColor: `${category.color}12`,
-                        }}
-                      >
-                        <i
-                          aria-hidden
-                          className="h-2 w-2 shrink-0 rounded-full"
-                          style={{ backgroundColor: category.color }}
-                        />
-                        {tag}
-                      </span>
-                    ))}
+                  <div className="space-y-3">
+                    {categories.map((category) => {
+                      const categoryTags =
+                        task.category_tags?.[category.id] ?? [];
+                      return (
+                        <div key={category.id} className="min-w-0">
+                          <span
+                            className="inline-flex items-center gap-2 rounded-full border px-2.5 py-1.5 text-xs font-semibold text-black/75 dark:text-white/80"
+                            style={{
+                              borderColor: `${category.color}99`,
+                              backgroundColor: `${category.color}12`,
+                            }}
+                          >
+                            <i
+                              aria-hidden="true"
+                              className="h-2 w-2 shrink-0 rounded-full"
+                              style={{ backgroundColor: category.color }}
+                            />
+                            {category.name}
+                          </span>
+                          {categoryTags.length > 0 && (
+                            <p className="mt-1.5 break-words text-xs leading-relaxed text-black/55 dark:text-white/60">
+                              {categoryTags.join(" · ")}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -400,16 +412,28 @@ export function TaskPageClient({
                 </div>
                 <div>
                   <dt className="flex items-center gap-1.5 text-black/50 dark:text-white/50">
-                    <FiUserCheck aria-hidden /> Assignee
+                    <FiUserCheck aria-hidden /> Assignees
                   </dt>
-                  <dd className="mt-1 flex min-w-0 items-center gap-2 break-words font-semibold">
-                    <Avatar
-                      name={assignee?.full_name ?? "Unassigned"}
-                      src={assignee?.avatar_url}
-                      size="sm"
-                    />
-                    {assignee?.full_name ?? "Unassigned"}
-                  </dd>
+                  {assignees.length === 0 ? (
+                    <dd className="mt-1 flex min-w-0 items-center gap-2 break-words font-semibold">
+                      <Avatar name="Unassigned" size="sm" />
+                      Unassigned
+                    </dd>
+                  ) : (
+                    assignees.map((person) => (
+                      <dd
+                        key={person.id}
+                        className="mt-1 flex min-w-0 items-center gap-2 break-words font-semibold"
+                      >
+                        <Avatar
+                          name={person.full_name}
+                          src={person.avatar_url}
+                          size="sm"
+                        />
+                        {person.full_name}
+                      </dd>
+                    ))
+                  )}
                 </div>
                 <div className="col-span-2 min-w-0">
                   <dt className="flex items-center gap-1.5 text-black/50 dark:text-white/50">

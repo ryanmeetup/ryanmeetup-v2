@@ -140,19 +140,23 @@ export async function runTaskDigest({
     return { ...empty("unconfigured", digestDate, detail), recorded: true };
   }
 
-  const [taskResult, profileResult] = await Promise.all([
+  const [taskResult, profileResult, assigneeResult] = await Promise.all([
     admin
       .from("tasks")
       .select(
-        "id,task_number,title,description,due_date,due_time,priority,updated_at,assignee_id,project:projects(name),status:statuses(name,color)",
+        "id,task_number,title,description,due_date,due_time,priority,updated_at,project:projects(name),status:statuses(name,color)",
       )
       .is("completed_at", null)
-      .is("archived_at", null)
-      .not("assignee_id", "is", null),
+      .is("archived_at", null),
     admin.from("profiles").select("id,full_name").order("full_name"),
+    admin.from("task_assignees").select("task_id,profile_id"),
   ]);
-  if (taskResult.error || profileResult.error) {
-    const detail = (taskResult.error ?? profileResult.error)!.message;
+  if (taskResult.error || profileResult.error || assigneeResult.error) {
+    const detail = (
+      taskResult.error ??
+      profileResult.error ??
+      assigneeResult.error
+    )!.message;
     await recordDigestRun({
       outcome: "failed",
       source,
@@ -177,7 +181,13 @@ export async function runTaskDigest({
   for (const profile of profileResult.data ?? []) {
     const digest = buildTaskDigest(
       (taskResult.data ?? [])
-        .filter((task) => task.assignee_id === profile.id)
+        .filter((task) =>
+          (assigneeResult.data ?? []).some(
+            (assignment) =>
+              assignment.task_id === task.id &&
+              assignment.profile_id === profile.id,
+          ),
+        )
         .map((task) => ({
           ...task,
           project: firstRelation(task.project),

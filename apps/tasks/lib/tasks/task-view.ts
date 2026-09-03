@@ -18,17 +18,25 @@ export function indexTaskCategories(rows: TaskCategory[]) {
   return result;
 }
 
-export function indexTaskAssignees(tasks: Task[], rows: TaskAssignee[] = []) {
+export function indexTaskAssignees(rows: TaskAssignee[] = []) {
   const result = new Map<string, Set<string>>();
-  tasks.forEach((task) => {
-    if (task.assignee_id) result.set(task.id, new Set([task.assignee_id]));
-  });
   rows.forEach((row) => {
     const ids = result.get(row.task_id) ?? new Set<string>();
     ids.add(row.profile_id);
     result.set(row.task_id, ids);
   });
   return result;
+}
+
+export function taskHasAssignee(
+  assigneesByTask: Map<string, Set<string>>,
+  taskId: string,
+  assigneeId: string,
+) {
+  const assigneeIds = assigneesByTask.get(taskId);
+  return assigneeId === "unassigned"
+    ? !assigneeIds?.size
+    : Boolean(assigneeIds?.has(assigneeId));
 }
 
 type TaskViewFilters = {
@@ -51,6 +59,7 @@ type TaskViewFilters = {
 };
 
 export function deriveVisibleTasks({
+  assigneesByTask,
   categoriesByTask,
   clock,
   filters,
@@ -59,6 +68,7 @@ export function deriveVisibleTasks({
   view,
   visibility,
 }: {
+  assigneesByTask: Map<string, Set<string>>;
   categoriesByTask: Map<string, Set<string>>;
   clock: number;
   filters: TaskViewFilters;
@@ -77,10 +87,10 @@ export function deriveVisibleTasks({
       (task) =>
         (filters.assignees.length === 0 ||
           filters.assignees.some((id) =>
-            id === "unassigned" ? !task.assignee_id : task.assignee_id === id,
+            taskHasAssignee(assigneesByTask, task.id, id),
           )) &&
         !filters.excludedAssignees.some((id) =>
-          id === "unassigned" ? !task.assignee_id : task.assignee_id === id,
+          taskHasAssignee(assigneesByTask, task.id, id),
         ) &&
         (filters.reporters.length === 0 ||
           filters.reporters.includes(task.reported_by ?? "")) &&

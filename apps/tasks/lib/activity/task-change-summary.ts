@@ -41,7 +41,6 @@ export type TaskChangeSnapshot = Pick<
   | "description"
   | "status_id"
   | "project_id"
-  | "assignee_id"
   | "reported_by"
   | "start_date"
   | "due_date"
@@ -49,18 +48,21 @@ export type TaskChangeSnapshot = Pick<
   | "reminder_at"
   | "priority"
 > & {
+  assignee_ids: string[];
   category_ids: string[];
   category_tags: Record<string, string[]>;
 };
 
 const scalarFields: [
   TaskChangeField,
-  keyof Omit<TaskChangeSnapshot, "category_ids" | "category_tags">,
+  keyof Omit<
+    TaskChangeSnapshot,
+    "assignee_ids" | "category_ids" | "category_tags"
+  >,
 ][] = [
   ["title", "title"],
   ["status", "status_id"],
   ["priority", "priority"],
-  ["assignee", "assignee_id"],
   ["project", "project_id"],
   ["reported_by", "reported_by"],
   ["start_date", "start_date"],
@@ -93,7 +95,7 @@ export function taskChangeSnapshot(
     description: task.description,
     status_id: task.status_id,
     project_id: task.project_id,
-    assignee_id: task.assignee_id,
+    assignee_ids: [...task.assignee_ids].sort(),
     reported_by: task.reported_by,
     start_date: task.start_date,
     due_date: task.due_date,
@@ -118,6 +120,8 @@ export function summarizeTaskChanges(
   }
   if ((before.description ?? "") !== (after.description ?? ""))
     changes.push({ field: "description" });
+  const assignees = setChange(before.assignee_ids, after.assignee_ids);
+  if (assignees) changes.push({ field: "assignee", ...assignees });
   const categories = setChange(before.category_ids, after.category_ids);
   if (categories) changes.push({ field: "categories", ...categories });
   const tags = setChange(

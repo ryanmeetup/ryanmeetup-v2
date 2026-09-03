@@ -13,6 +13,7 @@ const validBody = {
     reported_by: reporterId,
     priority: "high",
   },
+  assigneeIds: [reporterId],
   categoryIds: [categoryId, categoryId],
 };
 
@@ -81,6 +82,7 @@ describe("POST /api/tasks", () => {
           reported_by: reporterId,
         }),
         category_ids: [categoryId],
+        assignee_ids: [reporterId],
       }),
     );
   });
@@ -142,6 +144,67 @@ describe("POST /api/tasks", () => {
         message: "permission denied",
       }),
     );
+    errorLog.mockRestore();
+  });
+});
+
+describe("GET /api/tasks", () => {
+  beforeEach(() => {
+    createClient.mockReset();
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = "test-key";
+    process.env.TASKS_APP_URL = "http://localhost";
+  });
+
+  it("fails instead of replacing assignees with an empty relation", async () => {
+    const taskQuery: Record<string, unknown> = {};
+    for (const method of ["select", "or", "order"])
+      taskQuery[method] = () => taskQuery;
+    taskQuery.then = (
+      resolve: (value: unknown) => void,
+      reject: (reason: unknown) => void,
+    ) =>
+      Promise.resolve({
+        data: [{ id: "task-1" }],
+        error: null,
+        count: null,
+      }).then(resolve, reject);
+
+    const relation = (error: { message: string } | null) => ({
+      select: () => ({
+        in: async () => ({ data: error ? null : [], error }),
+      }),
+    });
+    createClient.mockResolvedValue({
+      auth: {
+        getUser: vi
+          .fn()
+          .mockResolvedValue({ data: { user: { id: "user-1" } } }),
+      },
+      from: (table: string) =>
+        table === "tasks"
+          ? taskQuery
+          : relation(
+              table === "task_assignees"
+                ? { message: "assignment read failed" }
+                : null,
+            ),
+    });
+    const errorLog = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    const { GET } = await import("@/app/api/tasks/route");
+    const response = await GET(
+      new Request("http://localhost/api/tasks", {
+        headers: { origin: "http://localhost" },
+      }),
+    );
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toMatchObject({
+      code: "OPERATION_FAILED",
+      error: "Task details could not be loaded. Try again.",
+    });
     errorLog.mockRestore();
   });
 });

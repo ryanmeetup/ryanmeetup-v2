@@ -18,6 +18,7 @@ const shellCollections = [
   "projects",
   "projectOwners",
   "tasks",
+  "taskAssignees",
 ] as const;
 
 /**

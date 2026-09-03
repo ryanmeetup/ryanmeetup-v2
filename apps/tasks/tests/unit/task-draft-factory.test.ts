@@ -9,7 +9,6 @@ const task: Task = {
   description: "Keep the details",
   status_id: "status-1",
   project_id: "project-1",
-  assignee_id: "assignee-1",
   created_by: "creator-1",
   reported_by: "reporter-1",
   start_date: "2026-08-13",
@@ -27,7 +26,11 @@ const task: Task = {
 
 describe("editTaskDraft", () => {
   it("preserves every untouched editable field when one field changes", () => {
-    const originalDraft = editTaskDraft(task, ["category-1"]);
+    const originalDraft = editTaskDraft(
+      task,
+      ["category-1"],
+      ["assignee-1", "assignee-2"],
+    );
     const changedDraft = { ...originalDraft, title: "Updated title" };
 
     expect(changedDraft).toEqual({
@@ -36,5 +39,9 @@ describe("editTaskDraft", () => {
     });
     expect(changedDraft.start_date).toBe(task.start_date);
     expect(changedDraft.due_time).toBe(task.due_time);
+    expect(changedDraft.assignee_ids).toEqual([
+      "assignee-1",
+      "assignee-2",
+    ]);
   });
 });

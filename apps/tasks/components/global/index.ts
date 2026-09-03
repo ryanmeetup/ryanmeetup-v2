@@ -1,6 +1,13 @@
 export { AccessPreviewBanner } from "./AccessPreviewBanner";
 export { DemoBanner } from "./DemoBanner";
 export { CountBadge } from "./CountBadge";
+export {
+  desktopEditorTrigger,
+  editorPageContentClassName,
+  mobileEditorTrigger,
+  wideEditorPageContentClassName,
+} from "./editor-routes";
+export { EditorSurface, type EditorSurfaceProps } from "./EditorSurface";
 export { InstanceBanner } from "./InstanceBanner";
 export {
   InstanceProvider,
@@ -19,3 +26,4 @@ export {
 } from "./WorkspacePageShell";
 export { ThemeProvider, useTheme } from "./ThemeProvider";
 export { ThemeToggle } from "./ThemeToggle";
+export { useEditorReturnPath } from "./useEditorReturnPath";

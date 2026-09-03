@@ -33,6 +33,9 @@ describe("demo workspace", () => {
     const categoryIds = new Set(
       demoData.categories.map((category) => category.id),
     );
+    const assignedProfileIds = new Set(
+      demoData.taskAssignees.map((assignment) => assignment.profile_id),
+    );
 
     expect(profileIds).toContain(demoData.currentProfile.id);
     expect(
@@ -40,9 +43,11 @@ describe("demo workspace", () => {
         (task) =>
           profileIds.has(task.created_by) &&
           profileIds.has(task.reported_by) &&
-          (!task.assignee_id || profileIds.has(task.assignee_id)) &&
           (!task.project_id || projectIds.has(task.project_id)),
       ),
+    ).toBe(true);
+    expect(
+      [...assignedProfileIds].every((profileId) => profileIds.has(profileId)),
     ).toBe(true);
     expect(
       demoData.taskCategories.every((assignment) =>
@@ -62,7 +67,11 @@ describe("demo workspace", () => {
       if (!task.due_date || completed.has(task.status_id)) return false;
       const due = new Date(`${task.due_date}T23:59:59`).getTime();
       return (
-        task.assignee_id === demoData.currentProfile.id &&
+        demoData.taskAssignees.some(
+          (assignment) =>
+            assignment.task_id === task.id &&
+            assignment.profile_id === demoData.currentProfile.id,
+        ) &&
         due >= now &&
         due <= now + 14 * 24 * 60 * 60 * 1000
       );
@@ -71,7 +80,11 @@ describe("demo workspace", () => {
       demoData.tasks
         .filter(
           (task) =>
-            task.assignee_id === demoData.currentProfile.id ||
+            demoData.taskAssignees.some(
+              (assignment) =>
+                assignment.task_id === task.id &&
+                assignment.profile_id === demoData.currentProfile.id,
+            ) ||
             task.reported_by === demoData.currentProfile.id,
         )
         .map((task) => task.id),

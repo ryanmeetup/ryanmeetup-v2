@@ -82,6 +82,11 @@ function formatMembers(
   lookups: TaskChangeLookups,
 ) {
   if (!values?.length) return undefined;
+  if (field === "assignee")
+    return values.map((value) => {
+      const profile = lookups.profiles.find((entry) => entry.id === value);
+      return profile ? profileDisplayName(profile) : value;
+    });
   if (field !== "categories") return values;
   return values.map(
     (value) =>
@@ -163,6 +168,8 @@ export function taskChangeSentence(detail: TaskChangeDetail): string {
     case "reported_by":
       return requiredSentence("the reporter", detail);
     case "assignee":
+      if (detail.added?.length || detail.removed?.length)
+        return membershipSentence("assignee", "assignees", detail);
       if (detail.from && detail.to)
         return `Reassigned from ${detail.from} to ${detail.to}`;
       if (detail.to) return `Assigned to ${detail.to}`;

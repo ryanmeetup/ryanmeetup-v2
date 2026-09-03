@@ -26,12 +26,12 @@ export type SavedTask = {
 };
 
 export async function saveTask(supabase: SupabaseClient, input: TaskSaveInput) {
-  const { id, task, categoryIds, statusReason } = input;
+  const { id, task, assigneeIds, categoryIds, statusReason } = input;
   const result = await supabase.rpc("save_task", {
     task_id: id,
     task_values: task,
     category_ids: categoryIds,
-    assignee_ids: task.assignee_id ? [task.assignee_id] : [],
+    assignee_ids: assigneeIds,
     status_reason: statusReason,
   });
   return { data: result.data as SavedTask, error: result.error };
