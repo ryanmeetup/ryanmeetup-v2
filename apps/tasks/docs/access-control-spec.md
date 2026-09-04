@@ -8,6 +8,9 @@ and access previews only explain or simulate them.
 
 - App owners and organizational tiers with workspace-wide content access have
   manager access to every current and future project and category.
+- Workspace-wide tiers remain available in every access-group picker. Their
+  explicit grants are stored like any other group's even though removing one
+  does not revoke the workspace-wide authority granted by the tier itself.
 - Every onboarded member belongs to one organizational tier and may also belong
   to lateral teams.
 - Higher organizational tiers inherit the selected-project and category grants

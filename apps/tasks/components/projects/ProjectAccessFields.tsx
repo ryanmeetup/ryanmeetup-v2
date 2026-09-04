@@ -6,6 +6,7 @@ export type ProjectAccessGroup = {
   name: string;
   kind: "tier" | "team";
   hierarchy_rank: number | null;
+  grants_global_content: boolean;
 };
 
 export function ProjectAccessFields({
@@ -64,7 +65,9 @@ export function ProjectAccessFields({
         <MultiSelect
           label="Access groups"
           options={groups.map((group) => ({
-            label: group.name,
+            label: group.grants_global_content
+              ? `${group.name} (workspace-wide access)`
+              : group.name,
             value: group.id,
           }))}
           value={groupIds}

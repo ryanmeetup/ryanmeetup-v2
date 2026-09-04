@@ -41,9 +41,6 @@ export function WorkspaceAreaAccessPanel({
   /** False until the migration that creates the page-access tables is applied. */
   enforced: boolean;
 }) {
-  const selectableGroups = groups.filter(
-    (group) => !group.grants_global_content,
-  );
   const [access, setAccess] = useState<WorkspaceAreaAccess[]>(() =>
     WORKSPACE_AREAS.map(
       (area) =>
@@ -139,8 +136,10 @@ export function WorkspaceAreaAccessPanel({
               <>
                 <MultiSelect
                   label="Access groups"
-                  options={selectableGroups.map((group) => ({
-                    label: group.name,
+                  options={groups.map((group) => ({
+                    label: group.grants_global_content
+                      ? `${group.name} (workspace-wide access)`
+                      : group.name,
                     value: group.id,
                   }))}
                   value={entry.groupIds}
