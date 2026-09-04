@@ -118,13 +118,13 @@ export function AccessGroupPageClient({
             {
               current: false,
               href: adminAccessPath,
-              icon: <FiUsers aria-hidden className="mr-2 shrink-0" />,
+              icon: <FiUsers aria-hidden className="shrink-0" />,
               title: "Access groups",
             },
             {
               current: true,
               href: adminAccessGroupPath(accessGroupSlug(group.name)),
-              icon: <FiShield aria-hidden className="mr-2 shrink-0" />,
+              icon: <FiShield aria-hidden className="shrink-0" />,
               title: group.name,
             },
           ]}

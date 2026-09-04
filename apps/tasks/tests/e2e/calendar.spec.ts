@@ -74,8 +74,13 @@ test.describe("mobile calendar", () => {
 
     await expect(page.locator("[data-calendar-month-grid]")).toBeHidden();
     await expect(page.locator("[data-calendar-mobile-agenda]")).toBeVisible();
+    // A phone gets the route trigger; the dialog trigger beside it stays
+    // hidden until `sm`. See `components/global/editor-routes.ts`.
+    await expect(
+      page.getByRole("link", { name: "Add to calendar", exact: true }),
+    ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Add to calendar", exact: true }),
-    ).toBeVisible();
+    ).toBeHidden();
   });
 });

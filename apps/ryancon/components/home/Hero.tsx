@@ -48,7 +48,7 @@ const Hero = () => {
             {/* CTA Button */}
             <div className="flex gap-20 justify-end items-center col-span-2 mt-8 lg:col-span-1 lg:mt-0">
               <Button.Link
-                className="border bg-white text-black w-full font-semibold p-4 tracking-wide flex justify-center items-center timing hover:scale-105 lg:w-auto"
+                className="border bg-white !text-black w-full font-semibold p-4 tracking-wide flex justify-center items-center timing hover:scale-105 lg:w-auto"
                 href="/register"
                 rightIcon={<ArrowRight className="fill-black ml-4" />}
               >

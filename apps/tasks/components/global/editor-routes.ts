@@ -11,9 +11,18 @@
  *
  * Pair these two on the same trigger, always. A control that is only ever
  * `mobileEditorTrigger` leaves desktop with no way in.
+ *
+ * The desktop half hides with `max-sm:hidden` rather than a plain `hidden`.
+ * Tailwind v4 emits the display utilities in alphabetical order, so `.hidden`
+ * is written before `.inline-flex` and loses to it at equal specificity -- and
+ * `Button`, `Button.Link`, and `IconButton` all carry `inline-flex` in their
+ * base classes, so a plain `hidden` on one of those never took effect and a
+ * phone showed the route trigger and the dialog trigger side by side. A
+ * media-query variant is emitted after the unprefixed utilities and wins
+ * whatever display the component asks for.
  */
 export const mobileEditorTrigger = "sm:hidden";
-export const desktopEditorTrigger = "hidden sm:inline-flex";
+export const desktopEditorTrigger = "max-sm:hidden sm:inline-flex";
 
 /**
  * The workspace shell padding an editor route passes as `contentClassName`.

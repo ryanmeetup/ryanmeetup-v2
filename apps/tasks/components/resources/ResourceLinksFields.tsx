@@ -95,7 +95,7 @@ export function ResourceLinksFields({
           variant="secondary"
           size="sm"
           leftIcon={<FiPlus aria-hidden />}
-          className="shrink-0 px-3 py-1.5 normal-case tracking-normal"
+          className="shrink-0 !px-3 !py-1.5 !normal-case tracking-normal"
           disabled={disabled || links.length >= 10}
           onClick={() =>
             setLinks((current) => [...current, { label: "", url: "" }])

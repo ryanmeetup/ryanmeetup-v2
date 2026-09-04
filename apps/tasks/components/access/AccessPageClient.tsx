@@ -701,7 +701,7 @@ export function AccessPageClient({
                                   tooltip={false}
                                   variant="danger"
                                   aria-disabled="true"
-                                  className="cursor-not-allowed opacity-40 hover:translate-y-0 hover:border-red-500/20 hover:bg-transparent hover:shadow-none dark:hover:border-red-400/25 dark:hover:bg-transparent"
+                                  className="cursor-not-allowed opacity-40 hover:translate-y-0 hover:!border-red-500/20 hover:bg-transparent hover:!shadow-none dark:hover:!border-red-400/25 dark:hover:bg-transparent"
                                   onClick={(event) => event.preventDefault()}
                                 >
                                   <FiTrash2 />

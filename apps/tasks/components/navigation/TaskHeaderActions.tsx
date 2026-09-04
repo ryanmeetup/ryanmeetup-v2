@@ -165,7 +165,7 @@ export function TaskHeaderActions({
               leftIcon={<FiPlus />}
               disabled
               aria-label="New task"
-              className="gap-0 px-3 [&>span:last-child]:hidden sm:gap-2 sm:px-4 sm:[&>span:last-child]:inline"
+              className="max-sm:gap-0 max-sm:px-3 [&>span:last-child]:hidden sm:[&>span:last-child]:inline"
             >
               New task
             </Button>
@@ -184,7 +184,7 @@ export function TaskHeaderActions({
               size="sm"
               leftIcon={<FiPlus />}
               aria-label="New task"
-              className={`gap-0 px-3 [&>span:last-child]:hidden ${mobileEditorTrigger}`}
+              className={`max-sm:gap-0 max-sm:px-3 [&>span:last-child]:hidden ${mobileEditorTrigger}`}
             >
               New task
             </Button.Link>

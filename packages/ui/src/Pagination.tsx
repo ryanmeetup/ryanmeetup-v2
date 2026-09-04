@@ -60,7 +60,7 @@ export function Pagination({
           Page {currentPage} of {totalPages}
         </span>
         <IconButton
-          className="hidden disabled:cursor-not-allowed disabled:opacity-40 sm:inline-flex"
+          className="max-sm:hidden disabled:cursor-not-allowed disabled:opacity-40 sm:inline-flex"
           label="First page"
           disabled={disabled || atStart}
           onClick={() => onPageChange(1)}
@@ -84,7 +84,7 @@ export function Pagination({
           <FiChevronRight />
         </IconButton>
         <IconButton
-          className="hidden disabled:cursor-not-allowed disabled:opacity-40 sm:inline-flex"
+          className="max-sm:hidden disabled:cursor-not-allowed disabled:opacity-40 sm:inline-flex"
           label="Last page"
           disabled={disabled || atEnd}
           onClick={() => onPageChange(totalPages)}
