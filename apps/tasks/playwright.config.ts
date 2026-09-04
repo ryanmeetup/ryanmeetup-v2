@@ -6,6 +6,17 @@ const supabasePort = Number(process.env.PLAYWRIGHT_SUPABASE_PORT ?? 54329);
 const supabaseOrigin = `http://127.0.0.1:${supabasePort}`;
 
 /**
+ * Task keys carry a build-time prefix, and a working tree gets it from
+ * `.env.local` — which is untracked, so CI builds with the compiled default
+ * instead. `/task/RMT-5` then 404s there and only there. Pinning the prefix on
+ * `process.env` fixes both halves at once: the build inherits it through
+ * `webServer.env` below, and the spec workers read the same value back, so a
+ * suite pointed at an outside server by `PLAYWRIGHT_TEST_BASE_URL` still asks
+ * for the keys that server actually mints.
+ */
+process.env.NEXT_PUBLIC_TASK_KEY_PREFIX ??= "RMT";
+
+/**
  * The suite runs against a production server rather than `next dev`.
  *
  * Next allows only one dev server per project directory, so a `npm run dev`

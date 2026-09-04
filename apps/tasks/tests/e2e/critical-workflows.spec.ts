@@ -3,6 +3,11 @@ import {
   DEMO_PREVIEW_COOKIE,
   DEMO_PREVIEW_VALUE,
 } from "../../lib/demo-preview";
+import { taskPath } from "../../lib/tasks/task-key";
+
+// The build's own key builder, so these routes stay right whatever prefix the
+// server under test was compiled with. See `playwright.config.ts`.
+const editedTask = taskPath({ task_number: 5 });
 
 // These workflows all render the full demo workspace. Keeping them serial
 // avoids three simultaneous cold hydrations obscuring the transition each test
@@ -266,11 +271,11 @@ test("returns to the task after saving from the mobile editor", async ({
 }) => {
   await enterDemoWorkspace(page, baseURL);
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/task/RMT-5/edit?from=%2Ftask%2FRMT-5");
+  await page.goto(`${editedTask}/edit?from=${encodeURIComponent(editedTask)}`);
   await page.waitForLoadState("networkidle");
 
   await page.getByRole("button", { name: "Save changes" }).click();
-  await expect(page).toHaveURL(/\/task\/RMT-5$/);
+  await expect(page).toHaveURL(new RegExp(`${editedTask}$`));
   await expect(
     page.getByRole("heading", { name: "Confirm launch venue" }),
   ).toBeVisible();
@@ -282,14 +287,14 @@ test("keeps the mobile duplicate editor open for create another", async ({
 }) => {
   await enterDemoWorkspace(page, baseURL);
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/task/RMT-5/edit?from=%2Ftask%2FRMT-5");
+  await page.goto(`${editedTask}/edit?from=${encodeURIComponent(editedTask)}`);
   await page.waitForLoadState("networkidle");
 
   await page.getByRole("button", { name: "Duplicate task" }).click();
   await page.getByRole("checkbox", { name: "Create another" }).check();
   await page.getByRole("button", { name: "Create task" }).click();
 
-  await expect(page).toHaveURL(/\/task\/RMT-5\/edit/);
+  await expect(page).toHaveURL(new RegExp(`${editedTask}/edit`));
   await expect(
     page.getByRole("heading", { name: "A new thing to do" }),
   ).toBeVisible();
