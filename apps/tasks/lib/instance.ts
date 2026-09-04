@@ -161,7 +161,7 @@ const taskKeyPrefix = keyPrefix(
 export const instanceBuild = {
   /** Prefix for readable public task keys, e.g. TASK-142 or RMT-142. */
   taskKeyPrefix,
-  /** Prefix for changelog versions, e.g. "TASK v5" or "RMT v5". */
+  /** Prefix for changelog versions, e.g. "TASK v0.5" or "RMT v0.5". */
   changelogVersionPrefix: text(
     process.env.NEXT_PUBLIC_CHANGELOG_VERSION_PREFIX,
     taskKeyPrefix,

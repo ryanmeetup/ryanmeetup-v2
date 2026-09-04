@@ -48,20 +48,30 @@ export function LatestChangelogCard({
         aria-hidden
         className="pointer-events-none absolute -right-12 -top-16 h-44 w-44 rounded-full bg-emerald-400/10 blur-3xl dark:bg-emerald-300/[0.06]"
       />
-      <div className="relative grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 sm:gap-5 lg:gap-y-0">
+      <div className="relative grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-x-3 sm:gap-x-5">
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-emerald-500/15 bg-emerald-500/15 text-xl text-emerald-700 shadow-sm dark:border-emerald-300/10 dark:bg-emerald-300/15 dark:text-emerald-200">
           <FiZap aria-hidden />
         </span>
 
         <div className="min-w-0">
-          <h2 className="text-lg font-semibold leading-7">
-            {release.title}
+          <div className="flex flex-wrap items-center gap-1.5">
             <Pill
               size="sm"
-              className="ml-2 align-middle !border-emerald-500/30 !bg-emerald-500/10 !px-2 !py-0.5 !text-[9px] !tracking-[0.18em] !text-emerald-800 dark:!text-emerald-200"
+              className="!border-emerald-500/30 !bg-emerald-500/10 !px-2 !py-0.5 !text-[9px] !tracking-[0.18em] !text-emerald-800 dark:!text-emerald-200"
             >
               {release.version}
             </Pill>
+            {release.prerelease && (
+              <Pill
+                size="sm"
+                className="!border-amber-500/30 !bg-amber-500/10 !px-2 !py-0.5 !text-[9px] !tracking-[0.18em] !text-amber-800 dark:!text-amber-200"
+              >
+                Beta
+              </Pill>
+            )}
+          </div>
+          <h2 className="mt-1.5 text-lg font-semibold leading-7">
+            {release.title}
           </h2>
           <AnimatedCollapse id={contentId} open={!collapsed}>
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -104,7 +114,7 @@ export function LatestChangelogCard({
           open={!collapsed}
           className="col-start-2 col-end-4 lg:col-start-3 lg:col-end-4 lg:row-start-1 lg:self-center"
         >
-          <div className="flex shrink-0 flex-col gap-2 sm:flex-row lg:flex-col lg:items-stretch">
+          <div className="mt-3 flex shrink-0 flex-col gap-2 sm:mt-4 sm:flex-row lg:mt-0 lg:flex-col lg:items-stretch">
             <Link
               href={withAccessPreview(changelogReleasePath(release), preview)}
               className="group inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-600/25 bg-emerald-600 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/50 motion-reduce:transform-none dark:border-emerald-200/20 dark:bg-emerald-200 dark:text-emerald-950 dark:hover:bg-emerald-100"

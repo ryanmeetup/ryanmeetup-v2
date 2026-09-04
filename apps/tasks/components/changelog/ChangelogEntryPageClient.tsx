@@ -74,13 +74,21 @@ export function ChangelogEntryPageClient({
         />
 
         <header className="mt-6 border-b border-black/10 pb-8 dark:border-white/10">
-          <div>
+          <div className="flex flex-wrap items-center gap-2">
             <Pill
               size="sm"
               className="!border-emerald-500/30 !bg-emerald-500/10 !text-emerald-800 dark:!text-emerald-200"
             >
               {release.version}
             </Pill>
+            {release.prerelease && (
+              <Pill
+                size="sm"
+                className="!border-amber-500/30 !bg-amber-500/10 !text-amber-800 dark:!text-amber-200"
+              >
+                Beta
+              </Pill>
+            )}
           </div>
           <Heading size="h1" bold className="mt-4 text-4xl sm:text-5xl">
             {release.title}

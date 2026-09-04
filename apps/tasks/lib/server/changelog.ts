@@ -23,10 +23,17 @@ function readRelease(fileName: string): ChangelogRelease {
       throw new Error(`Invalid ${field} in changelog/${fileName}`);
     }
   }
-  const releaseNumber = data.version;
-  if (!Number.isInteger(releaseNumber) || releaseNumber < 1) {
+  // `major.minor`, quoted in the frontmatter so 0.10 does not become 0.1.
+  // Major 0 is the beta series; 1.0 is reserved for the first release that
+  // leaves beta, so no entry can claim to be stable by accident.
+  const releaseVersion: unknown = data.version;
+  if (
+    typeof releaseVersion !== "string" ||
+    !/^(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(releaseVersion)
+  ) {
     throw new Error(`Invalid version in changelog/${fileName}`);
   }
+  const majorVersion = Number(releaseVersion.split(".")[0]);
   if (
     !Array.isArray(data.overview) ||
     !data.overview.every((item: unknown) => typeof item === "string")
@@ -35,8 +42,9 @@ function readRelease(fileName: string): ChangelogRelease {
   }
 
   return {
-    version: `${instanceBuild.changelogVersionPrefix} v${releaseNumber as number}`,
-    releaseNumber: releaseNumber as number,
+    version: `${instanceBuild.changelogVersionPrefix} v${releaseVersion}`,
+    releaseVersion,
+    prerelease: majorVersion < 1,
     slug: data.slug,
     author: data.author,
     date: data.date,
