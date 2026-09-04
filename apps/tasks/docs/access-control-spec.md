@@ -90,6 +90,18 @@ holds a row only for a page an app owner has configured.
 - Assignees must be eligible for the task's project. Named project owners,
   members of selected groups, members with workspace-wide access, and all
   onboarded members of an open project are eligible.
+- Task-related tables ask their read question as `task_id in (select id from
+  public.tasks)` rather than by calling `can_view_task` per row. That is the
+  same rule — the `tasks` SELECT policy is `can_view_task` — resolved once per
+  statement instead of once per row, and it keeps the canonical check in one
+  place. `reachable_category_ids` and `tasks_with_unreachable_categories` are
+  the set forms of `can_access_category` and `can_access_task_categories` and
+  exist for the same reason; they are `security definer` because a category on
+  a task you cannot see must still hide it from you.
+- Only a table's SELECT policy governs reads. A `for all` policy also arms
+  SELECT, so a write policy whose predicate is narrower than the table's read
+  policy must be written as explicit `for insert` / `for update` / `for delete`
+  policies. Widening a read by way of a write policy is a bug.
 
 ## Diagnostics and failure behavior
 
