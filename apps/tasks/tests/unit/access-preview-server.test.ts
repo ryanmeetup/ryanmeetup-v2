@@ -14,19 +14,19 @@ const categories = [
 describe("access preview category visibility", () => {
   it("keeps a restricted category closed when it has no additional grants", () => {
     expect(
-      accessibleCategoryIdsForPreview(categories, [], ["ryan"], false),
+      accessibleCategoryIdsForPreview(categories, [], ["leads"], false),
     ).toEqual(["general"]);
   });
 
   it("opens a restricted category only to a specifically granted group", () => {
-    const grants = [{ category_id: "events", group_id: "ryan" }];
+    const grants = [{ category_id: "events", group_id: "leads" }];
 
     expect(
-      accessibleCategoryIdsForPreview(categories, grants, ["ryan"], false),
+      accessibleCategoryIdsForPreview(categories, grants, ["leads"], false),
     ).toEqual(["general", "events"]);
   });
 
-  it("allows R Suite and owners to see every category", () => {
+  it("gives workspace-wide content authority every category", () => {
     expect(accessibleCategoryIdsForPreview(categories, [], [], true)).toEqual([
       "general",
       "finance",
@@ -36,25 +36,25 @@ describe("access preview category visibility", () => {
 });
 
 const groups = [
-  { id: "r-suite", calendar_access: true },
-  { id: "ryan-leads", calendar_access: false },
+  { id: "managers", calendar_access: true },
+  { id: "chapter-leads", calendar_access: false },
   { id: "events-team", calendar_access: null },
 ];
 
 describe("access preview calendar visibility", () => {
   it("grants the workspace calendar through the group that allows it", () => {
-    expect(grantsCalendarAccessForPreview(groups, ["r-suite"])).toBe(true);
+    expect(grantsCalendarAccessForPreview(groups, ["managers"])).toBe(true);
   });
 
   it("inherits calendar access from a lower tier", () => {
     expect(
-      grantsCalendarAccessForPreview(groups, ["ryan-leads", "r-suite"]),
+      grantsCalendarAccessForPreview(groups, ["chapter-leads", "managers"]),
     ).toBe(true);
   });
 
   it("hides the workspace calendar from groups without calendar access", () => {
     expect(
-      grantsCalendarAccessForPreview(groups, ["ryan-leads", "events-team"]),
+      grantsCalendarAccessForPreview(groups, ["chapter-leads", "events-team"]),
     ).toBe(false);
   });
 
@@ -71,7 +71,7 @@ const areaRows = [
 
 describe("access preview page visibility", () => {
   it("leaves a page with no row open", () => {
-    expect(accessibleAreasForPreview([], [], ["ryan"], false)).toEqual([
+    expect(accessibleAreasForPreview([], [], ["leads"], false)).toEqual([
       "notes",
       "contacts",
       "calendar",
@@ -79,19 +79,19 @@ describe("access preview page visibility", () => {
   });
 
   it("closes a restricted page that names no group", () => {
-    expect(accessibleAreasForPreview(areaRows, [], ["ryan"], false)).toEqual([
+    expect(accessibleAreasForPreview(areaRows, [], ["leads"], false)).toEqual([
       "notes",
     ]);
   });
 
   it("opens a restricted page only to a selected group", () => {
     const grants = [
-      { area: "contacts", group_id: "ryan" },
-      { area: "calendar", group_id: "r-suite" },
+      { area: "contacts", group_id: "leads" },
+      { area: "calendar", group_id: "managers" },
     ];
 
     expect(
-      accessibleAreasForPreview(areaRows, grants, ["ryan"], false),
+      accessibleAreasForPreview(areaRows, grants, ["leads"], false),
     ).toEqual(["notes", "contacts"]);
   });
 

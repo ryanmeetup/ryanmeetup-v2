@@ -189,7 +189,8 @@ export function CategoriesModal({
   const [newAccessMode, setNewAccessMode] =
     useState<Category["access_mode"]>("open");
   const [newAccessGroupIds, setNewAccessGroupIds] = useState<string[]>([]);
-  const [confirmSuiteOnlyCreate, setConfirmSuiteOnlyCreate] = useState(false);
+  const [confirmManagersOnlyCreate, setConfirmManagersOnlyCreate] =
+    useState(false);
   const [categoryStatusParam, setCategoryStatus] = useQueryParamState(
     "category-status",
     "active",
@@ -246,7 +247,7 @@ export function CategoriesModal({
     setGroupIds: setEditingAccessGroupIds,
   } = accessState.changes;
   const accessLoaded = accessState.loaded;
-  const [confirmSuiteOnlyCategory, setConfirmSuiteOnlyCategory] =
+  const [confirmManagersOnlyCategory, setConfirmManagersOnlyCategory] =
     useState<Category | null>(null);
   const [supportingDetailsChanged, setSupportingDetailsChanged] =
     useState(false);
@@ -269,7 +270,7 @@ export function CategoriesModal({
 
   async function addCategory(
     event?: FormEvent<HTMLFormElement>,
-    suiteOnlyConfirmed = false,
+    managersOnlyConfirmed = false,
   ) {
     event?.preventDefault();
     const nextName = name.trim();
@@ -283,9 +284,9 @@ export function CategoriesModal({
       data.currentProfile.app_role === "owner" &&
       newAccessMode === "restricted" &&
       newAccessGroupIds.length === 0 &&
-      !suiteOnlyConfirmed
+      !managersOnlyConfirmed
     ) {
-      setConfirmSuiteOnlyCreate(true);
+      setConfirmManagersOnlyCreate(true);
       return;
     }
     setCreating(true);
@@ -397,7 +398,7 @@ export function CategoriesModal({
 
   async function updateCategory(
     category: Category,
-    suiteOnlyConfirmed = false,
+    managersOnlyConfirmed = false,
   ) {
     const nextName = editingName.trim();
     if (!nextName || editingOwnerIds.length === 0) {
@@ -414,9 +415,9 @@ export function CategoriesModal({
       data.currentProfile.app_role === "owner" &&
       editingAccessMode === "restricted" &&
       editingAccessGroupIds.length === 0 &&
-      !suiteOnlyConfirmed
+      !managersOnlyConfirmed
     ) {
-      setConfirmSuiteOnlyCategory(category);
+      setConfirmManagersOnlyCategory(category);
       return;
     }
     setSaving(true);
@@ -595,7 +596,7 @@ export function CategoriesModal({
               onChange={setNewAccessGroupIds}
               placeholder={
                 accessLoaded
-                  ? "R Suite and owners only"
+                  ? "Owners and managers only"
                   : "Loading access groups…"
               }
               searchable
@@ -603,8 +604,9 @@ export function CategoriesModal({
               disabled={creating || !accessLoaded}
             />
             <p className="mt-2 text-sm text-black/70 dark:text-white/70">
-              R Suite and owners always retain access. Select any additional
-              groups that should see this category.
+              App owners, and any tier that grants workspace-wide content
+              access, always retain access. Select any additional groups that
+              should see this category.
             </p>
           </div>
         )}
@@ -1202,7 +1204,7 @@ export function CategoriesModal({
                         />
                         <p className="mt-2 text-sm text-black/70 dark:text-white/70">
                           Restricted categories and their work are hidden from
-                          everyone except selected access groups and R Suite.
+                          everyone except the selected access groups.
                         </p>
                         {data.currentProfile.app_role === "owner" &&
                           editingAccessMode === "restricted" && (
@@ -1218,16 +1220,17 @@ export function CategoriesModal({
                                 placeholder={
                                   !accessLoaded
                                     ? "Loading access groups…"
-                                    : "R Suite and owners only"
+                                    : "Owners and managers only"
                                 }
                                 searchable
                                 searchPlaceholder="Search access groups"
                                 disabled={saving || !accessLoaded}
                               />
                               <p className="mt-2 text-sm text-black/70 dark:text-white/70">
-                                R Suite and owners always retain access. Select
-                                any additional groups that should see this
-                                category.
+                                App owners, and any tier that grants
+                                workspace-wide content access, always retain
+                                access. Select any additional groups that should
+                                see this category.
                               </p>
                             </div>
                           )}
@@ -1264,27 +1267,27 @@ export function CategoriesModal({
           );
         })()}
       <ConfirmationDialog
-        open={Boolean(confirmSuiteOnlyCategory)}
+        open={Boolean(confirmManagersOnlyCategory)}
         setOpen={(nextOpen) => {
-          if (!nextOpen) setConfirmSuiteOnlyCategory(null);
+          if (!nextOpen) setConfirmManagersOnlyCategory(null);
         }}
-        title="Restrict to R Suite and owners?"
-        description="No additional access groups are selected. Everyone below R Suite will lose access to this category and its work."
+        title="Restrict to owners and managers?"
+        description="No additional access groups are selected. Only app owners and tiers that grant workspace-wide content access will see this category and its work."
         confirmLabel="Restrict category"
         onConfirm={() => {
-          const category = confirmSuiteOnlyCategory;
-          setConfirmSuiteOnlyCategory(null);
+          const category = confirmManagersOnlyCategory;
+          setConfirmManagersOnlyCategory(null);
           if (category) void updateCategory(category, true);
         }}
       />
       <ConfirmationDialog
-        open={confirmSuiteOnlyCreate}
-        setOpen={setConfirmSuiteOnlyCreate}
-        title="Create for R Suite and owners only?"
-        description="No additional access groups are selected. Everyone below R Suite will be unable to see this category or its work."
+        open={confirmManagersOnlyCreate}
+        setOpen={setConfirmManagersOnlyCreate}
+        title="Create for owners and managers only?"
+        description="No additional access groups are selected. Only app owners and tiers that grant workspace-wide content access will see this category and its work."
         confirmLabel="Create restricted category"
         onConfirm={() => {
-          setConfirmSuiteOnlyCreate(false);
+          setConfirmManagersOnlyCreate(false);
           void addCategory(undefined, true);
         }}
       />
