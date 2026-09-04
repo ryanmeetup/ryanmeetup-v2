@@ -1,3 +1,4 @@
+import { Tooltip } from "@ryanmeetup/ui";
 import type { Category } from "@/lib/resources/resource-types";
 
 export function TaskCategoryBadge({
@@ -9,11 +10,10 @@ export function TaskCategoryBadge({
 }) {
   const tagSummary = tags.length > 0 ? tags.join(", ") : null;
 
-  return (
+  const badge = (
     <span
       className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/70 dark:text-white/75"
-      aria-label={`${category.name} category${tagSummary ? `; tags: ${tagSummary}` : ""}`}
-      title={tagSummary ? `${category.name}: ${tagSummary}` : undefined}
+      aria-label={`${category.name} category; ${tagSummary ? `tags: ${tagSummary}` : "no tags selected"}`}
       style={{
         borderColor: `${category.color}66`,
         backgroundColor: `${category.color}22`,
@@ -25,11 +25,23 @@ export function TaskCategoryBadge({
         style={{ backgroundColor: category.color }}
       />
       <span aria-hidden="true">{category.name}</span>
-      {tags.length > 0 && (
-        <span aria-hidden="true" className="text-black/45 dark:text-white/50">
-          · +{tags.length}
-        </span>
-      )}
     </span>
+  );
+
+  return (
+    <Tooltip
+      content={
+        <span className="block max-w-56">
+          <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] opacity-65">
+            Tags
+          </span>
+          <span className="mt-1 block font-medium">
+            {tagSummary ?? "No tags selected"}
+          </span>
+        </span>
+      }
+    >
+      {badge}
+    </Tooltip>
   );
 }

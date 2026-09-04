@@ -161,19 +161,21 @@ export function TaskBoardCard({
           </span>
         </div>
       )}
-      <div className="mt-4 flex items-end justify-between gap-3">
+      {categories.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-1">
+          {categories.map((category) => (
+            <TaskCategoryBadge
+              key={category.id}
+              category={category}
+              tags={task.category_tags?.[category.id]}
+            />
+          ))}
+        </div>
+      )}
+      <div
+        className={`${categories.length > 0 ? "mt-2" : "mt-4"} flex items-end justify-between gap-3`}
+      >
         <div className="min-w-0 flex-1 space-y-2">
-          {categories.length > 0 && (
-            <span className="flex flex-wrap gap-1.5">
-              {categories.map((category) => (
-                <TaskCategoryBadge
-                  key={category.id}
-                  category={category}
-                  tags={task.category_tags?.[category.id]}
-                />
-              ))}
-            </span>
-          )}
           {project && (
             <span className="flex items-center gap-1.5 truncate text-[10px] font-semibold text-black/60 dark:text-white/60">
               <FiFolder className="shrink-0" />

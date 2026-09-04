@@ -17,7 +17,7 @@ const category: Category = {
 };
 
 describe("TaskCategoryBadge", () => {
-  it("summarizes selected tags without rendering each tag as a badge", () => {
+  it("keeps selected tags out of the visible badge text", () => {
     const markup = renderToStaticMarkup(
       createElement(TaskCategoryBadge, {
         category,
@@ -25,23 +25,23 @@ describe("TaskCategoryBadge", () => {
       }),
     );
 
-    expect(markup).toContain("· +2");
+    expect(markup).not.toContain("· +");
     expect(markup).toContain(
       'aria-label="Home &amp; Living category; tags: Organizing, Furniture"',
     );
-    expect(markup).toContain(
-      'title="Home &amp; Living: Organizing, Furniture"',
-    );
+    expect(markup).not.toContain("title=");
     expect(markup).not.toContain(">Organizing<");
     expect(markup).not.toContain(">Furniture<");
   });
 
-  it("does not add a count or tooltip when no tags are selected", () => {
+  it("describes the empty tag state when no tags are selected", () => {
     const markup = renderToStaticMarkup(
       createElement(TaskCategoryBadge, { category }),
     );
 
-    expect(markup).not.toContain("· +");
+    expect(markup).toContain(
+      'aria-label="Home &amp; Living category; no tags selected"',
+    );
     expect(markup).not.toContain("title=");
   });
 });
