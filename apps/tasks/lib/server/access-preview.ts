@@ -36,16 +36,16 @@ type PreviewAreaGrant = { area: string; group_id: string };
 /**
  * The same rule `can_view_workspace_area` applies, projected for the preview:
  * a page with no restricted row is open, a restricted page needs a selected
- * group the subject reaches, and workspace-wide content authority reaches
- * every page. Diagnostic only — it never authorizes a request.
+ * group the subject reaches, and only app owners bypass page restrictions.
+ * Diagnostic only — it never authorizes a request.
  */
 export function accessibleAreasForPreview(
   areas: PreviewAreaRow[],
   grants: PreviewAreaGrant[],
   groupIds: string[],
-  hasGlobalAccess: boolean,
+  isAppOwner: boolean,
 ): WorkspaceAreaKey[] {
-  if (hasGlobalAccess) return [...WORKSPACE_AREA_KEYS];
+  if (isAppOwner) return [...WORKSPACE_AREA_KEYS];
   const restricted = new Set(
     areas
       .filter((area) => area.access_mode === "restricted")
@@ -65,9 +65,9 @@ export function accessibleAreasForPreview(
 async function resolveAreaAccess(
   supabase: SupabaseClient,
   groupIds: string[],
-  hasGlobalAccess: boolean,
+  isAppOwner: boolean,
 ): Promise<{ accessibleAreas: WorkspaceAreaKey[] }> {
-  if (hasGlobalAccess) return { accessibleAreas: [...WORKSPACE_AREA_KEYS] };
+  if (isAppOwner) return { accessibleAreas: [...WORKSPACE_AREA_KEYS] };
   const [areasResult, grantsResult] = await Promise.all([
     supabase.from("workspace_area_access").select("area, access_mode"),
     supabase.from("workspace_area_group_grants").select("area, group_id"),
@@ -211,7 +211,7 @@ export async function resolveAccessPreview(
       resolveAreaAccess(
         supabase,
         inheritedGroupIds,
-        group.grants_global_content,
+        false,
       ),
     ]);
     return {
@@ -314,7 +314,7 @@ export async function resolveAccessPreview(
         subjectProfile: profile,
         calendarAccess,
         ...categoryAccess,
-        ...(await resolveAreaAccess(supabase, directGroupIds, true)),
+        ...(await resolveAreaAccess(supabase, groupIds, false)),
       },
       projectIds: options.allProjectIds,
     };

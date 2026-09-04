@@ -9,8 +9,9 @@ and access previews only explain or simulate them.
 - App owners and organizational tiers with workspace-wide content access have
   manager access to every current and future project and category.
 - Workspace-wide tiers remain available in every access-group picker. Their
-  explicit grants are stored like any other group's even though removing one
-  does not revoke the workspace-wide authority granted by the tier itself.
+  explicit grants are stored like any other group's. Page restrictions are an
+  independent boundary: only app owners bypass them, so a workspace-wide tier
+  must be selected explicitly to open a restricted page.
 - Every onboarded member belongs to one organizational tier and may also belong
   to lateral teams.
 - Higher organizational tiers inherit the selected-project and category grants
@@ -58,8 +59,8 @@ holds a row only for a page an app owner has configured.
 
 - A page with no row is open to every onboarded member.
 - A restricted page is available only through its selected access groups and
-  workspace-wide content authority. A restricted page with no selected groups
-  is therefore workspace-manager-only.
+  app ownership. A restricted page with no selected groups is therefore
+  app-owner-only.
 - Setting a page's mode replaces its complete selected-group set atomically. A
   failed or incomplete write must never broaden access.
 - Page access is checked before every other check on that page's content, and

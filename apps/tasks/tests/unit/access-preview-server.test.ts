@@ -95,7 +95,13 @@ describe("access preview page visibility", () => {
     ).toEqual(["notes", "contacts"]);
   });
 
-  it("gives workspace-wide content authority every page", () => {
+  it("does not let workspace-wide work authority bypass page restrictions", () => {
+    expect(accessibleAreasForPreview(areaRows, [], [], false)).toEqual([
+      "notes",
+    ]);
+  });
+
+  it("lets app owners bypass page restrictions", () => {
     expect(accessibleAreasForPreview(areaRows, [], [], true)).toEqual([
       "notes",
       "contacts",

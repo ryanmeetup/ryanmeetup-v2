@@ -138,7 +138,7 @@ export function WorkspaceAreaAccessPanel({
                   label="Access groups"
                   options={groups.map((group) => ({
                     label: group.grants_global_content
-                      ? `${group.name} (workspace-wide access)`
+                      ? `${group.name} (manager tier)`
                       : group.name,
                     value: group.id,
                   }))}
@@ -151,8 +151,7 @@ export function WorkspaceAreaAccessPanel({
                 />
                 {entry.groupIds.length === 0 && (
                   <p className="text-sm text-black/65 dark:text-white/65">
-                    With no group selected, only app owners and tiers that grant
-                    workspace-wide content access can open {area.label}.
+                    With no group selected, only app owners can open {area.label}.
                   </p>
                 )}
               </>
