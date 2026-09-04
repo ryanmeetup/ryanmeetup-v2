@@ -48,6 +48,19 @@ export async function loadContactCategories(supabase: SupabaseClient) {
     .order("name");
 }
 
+/**
+ * Every contact the viewer may read, named. `/contacts/[contact]` accepts a
+ * slug, and a slug only identifies a contact against the other display names,
+ * so the edit route resolves its segment against this before loading the one
+ * contact it needs.
+ */
+export async function loadContactRefs(supabase: SupabaseClient) {
+  return supabase
+    .from("contacts")
+    .select("id,display_name")
+    .order("display_name");
+}
+
 export async function loadContact(supabase: SupabaseClient, id: string) {
   const result = await supabase
     .from("contacts")

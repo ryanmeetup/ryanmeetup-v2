@@ -19,6 +19,114 @@ async function enterDemoWorkspace(page: Page, baseURL: string | undefined) {
   ]);
 }
 
+test("adds and removes contact methods in the person editor", async ({
+  page,
+  baseURL,
+}) => {
+  await enterDemoWorkspace(page, baseURL);
+  await page.goto("/contacts");
+  await page.waitForLoadState("networkidle");
+
+  await expect(
+    page.getByRole("link", { name: "New Contact", exact: true }),
+  ).toHaveAttribute("href", "/contacts/new");
+  await expect(
+    page.getByRole("button", { name: "New Contact", exact: true }),
+  ).toHaveCount(0);
+
+  await page
+    .getByRole("link", { name: "Edit “The Lantern Room”", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/contacts\/the-lantern-room\/edit$/);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Edit Priya Raman", exact: true })
+    .click();
+
+  const personDialog = page.getByRole("dialog", { name: "Edit person" });
+  await expect(
+    personDialog.getByRole("heading", { name: "Edit person" }),
+  ).toBeVisible();
+  const emailGroup = personDialog.getByRole("group", {
+    name: "Email addresses",
+  });
+  await expect(emailGroup.getByText("1", { exact: true })).toBeVisible();
+  await emailGroup.getByRole("button", { name: "Add email" }).click();
+
+  const emailInputs = emailGroup.locator('input[type="email"]');
+  await expect(emailInputs).toHaveCount(2);
+  await expect(emailInputs.nth(1)).toBeFocused();
+  await expect(emailGroup.getByText("2", { exact: true })).toBeVisible();
+
+  await emailGroup
+    .getByRole("button", { name: "Remove email address" })
+    .click();
+  await expect(emailInputs).toHaveCount(1);
+});
+
+test("returns to the contact list as it was left", async ({
+  page,
+  baseURL,
+}) => {
+  await enterDemoWorkspace(page, baseURL);
+  await page.goto("/contacts");
+  await page.waitForLoadState("networkidle");
+
+  await page.getByLabel("Search contacts").fill("lantern");
+  await expect(page).toHaveURL(/\/contacts\?contact-search=lantern$/);
+
+  await page
+    .getByRole("link", { name: "Edit “The Lantern Room”", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/contacts\/the-lantern-room\/edit$/);
+
+  // The trail names where the editor sits; it goes to the directory itself.
+  await expect(
+    page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link"),
+  ).toHaveAttribute("href", "/contacts");
+
+  // No `?from=` in the editor URL: Cancel is the browser's own history entry,
+  // so the list returns with the search it was left with.
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await expect(page).toHaveURL(/\/contacts\?contact-search=lantern$/);
+  await expect(page.getByLabel("Search contacts")).toHaveValue("lantern");
+});
+
+test("leaves a directly opened contact editor at the list", async ({
+  page,
+  baseURL,
+}) => {
+  await enterDemoWorkspace(page, baseURL);
+  await page.goto("/contacts/the-lantern-room/edit");
+  await page.waitForLoadState("networkidle");
+
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await expect(page).toHaveURL(/\/contacts$/);
+});
+
+test("holds the contact save button until something changes", async ({
+  page,
+  baseURL,
+}) => {
+  await enterDemoWorkspace(page, baseURL);
+  await page.goto("/contacts/the-lantern-room/edit");
+  await page.waitForLoadState("networkidle");
+
+  const save = page.getByRole("button", { name: "Save changes" });
+  await expect(save).toBeDisabled();
+  // The disabled button hands its pointer events to the tooltip's wrapper,
+  // which is what Playwright reports as intercepting the hover.
+  await save.hover({ force: true });
+  await expect(page.getByRole("tooltip")).toHaveText("No changes to save yet.");
+
+  const notes = page.getByLabel("Description");
+  await notes.fill(`${await notes.inputValue()} Holds the date.`);
+  await expect(save).toBeEnabled();
+
+  await save.click();
+  await expect(page).toHaveURL(/\/contacts$/);
+});
+
 test("keeps stale board results inert while a search is pending", async ({
   page,
   baseURL,
@@ -61,9 +169,38 @@ test("keeps category tags subordinate across task surfaces", async ({
     "Product / Tools category; tags: Bug",
     { exact: true },
   );
-  await expect(categoryBadge).toContainText("Product / Tools· +1");
+  await expect(categoryBadge).toHaveText("Product / Tools");
   await expect(categoryBadge.getByText("Bug", { exact: true }))
     .toHaveCount(0);
+  await categoryBadge.hover();
+  const tagTooltip = page.getByRole("tooltip");
+  await expect(tagTooltip).toBeVisible();
+  await expect(tagTooltip).toContainText("Tags");
+  await expect(tagTooltip).toContainText("Bug");
+
+  const multiCategoryCard = page
+    .getByRole("button", { name: "Open Confirm launch venue", exact: true })
+    .locator("..");
+  const eventsBadge = multiCategoryCard.getByLabel(
+    "Events category; no tags selected",
+    { exact: true },
+  );
+  const marketingBadge = multiCategoryCard.getByLabel(
+    "Marketing category; no tags selected",
+    { exact: true },
+  );
+  const [eventsBox, marketingBox] = await Promise.all([
+    eventsBadge.boundingBox(),
+    marketingBadge.boundingBox(),
+  ]);
+  expect(eventsBox).not.toBeNull();
+  expect(marketingBox).not.toBeNull();
+  expect(Math.abs(eventsBox!.y - marketingBox!.y)).toBeLessThan(2);
+
+  await eventsBadge.hover();
+  await expect(
+    page.getByRole("tooltip").filter({ hasText: "No tags selected" }),
+  ).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
 
   await page

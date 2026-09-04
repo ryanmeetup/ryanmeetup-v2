@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { usePathname } from "next/navigation";
 import { useSearchFilter } from "@ryanmeetup/hooks";
 import {
   formatInstagramHandle,
@@ -8,13 +9,17 @@ import {
   normalizeHttpUrl,
 } from "@ryanmeetup/utils";
 import {
+  Breadcrumbs,
   Button,
+  Card,
   DropdownSelect,
   IconButton,
   Input,
+  Modal,
   ModalActions,
   SearchInput,
   Textarea,
+  Tooltip,
 } from "@ryanmeetup/ui";
 import {
   FiBriefcase,
@@ -24,6 +29,7 @@ import {
   FiPhone,
   FiPlus,
   FiTrash2,
+  FiUsers,
 } from "react-icons/fi";
 import type {
   Contact,
@@ -32,7 +38,8 @@ import type {
   ContactDraftPerson,
 } from "@/lib/contacts/contact-types";
 import { CONTACT_GROUPS } from "@/lib/contacts/contact-types";
-import { CountBadge, EditorSurface } from "@/components/global";
+import { contactDraftSignature } from "@/lib/contacts/contact-draft";
+import { CountBadge, PageHeader } from "@/components/global";
 
 const blankPerson = (): ContactDraftPerson => ({
   full_name: "",
@@ -75,20 +82,51 @@ function ContactMethodsEditor({
   onChange: (methods: ContactMethod[]) => void;
 }) {
   const noun = kind === "email" ? "email address" : "phone number";
-  const icon =
-    kind === "email" ? <FiMail aria-hidden /> : <FiPhone aria-hidden />;
+  const heading = kind === "email" ? "Email addresses" : "Phone numbers";
+  const Icon = kind === "email" ? FiMail : FiPhone;
   return (
-    <fieldset className="space-y-3">
-      <legend className="text-xs font-semibold uppercase tracking-[0.16em] text-black/60 dark:text-white/60">
-        {kind === "email" ? "Email addresses" : "Phone numbers"}
-      </legend>
+    <fieldset className="min-w-0 space-y-3">
+      <legend className="sr-only">{heading}</legend>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <Icon
+            aria-hidden
+            className="shrink-0 text-black/50 dark:text-white/50"
+          />
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-black/60 dark:text-white/60">
+            {heading}
+          </span>
+          <CountBadge>{methods.length}</CountBadge>
+        </div>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="shrink-0"
+          leftIcon={<FiPlus aria-hidden />}
+          disabled={disabled || methods.length >= 10}
+          title={
+            methods.length >= 10
+              ? `Up to 10 ${heading.toLowerCase()}`
+              : undefined
+          }
+          onClick={() => onChange([...methods, { label: null, value: "" }])}
+        >
+          Add {kind === "email" ? "email" : "phone"}
+        </Button>
+      </div>
+      {methods.length === 0 && (
+        <p className="rounded-lg border border-dashed border-black/15 px-3 py-4 text-center text-xs text-black/50 dark:border-white/15 dark:text-white/50">
+          No {heading.toLowerCase()} added.
+        </p>
+      )}
       {methods.map((method, index) => (
         <div
           key={index}
-          className="grid items-end gap-3 rounded-xl border border-black/10 bg-white/60 p-3 dark:border-white/10 dark:bg-black/10 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto]"
+          className="grid items-end gap-3 rounded-lg border border-black/10 bg-white/60 p-3 dark:border-white/10 dark:bg-black/10 sm:grid-cols-[minmax(7rem,0.7fr)_minmax(0,2fr)]"
         >
           <Input
-            label={`${kind === "email" ? "Email" : "Phone"} label`}
+            label="Label"
             name={`person-${personIndex}-${kind}-${index}-label`}
             value={method.label ?? ""}
             maxLength={40}
@@ -105,15 +143,12 @@ function ContactMethodsEditor({
             }
           />
           <Input
-            label={
-              index === 0
-                ? noun[0].toUpperCase() + noun.slice(1)
-                : `Additional ${noun}`
-            }
+            label={noun[0].toUpperCase() + noun.slice(1)}
             name={`person-${personIndex}-${kind}-${index}-value`}
             type={kind === "email" ? "email" : "text"}
             inputMode={kind === "phone" ? "tel" : "email"}
             required
+            autoFocus={!method.value && index === methods.length - 1}
             value={method.value}
             maxLength={kind === "email" ? 254 : 40}
             placeholder={
@@ -135,54 +170,38 @@ function ContactMethodsEditor({
                 ),
               )
             }
-          />
-          <IconButton
-            label={`Remove ${method.label?.trim() || noun}`}
-            variant="danger"
-            disabled={disabled}
-            onClick={() =>
-              onChange(
-                methods.filter((_, methodIndex) => methodIndex !== index),
-              )
+            trailingAction={
+              <IconButton
+                label={`Remove ${method.label?.trim() || noun}`}
+                variant="danger"
+                disabled={disabled}
+                onClick={() =>
+                  onChange(
+                    methods.filter((_, methodIndex) => methodIndex !== index),
+                  )
+                }
+              >
+                <FiTrash2 aria-hidden />
+              </IconButton>
             }
-          >
-            <FiTrash2 aria-hidden />
-          </IconButton>
+          />
         </div>
       ))}
-      <Button
-        type="button"
-        variant="secondary"
-        size="sm"
-        className="w-full sm:w-auto"
-        leftIcon={icon}
-        disabled={disabled || methods.length >= 10}
-        onClick={() => onChange([...methods, { label: null, value: "" }])}
-      >
-        Add {noun}
-      </Button>
     </fieldset>
   );
 }
 
 type ContactEditorProps = {
   contact?: Contact | null;
-  open: boolean;
   saving: boolean;
+  backHref: string;
   onClose: () => void;
   onSave: (draft: ContactDraft, imageFile: File | null) => void;
-} & (
-  | { presentation?: "modal" }
-  /** The mobile route. See `docs/MOBILE_EDITOR_SURFACES.md`. */
-  | { presentation: "page"; backHref: string }
-);
+};
 
 export function ContactEditor(props: ContactEditorProps) {
-  const { contact, open, saving, onClose, onSave } = props;
-  const surface =
-    props.presentation === "page"
-      ? ({ presentation: "page", backHref: props.backHref } as const)
-      : ({ presentation: "modal" } as const);
+  const { contact, saving, backHref, onClose, onSave } = props;
+  const pathname = usePathname();
   const [draft, setDraft] = useState(() => makeDraft(contact));
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState(contact?.image_url ?? null);
@@ -238,6 +257,18 @@ export function ContactEditor(props: ContactEditorProps) {
           method.value.trim(),
         ),
     );
+  // An edit that saves the same values is a request the server accepts and a
+  // page reload the reader learns nothing from, so the button says so instead.
+  // A brand-new contact has nothing to compare against; `valid` already holds
+  // its Create button until the form is worth submitting.
+  const savedSignature = useMemo(
+    () => contactDraftSignature(makeDraft(contact)),
+    [contact],
+  );
+  const unchanged =
+    Boolean(contact) &&
+    imageFile === null &&
+    contactDraftSignature(draft) === savedSignature;
   const indexedPeople = useMemo(
     () => draft.people.map((person, index) => ({ person, index })),
     [draft.people],
@@ -293,37 +324,61 @@ export function ContactEditor(props: ContactEditorProps) {
     setRemovePersonOnCancel(false);
   }
 
-  return (
-    <EditorSurface
-      {...surface}
-      open={open}
-      setOpen={(next) => {
-        if (!next && !saving) onClose();
-      }}
-      title={contact ? `Edit ${contact.display_name}` : "New Contact"}
-      description="Manage this contact and the people you know there."
-      size="xl"
-      maxHeight="min(48rem, calc(100dvh - 2rem))"
-      actions={
-        <ModalActions
-          confirmDisabled={!valid || saving}
-          confirmForm={editorFormId}
-          confirmLabel={contact ? "Save changes" : "Create contact"}
-          onCancel={onClose}
-          pending={saving}
-          pendingLabel={contact ? "Saving…" : "Creating…"}
-        />
-      }
+  // Only the unchanged case is worth a tooltip: an incomplete form already
+  // marks its own fields, and a save in flight explains itself. A disabled
+  // button swallows the hover the tooltip needs, so it gives up its pointer
+  // events to the wrapper that carries them — it refuses clicks either way.
+  const explainUnchanged = unchanged && valid && !saving;
+  const saveButton = (
+    <Button
+      type="submit"
+      className={`w-full sm:w-auto ${explainUnchanged ? "pointer-events-none" : ""}`}
+      disabled={!valid || saving || unchanged}
+      loading={saving}
+      loadingText={contact ? "Saving…" : "Creating…"}
     >
+      {contact ? "Save changes" : "Create contact"}
+    </Button>
+  );
+
+  return (
+    <div className="mx-auto w-full min-w-0 max-w-5xl space-y-6">
+      {/* The trail replaces the old back button and the kicker above the
+          title, which both said "Contacts" a second time. It goes to the
+          directory itself; Cancel is the control that returns to the list the
+          way it was left. */}
+      <div className="min-w-0 space-y-2">
+        <Breadcrumbs
+          variant="compact"
+          crumbs={[
+            {
+              current: false,
+              href: backHref,
+              icon: <FiUsers aria-hidden className="shrink-0" />,
+              title: "Contacts",
+            },
+            {
+              current: true,
+              href: pathname,
+              icon: <FiBriefcase aria-hidden className="shrink-0" />,
+              title: contact?.display_name ?? "New contact",
+            },
+          ]}
+        />
+        <PageHeader
+          title={contact ? `Edit ${contact.display_name}` : "New contact"}
+          description="Manage this contact and the people you know there."
+        />
+      </div>
       <form
         id={editorFormId}
         className="space-y-6"
         onSubmit={(event) => {
           event.preventDefault();
-          if (valid) onSave(draft, imageFile);
+          if (valid && !unchanged) onSave(draft, imageFile);
         }}
       >
-        <section className="rounded-2xl border border-black/10 bg-black/[0.02] p-4 dark:border-white/10 dark:bg-white/[0.025] sm:p-6">
+        <Card size="lg">
           <div className="grid items-start gap-6 sm:grid-cols-[8rem_minmax(0,1fr)] lg:gap-8">
             <div className="flex items-center gap-4 sm:flex-col sm:items-start sm:gap-3">
               <div
@@ -381,63 +436,67 @@ export function ContactEditor(props: ContactEditorProps) {
                   }
                 />
               </div>
-              <div>
-                <Input
-                  label="Direct image URL"
-                  name="contact-image-url"
-                  type="text"
-                  value={draft.imageUrl}
-                  maxLength={2048}
-                  placeholder="https://example.com/logo.png"
-                  error={Boolean(imageError)}
-                  disabled={saving}
-                  onBlur={() => {
-                    if (!draft.imageUrl.trim()) return;
-                    const normalized = normalizeHttpUrl(draft.imageUrl);
-                    if (!normalized) {
-                      setImageError("Enter a valid HTTP or HTTPS image URL.");
-                      return;
-                    }
-                    setDraft((current) => ({
-                      ...current,
-                      imageUrl: normalized,
-                    }));
-                    setImagePreview(normalized);
-                    setImageError("");
-                  }}
-                  onChange={(event) => {
-                    setImageFile(null);
-                    setDraft((current) => ({
-                      ...current,
-                      imageUrl: event.target.value,
-                      retainImage: false,
-                    }));
-                    setImagePreview(event.target.value || null);
-                    setImageError("");
-                  }}
-                />
+              {/* The button sits on the field's baseline, so its `md` height
+                  matches the input's rather than floating above it. */}
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <div className="min-w-0 flex-1">
+                  <Input
+                    label="Direct image URL"
+                    name="contact-image-url"
+                    type="text"
+                    value={draft.imageUrl}
+                    maxLength={2048}
+                    placeholder="https://example.com/logo.png"
+                    error={Boolean(imageError)}
+                    disabled={saving}
+                    onBlur={() => {
+                      if (!draft.imageUrl.trim()) return;
+                      const normalized = normalizeHttpUrl(draft.imageUrl);
+                      if (!normalized) {
+                        setImageError("Enter a valid HTTP or HTTPS image URL.");
+                        return;
+                      }
+                      setDraft((current) => ({
+                        ...current,
+                        imageUrl: normalized,
+                      }));
+                      setImagePreview(normalized);
+                      setImageError("");
+                    }}
+                    onChange={(event) => {
+                      setImageFile(null);
+                      setDraft((current) => ({
+                        ...current,
+                        imageUrl: event.target.value,
+                        retainImage: false,
+                      }));
+                      setImagePreview(event.target.value || null);
+                      setImageError("");
+                    }}
+                  />
+                </div>
+                {imagePreview && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="md"
+                    className="w-full shrink-0 sm:w-auto"
+                    disabled={saving}
+                    onClick={() => {
+                      setImageFile(null);
+                      setImagePreview(null);
+                      setImageError("");
+                      setDraft((current) => ({
+                        ...current,
+                        imageUrl: "",
+                        retainImage: false,
+                      }));
+                    }}
+                  >
+                    Remove image
+                  </Button>
+                )}
               </div>
-              {imagePreview && (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  className="w-full sm:w-auto"
-                  disabled={saving}
-                  onClick={() => {
-                    setImageFile(null);
-                    setImagePreview(null);
-                    setImageError("");
-                    setDraft((current) => ({
-                      ...current,
-                      imageUrl: "",
-                      retainImage: false,
-                    }));
-                  }}
-                >
-                  Remove image
-                </Button>
-              )}
               <DropdownSelect
                 variant="field"
                 label="Group"
@@ -465,29 +524,52 @@ export function ContactEditor(props: ContactEditorProps) {
                   {imageError}
                 </p>
               )}
-              <div className="max-w-3xl">
-                <Textarea
-                  id="contact-notes"
-                  name="contact-notes"
-                  label="Description"
-                  value={draft.notes}
-                  maxLength={5000}
-                  rows={3}
-                  placeholder="Add context about the contact or relationship"
-                  disabled={saving}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      notes: event.target.value,
-                    }))
-                  }
-                />
-              </div>
+              <Textarea
+                id="contact-notes"
+                name="contact-notes"
+                label="Description"
+                value={draft.notes}
+                maxLength={5000}
+                rows={3}
+                placeholder="Add context about the contact or relationship"
+                disabled={saving}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    notes: event.target.value,
+                  }))
+                }
+              />
             </div>
           </div>
-        </section>
+          {/* The actions sit with the contact's own fields instead of
+              trailing the whole page: on a contact with many people the old
+              footer was a scroll away from anything it changed. It is still
+              the form's submit, so the people below are committed with it. */}
+          <div className="mt-6 flex flex-col-reverse gap-2 border-t border-black/10 pt-5 dark:border-white/10 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full sm:w-auto"
+              disabled={saving}
+              onClick={onClose}
+            >
+              Cancel
+            </Button>
+            {explainUnchanged ? (
+              <Tooltip
+                content="No changes to save yet."
+                triggerClassName="w-full cursor-not-allowed sm:w-auto"
+              >
+                {saveButton}
+              </Tooltip>
+            ) : (
+              saveButton
+            )}
+          </div>
+        </Card>
 
-        <section className="space-y-3">
+        <Card size="lg" className="space-y-3">
           <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="w-full min-w-0">
               <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em]">
@@ -525,26 +607,48 @@ export function ContactEditor(props: ContactEditorProps) {
             </p>
           )}
           {activePerson && activePersonIndex !== null && (
-            <div className="rounded-xl border border-black/10 bg-black/[0.025] p-4 dark:border-white/10 dark:bg-white/[0.04] sm:p-5">
-              <div className="mb-4 flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-black/55 dark:text-white/55">
-                    {activePerson.id ? "Edit person" : "New person"}
-                  </p>
-                  <p className="mt-1 text-sm text-black/60 dark:text-white/60">
-                    Add their name and the best way to reach them.
-                  </p>
-                </div>
-                <IconButton
-                  label={`Remove ${activePerson.full_name.trim() || `person ${activePersonIndex + 1}`}`}
-                  variant="danger"
-                  disabled={saving}
-                  onClick={() => removePerson(activePersonIndex)}
-                >
-                  <FiTrash2 aria-hidden />
-                </IconButton>
-              </div>
-              <div className="grid gap-4 lg:grid-cols-2">
+            <Modal
+              open
+              setIsOpen={(open) => {
+                if (!open && !saving) cancelPersonEdit();
+              }}
+              title={activePerson.id ? "Edit person" : "Add person"}
+              description="Add their name and the best ways to reach them."
+              size="xl"
+              actions={
+                <ModalActions
+                  confirmLabel={activePerson.id ? "Save person" : "Add person"}
+                  confirmDisabled={
+                    !activePerson.full_name.trim() ||
+                    [...activePerson.emails, ...activePerson.phones].some(
+                      (method) => !method.value.trim(),
+                    ) ||
+                    saving
+                  }
+                  onCancel={cancelPersonEdit}
+                  onConfirm={() => {
+                    setActivePersonIndex(null);
+                    setPersonBeforeEdit(null);
+                    setRemovePersonOnCancel(false);
+                  }}
+                />
+              }
+              supportingActions={
+                activePerson.id ? (
+                  <Button
+                    type="button"
+                    variant="danger"
+                    size="sm"
+                    leftIcon={<FiTrash2 aria-hidden />}
+                    disabled={saving}
+                    onClick={() => removePerson(activePersonIndex)}
+                  >
+                    Remove person
+                  </Button>
+                ) : undefined
+              }
+            >
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[1.5fr_1fr_1fr]">
                 <Input
                   label="Name"
                   name={`person-${activePersonIndex}-name`}
@@ -572,74 +676,55 @@ export function ContactEditor(props: ContactEditorProps) {
                     })
                   }
                 />
+                <div className="md:col-span-2 xl:col-span-1">
+                  <Input
+                    label="Instagram handle"
+                    name={`person-${activePersonIndex}-instagram`}
+                    value={activePerson.instagram_handle ?? ""}
+                    maxLength={100}
+                    placeholder="@handle"
+                    disabled={saving}
+                    onChange={(event) =>
+                      updatePerson(activePersonIndex, {
+                        instagram_handle: formatInstagramHandle(
+                          event.target.value,
+                        ),
+                      })
+                    }
+                  />
+                </div>
               </div>
-              <div className="mt-4 grid gap-5 xl:grid-cols-2">
-                <ContactMethodsEditor
-                  kind="email"
-                  personIndex={activePersonIndex}
-                  methods={activePerson.emails}
-                  disabled={saving}
-                  onChange={(emails) =>
-                    updatePerson(activePersonIndex, { emails })
-                  }
-                />
-                <ContactMethodsEditor
-                  kind="phone"
-                  personIndex={activePersonIndex}
-                  methods={activePerson.phones}
-                  disabled={saving}
-                  onChange={(phones) =>
-                    updatePerson(activePersonIndex, { phones })
-                  }
-                />
+              <div className="mt-5 rounded-xl border border-black/10 bg-white/50 p-3 dark:border-white/10 dark:bg-black/10 sm:p-4">
+                <div className="mb-4">
+                  <h3 className="text-sm font-semibold">Contact details</h3>
+                  <p className="mt-1 text-xs text-black/55 dark:text-white/55">
+                    Add as many ways to reach this person as you need.
+                  </p>
+                </div>
+                <div className="grid gap-5 xl:grid-cols-2 xl:gap-6">
+                  <ContactMethodsEditor
+                    kind="email"
+                    personIndex={activePersonIndex}
+                    methods={activePerson.emails}
+                    disabled={saving}
+                    onChange={(emails) =>
+                      updatePerson(activePersonIndex, { emails })
+                    }
+                  />
+                  <div>
+                    <ContactMethodsEditor
+                      kind="phone"
+                      personIndex={activePersonIndex}
+                      methods={activePerson.phones}
+                      disabled={saving}
+                      onChange={(phones) =>
+                        updatePerson(activePersonIndex, { phones })
+                      }
+                    />
+                  </div>
+                </div>
               </div>
-              <div className="mt-4 max-w-xl">
-                <Input
-                  label="Instagram handle"
-                  name={`person-${activePersonIndex}-instagram`}
-                  value={activePerson.instagram_handle ?? ""}
-                  maxLength={100}
-                  placeholder="@handle"
-                  disabled={saving}
-                  onChange={(event) =>
-                    updatePerson(activePersonIndex, {
-                      instagram_handle: formatInstagramHandle(
-                        event.target.value,
-                      ),
-                    })
-                  }
-                />
-              </div>
-              <div className="mt-4 flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  disabled={saving}
-                  onClick={cancelPersonEdit}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={
-                    !activePerson.full_name.trim() ||
-                    [...activePerson.emails, ...activePerson.phones].some(
-                      (method) => !method.value.trim(),
-                    ) ||
-                    saving
-                  }
-                  onClick={() => {
-                    setActivePersonIndex(null);
-                    setPersonBeforeEdit(null);
-                    setRemovePersonOnCancel(false);
-                  }}
-                >
-                  Done
-                </Button>
-              </div>
-            </div>
+            </Modal>
           )}
           {draft.people.length >= 8 && (
             <SearchInput
@@ -759,8 +844,8 @@ export function ContactEditor(props: ContactEditorProps) {
                 No people match that search.
               </p>
             )}
-        </section>
+        </Card>
       </form>
-    </EditorSurface>
+    </div>
   );
 }

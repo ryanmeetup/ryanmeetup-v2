@@ -20,15 +20,15 @@ the scroll length inside a fixed-height box.
 
 ## What shipped: the Tier 1 editors
 
-The five heaviest editors now have a dedicated mobile route. Desktop is
-unchanged and still opens a dialog.
+The five heaviest editors now have dedicated routes. Contacts use those routes
+at every viewport; desktop still opens a dialog for the other four editors.
 
-| Editor | Mobile route | Dialog it replaces |
+| Editor | Route | Desktop behavior |
 | --- | --- | --- |
 | Task | `/task/new`, `/task/[key]/edit` | `TaskEditor` |
 | Project | `/projects/new`, `/projects/[id]/edit` | `ProjectsModal` |
 | Category | `/categories/new`, `/categories/[id]/edit` | `CategoriesModal` |
-| Contact | `/contacts/new`, `/contacts/[id]/edit` | `ContactEditor` |
+| Contact | `/contacts/new`, `/contacts/[contact]/edit` | Uses the route |
 | Calendar event | `/calendar/event/new`, `/calendar/event/[id]/edit` | `CalendarEventEditorModal` |
 
 ### How it works
@@ -38,11 +38,13 @@ footer that holds `supportingActions` on the left and `ModalActions` on the
 right — was extracted into `EditorChrome` in `@ryanmeetup/ui`. `Modal` renders
 it inside the dialog card exactly as before; the new `EditorPage` renders the
 same chrome as a full-height page column with a sticky action bar. Because both
-surfaces take the same `formId`/`onSubmit` contract, **the editor form bodies
-did not change at all** — each editor gained a `presentation` prop that picks
-the surface, and nothing else.
+surfaces take the same `formId`/`onSubmit` contract, editor form bodies can stay
+independent of the surface that contains them.
 
-Two rules keep this from turning into two divergent editors:
+Contacts now use their real create and edit pages at every viewport. The other
+Tier 1 editors retain the mobile-page/desktop-dialog split.
+
+Two rules keep the remaining dual-surface editors from diverging:
 
 - **The form body never knows which surface it is in.** If a field needs to
   know, that is a layout concern and belongs in the surface, not the field.

@@ -90,6 +90,22 @@ directly rather than expanding a barrel solely for internal use.
   neutral `TASK` for every build until an instance sets its own.
   Never hardcode the prefix. UUIDs remain internal identifiers and must
   not replace task keys in navigation or shared URLs.
+- Prefer human-readable route segments over raw ids. A URL is something people
+  read, paste into a message, and edit by hand, and
+  `/contacts/d0d2b336-1f78-4d00-a412-5cc6b0a517d9/edit` tells the reader nothing
+  about which contact it opens. Name the resource with a slug and let the id
+  remain the fallback for the cases a slug cannot decide —
+  `lib/contacts/contact-slug.ts` resolves a duplicated display name that way,
+  and `lib/tasks/task-key.ts` is the same rule with a per-instance key. A
+  readable URL is still untrusted input: a slug resolves only against what the
+  viewer may read, and `editorBackHref` refuses a `?from=` that is not a
+  same-origin absolute path.
+- Prefer state the browser already keeps over state encoded in a URL. An editor
+  route reached from a single surface needs no `?from=`: `router.back()` returns
+  to the list with its search and scroll intact, and a constant href covers the
+  direct-open case — see `components/contacts/ContactEditorPageClient.tsx`.
+  `?from=` earns its place only where an editor is opened from several
+  surfaces, as the task and calendar-event routes are.
 
 `useWorkspaceData` owns the live client workspace. Demo persistence,
 realtime subscription setup, pure event reconciliation, and mutation behavior

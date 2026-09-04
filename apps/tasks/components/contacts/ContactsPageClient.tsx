@@ -27,18 +27,11 @@ import {
   FiPlus,
   FiTrash2,
 } from "react-icons/fi";
-import {
-  CountBadge,
-  desktopEditorTrigger,
-  mobileEditorTrigger,
-  useEditorReturnPath,
-  WorkspacePageShell,
-} from "@/components/global";
+import { CountBadge, WorkspacePageShell } from "@/components/global";
+import { contactEditPath } from "@/lib/contacts/contact-slug";
 import { CONTACT_GROUPS, type Contact } from "@/lib/contacts/contact-types";
 import { mutate } from "@/lib/mutation-client";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
-import { ContactEditor } from "./ContactEditor";
-import { useContactSave } from "./useContactSave";
 import { errorMessage } from "@/lib/presentation";
 
 function contactSearchText(contact: Contact) {
@@ -72,14 +65,6 @@ export function ContactsPageClient({
   const [data, setData] = useState(initialData);
   const [contacts, setContacts] = useState(initialContacts);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [editing, setEditing] = useState<Contact | null | undefined>();
-  const returnPath = useEditorReturnPath();
-  const { saving, saveContact } = useContactSave({
-    demoMode,
-    editing,
-    setContacts,
-    onSaved: () => setEditing(undefined),
-  });
   const [deleting, setDeleting] = useState<Contact | null>(null);
   const [deletingPending, setDeletingPending] = useState(false);
   const previewing = Boolean(data.accessPreview);
@@ -252,26 +237,14 @@ export function ContactsPageClient({
                   </Button>
                 </Tooltip>
               ) : (
-                <>
-                  {/* Route on a phone, dialog from `sm` up — see editor-routes.ts. */}
-                  <Button.Link
-                    href={`/contacts/new?from=${encodeURIComponent(returnPath)}`}
-                    size="sm"
-                    className={`w-full ${mobileEditorTrigger}`}
-                    leftIcon={<FiPlus aria-hidden />}
-                  >
-                    New Contact
-                  </Button.Link>
-                  <Button
-                    type="button"
-                    size="sm"
-                    className={desktopEditorTrigger}
-                    leftIcon={<FiPlus aria-hidden />}
-                    onClick={() => setEditing(null)}
-                  >
-                    New Contact
-                  </Button>
-                </>
+                <Button.Link
+                  href="/contacts/new"
+                  size="sm"
+                  className="w-full sm:w-auto"
+                  leftIcon={<FiPlus aria-hidden />}
+                >
+                  New Contact
+                </Button.Link>
               )}
             </>
           }
@@ -368,21 +341,15 @@ export function ContactsPageClient({
                                     {!previewing && (
                                       <div className="flex shrink-0 gap-1">
                                         <IconButton.Link
-                                          href={`/contacts/${contact.id}/edit?from=${encodeURIComponent(returnPath)}`}
+                                          href={contactEditPath(
+                                            contact,
+                                            contacts,
+                                          )}
                                           label={`Edit “${contact.display_name}”`}
                                           variant="edit"
-                                          className={mobileEditorTrigger}
                                         >
                                           <FiEdit2 />
                                         </IconButton.Link>
-                                        <IconButton
-                                          label={`Edit “${contact.display_name}”`}
-                                          variant="edit"
-                                          className={desktopEditorTrigger}
-                                          onClick={() => setEditing(contact)}
-                                        >
-                                          <FiEdit2 />
-                                        </IconButton>
                                         <IconButton
                                           label={`Delete “${contact.display_name}”`}
                                           variant="danger"
@@ -518,16 +485,6 @@ export function ContactsPageClient({
         </ManagementSurface>
       </WorkspacePageShell>
 
-      {editing !== undefined && (
-        <ContactEditor
-          key={editing?.id ?? "new"}
-          contact={editing}
-          open
-          saving={saving}
-          onClose={() => setEditing(undefined)}
-          onSave={(draft, imageFile) => void saveContact(draft, imageFile)}
-        />
-      )}
       <ConfirmationDialog
         open={Boolean(deleting)}
         setOpen={(open) => !open && setDeleting(null)}
