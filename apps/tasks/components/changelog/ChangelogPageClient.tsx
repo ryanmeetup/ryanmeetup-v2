@@ -100,11 +100,11 @@ export function ChangelogPageClient({
                 </span>
                 <time
                   dateTime={release.date}
-                  className="mt-2 flex items-start gap-1.5 text-xs font-medium leading-5 text-black/55 dark:text-white/55"
+                  className="mt-2 flex items-center gap-1.5 text-xs font-medium leading-5 text-black/55 dark:text-white/55"
                 >
                   <FiCalendar
                     aria-hidden
-                    className="mt-0.5 shrink-0 text-black/35 dark:text-white/35"
+                    className="shrink-0 text-black/35 dark:text-white/35"
                   />
                   {release.dateLabel}
                 </time>

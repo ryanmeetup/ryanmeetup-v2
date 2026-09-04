@@ -96,7 +96,6 @@ export function CalendarEventEditorPageClient({
     >
       <CalendarEventEditorModal
         presentation="page"
-        backHref={backHref}
         categories={data.categories}
         currentProfileId={data.currentProfile.id}
         editor={editor}

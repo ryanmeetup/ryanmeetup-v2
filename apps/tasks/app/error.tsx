@@ -26,7 +26,7 @@ export default function ErrorPage({
             Reference: <code>{error.digest}</code>
           </p>
         ) : null}
-        <Button type="button" onClick={reset}>
+        <Button type="button" size="md" onClick={reset}>
           Try again
         </Button>
       </div>

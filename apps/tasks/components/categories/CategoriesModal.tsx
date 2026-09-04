@@ -95,12 +95,10 @@ type CategoriesModalOptions = {
   editCategoryId?: string | null;
   readOnly?: boolean;
   /**
-   * `"page"` renders the create and edit forms as the dedicated mobile routes
-   * instead of dialogs. `backHref` is where their back control returns to.
-   * See `docs/MOBILE_EDITOR_SURFACES.md`.
+   * `"page"` renders the create and edit forms as the dedicated editor routes
+   * instead of dialogs. See `docs/MOBILE_EDITOR_SURFACES.md`.
    */
   presentation?: "modal" | "page";
-  backHref?: string;
 };
 
 type CategoriesModalCommonProps = {
@@ -146,15 +144,26 @@ export function CategoriesModal({
     editCategoryId = null,
     readOnly = false,
     presentation = "modal",
-    backHref = "/categories",
   } = options ?? {};
   /**
    * The editor routes mount this component with `createOnly` or
    * `editCategoryId` set, so only those two surfaces ever render as a page.
+   * Each one names the record it is editing, so the trail is built per surface
+   * rather than once for the component.
    */
-  const surface =
+  const pageSurface = (crumb: string) =>
     presentation === "page"
-      ? ({ presentation: "page", backHref } as const)
+      ? ({
+          presentation: "page" as const,
+          parents: [
+            {
+              href: "/categories",
+              title: "Categories",
+              icon: <FiTag aria-hidden className="shrink-0" />,
+            },
+          ],
+          crumb: { title: crumb },
+        })
       : ({ presentation: "modal" } as const);
   const createOnly = createOnlyOption ?? !embedded;
   const { onCreate, onCategoryUpdated } = events ?? {};
@@ -724,10 +733,15 @@ export function CategoriesModal({
 
     return (
       <EditorSurface
-        {...surface}
+        {...pageSurface("New category")}
         open={modal.open && !editingId}
         setOpen={modal.setOpen}
         title={title}
+        description={
+          createOnly
+            ? "Give related work a recognizable label and color. You can edit or archive it from the Categories page later."
+            : undefined
+        }
         actions={
           <ModalActions
             confirmForm="create-category-form"
@@ -775,10 +789,6 @@ export function CategoriesModal({
         <>
           {createOnly ? (
             <div className="space-y-4">
-              <p className="text-sm text-black/60 dark:text-white/60">
-                Give related work a recognizable label and color. You can edit
-                or archive it from the Categories page later.
-              </p>
               <ExpandableResourceEditor
                 expanded={createDetailsOpen}
                 setExpanded={setCreateDetailsOpen}
@@ -1104,11 +1114,12 @@ export function CategoriesModal({
             );
           return (
             <EditorSurface
-              {...surface}
+              {...pageSurface(category.name)}
               setOpen={(nextOpen) => {
                 if (!nextOpen) closeEditor();
               }}
               title={`Edit ${category.name}`}
+              description="Update the label, color, and who this category is for."
               size={editDetailsOpen ? "2xl" : "lg"}
               panelClassName="transition-[max-width] duration-300 ease-out motion-reduce:transition-none"
               actions={

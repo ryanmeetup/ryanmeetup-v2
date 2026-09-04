@@ -1,6 +1,7 @@
 # Mobile editor surfaces
 
 Audit date: 2026-09-03
+Revised: 2026-09-04 — the Tier 1 routes are real pages, not dialogs on a route.
 Status: Tier 1 shipped. Tier 2 and the open questions below are not started.
 
 Every create/edit flow in the Tasks app was a `Modal`. On a phone the shared
@@ -33,18 +34,47 @@ at every viewport; desktop still opens a dialog for the other four editors.
 
 ### How it works
 
-`Modal`'s chrome — header, scrolling body with its two scroll shadows, and the
-footer that holds `supportingActions` on the left and `ModalActions` on the
-right — was extracted into `EditorChrome` in `@ryanmeetup/ui`. `Modal` renders
-it inside the dialog card exactly as before; the new `EditorPage` renders the
-same chrome as a full-height page column with a sticky action bar. Because both
-surfaces take the same `formId`/`onSubmit` contract, editor form bodies can stay
-independent of the surface that contains them.
+`EditorSurface` in `components/global/` picks the surface, and it is the only
+file that knows there are two. `presentation: "modal"` renders the shared
+`Modal`; `presentation: "page"` renders `EditorPageSurface`. Both take the same
+`formId`/`onSubmit` contract, so an editor's form body is written once and does
+not know which surface it landed in.
 
-Contacts now use their real create and edit pages at every viewport. The other
-Tier 1 editors retain the mobile-page/desktop-dialog split.
+The two surfaces are genuinely different screens. The first version of this work
+made the page branch render `Modal`'s own chrome — a bordered card with a close
+control in its corner and a sticky action bar — which is a dialog wearing a URL.
+A dialog is a layer over something else, so it dims a backdrop, caps its own
+height, scrolls inside a card, and offers a control whose only job is to reveal
+what it covered. A route covers nothing. So `EditorPageSurface` builds a page:
 
-Two rules keep the remaining dual-surface editors from diverging:
+- a **compact breadcrumb trail** back to the editor's list, in place of the
+  dialog's close button — the trail says where you are, which a close button
+  cannot;
+- the same **`PageHeader`** every other workspace screen uses, with the title as
+  a real `h1` and a one-line description under it;
+- the form in **`Card` sections** that scroll with the document, so the browser's
+  own URL-bar collapse gives the form the whole viewport;
+- the **commit actions in the card**, under the fields they save, rather than
+  pinned above them;
+- a **column that widens with the form**. `size` is the one dialog-shaped prop
+  the page branch honours, because it is really a statement about how much room
+  the form needs: the editors whose supporting details open *beside* the fields
+  already raise it, and `EditorPageSurface` reads it off its own scale — the
+  dialog's rungs shifted one wider, since a page has no backdrop to leave room
+  for. A page that dropped it kept a fixed column and crushed the two-column
+  grid into the width one column needed.
+
+`components/contacts/ContactEditor.tsx` is the reference composition. It builds
+this shape directly rather than through `EditorSurface`, because it is the one
+editor whose action row moves between sections — with an existing contact the
+actions sit with the fields most often edited, above a People list that can run
+long; on a new contact everything is new, so they go last. Keep the two in step
+by eye: same trail, same header, same cards.
+
+Contacts use their route at every viewport. The other four editors keep the
+mobile-page/desktop-dialog split.
+
+Three rules keep the dual-surface editors from diverging:
 
 - **The form body never knows which surface it is in.** If a field needs to
   know, that is a layout concern and belongs in the surface, not the field.
@@ -52,6 +82,11 @@ Two rules keep the remaining dual-surface editors from diverging:
   is visible below `sm` and a button that is visible from `sm` up, both always
   mounted. There is no `matchMedia` in the routing decision, so there is no
   hydration mismatch and no flash of the wrong surface.
+- **The trail is canonical; the return is not.** `parents` names the screens the
+  editor sits under — always the list itself, plus the record's own page where
+  there is one. Where cancelling *returns* to is a separate question answered by
+  `?from=` or `router.back()`, because the author may have arrived from the
+  calendar or a project.
 
 ### Why the trigger pairs live where they do
 
@@ -97,8 +132,9 @@ larger touch targets — independent of the surface question.
 `components/usage/EmailDetailModal.tsx` (244 lines, size `xl`) and
 `components/calendar/GoogleEventModal.tsx` (479 lines, size `lg`). Both render
 long content in a capped box, but both are read-only, so there is no draft to
-lose and no keyboard competing for height. `EditorPage` would work for them
-unchanged; they are last because the cost of the status quo is only scrolling.
+lose and no keyboard competing for height. They want a read view rather than
+`EditorPageSurface`, which is built around a form; they are last because the
+cost of the status quo is only scrolling.
 
 ## Deliberately left as modals
 

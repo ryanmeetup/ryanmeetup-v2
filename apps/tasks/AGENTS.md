@@ -106,6 +106,13 @@ directly rather than expanding a barrel solely for internal use.
   direct-open case — see `components/contacts/ContactEditorPageClient.tsx`.
   `?from=` earns its place only where an editor is opened from several
   surfaces, as the task and calendar-event routes are.
+- A dedicated create/edit route is a page, not a dialog that happens to have a
+  URL. It gets a breadcrumb trail, a `PageHeader`, `Card` sections that scroll
+  with the document, and its commit actions under the fields they save — never
+  a bordered card with a corner close button and a pinned action bar. Render
+  through `EditorSurface`, whose `presentation: "page"` branch is the only
+  place that shape is written. See `docs/MOBILE_EDITOR_SURFACES.md` and
+  `components/contacts/ContactEditor.tsx`.
 
 `useWorkspaceData` owns the live client workspace. Demo persistence,
 realtime subscription setup, pure event reconciliation, and mutation behavior

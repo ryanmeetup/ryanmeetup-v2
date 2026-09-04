@@ -120,6 +120,7 @@ export function TaskChecklistPanel({
         <Button
           type="button"
           variant="action"
+          size="field"
           leftIcon={<FiPlus />}
           onClick={onAdd}
           loading={saving}

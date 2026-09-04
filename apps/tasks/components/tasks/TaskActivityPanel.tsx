@@ -69,16 +69,20 @@ export function TaskActivityPanel({
               key={item.id}
               className="flex items-start gap-2 border-l-2 border-black/10 pl-3 text-sm dark:border-white/10"
             >
-              <ActivityActorAvatar profile={profile} />
+              {/* A 24px avatar in a 20px line box centers on the first line
+                  instead of hanging below it. */}
+              <span className="flex h-5 shrink-0 items-center">
+                <ActivityActorAvatar profile={profile} />
+              </span>
               <div className="min-w-0 flex-1">
                 <p>
                   <strong>{name}</strong> {item.action}
                 </p>
                 <ActivityChangeList changes={changes} className="mt-1" />
-                <p className="mt-1 flex items-start gap-2 text-xs text-black/45 dark:text-white/45">
+                <p className="mt-1 flex items-center gap-2 text-xs text-black/45 dark:text-white/45">
                   <FiClock
                     aria-hidden
-                    className="mt-0.5 h-3.5 w-3.5 shrink-0 text-black/30 dark:text-white/30"
+                    className="h-3.5 w-3.5 shrink-0 text-black/30 dark:text-white/30"
                   />
                   <time dateTime={item.created_at}>
                     {formatTimestamp(item.created_at)}

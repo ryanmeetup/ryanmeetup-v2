@@ -39,6 +39,7 @@ const PosterContainer = (props: PosterContainerProps) => {
       {download && (
         <Button
           onClick={() => window.open("/posters/posters.zip")}
+          size="md"
           leftIcon={<Download />}
           className="mt-8 w-full"
         >

@@ -115,7 +115,7 @@ export function TaskBoardView({
   return (
     <div
       ref={scrollRef}
-      className="-mx-4 flex min-h-[28rem] flex-1 flex-nowrap items-stretch gap-4 overflow-x-auto overscroll-x-contain px-4 scroll-px-4 sm:-mx-6 sm:px-6 sm:scroll-px-6 lg:-mx-8 lg:px-8 lg:scroll-px-8"
+      className="-mx-4 flex min-h-[28rem] flex-1 flex-nowrap items-stretch gap-3 overflow-x-auto overscroll-x-contain px-4 scroll-px-4 sm:-mx-6 sm:gap-4 sm:px-6 sm:scroll-px-6 lg:-mx-8 lg:px-8 lg:scroll-px-8"
     >
       {statuses.map((status) => {
         const columnTasks = model.columns.get(status.id) ?? [];
@@ -146,14 +146,14 @@ export function TaskBoardView({
                 status.id,
               );
             }}
-            className={`${collapsed ? "w-[240px] self-start" : "w-[min(320px,calc(100vw-3rem))]"} mb-6 shrink-0 rounded-2xl p-3 transition-[width,background-color,box-shadow] ${drag.state.dragOverStatusId === status.id ? "bg-[#d9dcd7] ring-2 ring-inset ring-black/30 dark:bg-[#242424] dark:ring-white/40" : "bg-[#e7e8e5] dark:bg-[#1b1b1b]"}`}
+            className={`${collapsed ? "w-[168px] self-start sm:w-[240px]" : "w-[min(240px,70vw)] sm:w-[min(320px,calc(100vw-3rem))]"} mb-6 shrink-0 rounded-2xl p-2 transition-[width,background-color,box-shadow] sm:p-3 ${drag.state.dragOverStatusId === status.id ? "bg-[#d9dcd7] ring-2 ring-inset ring-black/30 dark:bg-[#242424] dark:ring-white/40" : "bg-[#e7e8e5] dark:bg-[#1b1b1b]"}`}
           >
-            <div className="flex items-center gap-2 px-1">
+            <div className="flex items-center gap-1.5 px-1 sm:gap-2">
               <i
                 className="h-2.5 w-2.5 shrink-0 rounded-full"
                 style={{ backgroundColor: status.color }}
               />
-              <h2 className="shrink-0 whitespace-nowrap text-xs font-bold uppercase tracking-[0.16em]">
+              <h2 className="shrink-0 whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.12em] sm:text-xs sm:tracking-[0.16em]">
                 {status.name}
               </h2>
               <span className="text-xs text-black/40 dark:text-white/40">
@@ -178,14 +178,14 @@ export function TaskBoardView({
               </IconButton>
             </div>
             {!collapsed && (
-              <p className="mt-2 line-clamp-2 h-10 px-1 text-sm leading-snug text-black/60 dark:text-white/60">
+              <p className="mt-1.5 line-clamp-2 h-8 px-1 text-xs leading-snug text-black/60 sm:mt-2 sm:h-10 sm:text-sm dark:text-white/60">
                 {status.description}
               </p>
             )}
             <AnimatedCollapse
               id={`status-column-${status.id}`}
               open={!collapsed}
-              className={collapsed ? "" : "mt-3"}
+              className={collapsed ? "" : "mt-2 sm:mt-3"}
             >
               <BoardColumnTasks
                 statusId={status.id}

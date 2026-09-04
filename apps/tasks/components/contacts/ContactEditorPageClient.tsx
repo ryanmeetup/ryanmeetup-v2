@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { WorkspacePageShell } from "@/components/global";
+import {
+  editorPageContentClassName,
+  WorkspacePageShell,
+} from "@/components/global";
 import { CONTACTS_HREF } from "@/lib/contacts/contact-slug";
 import type { Contact } from "@/lib/contacts/contact-types";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
@@ -63,7 +66,7 @@ export function ContactEditorPageClient({
       sidebarOpen={sidebarOpen}
       setSidebarOpen={setSidebarOpen}
       setData={setData}
-      contentClassName="p-4 sm:p-6 lg:p-8"
+      contentClassName={editorPageContentClassName}
     >
       <ContactEditor
         backHref={CONTACTS_HREF}

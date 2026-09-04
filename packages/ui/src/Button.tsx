@@ -13,6 +13,7 @@ export type ButtonLinkProps = Omit<ComponentProps<typeof NextLink>, "href"> & {
   href: string;
   newTab?: boolean;
   variant?: ButtonVariant;
+  /** Compact by default; `field` matches shared form-control height. */
   size?: ButtonSize;
   fullWidth?: boolean;
 };
@@ -22,6 +23,7 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   leftIcon?: ReactNode;
   rightIcon?: ReactNode;
   variant?: ButtonVariant;
+  /** Compact by default; `field` matches shared form-control height. */
   size?: ButtonSize;
   fullWidth?: boolean;
   loading?: boolean;
@@ -35,11 +37,12 @@ export type ButtonVariant =
   | "danger"
   | "outline"
   | "ghost";
-export type ButtonSize = "xs" | "sm" | "md" | "lg";
+export type ButtonSize = "xs" | "sm" | "field" | "md" | "lg";
 
 const sizeStyles: Record<ButtonSize, string> = {
   xs: "px-3 py-1.5 text-[11px] tracking-[0.16em]",
   sm: "px-4 py-2 text-xs",
+  field: "h-[42px] px-4 py-0 text-xs",
   md: "px-5 py-2.5 text-sm",
   lg: "px-6 py-3 text-sm",
 };
@@ -99,7 +102,7 @@ const ButtonLink = (props: ButtonLinkProps) => {
     newTab = false,
     download,
     variant = "primary",
-    size = "md",
+    size = "sm",
     fullWidth = false,
     onClick,
     ...linkProps
@@ -151,7 +154,7 @@ const Button = (props: ButtonProps) => {
     rightIcon,
     disabled = false,
     variant = "primary",
-    size = "md",
+    size = "sm",
     fullWidth = false,
     loading = false,
     loadingText,

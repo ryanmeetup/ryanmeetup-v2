@@ -39,7 +39,7 @@ export function ForgotPasswordForm() {
         ) : (
           <form className="mt-6 space-y-5" onSubmit={submit}>
             <Input label="Email" name="email" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" />
-            <Button type="submit" fullWidth loading={loading} loadingText="Sending link...">Send reset link</Button>
+            <Button type="submit" size="md" fullWidth loading={loading} loadingText="Sending link...">Send reset link</Button>
             <p className="text-center"><Link href="/login" className="text-sm font-semibold underline-offset-4 hover:underline">Back to sign in</Link></p>
           </form>
         )}

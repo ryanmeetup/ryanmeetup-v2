@@ -11,7 +11,7 @@ export function TaskKeyBadge({
   size?: "compact" | "title" | "prominent";
 }) {
   const sizeClasses = {
-    compact: "rounded-md border px-2 py-1 text-[10px]",
+    compact: "rounded-md border px-1.5 py-1 text-[10px] sm:px-2",
     title: "rounded-md border px-2.5 py-1.5 text-xs",
     prominent:
       "rounded-2xl border-4 px-8 py-5 text-4xl sm:px-10 sm:py-6 sm:text-5xl",

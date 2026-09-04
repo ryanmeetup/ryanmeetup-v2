@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  wideEditorPageContentClassName,
+  editorPageContentClassName,
   WorkspacePageShell,
 } from "@/components/global";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
@@ -14,8 +14,9 @@ import { ProjectsModal } from "./ProjectsModal";
  *
  * `ProjectsModal` already renders exactly one surface when it is given
  * `createOnly` or `editProjectId`, so the route mounts it with the same options
- * the dialog uses and only changes the presentation. Nothing about the form or
- * its mutations is duplicated here.
+ * the dialog uses and only changes the presentation. The form and its mutations
+ * are shared; the chrome around them is not — `presentation: "page"` swaps the
+ * dialog for a titled page in a breadcrumb trail.
  */
 export function ProjectEditorPageClient({
   initialData,
@@ -40,7 +41,7 @@ export function ProjectEditorPageClient({
       sidebarOpen={sidebarOpen}
       setSidebarOpen={setSidebarOpen}
       setData={setData}
-      contentClassName={wideEditorPageContentClassName}
+      contentClassName={editorPageContentClassName}
     >
       <ProjectsModal
         workspace={{ data, setData, demoMode }}
@@ -54,7 +55,6 @@ export function ProjectEditorPageClient({
         }}
         options={{
           presentation: "page",
-          backHref,
           ...(projectId ? { editProjectId: projectId } : { createOnly: true }),
         }}
       />

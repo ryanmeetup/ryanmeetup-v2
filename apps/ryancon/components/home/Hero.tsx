@@ -50,6 +50,7 @@ const Hero = () => {
               <Button.Link
                 className="border bg-white !text-black w-full font-semibold p-4 tracking-wide flex justify-center items-center timing hover:scale-105 lg:w-auto"
                 href="/register"
+                size="md"
                 rightIcon={<ArrowRight className="fill-black ml-4" />}
               >
                 GET TICKETS

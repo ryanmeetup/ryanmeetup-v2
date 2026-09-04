@@ -136,7 +136,7 @@ export function StoreContactForm() {
       {status === "error" && <ErrorCallout>{errorMessage}</ErrorCallout>}
 
       <FormActions>
-        <Button type="submit" leftIcon={<FiSend aria-hidden />} loading={status === "sending"} loadingText="Sending..." className="w-full sm:w-auto sm:min-w-48">
+        <Button type="submit" size="md" leftIcon={<FiSend aria-hidden />} loading={status === "sending"} loadingText="Sending..." className="w-full sm:w-auto sm:min-w-48">
           Send to customer service
         </Button>
       </FormActions>

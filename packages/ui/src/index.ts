@@ -11,13 +11,20 @@ export * from "./DropdownMenu";
 export * from "./DropdownSelect";
 export * from "./useDropdownSearch";
 export * from "./useProximityOptions";
-export * from "./EditorPage";
+export {
+  EditorFooter,
+  EditorHeader,
+  footerActionGroup,
+  type EditorFooterProps,
+  type EditorHeaderProps,
+} from "./editorChrome";
 export * from "./EmptyState";
 export * from "./ErrorCallout";
 export * from "./FilterBar";
 export * from "./FilterChip";
 export * from "./FilterPanel";
 export * from "./filterStyles";
+export { getFieldLabelClasses } from "./fieldStyles";
 export * from "./FormFeedback";
 export * from "./FormattedText";
 export * from "./Heading";

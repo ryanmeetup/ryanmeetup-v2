@@ -83,6 +83,12 @@ A workspace uses one instance name for page titles, digest emails, link previews
 
 The workspace sits on a subtle paper texture with solid task columns that stay readable over it. The board fills the space above the footer, keeping its horizontal scroller against the bottom edge, and the latest-release card starts collapsed on smaller screens.
 
+Form labels now use the same clear sentence-case heading treatment throughout task, note, resource, calendar, profile, and admin editors.
+
+Buttons that sit beside fields now match the input height with tighter typography and padding, while standalone quick actions use the same compact sizing as save and cancel controls.
+
+New contacts now finish with Create and Cancel after the People section, encouraging a complete contact record before it is saved. Existing-contact actions stay beside the contact details for quicker edits.
+
 Projects lead with active work, follow their lifecycle order, and default to Discovery. Project and category visibility controls stay with their own editors instead of appearing as a second set of controls on the Access page.
 
 ## Under the hood

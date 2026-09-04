@@ -32,11 +32,11 @@ export function BoardColumnTasks({
   });
 
   return (
-    <div className="space-y-3 p-1" aria-busy={isPending}>
+    <div className="space-y-2 p-1 sm:space-y-3" aria-busy={isPending}>
       <div className="relative">
         <FiSearch
           aria-hidden
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-black/40 dark:text-white/40"
+          className="absolute left-2.5 top-1/2 -translate-y-1/2 text-black/40 sm:left-3 dark:text-white/40"
         />
         <input
           type="search"
@@ -45,28 +45,28 @@ export function BoardColumnTasks({
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder={`Search ${statusName}...`}
-          className="h-9 w-full rounded-lg border border-black/10 bg-white pl-9 pr-9 text-sm outline-none focus:border-black/30 focus:ring-2 focus:ring-black/10 dark:border-white/10 dark:bg-white/5 dark:focus:border-white/30"
+          className="h-8 w-full rounded-lg border border-black/10 bg-white pl-8 pr-8 text-xs outline-none focus:border-black/30 focus:ring-2 focus:ring-black/10 sm:h-9 sm:pl-9 sm:pr-9 sm:text-sm dark:border-white/10 dark:bg-white/5 dark:focus:border-white/30"
         />
         {isPending && (
           <FiLoader
             aria-label={`Filtering ${statusName} tasks`}
-            className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-black/45 motion-reduce:animate-none dark:text-white/45"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 animate-spin text-black/45 motion-reduce:animate-none sm:right-3 dark:text-white/45"
           />
         )}
       </div>
       <div
-        className={`space-y-3 transition-opacity ${isPending ? "pointer-events-none opacity-55" : ""}`}
+        className={`space-y-2 transition-opacity sm:space-y-3 ${isPending ? "pointer-events-none opacity-55" : ""}`}
       >
         {filteredTasks.map(renderTask)}
         {filteredTasks.length === 0 && query.trim() && (
-          <div className="rounded-xl border border-dashed border-black/15 px-3 py-8 text-center text-xs text-black/50 dark:border-white/15 dark:text-white/50">
+          <div className="rounded-xl border border-dashed border-black/15 px-3 py-6 text-center text-xs text-black/50 sm:py-8 dark:border-white/15 dark:text-white/50">
             No {statusName} tasks match this search.
           </div>
         )}
         {filteredTasks.length === 0 && !query.trim() && (
           <button
             onClick={onCreate}
-            className="w-full rounded-xl border border-dashed border-black/15 px-3 py-8 text-xs text-black/40 hover:border-black/30 hover:text-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:border-white/15 dark:text-white/40 dark:hover:border-white/30 dark:hover:text-white/60 dark:focus-visible:ring-white/30"
+            className="w-full rounded-xl border border-dashed border-black/15 px-3 py-6 text-xs text-black/40 hover:border-black/30 hover:text-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 sm:py-8 dark:border-white/15 dark:text-white/40 dark:hover:border-white/30 dark:hover:text-white/60 dark:focus-visible:ring-white/30"
           >
             Drop a task here or add one
           </button>

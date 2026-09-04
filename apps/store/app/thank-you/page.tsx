@@ -12,7 +12,7 @@ export default function ThankYouPage() {
         <Kicker className="mt-6">Order confirmed</Kicker>
         <Heading size="h1" className="mt-2 text-4xl sm:text-5xl">You’ve got the goods.</Heading>
         <Text className="mt-4">Shopify will email your receipt and tracking details. Printful has been alerted. Ryan commerce proceeds as planned.</Text>
-        <div className="mt-8"><Button.Link href="/collections/all" fullWidth>Keep browsing</Button.Link></div>
+        <div className="mt-8"><Button.Link href="/collections/all" size="md" fullWidth>Keep browsing</Button.Link></div>
       </Card>
     </main>
   );

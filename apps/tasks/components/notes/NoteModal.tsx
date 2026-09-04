@@ -5,6 +5,7 @@ import {
   Avatar,
   Button,
   FormattedText,
+  getFieldLabelClasses,
   Input,
   Modal,
   ModalActions,
@@ -138,7 +139,7 @@ export function NoteModal({
           <div className="flex flex-col gap-2">
             <label
               htmlFor={`note-body-${note.id}`}
-              className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.2em] text-black/70 sm:tracking-[0.3em] dark:text-white/70"
+              className={getFieldLabelClasses()}
             >
               Note{" "}
               <span className="text-red-500" aria-hidden="true">

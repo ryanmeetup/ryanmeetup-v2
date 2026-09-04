@@ -26,13 +26,14 @@ export const desktopEditorTrigger = "max-sm:hidden sm:inline-flex";
 
 /**
  * The workspace shell padding an editor route passes as `contentClassName`.
- * Edge to edge on a phone, where the form should own the whole viewport, and a
- * centred column from `sm` up so the route stays usable if someone opens the
- * link on a desktop.
+ *
+ * The same inset every other workspace screen uses, at every viewport: an
+ * editor route is a page, so it is padded like one rather than bleeding to the
+ * edge the way a dialog's card does.
+ *
+ * Padding only. How wide the column runs is the editor's own business and
+ * changes while the form is open — `EditorPageSurface` centres and sizes it
+ * from `size`, so a form that grows a second column widens the page instead of
+ * squeezing into a fixed one.
  */
-export const editorPageContentClassName =
-  "mx-auto flex w-full min-w-0 max-w-3xl flex-col sm:p-6 lg:p-8";
-
-/** The wider column for editors whose supporting details sit beside the form. */
-export const wideEditorPageContentClassName =
-  "mx-auto flex w-full min-w-0 max-w-5xl flex-col sm:p-6 lg:p-8";
+export const editorPageContentClassName = "p-4 sm:p-6 lg:p-8";

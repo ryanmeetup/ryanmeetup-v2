@@ -49,7 +49,6 @@ describe("hasDraftAutosaveContent", () => {
         checklist: [{ id: "person-1", title: "Jamie" }],
         files: [],
         urls: [],
-        comment: "",
       }),
     ).toBe(true);
   });
@@ -63,7 +62,7 @@ describe("saved task details", () => {
     values.clear();
   });
 
-  it("round trips checklists, links, and comments", () => {
+  it("round trips checklists and links", () => {
     vi.stubGlobal("localStorage", {
       getItem: (key: string) => values.get(key) ?? null,
       setItem: (key: string, value: string) => values.set(key, value),
@@ -82,7 +81,6 @@ describe("saved task details", () => {
         ],
         files: [],
         urls: [{ id: "tax-guide", url: "https://www.irs.gov/1099" }],
-        comment: "Confirm mailing addresses first.",
       },
     );
 
@@ -96,7 +94,6 @@ describe("saved task details", () => {
           ],
           files: [],
           urls: [{ id: "tax-guide", url: "https://www.irs.gov/1099" }],
-          comment: "Confirm mailing addresses first.",
         },
       }),
     ]);
@@ -119,7 +116,32 @@ describe("saved task details", () => {
       checklist: [],
       files: [],
       urls: [],
-      comment: "",
+    });
+  });
+
+  it("drops comments stored by the former create-task UI", () => {
+    vi.stubGlobal("localStorage", {
+      getItem: () =>
+        JSON.stringify([
+          {
+            id: "draft-with-comment",
+            draft: contextualDraft,
+            details: {
+              checklist: [],
+              files: [],
+              urls: [],
+              comment: "Do not post this invisibly.",
+            },
+            updatedAt: "2026-09-03T12:00:00.000Z",
+          },
+        ]),
+    });
+    vi.stubGlobal("window", {});
+
+    expect(readTaskDrafts("ryan")[0]?.details).toEqual({
+      checklist: [],
+      files: [],
+      urls: [],
     });
   });
 });

@@ -347,6 +347,7 @@ const ContactForm = ({
           <RequiredFieldsNote />
           <Button
             type="submit"
+            size="md"
             className="w-full sm:w-auto sm:min-w-[180px]"
             leftIcon={<Send />}
             disabled={loading || Object.keys(errors).length !== 0}

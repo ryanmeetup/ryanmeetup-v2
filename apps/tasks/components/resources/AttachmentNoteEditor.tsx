@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Input, RichTextarea, toast } from "@ryanmeetup/ui";
+import {
+  Button,
+  getFieldLabelClasses,
+  Input,
+  RichTextarea,
+  toast,
+} from "@ryanmeetup/ui";
 import { errorMessage } from "@/lib/presentation";
 
 export function AttachmentNoteEditor({
@@ -48,7 +54,7 @@ export function AttachmentNoteEditor({
       <div className="flex flex-col gap-2">
         <label
           htmlFor={`${kind}-note-body-${resourceId ?? "new"}`}
-          className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.2em] text-black/70 sm:tracking-[0.3em] dark:text-white/70"
+          className={getFieldLabelClasses()}
         >
           Note{" "}
           <span className="text-red-500" aria-hidden="true">

@@ -173,6 +173,7 @@ export function PasswordForm({
         <div className="flex justify-end">
           <Button
             type="submit"
+            size="md"
             leftIcon={<FiLock />}
             loading={saving}
             loadingText="Updating..."

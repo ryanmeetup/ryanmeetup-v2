@@ -84,5 +84,4 @@ export type NewTaskDetailsDraft = {
   checklist: { id: string; title: string }[];
   files: File[];
   urls: { id: string; url: string }[];
-  comment: string;
 };

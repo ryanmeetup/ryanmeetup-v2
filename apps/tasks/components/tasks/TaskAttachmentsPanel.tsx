@@ -181,6 +181,7 @@ export function TaskAttachmentsPanel({
         <Button
           type="button"
           variant="action"
+          size="field"
           leftIcon={<FiLink aria-hidden />}
           disabled={!attachmentUrl.trim()}
           loading={addingUrl}

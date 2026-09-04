@@ -12,18 +12,9 @@ import {
   DisclosureCard,
   IconButton,
   Input,
-  Textarea,
   toast,
 } from "@ryanmeetup/ui";
-import {
-  FiActivity,
-  FiFile,
-  FiLink,
-  FiMessageSquare,
-  FiPaperclip,
-  FiPlus,
-  FiTrash2,
-} from "react-icons/fi";
+import { FiFile, FiLink, FiPaperclip, FiPlus, FiTrash2 } from "react-icons/fi";
 import { MAX_ATTACHMENT_SIZE } from "@/lib/tasks/task-attachments";
 import { attachmentUrlName } from "@/lib/tasks/task-attachment-urls";
 import { CountBadge } from "@/components/global";
@@ -162,6 +153,7 @@ export function NewTaskDetails({
           <Button
             type="button"
             variant="action"
+            size="field"
             leftIcon={<FiPlus aria-hidden />}
             disabled={disabled || !checklistTitle.trim()}
             onClick={addChecklistItem}
@@ -262,6 +254,7 @@ export function NewTaskDetails({
           <Button
             type="button"
             variant="action"
+            size="field"
             leftIcon={<FiLink aria-hidden />}
             disabled={disabled || !attachmentUrl.trim()}
             onClick={addUrl}
@@ -322,65 +315,6 @@ export function NewTaskDetails({
           }}
         />
       </section>
-
-      <section className="space-y-3 border-t border-black/10 pt-5 dark:border-white/10">
-        <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em]">
-          <FiMessageSquare aria-hidden /> Comments
-          <CountBadge>{value.comment.trim() ? 1 : 0}</CountBadge>
-        </h3>
-        <Textarea
-          id="new-task-initial-comment"
-          label="Comment"
-          name="new-task-initial-comment"
-          hideLabel
-          value={value.comment}
-          placeholder="Add a comment..."
-          rows={4}
-          maxLength={10000}
-          disabled={disabled}
-          onChange={(event) =>
-            onChange((current) => ({
-              ...current,
-              comment: event.target.value,
-            }))
-          }
-        />
-        <div className="grid gap-2 sm:grid-cols-2">
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={disabled || !value.comment}
-            onClick={() => onChange((current) => ({ ...current, comment: "" }))}
-          >
-            Clear
-          </Button>
-          <Button
-            type="button"
-            variant="action"
-            disabled={disabled || !value.comment.trim()}
-            onClick={() => toast.success("Comment queued for the new task.")}
-          >
-            Comment
-          </Button>
-        </div>
-      </section>
-
-      <DisclosureCard
-        className="border-t border-black/10 pt-5 dark:border-white/10"
-        buttonClassName="flex w-full items-center justify-between gap-3 py-1 text-left"
-        panelClassName="pt-3"
-        iconClassName="h-3.5 w-3.5"
-        summary={
-          <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em]">
-            <FiActivity aria-hidden /> Activity
-            <CountBadge>0</CountBadge>
-          </span>
-        }
-      >
-        <p className="text-sm text-black/55 dark:text-white/55">
-          Activity will begin when the task is created.
-        </p>
-      </DisclosureCard>
     </div>
   );
 }

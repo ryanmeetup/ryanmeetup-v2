@@ -128,6 +128,7 @@ export function LoginForm({ notice = "" }: { notice?: string }) {
           <FieldError>{message}</FieldError>
           <Button
             type="submit"
+            size="md"
             fullWidth
             loading={loading}
             loadingText="Signing in..."

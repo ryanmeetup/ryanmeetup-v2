@@ -11,11 +11,13 @@ import { taskPath } from "@/lib/tasks/task-key";
 import type { Task } from "@/lib/tasks/task-types";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { NewTaskModal } from "./NewTaskModal";
+import { BOARD_CRUMB } from "./task-crumbs";
 
 /**
- * `/task/new` — the create flow as a page, for phones where the dialog leaves
- * too little room to fill the form in. The desktop dialog is unchanged and this
- * route shares its entire implementation; only the surface differs.
+ * `/task/new` — the create flow as its own screen, for phones where the dialog
+ * leaves too little room to fill the form in. The desktop dialog is unchanged
+ * and this route shares its entire form; only the surface around it differs —
+ * a breadcrumb trail and a page heading in place of the dialog's chrome.
  */
 export function NewTaskPageClient({
   initialData,
@@ -47,7 +49,7 @@ export function NewTaskPageClient({
     >
       <NewTaskModal
         presentation="page"
-        backHref={backHref}
+        parents={[BOARD_CRUMB]}
         data={data}
         demoMode={demoMode}
         open

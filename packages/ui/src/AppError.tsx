@@ -17,7 +17,7 @@ export function AppError({ error, reset }: AppErrorProps) {
         <ErrorCallout>
           {error.message || "An unexpected error occurred."}
         </ErrorCallout>
-        <Button type="button" onClick={reset}>
+        <Button type="button" size="md" onClick={reset}>
           Try again
         </Button>
       </div>

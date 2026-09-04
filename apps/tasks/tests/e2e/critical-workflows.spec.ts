@@ -148,13 +148,12 @@ test("keeps stale board results inert while a search is pending", async ({
 
   await search.fill("nothing matches this task");
   expect(await search.getAttribute("aria-busy")).toBe("true");
-  await expect(
-    page.getByLabel("Filtering In Progress tasks"),
-  ).toBeVisible();
+  await expect(page.getByLabel("Filtering In Progress tasks")).toBeVisible();
   await expect(column).toHaveAttribute("aria-busy", "true");
   await expect(column.getByText("Confirm launch venue")).toBeVisible();
-  await expect(column.getByText("Confirm launch venue").locator(".."))
-    .toHaveCSS("pointer-events", "none");
+  await expect(
+    column.getByText("Confirm launch venue").locator(".."),
+  ).toHaveCSS("pointer-events", "none");
 
   await expect(search).toHaveAttribute("aria-busy", "false");
   await expect(
@@ -170,13 +169,11 @@ test("keeps category tags subordinate across task surfaces", async ({
   await page.goto("/board");
   await page.waitForLoadState("networkidle");
 
-  const categoryBadge = page.getByLabel(
-    "Product / Tools category; tags: Bug",
-    { exact: true },
-  );
+  const categoryBadge = page.getByLabel("Product / Tools category; tags: Bug", {
+    exact: true,
+  });
   await expect(categoryBadge).toHaveText("Product / Tools");
-  await expect(categoryBadge.getByText("Bug", { exact: true }))
-    .toHaveCount(0);
+  await expect(categoryBadge.getByText("Bug", { exact: true })).toHaveCount(0);
   await categoryBadge.hover();
   const tagTooltip = page.getByRole("tooltip");
   await expect(tagTooltip).toBeVisible();
@@ -246,9 +243,9 @@ test("preserves existing assignees when another person is added", async ({
   await expect(page.getByRole("heading", { name: "Edit Task" })).toHaveCount(0);
 
   await page.getByRole("button", { name: "Open Confirm launch venue" }).click();
-  await expect(
-    page.getByRole("button", { name: "Assignees" }),
-  ).toContainText("Taylor Brooks, Alex Morgan +1");
+  await expect(page.getByRole("button", { name: "Assignees" })).toContainText(
+    "Taylor Brooks, Alex Morgan +1",
+  );
 });
 
 test("shows shared assignments in My Tasks", async ({ page, baseURL }) => {
@@ -300,6 +297,67 @@ test("keeps the mobile duplicate editor open for create another", async ({
   ).toBeVisible();
 });
 
+test("keeps comments and activity out of task creation", async ({
+  page,
+  baseURL,
+}) => {
+  await enterDemoWorkspace(page, baseURL);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/task/new");
+  await page.waitForLoadState("networkidle");
+
+  const createForm = page.locator("form");
+  await expect(createForm.getByText("Checklist and attachments")).toBeVisible();
+  await createForm.getByRole("button", { name: /Task details/ }).click();
+  await expect(
+    createForm.getByText("Checklist", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    createForm.getByText("Attachments", { exact: true }),
+  ).toBeVisible();
+  await expect(createForm.getByText("Comments", { exact: true })).toHaveCount(
+    0,
+  );
+  await expect(createForm.getByText("Activity", { exact: true })).toHaveCount(
+    0,
+  );
+});
+
+test("keeps form labels consistent with the Categories heading", async ({
+  page,
+  baseURL,
+}) => {
+  await enterDemoWorkspace(page, baseURL);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/task/new");
+  await page.waitForLoadState("networkidle");
+
+  const createForm = page.locator("form");
+  const categories = createForm.locator("legend", { hasText: "Categories" });
+  const comparedLabels = [
+    createForm.locator('label[for="task-title"]'),
+    createForm.locator('label[for="task-description"]'),
+    createForm.locator("label", { hasText: "Status" }),
+    createForm.locator(".date-field > span", { hasText: "Due date" }),
+  ];
+  const presentation = (element: Element) => {
+    const style = getComputedStyle(element);
+    return {
+      color: style.color,
+      fontSize: style.fontSize,
+      fontWeight: style.fontWeight,
+      letterSpacing: style.letterSpacing,
+      textTransform: style.textTransform,
+    };
+  };
+  const preferredStyle = await categories.evaluate(presentation);
+
+  for (const label of comparedLabels) {
+    await expect(label).toHaveCount(1);
+    expect(await label.evaluate(presentation)).toEqual(preferredStyle);
+  }
+});
+
 test("updates category owners through the resource editor", async ({
   page,
   baseURL,
@@ -308,7 +366,7 @@ test("updates category owners through the resource editor", async ({
   await page.goto("/categories");
   await page.waitForLoadState("networkidle");
 
-  await page.getByRole("button", { name: 'Edit “Operations”' }).click();
+  await page.getByRole("button", { name: "Edit “Operations”" }).click();
   const editor = page.getByRole("dialog", { name: "Edit Operations" });
   await expect(
     editor.getByRole("heading", { name: "Edit Operations" }),
@@ -325,7 +383,7 @@ test("updates category owners through the resource editor", async ({
     page.getByRole("heading", { name: "Edit Operations" }),
   ).toHaveCount(0);
 
-  await page.getByRole("button", { name: 'Edit “Operations”' }).click();
+  await page.getByRole("button", { name: "Edit “Operations”" }).click();
   const reopened = page.getByRole("dialog", { name: "Edit Operations" });
   await expect(
     reopened.getByRole("button", { name: /Category owners/ }),

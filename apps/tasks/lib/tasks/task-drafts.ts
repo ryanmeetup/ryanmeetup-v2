@@ -27,7 +27,7 @@ function storageKey(profileId: string) {
 
 function storedTaskDetails(value: unknown): NewTaskDetailsDraft {
   if (!value || typeof value !== "object")
-    return { checklist: [], files: [], urls: [], comment: "" };
+    return { checklist: [], files: [], urls: [] };
 
   const details = value as Partial<NewTaskDetailsDraft>;
   return {
@@ -49,7 +49,6 @@ function storedTaskDetails(value: unknown): NewTaskDetailsDraft {
             typeof item.url === "string",
         )
       : [],
-    comment: typeof details.comment === "string" ? details.comment : "",
   };
 }
 
@@ -121,10 +120,7 @@ export function deleteTaskDraft(profileId: string, id: string) {
 
 function hasTaskDetailsContent(details?: NewTaskDetailsDraft) {
   return Boolean(
-    details?.checklist.length ||
-    details?.files.length ||
-    details?.urls.length ||
-    details?.comment.trim(),
+    details?.checklist.length || details?.files.length || details?.urls.length,
   );
 }
 

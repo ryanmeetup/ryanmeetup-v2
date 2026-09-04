@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { AnimatedCollapse, DropdownSelect, Input } from "@ryanmeetup/ui";
+import {
+  AnimatedCollapse,
+  DropdownSelect,
+  getFieldLabelClasses,
+  Input,
+} from "@ryanmeetup/ui";
 import {
   MAX_RECURRENCE_COUNT,
   MAX_RECURRENCE_INTERVAL,
@@ -22,8 +27,6 @@ import {
   type RecurrencePreset,
 } from "@/lib/calendar/calendar-recurrence";
 
-const fieldLabelClasses =
-  "text-xs font-semibold uppercase tracking-[0.18em] text-black/60 dark:text-white/60";
 const choiceClasses =
   "h-4 w-4 border-black/30 accent-black dark:border-white/30 dark:accent-white";
 
@@ -162,7 +165,10 @@ export function CalendarRecurrenceFields({
                   update({ interval: typed });
               }}
               onBlur={() =>
-                setText((current) => ({ ...current, interval: String(interval) }))
+                setText((current) => ({
+                  ...current,
+                  interval: String(interval),
+                }))
               }
             />
             <DropdownSelect
@@ -181,7 +187,10 @@ export function CalendarRecurrenceFields({
           </div>
           {value?.frequency === "weekly" && (
             <div role="group" aria-labelledby="calendar-recurrence-weekdays">
-              <p id="calendar-recurrence-weekdays" className={fieldLabelClasses}>
+              <p
+                id="calendar-recurrence-weekdays"
+                className={getFieldLabelClasses()}
+              >
                 Repeat on
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -215,13 +224,15 @@ export function CalendarRecurrenceFields({
               value={value.monthlyMode}
               disabled={disabled}
               onChange={(mode) =>
-                update({ monthlyMode: mode as CalendarRecurrence["monthlyMode"] })
+                update({
+                  monthlyMode: mode as CalendarRecurrence["monthlyMode"],
+                })
               }
               options={monthlyModeOptions(startDate)}
             />
           )}
           <div role="radiogroup" aria-labelledby="calendar-recurrence-ends">
-            <p id="calendar-recurrence-ends" className={fieldLabelClasses}>
+            <p id="calendar-recurrence-ends" className={getFieldLabelClasses()}>
               Ends
             </p>
             <div className="mt-2 space-y-2 text-sm">
@@ -300,7 +311,10 @@ export function CalendarRecurrenceFields({
                         update({ ends: { type: "after", count: typed } });
                     }}
                     onBlur={() =>
-                      setText((current) => ({ ...current, count: String(count) }))
+                      setText((current) => ({
+                        ...current,
+                        count: String(count),
+                      }))
                     }
                   />
                 </div>

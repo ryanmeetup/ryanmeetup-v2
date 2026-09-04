@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  wideEditorPageContentClassName,
+  editorPageContentClassName,
   WorkspacePageShell,
 } from "@/components/global";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
@@ -38,7 +38,7 @@ export function CategoryEditorPageClient({
       sidebarOpen={sidebarOpen}
       setSidebarOpen={setSidebarOpen}
       setData={setData}
-      contentClassName={wideEditorPageContentClassName}
+      contentClassName={editorPageContentClassName}
     >
       <CategoriesModal
         controller={categoryController(data, setData, demoMode)}
@@ -50,7 +50,6 @@ export function CategoryEditorPageClient({
         }}
         options={{
           presentation: "page",
-          backHref,
           ...(categoryId
             ? { editCategoryId: categoryId }
             : { createOnly: true }),

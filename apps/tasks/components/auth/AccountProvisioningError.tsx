@@ -26,6 +26,7 @@ export function AccountProvisioningError() {
         <div className="mt-6 grid gap-3 sm:flex sm:justify-end">
           <Button
             variant="secondary"
+            size="md"
             leftIcon={<FiLogOut />}
             onClick={async () => {
               await createClient().auth.signOut();
@@ -35,7 +36,7 @@ export function AccountProvisioningError() {
           >
             Sign out
           </Button>
-          <Button leftIcon={<FiRefreshCw />} onClick={() => router.refresh()}>
+          <Button size="md" leftIcon={<FiRefreshCw />} onClick={() => router.refresh()}>
             Try again
           </Button>
         </div>

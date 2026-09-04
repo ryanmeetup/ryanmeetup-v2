@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { NewTaskDetailsDraft } from "./task-types";
-import type { Subtask, TaskAttachment, TaskComment } from "./task-types";
+import type { Subtask, TaskAttachment } from "./task-types";
 import type { TaskActivity } from "@/lib/activity/activity-types";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { attachmentUrlName } from "./task-attachment-urls";
@@ -33,20 +33,6 @@ export async function persistNewTaskDetails({
           created_at: createdAt,
         })),
       ],
-      comments: draft.comment.trim()
-        ? [
-            ...current.comments,
-            {
-              id: crypto.randomUUID(),
-              task_id: taskId,
-              parent_id: null,
-              body: draft.comment.trim(),
-              created_by: current.currentProfile.id,
-              created_at: createdAt,
-              edited_at: null,
-            },
-          ]
-        : current.comments,
       attachments: [
         ...current.attachments,
         ...draft.files.map((file) => ({
@@ -78,7 +64,6 @@ export async function persistNewTaskDetails({
 
   let failures = 0;
   const subtasks: Subtask[] = [];
-  const comments: TaskComment[] = [];
   const attachments: TaskAttachment[] = [];
   const activity: TaskActivity[] = [];
   for (const [index, item] of draft.checklist.entries()) {
@@ -100,25 +85,6 @@ export async function persistNewTaskDetails({
         subtasks.push(result.subtask);
         if (result.activity) activity.push(result.activity);
       }
-    } catch {
-      failures += 1;
-    }
-  }
-  if (draft.comment.trim()) {
-    try {
-      const result = await mutate<{ comment?: TaskComment }>(
-        "/api/task-details",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            kind: "comment",
-            taskId,
-            value: draft.comment.trim(),
-          }),
-        },
-      );
-      if (!result.comment) failures += 1;
-      else comments.push(result.comment);
     } catch {
       failures += 1;
     }
@@ -165,7 +131,6 @@ export async function persistNewTaskDetails({
   setData((current) => ({
     ...current,
     subtasks: [...current.subtasks, ...subtasks],
-    comments: [...current.comments, ...comments],
     attachments: [...current.attachments, ...attachments],
     activity: [...activity, ...current.activity],
   }));

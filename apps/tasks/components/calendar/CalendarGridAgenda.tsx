@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import {
+  AnimatedCollapse,
   Button,
   Card,
   DropdownSelect,
@@ -128,7 +129,11 @@ export function CalendarGridAgenda({
 }) {
   return (
     <div
-      className={`grid gap-5 ${calendarSidebarOpen ? "xl:grid-cols-[minmax(0,1fr)_18rem]" : "grid-cols-1"}`}
+      className={`grid transition-[grid-template-columns,gap] duration-300 ease-out motion-reduce:transition-none ${
+        calendarSidebarOpen
+          ? "gap-5 xl:grid-cols-[minmax(0,1fr)_21rem]"
+          : "gap-0 xl:grid-cols-[minmax(0,1fr)_0rem]"
+      }`}
     >
       <section className="min-w-0">
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -191,6 +196,7 @@ export function CalendarGridAgenda({
               variant="secondary"
               leftIcon={<FiSidebar />}
               aria-expanded={calendarSidebarOpen}
+              aria-controls="calendar-details"
               onClick={onToggleSidebar}
             >
               {calendarSidebarOpen ? "Hide details" : "Show details"}
@@ -270,7 +276,12 @@ export function CalendarGridAgenda({
           )}
         </div>
       </section>
-      {calendarSidebarOpen && (
+      <AnimatedCollapse
+        id="calendar-details"
+        open={calendarSidebarOpen}
+        className="min-w-0"
+        contentClassName="min-w-0"
+      >
         <aside className="space-y-4" aria-label="Calendar details">
           <Card className="p-4">
             <h2 className="flex items-center gap-2 font-semibold">
@@ -283,8 +294,10 @@ export function CalendarGridAgenda({
                 />
               )}
             </h2>
+            {/* The list scrolls, so it is fenced top and bottom: rows fade
+                into a rule instead of clipping into nothing. */}
             <div
-              className="mt-3 max-h-[32rem] space-y-2 overflow-y-auto pr-1"
+              className="mt-3 max-h-[32rem] space-y-2 overflow-y-auto border-y border-black/10 py-3 pr-1 dark:border-white/10"
               aria-busy={googleSyncing}
             >
               {upcomingDates.slice(0, 6).map((date) => (
@@ -331,7 +344,7 @@ export function CalendarGridAgenda({
             </div>
           </Card>
         </aside>
-      )}
+      </AnimatedCollapse>
     </div>
   );
 }

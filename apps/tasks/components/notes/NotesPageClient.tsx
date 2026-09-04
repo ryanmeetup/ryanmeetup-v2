@@ -327,6 +327,7 @@ export function NotesPageClient({
                 />
                 <Button
                   type="button"
+                  size="field"
                   className="w-full sm:w-auto"
                   leftIcon={<FiPlus />}
                   loading={creating}

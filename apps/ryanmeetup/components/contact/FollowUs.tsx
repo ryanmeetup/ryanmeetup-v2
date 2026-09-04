@@ -22,6 +22,7 @@ const FollowUs = () => {
 
       <Button.Link
         href="/newsletter"
+        size="md"
         leftIcon={<News />}
         variant="primary"
         className="w-full"

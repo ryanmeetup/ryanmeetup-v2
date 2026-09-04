@@ -60,7 +60,7 @@ export function Reviews({ data, productId }: { data: ReviewsData; productId: str
             <span>{data.count ? `${data.averageRating.toFixed(1)} from ${data.count} review${data.count === 1 ? "" : "s"}` : "No reviews yet"}</span>
           </div>
         </div>
-        <Button variant="secondary" onClick={() => setShowForm((value) => !value)}>{showForm ? "Close form" : "Write a review"}</Button>
+        <Button size="sm" variant="secondary" onClick={() => setShowForm((value) => !value)}>{showForm ? "Close form" : "Write a review"}</Button>
       </div>
 
       {success && <FormStatus className="mt-6" title="Review received" icon={<FiCheck aria-hidden />}>Thanks. It will appear after moderation.</FormStatus>}
@@ -75,7 +75,7 @@ export function Reviews({ data, productId }: { data: ReviewsData; productId: str
             <Input label="Review title" name="title" required placeholder="A very Ryan opinion" onChange={() => undefined} />
             <Textarea id="review-body" label="Review" name="body" required placeholder="How did the gear treat you?" onChange={() => undefined} />
             {error && <ErrorCallout>{error}</ErrorCallout>}
-            <Button type="submit" loading={loading} loadingText="Submitting" fullWidth>Submit review</Button>
+            <Button type="submit" size="md" loading={loading} loadingText="Submitting" fullWidth>Submit review</Button>
           </form>
         </Card>
       )}

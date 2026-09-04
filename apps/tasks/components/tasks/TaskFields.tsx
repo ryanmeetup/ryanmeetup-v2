@@ -4,6 +4,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { FiLock } from "react-icons/fi";
 import {
   DropdownSelect,
+  getFieldLabelClasses,
   Input,
   MultiSelect,
   RichTextarea,
@@ -89,10 +90,7 @@ export function TaskFields({
       />
       {density === "full" && (
         <div className="flex flex-col gap-2">
-          <label
-            htmlFor="task-description"
-            className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.2em] text-black/70 sm:tracking-[0.3em] dark:text-white/70"
-          >
+          <label htmlFor="task-description" className={getFieldLabelClasses()}>
             Description
           </label>
           <RichTextarea
@@ -240,10 +238,10 @@ export function TaskFields({
           value={draft.assignee_ids}
           onChange={(assignee_ids) => patch({ assignee_ids })}
           options={options.profiles.map((item) => ({
-              avatar: { name: profileDisplayName(item), src: item.avatar_url },
-              label: profileDisplayName(item),
-              value: item.id,
-            }))}
+            avatar: { name: profileDisplayName(item), src: item.avatar_url },
+            label: profileDisplayName(item),
+            value: item.id,
+          }))}
         />
         {density === "full" && (
           <DropdownSelect

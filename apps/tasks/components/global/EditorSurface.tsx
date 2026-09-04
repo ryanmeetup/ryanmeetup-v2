@@ -1,7 +1,8 @@
 "use client";
 
-import { EditorPage, Modal, type ModalSize } from "@ryanmeetup/ui";
+import { Modal, type ModalSize } from "@ryanmeetup/ui";
 import type { FormEventHandler, ReactNode } from "react";
+import { EditorPageSurface, type EditorCrumb } from "./EditorPageSurface";
 
 type EditorSurfaceCommonProps = {
   title: ReactNode;
@@ -17,11 +18,17 @@ type EditorSurfaceCommonProps = {
 };
 
 /**
- * Dialog-shaped props. A page has no card to size and no dimmed backdrop to
- * dismiss, so it ignores every one of them. They stay assignable on both
- * branches because the editors that render into either surface compute them
- * unconditionally — making them a hard error on the page branch would only buy
- * a pile of ternaries at each call site.
+ * Dialog-shaped props. A page ignores most of them — it has no dimmed backdrop
+ * to dismiss and no card edge to style. They stay assignable on both branches
+ * because the editors that render into either surface compute them
+ * unconditionally; making them a hard error on the page branch would only buy a
+ * pile of ternaries at each call site.
+ *
+ * `size` is the exception, and it is honoured on both. It is not really a
+ * dialog measurement but a statement about how much room the form needs, which
+ * an editor already raises when its supporting details open beside the fields.
+ * A page that dropped it kept a fixed column and crushed that second column
+ * into it. `EditorPageSurface` reads it off its own, wider scale.
  */
 type EditorDialogProps = {
   /**
@@ -46,22 +53,31 @@ export type EditorSurfaceProps = EditorSurfaceCommonProps &
     | { presentation?: "modal"; setOpen: (open: boolean) => void }
     | {
         presentation: "page";
-        /** Where the back control returns to. */
-        backHref: string;
-        backLabel?: string;
+        /** The screens this editor sits under, outermost first. */
+        parents: readonly EditorCrumb[];
+        /** The current crumb: the record being created or edited. */
+        crumb: { title: string; icon?: ReactNode };
         setOpen?: (open: boolean) => void;
       }
   );
 
 /**
- * One editor, two surfaces: the shared `Modal` on desktop and `EditorPage` on
- * the dedicated mobile route. Every Tier 1 editor renders through this so the
- * choice is made in exactly one place per editor, and so the form body never
- * has to know which surface it landed in.
+ * One editor, two surfaces: the shared `Modal` on desktop and
+ * `EditorPageSurface` on the dedicated route. Every Tier 1 editor renders
+ * through this so the choice is made in exactly one place per editor, and so
+ * the form body never has to know which surface it landed in.
  *
- * The dialog-shaped props — `size`, `panelClassName`, `closable` — are only
- * accepted alongside `presentation: "modal"`, since a page has no card to size
- * and always offers its back control. See `docs/MOBILE_EDITOR_SURFACES.md`.
+ * The two surfaces are genuinely different screens, not the same dialog with a
+ * wider card. A dialog is a layer: it dims what it covers, caps its height,
+ * scrolls inside itself, and closes. A route is the screen: it is titled with
+ * `PageHeader`, sits in a breadcrumb trail, scrolls with the document, and
+ * carries its commit actions alongside the fields they save. Only the form body
+ * is shared. See `docs/MOBILE_EDITOR_SURFACES.md`.
+ *
+ * The dialog-shaped props — `panelClassName`, `closable` — are ignored on the
+ * page branch; `size` is honoured on both. The page-shaped `parents`/`crumb`
+ * are required on the page branch so no route can ship without its place in the
+ * trail.
  */
 export function EditorSurface(props: EditorSurfaceProps) {
   const {
@@ -78,19 +94,20 @@ export function EditorSurface(props: EditorSurfaceProps) {
   if (props.presentation === "page") {
     if (props.open === false) return null;
     return (
-      <EditorPage
+      <EditorPageSurface
+        parents={props.parents}
+        crumb={props.crumb}
         title={title}
         description={description}
-        backHref={props.backHref}
-        backLabel={props.backLabel}
         actions={actions}
         supportingActions={supportingActions}
         footerContent={footerContent}
+        size={props.size}
         formId={formId}
         onSubmit={onSubmit}
       >
         {children}
-      </EditorPage>
+      </EditorPageSurface>
     );
   }
 

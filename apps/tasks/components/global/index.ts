@@ -5,8 +5,12 @@ export {
   desktopEditorTrigger,
   editorPageContentClassName,
   mobileEditorTrigger,
-  wideEditorPageContentClassName,
 } from "./editor-routes";
+export {
+  EditorPageSurface,
+  type EditorCrumb,
+  type EditorPageSurfaceProps,
+} from "./EditorPageSurface";
 export { EditorSurface, type EditorSurfaceProps } from "./EditorSurface";
 export { InstanceBanner } from "./InstanceBanner";
 export {

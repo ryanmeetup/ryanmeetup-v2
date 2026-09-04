@@ -16,6 +16,7 @@ import { taskKey, taskPath } from "@/lib/tasks/task-key";
 import type { Task } from "@/lib/tasks/task-types";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { TaskEditor } from "./TaskEditor";
+import { BOARD_CRUMB, taskCrumb } from "./task-crumbs";
 
 /**
  * `/task/[key]/edit` — the edit flow as a page, for phones.
@@ -23,7 +24,9 @@ import { TaskEditor } from "./TaskEditor";
  * The whole save/validate/duplicate lifecycle comes from
  * `useTaskEditorController`, exactly as the board's dialog gets it. Only two
  * things are adapted for a route: dismissing navigates instead of closing a
- * dialog, and a saved task lands on its own page.
+ * dialog, and a saved task lands on its own page. The chrome is a page's own —
+ * the trail down from the board through the task, and the fields in cards that
+ * scroll with the document.
  *
  * Supporting details stay off. The checklist, files, and conversation live on
  * `/task/[key]`, which is one tap away, and leaving them out keeps the form to
@@ -126,7 +129,7 @@ export function EditTaskPageClient({
       >
         <TaskEditor
           presentation="page"
-          backHref={backHref}
+          parents={[BOARD_CRUMB, taskCrumb(task)]}
           controller={{
             ...editor,
             modal: {

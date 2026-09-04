@@ -20,6 +20,7 @@ import { emptyNewTaskDetails } from "@/lib/tasks/task-draft-factory";
 import type { NewTaskDetailsDraft } from "@/lib/tasks/task-types";
 import { persistNewTaskDetails } from "@/lib/tasks/new-task-details";
 import { errorMessage } from "@/lib/presentation";
+import type { EditorCrumb } from "@/components/global";
 import { newWorkspaceTaskDraft } from "@/lib/tasks/task-draft-factory";
 import {
   deleteTaskDraft,
@@ -44,7 +45,10 @@ type NewTaskModalProps = {
   /** Seeds the form from an existing task; mount this modal fresh to apply it. */
   duplicateOf?: { task: Task; draft: TaskDraft } | null;
   onCreated?: (task: Task) => void | Promise<void>;
-} & ({ presentation?: "modal" } | { presentation: "page"; backHref: string });
+} & (
+  | { presentation?: "modal" }
+  | { presentation: "page"; parents: readonly EditorCrumb[] }
+);
 
 export function NewTaskModal(props: NewTaskModalProps) {
   const {
@@ -63,7 +67,7 @@ export function NewTaskModal(props: NewTaskModalProps) {
    */
   const surface =
     props.presentation === "page"
-      ? ({ presentation: "page", backHref: props.backHref } as const)
+      ? ({ presentation: "page", parents: props.parents } as const)
       : ({} as const);
   const [draft, setDraft] = useState(
     () =>

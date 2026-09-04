@@ -1,6 +1,6 @@
 const fieldLabelBaseClasses =
-  "inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.2em] sm:tracking-[0.3em]";
-const fieldLabelMutedClasses = "text-black/70 dark:text-white/70";
+  "inline-flex items-center gap-1 text-sm font-semibold";
+const fieldLabelMutedClasses = "text-black dark:text-white";
 
 const getFieldLabelClasses = (muted = true) =>
   `${fieldLabelBaseClasses} ${muted ? fieldLabelMutedClasses : ""}`.trim();

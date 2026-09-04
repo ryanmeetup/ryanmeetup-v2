@@ -3,14 +3,15 @@
 import type { ElementType, ReactNode } from "react";
 
 /**
- * The header and footer shared by every editor surface. `Modal` renders them
- * inside its dialog card and `EditorPage` renders them as a page column, so an
- * editor that moves between the two keeps the same title treatment, the same
- * footer geometry, and the same action ordering.
+ * `Modal`'s own header and footer, kept apart from the dialog shell so the
+ * pieces that are not dialog-specific can be reused.
  *
- * Only the chrome lives here. The scrolling body is the surface's own problem:
- * a dialog scrolls inside a fixed-height card, while a page scrolls the
- * document and pins its actions instead.
+ * `footerActionGroup` is the one piece the editor *routes* borrow: a page lays
+ * its commit pair out with the same stacked-then-inline geometry a dialog
+ * footer uses, so the buttons read the same wherever an editor is opened. The
+ * rest is dialog chrome and stays here — a route builds its heading from
+ * `PageHeader` and a breadcrumb trail instead, because it is a screen rather
+ * than a layer over one.
  */
 
 /**

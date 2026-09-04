@@ -26,7 +26,6 @@ export function emptyNewTaskDetails(): NewTaskDetailsDraft {
     checklist: [],
     files: [],
     urls: [],
-    comment: "",
   };
 }
 

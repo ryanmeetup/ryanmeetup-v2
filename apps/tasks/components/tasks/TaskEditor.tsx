@@ -5,11 +5,10 @@ import {
   AnimatedCollapse,
   Button,
   DropdownSelect,
-  EditorPage,
   ErrorCallout,
+  getFieldLabelClasses,
   IconButton,
   Input,
-  Modal,
   ModalActions,
   MultiSelect,
   Pill,
@@ -35,6 +34,7 @@ import type { NewTaskDetailsDraft } from "@/lib/tasks/task-types";
 import { NewTaskDetails } from "./NewTaskDetails";
 import { TaskFields } from "./TaskFields";
 import type { TaskEditorController } from "@/hooks/useTaskEditorController";
+import { EditorSurface, type EditorCrumb } from "@/components/global";
 
 const priorities: Priority[] = ["low", "medium", "high", "urgent"];
 
@@ -85,10 +85,13 @@ export type TaskEditorMode =
 type TaskEditorSurface =
   | { presentation?: "modal" }
   /**
-   * The mobile route. `backHref` is where the header's back control and a
-   * cancelled edit both return to, since a page has no dialog to dismiss.
+   * The dedicated route. `parents` is the trail the page sits in — the board,
+   * plus the task's own page when this is an edit — so the route reads as a
+   * screen rather than as the dialog it replaces. Where a cancelled edit
+   * *returns* to is a separate question the page client answers through
+   * `setOpen`, since the author may have arrived from somewhere else.
    */
-  | { presentation: "page"; backHref: string };
+  | { presentation: "page"; parents: readonly EditorCrumb[] };
 
 type TaskEditorProps = TaskEditorSurface &
   (
@@ -309,7 +312,7 @@ export function TaskEditor(props: TaskEditorProps) {
               <div className="flex flex-col gap-2">
                 <label
                   htmlFor="task-description"
-                  className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.2em] text-black/70 sm:tracking-[0.3em] dark:text-white/70"
+                  className={getFieldLabelClasses()}
                 >
                   Description
                 </label>
@@ -533,7 +536,9 @@ export function TaskEditor(props: TaskEditorProps) {
                   Task details
                 </span>
                 <span className="mt-1 block text-xs text-black/55 dark:text-white/55">
-                  Checklist, attachments, comments, and activity
+                  {editing
+                    ? "Checklist, attachments, comments, and activity"
+                    : "Checklist and attachments"}
                 </span>
               </span>
               <span className="flex shrink-0 items-center gap-2 text-xs font-semibold text-black/55 dark:text-white/55">
@@ -556,7 +561,7 @@ export function TaskEditor(props: TaskEditorProps) {
                 <p className="text-xs text-black/55 dark:text-white/55">
                   {editing
                     ? "Checklist, files, conversation, and history"
-                    : "Checklist, files, and conversation"}
+                    : "Checklist and files"}
                 </p>
               </div>
               <Button
@@ -588,24 +593,28 @@ export function TaskEditor(props: TaskEditorProps) {
     </form>
   );
 
-  if (props.presentation === "page") {
-    return (
-      <EditorPage
-        title={title}
-        backHref={props.backHref}
-        backLabel={editing ? "Back to task" : "Back"}
-        supportingActions={supportingActions}
-        actions={actions}
-      >
-        {body}
-      </EditorPage>
-    );
-  }
+  const surface =
+    props.presentation === "page"
+      ? ({
+          presentation: "page",
+          parents: props.parents,
+          /**
+           * The edit route's trail already names the task, so the leaf says
+           * what is being done to it. A duplicate started from that route
+           * keeps the trail and becomes a new task under it.
+           */
+          crumb: { title: editing ? "Edit" : "New task" },
+          description: editing
+            ? "Change the task's fields. Its checklist, files, and conversation stay on the task page."
+            : "Fill in what needs doing and who is on it. Everything else can be added later.",
+        } as const)
+      : ({ presentation: "modal" } as const);
 
   return (
-    <Modal
+    <EditorSurface
+      {...surface}
       open={open}
-      setIsOpen={setOpen}
+      setOpen={setOpen}
       title={title}
       size={supplementalDetailsOpen ? "2xl" : "lg"}
       panelClassName="transition-[max-width] duration-300 ease-out motion-reduce:transition-none"
@@ -613,6 +622,6 @@ export function TaskEditor(props: TaskEditorProps) {
       actions={actions}
     >
       {body}
-    </Modal>
+    </EditorSurface>
   );
 }

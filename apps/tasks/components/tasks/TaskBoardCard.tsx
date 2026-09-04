@@ -116,7 +116,7 @@ export function TaskBoardCard({
         );
       }}
       onDragEnd={onDragEnd}
-      className={`group relative w-full cursor-grab rounded-xl border border-black/10 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-black/25 hover:shadow-md active:cursor-grabbing dark:border-white/10 dark:bg-zinc-900 dark:hover:border-white/30 ${
+      className={`group relative w-full cursor-grab rounded-xl border border-black/10 bg-white p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-black/25 hover:shadow-md active:cursor-grabbing sm:p-4 dark:border-white/10 dark:bg-zinc-900 dark:hover:border-white/30 ${
         dropTarget?.taskId === task.id
           ? dropTarget.edge === "before"
             ? "relative before:absolute before:-top-2 before:right-2 before:left-2 before:h-1 before:rounded-full before:bg-blue-500 before:content-[''] dark:before:bg-blue-400"
@@ -130,7 +130,7 @@ export function TaskBoardCard({
         onClick={() => onOpen(task)}
         className="absolute inset-0 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-black/20 dark:focus-visible:ring-white/30"
       />
-      <div className="mb-3 flex items-start justify-between gap-3">
+      <div className="mb-2 flex items-center justify-between gap-2 sm:mb-3 sm:gap-3">
         <TaskKeyBadge task={task} />
         <span className="flex shrink-0 items-center gap-1.5">
           <TaskPriorityBadge priority={task.priority} size="compact" />
@@ -145,24 +145,24 @@ export function TaskBoardCard({
           </Link>
         </span>
       </div>
-      <h3 className="font-semibold leading-snug text-black dark:text-white">
+      <h3 className="text-sm font-semibold leading-snug text-black sm:text-base dark:text-white">
         {task.title}
       </h3>
       {task.description && (
         <FormattedText
           text={task.description}
-          className="mt-2 line-clamp-2 text-xs leading-relaxed text-black/60 dark:text-white/60"
+          className="mt-1.5 line-clamp-2 text-[11px] leading-relaxed text-black/60 sm:mt-2 sm:text-xs dark:text-white/60"
         />
       )}
       {subtasks.length > 0 && (
-        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+        <div className="mt-2 flex flex-wrap items-center gap-1.5 sm:mt-3">
           <span className="ml-auto text-[10px] font-semibold text-black/50 dark:text-white/50">
             ✓ {completedSubtasks}/{subtasks.length}
           </span>
         </div>
       )}
       {categories.length > 0 && (
-        <div className="mt-4 flex flex-wrap gap-1">
+        <div className="mt-3 flex flex-wrap gap-1 sm:mt-4">
           {categories.map((category) => (
             <TaskCategoryBadge
               key={category.id}
@@ -173,7 +173,7 @@ export function TaskBoardCard({
         </div>
       )}
       <div
-        className={`${categories.length > 0 ? "mt-2" : "mt-4"} flex items-end justify-between gap-3`}
+        className={`${categories.length > 0 ? "mt-2" : "mt-3 sm:mt-4"} flex items-end justify-between gap-2 sm:gap-3`}
       >
         <div className="min-w-0 flex-1 space-y-2">
           {project && (

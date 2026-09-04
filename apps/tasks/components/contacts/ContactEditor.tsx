@@ -340,6 +340,29 @@ export function ContactEditor(props: ContactEditorProps) {
       {contact ? "Save changes" : "Create contact"}
     </Button>
   );
+  const editorActions = (
+    <div className="flex flex-col-reverse gap-2 border-t border-black/10 pt-5 dark:border-white/10 sm:flex-row sm:justify-end">
+      <Button
+        type="button"
+        variant="secondary"
+        className="w-full sm:w-auto"
+        disabled={saving}
+        onClick={onClose}
+      >
+        Cancel
+      </Button>
+      {explainUnchanged ? (
+        <Tooltip
+          content="No changes to save yet."
+          triggerClassName="w-full cursor-not-allowed sm:w-auto"
+        >
+          {saveButton}
+        </Tooltip>
+      ) : (
+        saveButton
+      )}
+    </div>
+  );
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-5xl space-y-6">
@@ -479,7 +502,7 @@ export function ContactEditor(props: ContactEditorProps) {
                   <Button
                     type="button"
                     variant="secondary"
-                    size="md"
+                    size="field"
                     className="w-full shrink-0 sm:w-auto"
                     disabled={saving}
                     onClick={() => {
@@ -542,31 +565,9 @@ export function ContactEditor(props: ContactEditorProps) {
               />
             </div>
           </div>
-          {/* The actions sit with the contact's own fields instead of
-              trailing the whole page: on a contact with many people the old
-              footer was a scroll away from anything it changed. It is still
-              the form's submit, so the people below are committed with it. */}
-          <div className="mt-6 flex flex-col-reverse gap-2 border-t border-black/10 pt-5 dark:border-white/10 sm:flex-row sm:justify-end">
-            <Button
-              type="button"
-              variant="secondary"
-              className="w-full sm:w-auto"
-              disabled={saving}
-              onClick={onClose}
-            >
-              Cancel
-            </Button>
-            {explainUnchanged ? (
-              <Tooltip
-                content="No changes to save yet."
-                triggerClassName="w-full cursor-not-allowed sm:w-auto"
-              >
-                {saveButton}
-              </Tooltip>
-            ) : (
-              saveButton
-            )}
-          </div>
+          {/* Existing contacts keep their actions near the fields most often
+              edited. People changes remain part of this same form submission. */}
+          {contact && <div className="mt-6">{editorActions}</div>}
         </Card>
 
         <Card size="lg" className="space-y-3">
@@ -602,8 +603,9 @@ export function ContactEditor(props: ContactEditorProps) {
           </div>
           {draft.people.length === 0 && (
             <p className="rounded-xl border border-dashed border-black/15 px-4 py-6 text-center text-sm text-black/55 dark:border-white/15 dark:text-white/55">
-              No people added yet. You can save the contact now and add people
-              whenever you have them.
+              {contact
+                ? "No people added yet. Add anyone you know here, then save your changes."
+                : "No people added yet. Add the people you know here before creating the contact."}
             </p>
           )}
           {activePerson && activePersonIndex !== null && (
@@ -845,6 +847,7 @@ export function ContactEditor(props: ContactEditorProps) {
               </p>
             )}
         </Card>
+        {!contact && editorActions}
       </form>
     </div>
   );

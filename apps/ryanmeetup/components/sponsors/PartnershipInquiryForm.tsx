@@ -269,6 +269,7 @@ const PartnershipInquiryForm = () => {
             <RequiredFieldsNote />
             <Button
               type="submit"
+              size="md"
               className="w-full sm:w-auto sm:min-w-[220px]"
               aria-label="Send collaboration inquiry"
               leftIcon={<Send />}

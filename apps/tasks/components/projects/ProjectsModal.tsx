@@ -28,6 +28,7 @@ import {
   FiArrowRight,
   FiChevronDown,
   FiEdit2,
+  FiFolder,
   FiPlus,
   FiRotateCcw,
   FiLock,
@@ -88,12 +89,10 @@ type ProjectsModalOptions = {
   showOwnerNames?: boolean;
   initialDraft?: { name?: string; description?: string } | null;
   /**
-   * `"page"` renders the create and edit forms as the dedicated mobile routes
-   * instead of dialogs. `backHref` is where their back control returns to.
-   * See `docs/MOBILE_EDITOR_SURFACES.md`.
+   * `"page"` renders the create and edit forms as the dedicated editor routes
+   * instead of dialogs. See `docs/MOBILE_EDITOR_SURFACES.md`.
    */
   presentation?: "modal" | "page";
-  backHref?: string;
 };
 
 type ProjectsModalCommonProps = {
@@ -157,15 +156,26 @@ export function ProjectsModal({
     showOwnerNames = false,
     initialDraft = null,
     presentation = "modal",
-    backHref = "/projects",
   } = options ?? {};
   /**
    * The editor routes mount this component with `createOnly` or
    * `editProjectId` set, so only those two surfaces ever render as a page.
+   * Each one names the record it is editing, so the trail is built per surface
+   * rather than once for the component.
    */
-  const surface =
+  const pageSurface = (crumb: string) =>
     presentation === "page"
-      ? ({ presentation: "page", backHref } as const)
+      ? ({
+          presentation: "page" as const,
+          parents: [
+            {
+              href: "/projects",
+              title: "Projects",
+              icon: <FiFolder aria-hidden className="shrink-0" />,
+            },
+          ],
+          crumb: { title: crumb },
+        })
       : ({ presentation: "modal" } as const);
   const { onCreate, onProjectUpdated, onCreated } = events ?? {};
   const resourceMutations = useResourceMutations("project");
@@ -823,7 +833,7 @@ export function ProjectsModal({
         profiles: data.profiles,
       }}
       copy={{
-        nameLabel: "New Project",
+        nameLabel: "Project name",
         namePlaceholder: "Website refresh",
         descriptionPlaceholder: "What is this project working toward?",
       }}
@@ -881,7 +891,7 @@ export function ProjectsModal({
         profiles: data.profiles,
       }}
       copy={{
-        nameLabel: "New Project",
+        nameLabel: "Project name",
         namePlaceholder: "Website refresh",
         descriptionPlaceholder: "What is this project working toward?",
       }}
@@ -935,10 +945,15 @@ export function ProjectsModal({
 
     return (
       <EditorSurface
-        {...surface}
+        {...pageSurface("New project")}
         open={modal.open && !editProjectId}
         setOpen={modal.setOpen}
         title={title}
+        description={
+          createOnly
+            ? "Give the work a clear home and choose who can use it from the start."
+            : undefined
+        }
         actions={
           <ModalActions
             confirmForm="create-project-form"
@@ -988,10 +1003,6 @@ export function ProjectsModal({
               className="space-y-4"
               onSubmit={addProject}
             >
-              <p className="text-sm text-black/60 dark:text-white/60">
-                Give the work a clear home and choose who can use it from the
-                start.
-              </p>
               <ExpandableResourceEditor
                 expanded={createDetailsOpen}
                 setExpanded={setCreateDetailsOpen}
@@ -1106,11 +1117,12 @@ export function ProjectsModal({
             !sameIds(savedAccessGroupIds, editingAccessGroupIds);
           return (
             <EditorSurface
-              {...surface}
+              {...pageSurface(project.name)}
               setOpen={(nextOpen) => {
                 if (!nextOpen) closeEditor();
               }}
               title={`Edit ${project.name}`}
+              description="Update what this project is for, who owns it, and who can reach it."
               size={editDetailsOpen ? "2xl" : "lg"}
               panelClassName="transition-[max-width] duration-300 ease-out motion-reduce:transition-none"
               actions={

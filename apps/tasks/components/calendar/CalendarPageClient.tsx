@@ -96,16 +96,19 @@ function Item({
       : item.source === "away"
         ? "bg-amber-500/10 hover:bg-amber-500/15 dark:bg-amber-400/10 dark:hover:bg-amber-400/15"
         : "bg-black/[0.035] hover:bg-black/[0.07] dark:bg-white/[0.06] dark:hover:bg-white/10";
-  const className = `block min-w-0 rounded-md border-l-4 px-2 py-1 text-left text-[11px] leading-tight transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/40 ${sourceClassName}`;
+  const className = `block min-w-0 rounded-md border-l-4 px-2 py-1.5 text-left text-[11px] leading-tight transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/40 ${sourceClassName}`;
+  // The desktop trigger carries `sm:inline-flex`, which would make these two
+  // lines flex siblings on one row. The wrapper keeps them a block stack: the
+  // title reads first, the time and owner sit under it.
   const content = (
-    <>
+    <span className="block w-full min-w-0">
       <span className="block truncate font-semibold">{item.title}</span>
       {item.meta && (
-        <span className="block truncate text-[10px] text-black/55 dark:text-white/55">
+        <span className="mt-0.5 block truncate text-[10px] text-black/55 dark:text-white/55">
           {item.meta}
         </span>
       )}
-    </>
+    </span>
   );
   if (item.href && item.external)
     return (
@@ -170,13 +173,13 @@ function TaskSummary({
   return (
     <button
       type="button"
-      className="block w-full min-w-0 rounded-md border-l-4 border-fuchsia-600 bg-fuchsia-500/[0.08] px-2 py-1 text-left text-[11px] leading-tight transition hover:bg-fuchsia-500/[0.14] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500/40 dark:border-fuchsia-400 dark:bg-fuchsia-400/10 dark:hover:bg-fuchsia-400/15"
+      className="block w-full min-w-0 rounded-md border-l-4 border-fuchsia-600 bg-fuchsia-500/[0.08] px-2 py-1.5 text-left text-[11px] leading-tight transition hover:bg-fuchsia-500/[0.14] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500/40 dark:border-fuchsia-400 dark:bg-fuchsia-400/10 dark:hover:bg-fuchsia-400/15"
       onClick={() => onOpen(date, items)}
     >
       <span className="block truncate font-semibold">
         {items.length} {items.length === 1 ? "task" : "tasks"} due
       </span>
-      <span className="block truncate text-[10px] text-black/55 dark:text-white/55">
+      <span className="mt-0.5 block truncate text-[10px] text-black/55 dark:text-white/55">
         View the day&apos;s deadlines
       </span>
     </button>

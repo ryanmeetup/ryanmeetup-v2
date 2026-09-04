@@ -328,6 +328,7 @@ export function ProfileForm({
         )}
         <Button
           type="submit"
+          size={onboardingRequired ? "md" : "sm"}
           leftIcon={<FiSave />}
           className={onboardingRequired ? "w-full" : "w-full sm:w-auto"}
           loading={saving}

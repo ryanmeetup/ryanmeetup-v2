@@ -14,7 +14,7 @@ export function CartPage() {
     return (
       <main className="store-container min-h-[62vh] py-16 sm:py-24">
         <EmptyState className="mx-auto max-w-xl" message="Your cart is remarkably Ryan-free." />
-        <div className="mx-auto mt-6 max-w-xs"><Button.Link href="/collections/all" fullWidth>Browse the goods</Button.Link></div>
+        <div className="mx-auto mt-6 max-w-xs"><Button.Link href="/collections/all" size="md" fullWidth>Browse the goods</Button.Link></div>
       </main>
     );
   }
@@ -56,7 +56,7 @@ export function CartPage() {
           {commerceConfigured ? (
             <a href={cart.checkoutUrl} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-black/60 bg-black px-6 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-black/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:border-white/10 dark:bg-white dark:text-black dark:hover:bg-white/90">Checkout <FiArrowRight aria-hidden /></a>
           ) : (
-            <Button fullWidth className="mt-6" disabled>Connect Shopify to checkout</Button>
+            <Button fullWidth size="md" className="mt-6" disabled>Connect Shopify to checkout</Button>
           )}
           <p className="mt-4 text-center text-[11px] uppercase tracking-[0.16em] text-black/50 dark:text-white/50">Secure checkout hosted by Shopify</p>
         </Card>

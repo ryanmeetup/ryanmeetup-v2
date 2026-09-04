@@ -4,12 +4,13 @@ import {
   Avatar,
   Button,
   DropdownSelect,
+  getFieldLabelClasses,
   Input,
   ModalActions,
   Textarea,
 } from "@ryanmeetup/ui";
 import { EditorSurface } from "@/components/global";
-import { FiTrash2 } from "react-icons/fi";
+import { FiCalendar, FiTrash2 } from "react-icons/fi";
 import {
   workspaceTimeZoneLabel,
   type CalendarEventKind,
@@ -31,8 +32,8 @@ type CalendarEventEditorProps = {
   projects: Project[];
 } & (
   | { presentation?: "modal" }
-  /** The mobile route. See `docs/MOBILE_EDITOR_SURFACES.md`. */
-  | { presentation: "page"; backHref: string }
+  /** The dedicated route. See `docs/MOBILE_EDITOR_SURFACES.md`. */
+  | { presentation: "page" }
 );
 
 export function CalendarEventEditorModal(props: CalendarEventEditorProps) {
@@ -46,10 +47,6 @@ export function CalendarEventEditorModal(props: CalendarEventEditorProps) {
     profiles,
     projects,
   } = props;
-  const surface =
-    props.presentation === "page"
-      ? ({ presentation: "page", backHref: props.backHref } as const)
-      : ({ presentation: "modal" } as const);
   const {
     canEdit,
     changeKind,
@@ -63,6 +60,22 @@ export function CalendarEventEditorModal(props: CalendarEventEditorProps) {
   } = editor;
   const profileMap = new Map(profiles.map((profile) => [profile.id, profile]));
 
+  const noun = draft?.kind === "away" ? "time away" : "important date";
+  const surface =
+    props.presentation === "page"
+      ? ({
+          presentation: "page",
+          parents: [
+            {
+              href: "/calendar",
+              title: "Calendar",
+              icon: <FiCalendar aria-hidden className="shrink-0" />,
+            },
+          ],
+          crumb: { title: draft?.id ? draft.title || noun : `New ${noun}` },
+        } as const)
+      : ({ presentation: "modal" } as const);
+
   return (
     <EditorSurface
       {...surface}
@@ -70,11 +83,7 @@ export function CalendarEventEditorModal(props: CalendarEventEditorProps) {
       setOpen={(open) => {
         if (!open && !saving) setDraft(null);
       }}
-      title={
-        draft?.id
-          ? `Edit ${draft.kind === "away" ? "time away" : "important date"}`
-          : "Add to calendar"
-      }
+      title={draft?.id ? `Edit ${noun}` : "Add to calendar"}
       description={
         draft?.kind === "away"
           ? "Let the team know when you will be unreachable."
@@ -167,9 +176,7 @@ export function CalendarEventEditorModal(props: CalendarEventEditorProps) {
               />
             ) : (
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-black/60 dark:text-white/60">
-                  Who will be away?
-                </p>
+                <p className={getFieldLabelClasses()}>Who will be away?</p>
                 <p className="mt-2 flex items-center gap-2 text-sm">
                   <Avatar
                     name={profileDisplayName(profileMap.get(draft.profileId))}

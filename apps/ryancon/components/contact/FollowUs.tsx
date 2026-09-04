@@ -15,6 +15,7 @@ const FollowUs = () => (
     <Divider margins="lg" />
     <Button.Link
       href="https://ryanmeetup.com/newsletter"
+      size="md"
       leftIcon={<News />}
       variant="primary"
       className="w-full"
