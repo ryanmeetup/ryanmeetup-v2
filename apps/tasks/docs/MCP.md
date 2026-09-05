@@ -63,6 +63,13 @@ TASKS_MCP_READ_ENABLED=true
 TASKS_MCP_READ_TOKEN_SHA256=<64-character SHA-256 hex digest>
 ```
 
+This is a separate, workspace-wide read authority—not a user account. It uses
+the service client and therefore does not inherit any person's tier, team,
+project, category, or page restrictions. App owners can see whether it is
+enabled, plus a masked token-hash fingerprint, on the Admin overview. Treat a
+configured token like an app-owner credential and rotate it when its operator
+changes.
+
 Do not add them to PRD. Trigger a fresh RMT deployment after changing the
 environment, then verify the health endpoint with the raw token:
 

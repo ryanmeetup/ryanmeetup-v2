@@ -5,20 +5,11 @@ import { readBeginnerFlowHealth } from "@/lib/server/beginner-flow-health";
 import { instanceBuild } from "@/lib/instance";
 
 export type IntegrationState =
-  | "connected"
-  | "configured"
-  | "attention"
-  | "missing";
+  "connected" | "configured" | "disabled" | "attention" | "missing";
 
 /** Which glyph a fact carries. Mapped to an icon in the client component. */
 export type FactKind =
-  | "host"
-  | "secret"
-  | "client"
-  | "email"
-  | "schedule"
-  | "accounts"
-  | "origin";
+  "host" | "secret" | "client" | "email" | "schedule" | "accounts" | "origin";
 
 /**
  * One labelled line inside an integration: what the setting is, what it
@@ -90,6 +81,10 @@ export async function getIntegrationHealth(): Promise<IntegrationCheck[]> {
   const cronSecret = present("CRON_SECRET");
   const supabaseKey = present("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
   const supabaseSecret = present("SUPABASE_SECRET_KEY");
+  const mcpEnabled = present("TASKS_MCP_READ_ENABLED") === "true";
+  const mcpTokenHash = present("TASKS_MCP_READ_TOKEN_SHA256");
+  const mcpConfigured =
+    mcpEnabled && Boolean(mcpTokenHash && /^[a-f0-9]{64}$/i.test(mcpTokenHash));
   const appUrl = present("TASKS_APP_URL");
   // Any of three names may supply the from-address; report the one in use so
   // the row points at the variable an operator would actually edit.
@@ -214,6 +209,36 @@ export async function getIntegrationHealth(): Promise<IntegrationCheck[]> {
           label: "Service key",
           value: supabaseSecret ? fingerprint(supabaseSecret) : null,
           source: "SUPABASE_SECRET_KEY",
+        },
+      ],
+    },
+    {
+      key: "mcp-read",
+      label: "External MCP read access",
+      state: mcpConfigured
+        ? "configured"
+        : mcpEnabled
+          ? "attention"
+          : "disabled",
+      blurb:
+        "A privileged external reader for automation. It can query all workspace data and does not inherit a person's group or page restrictions.",
+      consequence:
+        mcpEnabled && !mcpConfigured
+          ? "External read access is enabled, but its token hash is missing or invalid."
+          : null,
+      facts: [
+        {
+          kind: "client",
+          label: "External reader",
+          value: mcpEnabled ? "Enabled" : "Disabled",
+          source: "TASKS_MCP_READ_ENABLED",
+          mono: false,
+        },
+        {
+          kind: "secret",
+          label: "Bearer token hash",
+          value: mcpTokenHash ? fingerprint(mcpTokenHash) : null,
+          source: "TASKS_MCP_READ_TOKEN_SHA256",
         },
       ],
     },

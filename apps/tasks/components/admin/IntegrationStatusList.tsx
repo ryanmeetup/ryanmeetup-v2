@@ -65,6 +65,7 @@ const identity: Record<string, { icon: IconType; accent: Accent }> = {
   "workspace-foundation": { icon: FiUsers, accent: "emerald" },
   supabase: { icon: FiDatabase, accent: "emerald" },
   "supabase-secret": { icon: FiKey, accent: "violet" },
+  "mcp-read": { icon: FiShield, accent: "violet" },
   resend: { icon: FiSend, accent: "sky" },
   "google-calendar": { icon: FiCalendar, accent: "indigo" },
   cron: { icon: FiClock, accent: "teal" },
@@ -90,6 +91,8 @@ const stateStyle: Record<IntegrationState, string> = {
     "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:border-emerald-400/30 dark:bg-emerald-500/15 dark:text-emerald-200",
   configured:
     "border-blue-500/30 bg-blue-500/10 text-blue-800 dark:border-blue-400/30 dark:bg-blue-500/15 dark:text-blue-200",
+  disabled:
+    "border-black/10 bg-black/5 text-black/60 dark:border-white/10 dark:bg-white/5 dark:text-white/60",
   attention:
     "border-amber-500/35 bg-amber-500/15 text-amber-900 dark:border-amber-400/35 dark:bg-amber-500/15 dark:text-amber-100",
   missing:
@@ -99,6 +102,7 @@ const stateStyle: Record<IntegrationState, string> = {
 const stateLabel: Record<IntegrationState, string> = {
   connected: "Connected",
   configured: "Configured",
+  disabled: "Disabled",
   attention: "Needs attention",
   missing: "Not set",
 };
