@@ -21,7 +21,6 @@ import type { CalendarItem } from "@/lib/calendar/calendar-types";
 import { itemsOnDate } from "@/lib/calendar/calendar-types";
 import { moveCalendarMonth } from "@/lib/calendar/calendar-view";
 import type { GoogleCalendarConnection } from "@/lib/calendar/google-calendar-types";
-import { GoogleCalendarStatusButton } from "./GoogleCalendarControls";
 
 const monthFormatter = new Intl.DateTimeFormat("en-US", {
   month: "long",
@@ -78,18 +77,14 @@ export function CalendarGridAgenda({
   agendaDates,
   calendarSidebarOpen,
   days,
-  googleCanManage,
   googleCanView,
-  googleConfigured,
   googleConnection,
-  googleLoading,
   googleSyncing,
   initialMonth,
   items,
   month,
   monthItems,
   monthNumber,
-  onOpenGoogleSettings,
   onOpenNew,
   onToggleSidebar,
   renderDayItems,
@@ -102,18 +97,14 @@ export function CalendarGridAgenda({
   agendaDates: string[];
   calendarSidebarOpen: boolean;
   days: string[];
-  googleCanManage: boolean;
   googleCanView: boolean;
-  googleConfigured: boolean;
   googleConnection: GoogleCalendarConnection;
-  googleLoading: boolean;
   googleSyncing: boolean;
   initialMonth: string;
   items: CalendarItem[];
   month: string;
   monthItems: CalendarItem[];
   monthNumber: number;
-  onOpenGoogleSettings: () => void;
   onOpenNew: (date: string) => void;
   onToggleSidebar: () => void;
   renderDayItems: (
@@ -137,7 +128,9 @@ export function CalendarGridAgenda({
     >
       <section className="min-w-0">
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2">
+          {/* On a phone this row owns the full width, so the arrows sit at
+              the edges with the month centered between them. */}
+          <div className="flex items-center justify-between gap-2 sm:justify-start">
             <Button
               size="xs"
               variant="secondary"
@@ -146,7 +139,7 @@ export function CalendarGridAgenda({
             >
               <FiArrowLeft />
             </Button>
-            <h2 className="min-w-44 text-center text-lg font-semibold">
+            <h2 className="min-w-44 flex-1 text-center text-lg font-semibold sm:flex-none">
               {monthFormatter.format(new Date(`${month}-01T00:00:00Z`))}
             </h2>
             <Button
@@ -158,16 +151,10 @@ export function CalendarGridAgenda({
               <FiArrowRight />
             </Button>
           </div>
-          <div className="flex flex-wrap items-end justify-end gap-2">
-            {(googleCanManage ||
-              (googleCanView && googleConnection.connected)) && (
-              <GoogleCalendarStatusButton
-                configured={googleConfigured}
-                connection={googleConnection}
-                loading={googleLoading}
-                onClick={onOpenGoogleSettings}
-              />
-            )}
+          {/* One tidy row on a phone: the filter takes the slack, Today keeps
+              its own width. From `sm` up they sit with the rest, right of the
+              month. */}
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2 sm:flex sm:flex-wrap sm:justify-end">
             <DropdownSelect
               className="h-9"
               label="Show"
@@ -191,16 +178,23 @@ export function CalendarGridAgenda({
             >
               Today
             </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              leftIcon={<FiSidebar />}
-              aria-expanded={calendarSidebarOpen}
-              aria-controls="calendar-details"
-              onClick={onToggleSidebar}
-            >
-              {calendarSidebarOpen ? "Hide details" : "Show details"}
-            </Button>
+            {/* The details rail only earns its space next to the month grid.
+                On a phone the agenda below already lists every item in the
+                month, so the toggle and the rail both stop at `md`. The
+                wrapper carries the breakpoint because `hidden` on the button
+                itself would race the `inline-flex` in its own base classes. */}
+            <span className="hidden md:inline-flex">
+              <Button
+                size="sm"
+                variant="secondary"
+                leftIcon={<FiSidebar />}
+                aria-expanded={calendarSidebarOpen}
+                aria-controls="calendar-details"
+                onClick={onToggleSidebar}
+              >
+                {calendarSidebarOpen ? "Hide details" : "Show details"}
+              </Button>
+            </span>
           </div>
         </div>
         {googleSyncing && <SyncingBanner />}
@@ -276,75 +270,79 @@ export function CalendarGridAgenda({
           )}
         </div>
       </section>
-      <AnimatedCollapse
-        id="calendar-details"
-        open={calendarSidebarOpen}
-        className="min-w-0"
-        contentClassName="min-w-0"
-      >
-        <aside className="space-y-4" aria-label="Calendar details">
-          <Card className="p-4">
-            <h2 className="flex items-center gap-2 font-semibold">
-              <FiClock /> Coming up
-              {googleSyncing && (
-                <Spinner
-                  size={14}
-                  label="Syncing Google Calendar"
-                  className="text-blue-700 dark:text-blue-300"
-                />
-              )}
-            </h2>
-            {/* The list scrolls, so it is fenced top and bottom: rows fade
-                into a rule instead of clipping into nothing. */}
-            <div
-              className="mt-3 max-h-[32rem] space-y-2 overflow-y-auto border-y border-black/10 py-3 pr-1 dark:border-white/10"
-              aria-busy={googleSyncing}
-            >
-              {upcomingDates.slice(0, 6).map((date) => (
-                <div key={`upcoming:${date}`} className="space-y-1">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-black/50 dark:text-white/50">
-                    {dayFormatter.format(new Date(`${date}T00:00:00Z`))}
+      {/* Same reason as the toggle: the wrapper hides the rail below `md`,
+          since the collapse sets `grid` on itself. */}
+      <div className="hidden min-w-0 md:block">
+        <AnimatedCollapse
+          id="calendar-details"
+          open={calendarSidebarOpen}
+          className="min-w-0"
+          contentClassName="min-w-0"
+        >
+          <aside className="space-y-4" aria-label="Calendar details">
+            <Card className="p-4">
+              <h2 className="flex items-center gap-2 font-semibold">
+                <FiClock /> Coming up
+                {googleSyncing && (
+                  <Spinner
+                    size={14}
+                    label="Syncing Google Calendar"
+                    className="text-blue-700 dark:text-blue-300"
+                  />
+                )}
+              </h2>
+              {/* The list scrolls, so it is fenced top and bottom: rows fade
+                  into a rule instead of clipping into nothing. */}
+              <div
+                className="mt-3 max-h-[32rem] space-y-2 overflow-y-auto border-y border-black/10 py-3 pr-1 dark:border-white/10"
+                aria-busy={googleSyncing}
+              >
+                {upcomingDates.slice(0, 6).map((date) => (
+                  <div key={`upcoming:${date}`} className="space-y-1">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-black/50 dark:text-white/50">
+                      {dayFormatter.format(new Date(`${date}T00:00:00Z`))}
+                    </p>
+                    {renderDayItems(date, itemsOnDate(monthItems, date), 2)}
+                  </div>
+                ))}
+                {googleSyncing && (
+                  <SyncingItems rows={upcomingDates.length ? 1 : 3} />
+                )}
+                {!upcomingDates.length && !googleSyncing && (
+                  <p className="text-sm text-black/60 dark:text-white/60">
+                    {monthItems.length
+                      ? "Nothing left this month. Check a later month for what is next."
+                      : "Nothing on the books this month."}
                   </p>
-                  {renderDayItems(date, itemsOnDate(monthItems, date), 2)}
-                </div>
-              ))}
-              {googleSyncing && (
-                <SyncingItems rows={upcomingDates.length ? 1 : 3} />
-              )}
-              {!upcomingDates.length && !googleSyncing && (
-                <p className="text-sm text-black/60 dark:text-white/60">
-                  {monthItems.length
-                    ? "Nothing left this month. Check a later month for what is next."
-                    : "Nothing on the books this month."}
-                </p>
-              )}
-            </div>
-          </Card>
-          <Card className="p-4" aria-label="Calendar source key">
-            <h2 className="flex items-center gap-2 text-sm font-semibold">
-              <FiInfo /> Calendar key
-            </h2>
-            <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs text-black/70 dark:text-white/70">
-              <span className="flex items-center gap-2">
-                <i className="h-2.5 w-2.5 rounded-sm bg-fuchsia-600 dark:bg-fuchsia-400" />
-                Deadlines
-              </span>
-              <span className="flex items-center gap-2">
-                <i className="h-2.5 w-2.5 rounded-sm bg-blue-600 dark:bg-blue-400" />
-                Google
-              </span>
-              <span className="flex items-center gap-2">
-                <i className="h-2.5 w-2.5 rounded-sm bg-amber-600 dark:bg-amber-400" />
-                Away
-              </span>
-              <span className="flex items-center gap-2">
-                <i className="h-2.5 w-2.5 rounded-sm bg-[linear-gradient(135deg,#059669_0_50%,#7c3aed_50%)]" />
-                Dates
-              </span>
-            </div>
-          </Card>
-        </aside>
-      </AnimatedCollapse>
+                )}
+              </div>
+            </Card>
+            <Card className="p-4" aria-label="Calendar source key">
+              <h2 className="flex items-center gap-2 text-sm font-semibold">
+                <FiInfo /> Calendar key
+              </h2>
+              <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs text-black/70 dark:text-white/70">
+                <span className="flex items-center gap-2">
+                  <i className="h-2.5 w-2.5 rounded-sm bg-fuchsia-600 dark:bg-fuchsia-400" />
+                  Deadlines
+                </span>
+                <span className="flex items-center gap-2">
+                  <i className="h-2.5 w-2.5 rounded-sm bg-blue-600 dark:bg-blue-400" />
+                  Google
+                </span>
+                <span className="flex items-center gap-2">
+                  <i className="h-2.5 w-2.5 rounded-sm bg-amber-600 dark:bg-amber-400" />
+                  Away
+                </span>
+                <span className="flex items-center gap-2">
+                  <i className="h-2.5 w-2.5 rounded-sm bg-[linear-gradient(135deg,#059669_0_50%,#7c3aed_50%)]" />
+                  Dates
+                </span>
+              </div>
+            </Card>
+          </aside>
+        </AnimatedCollapse>
+      </div>
     </div>
   );
 }

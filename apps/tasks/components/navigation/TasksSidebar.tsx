@@ -181,6 +181,14 @@ export function TasksSidebar({
   const linkClass = (active: boolean) =>
     `sidebar-link ${active ? "sidebar-link-active" : ""}`;
 
+  // The shell that owns `open` outlives the page, so the drawer would otherwise
+  // stay up over whatever route a link just reached. Closing on the pathname
+  // itself means no link can forget to: the per-link handlers below only make
+  // the close immediate, and cover the filter links that keep the pathname.
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname, setOpen]);
+
   useEffect(() => {
     if (selectedCategory) setCategoriesExpanded(true);
     if (selectedProject) {
@@ -207,6 +215,7 @@ export function TasksSidebar({
         <Link
           href={withAccessPreview("/", data.accessPreview)}
           aria-label="Task tracker home"
+          onClick={closeSidebar}
           className="-ml-2 min-w-0 rounded-lg px-2 py-1 transition duration-300 ease-in-out hover:-translate-y-0.5 hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 motion-reduce:transform-none dark:hover:bg-white/10 dark:focus-visible:ring-white/40"
         >
           <p
@@ -369,6 +378,7 @@ export function TasksSidebar({
               </button>
               <Link
                 href={withAccessPreview("/projects", data.accessPreview)}
+                onClick={closeSidebar}
                 className="text-[10px] font-semibold text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white"
               >
                 Manage
@@ -417,6 +427,7 @@ export function TasksSidebar({
             </button>
             <Link
               href={withAccessPreview("/categories", data.accessPreview)}
+              onClick={closeSidebar}
               className="text-[10px] font-semibold text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white"
             >
               {canManageCategories ? "Manage" : "View all"}
@@ -501,6 +512,7 @@ export function TasksSidebar({
             </button>
             <Link
               href={withAccessPreview("/projects", data.accessPreview)}
+              onClick={closeSidebar}
               className="text-[10px] font-semibold text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white"
             >
               Manage
