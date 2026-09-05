@@ -1158,7 +1158,7 @@ export function CategoriesModal({
                   setExpanded={setEditDetailsOpen}
                   primary={
                     <>
-                      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+                      <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3">
                         <Input
                           label="Category name"
                           name={`edit-category-${category.id}`}

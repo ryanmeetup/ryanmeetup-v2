@@ -51,7 +51,7 @@ export function ResourceFields({ resource, values, changes, editor, copy, sectio
   const nameField = <Input label={copy.nameLabel} name={`${prefix}-name`} value={values.name} onChange={(event) => changes.setName(event.target.value)} placeholder={copy.namePlaceholder} disabled={editor.disabled} required />;
   return <>
     {section !== "supporting" && <>
-      {nameSlot ? <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">{nameField}{nameSlot}</div> : nameField}
+      {nameSlot ? <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3">{nameField}{nameSlot}</div> : nameField}
       <Textarea id={`${prefix}-description`} label="Description" name={`${prefix}-description`} value={values.description} onChange={(event) => changes.setDescription(event.target.value)} placeholder={copy.descriptionPlaceholder} rows={3} disabled={editor.disabled} required={copy.descriptionRequired !== false} />
       {primarySlot}
       {!hideOwners && <ResourceOwnerSelect label={`${resource.kind === "project" ? "Project" : "Category"} owners`} profiles={editor.profiles} value={values.ownerIds} onChange={changes.setOwnerIds} disabled={editor.disabled} />}
