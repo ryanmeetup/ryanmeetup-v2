@@ -1,8 +1,9 @@
 begin;
 
+set local role postgres;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
-select plan(27);
+select extensions.plan(27);
 
 select ok(
   not has_function_privilege('anon', 'public.beginner_flow_health()', 'execute'),
@@ -52,34 +53,39 @@ values
   ('00000000-0000-4000-8000-000000000003', 'manager@example.test', '{"full_name":"Global manager"}'),
   ('00000000-0000-4000-8000-000000000004', 'member@example.test', '{"full_name":"Member"}');
 
-update public.profiles set onboarding_completed = true;
+update public.profiles
+set onboarding_completed = true
+where id::text like '00000000-0000-4000-8000-00000000000%';
+set local session_replication_role = replica;
+update public.profiles set app_role = 'member';
 update public.profiles
 set app_role = 'owner'
 where id = '00000000-0000-4000-8000-000000000001';
+set local session_replication_role = origin;
 
 insert into public.access_groups (
   id, name, created_by, kind, hierarchy_rank, grants_global_content
 ) values (
   '10000000-0000-4000-8000-000000000001',
-  'Workspace managers',
+  'Access matrix workspace managers 0001',
   '00000000-0000-4000-8000-000000000001',
   'tier',
-  100,
+  2147483000,
   true
 );
 insert into public.access_groups (
   id, name, created_by, kind, hierarchy_rank
 ) values (
   '10000000-0000-4000-8000-000000000002',
-  'Senior members',
+  'Access matrix senior members 0002',
   '00000000-0000-4000-8000-000000000001',
   'tier',
-  50
+  2147482999
 );
 insert into public.access_groups (id, name, created_by, kind)
 values (
   '10000000-0000-4000-8000-000000000003',
-  'Events team',
+  'Access matrix events team 0003',
   '00000000-0000-4000-8000-000000000001',
   'team'
 );
@@ -94,13 +100,13 @@ select public.set_profile_access_tier(
   '00000000-0000-4000-8000-000000000003',
   '10000000-0000-4000-8000-000000000001'
 );
-reset role;
+set local role postgres;
 
 insert into public.projects (
   id, name, created_by, access_mode
 ) values (
   '20000000-0000-4000-8000-000000000001',
-  'Restricted launch',
+  'Access matrix restricted launch 0001',
   '00000000-0000-4000-8000-000000000001',
   'owners'
 );
@@ -191,7 +197,7 @@ select ok(
   not public.can_view_workspace_area('notes'),
   'ordinary members without a selected group cannot open a restricted page'
 );
-reset role;
+set local role postgres;
 insert into public.workspace_area_group_grants (area, group_id, granted_by)
 values (
   'notes',
@@ -248,7 +254,7 @@ select is(
   'open',
   'the canonical visibility workflow updates the mode'
 );
-reset role;
+set local role postgres;
 select is(
   (select count(*)::integer from public.permission_audit_events
     where action = 'project.visibility.update'
