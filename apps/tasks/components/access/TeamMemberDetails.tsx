@@ -2,7 +2,10 @@ import Link from "next/link";
 import { Pill, Tooltip } from "@ryanmeetup/ui";
 import { FiCheckCircle, FiClock, FiShield, FiUsers } from "react-icons/fi";
 import { accessGroupSlug } from "@/lib/access/access-groups";
-import type { AccessGroup, UserAccessMetadata } from "@/lib/access/access-types";
+import type {
+  AccessGroup,
+  UserAccessMetadata,
+} from "@/lib/access/access-types";
 import { adminAccessGroupPath } from "@/lib/admin/admin-routes";
 
 const accountDateFormatter = new Intl.DateTimeFormat("en-US", {
@@ -16,49 +19,60 @@ function formatAccountDate(value: string | null) {
 }
 
 export function TeamAccountStatus({
+  appRole,
   metadata,
   compact = false,
 }: {
+  appRole?: "owner" | "member";
   metadata?: UserAccessMetadata;
   compact?: boolean;
 }) {
   const active = Boolean(metadata?.lastSignInAt);
   return (
-    <Tooltip
-      placement={compact ? "left" : "right"}
-      content={
-        <dl className="space-y-1">
-          <div className="flex justify-between gap-4">
-            <dt className="opacity-65">Last login</dt>
-            <dd>
-              {formatAccountDate(metadata?.lastSignInAt ?? null) ?? "Never"}
-            </dd>
-          </div>
-          <div className="flex justify-between gap-4">
-            <dt className="opacity-65">{active ? "Joined" : "Invite sent"}</dt>
-            <dd>
-              {formatAccountDate(
-                active
-                  ? (metadata?.createdAt ?? null)
-                  : (metadata?.invitedAt ?? metadata?.createdAt ?? null),
-              ) ?? "—"}
-            </dd>
-          </div>
-        </dl>
-      }
-    >
-      <span
-        tabIndex={0}
-        className={`inline-flex cursor-help items-center gap-1.5 rounded-full px-2 py-1 font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/30 ${compact ? "shrink-0 text-xs" : ""} ${
-          active
-            ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-            : "bg-amber-500/10 text-amber-700 dark:text-amber-300"
-        }`}
+    <span className="flex flex-wrap items-center gap-1.5">
+      {appRole === "owner" && (
+        <span className="inline-flex items-center gap-1 rounded-full bg-violet-500/10 px-2 py-1 font-semibold text-violet-700 dark:text-violet-300">
+          <FiShield aria-hidden /> Owner
+        </span>
+      )}
+      <Tooltip
+        placement={compact ? "left" : "right"}
+        content={
+          <dl className="space-y-1">
+            <div className="flex justify-between gap-4">
+              <dt className="opacity-65">Last login</dt>
+              <dd>
+                {formatAccountDate(metadata?.lastSignInAt ?? null) ?? "Never"}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="opacity-65">
+                {active ? "Joined" : "Invite sent"}
+              </dt>
+              <dd>
+                {formatAccountDate(
+                  active
+                    ? (metadata?.createdAt ?? null)
+                    : (metadata?.invitedAt ?? metadata?.createdAt ?? null),
+                ) ?? "—"}
+              </dd>
+            </div>
+          </dl>
+        }
       >
-        {active ? <FiCheckCircle aria-hidden /> : <FiClock aria-hidden />}
-        {active ? "Active" : "Invited"}
-      </span>
-    </Tooltip>
+        <span
+          tabIndex={0}
+          className={`inline-flex cursor-help items-center gap-1.5 rounded-full px-2 py-1 font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/30 ${compact ? "shrink-0 text-xs" : ""} ${
+            active
+              ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+              : "bg-amber-500/10 text-amber-700 dark:text-amber-300"
+          }`}
+        >
+          {active ? <FiCheckCircle aria-hidden /> : <FiClock aria-hidden />}
+          {active ? "Active" : "Invited"}
+        </span>
+      </Tooltip>
+    </span>
   );
 }
 

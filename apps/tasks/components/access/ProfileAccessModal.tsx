@@ -15,22 +15,27 @@ type AccessGroupOption = {
   color: string;
   kind: "tier" | "team";
   hierarchy_rank?: number | null;
+  is_default: boolean;
 };
 
 export function ProfileAccessModal({
+  appRole,
   groups,
   onSubmit,
   pending,
   profile,
   selections,
+  setAppRole,
   setProfile,
   setSelections,
 }: {
+  appRole: "owner" | "member";
   groups: AccessGroupOption[];
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   pending: boolean;
   profile: Profile | null;
   selections: string[];
+  setAppRole: (role: "owner" | "member") => void;
   setProfile: (profile: Profile | null) => void;
   setSelections: (update: (current: string[]) => string[]) => void;
 }) {
@@ -64,8 +69,24 @@ export function ProfileAccessModal({
         onSubmit={onSubmit}
       >
         <p className="text-sm text-black/65 dark:text-white/65">
-          Choose exactly one organizational tier. Higher tiers inherit access
-          granted to lower tiers. Teams remain optional and additive.
+          App role controls workspace administration. Tier and teams control
+          content access. These settings save together.
+        </p>
+        <DropdownSelect
+          label="App role"
+          variant="field"
+          value={appRole}
+          onChange={(value) => setAppRole(value as "owner" | "member")}
+          options={[
+            { label: "Team member", value: "member" },
+            { label: "App owner", value: "owner" },
+          ]}
+          disabled={pending}
+          required
+        />
+        <p className="text-sm text-black/65 dark:text-white/65">
+          App owners manage people, groups, settings, and all content. The last
+          app owner cannot be demoted or removed.
         </p>
         <DropdownSelect
           label="Organizational tier"
@@ -85,7 +106,12 @@ export function ProfileAccessModal({
           }
           options={[...tierGroups]
             .sort((a, b) => (a.hierarchy_rank ?? 0) - (b.hierarchy_rank ?? 0))
-            .map((group) => ({ label: group.name, value: group.id }))}
+            .map((group) => ({
+              label: group.is_default
+                ? `${group.name} (default for new members)`
+                : group.name,
+              value: group.id,
+            }))}
           disabled={pending}
           required
         />

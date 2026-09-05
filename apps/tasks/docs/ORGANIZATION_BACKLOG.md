@@ -77,35 +77,14 @@ Completion criteria:
   isolation.
 - No per-card linear scans remain for relations that can be indexed once.
 
-## 3. Finish access-domain decomposition
+## 3. Access-domain decomposition — completed
 
-Current hotspots:
-
-- `components/access/AccessGroupPageClient.tsx`
-- `components/access/AccessPageClient.tsx`
-- `app/api/access-groups/route.ts`
-
-Remaining work:
-
-- Extract the access-group detail project's permission matrix into its own
-  component and derive effective permissions in a selector/helper module.
-- Extract member management from `AccessGroupPageClient` into a focused panel
-  and controller. Keep routing and page-level modal coordination in the page.
-- Move access mutations and optimistic state transitions into an
-  `useAccessManagement` or narrower group/team hooks rather than duplicating
-  state replacement logic across the two access screens.
-- Consolidate access-group lookup/index creation (`membersByGroup`,
-  `groupsByProfile`, grants by resource/group) in tested selectors.
-- Split the access-groups API route by operation into server services while
-  retaining one route dispatcher if the public API contract requires it.
-- Move `Permission` consumers to the canonical `AccessPermission` name and
-  retire the compatibility alias once all consumers are migrated.
-
-Completion criteria:
-
-- Access page clients compose group/team panels and dialogs without embedding
-  permission algorithms or large mutation implementations.
-- Access types, selectors, and mutations each have a single domain owner.
+Access mutations now live in `useAccessManagement` and the server operation
+dispatcher/services. Membership indexing and the shared inheritance model are
+tested domain helpers. Group membership has its own panel, and the effective
+project/category/page explanation has its own component and derivation module.
+The obsolete direct-user project grant model and its compatibility permission
+selectors have been removed.
 
 ## 4. Separate search data, state, and results presentation
 

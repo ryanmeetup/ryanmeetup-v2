@@ -27,10 +27,9 @@ import { categoryController } from "@/components/categories/category-workspace";
 import { ProjectsModal } from "@/components/projects";
 import { AccessGroupKindBadge } from "./AccessGroupKindBadge";
 import { AccessGroupMembersPanel } from "./AccessGroupMembersPanel";
-import type {
-  AccessGroup,
-  GroupMember,
-} from "@/lib/access/access-types";
+import { AccessGroupOverview } from "./AccessGroupOverview";
+import type { AccessGroupOverview as AccessGroupOverviewModel } from "@/lib/access/access-overview";
+import type { AccessGroup, GroupMember } from "@/lib/access/access-types";
 import {
   adminAccessPath,
   adminAccessGroupPath,
@@ -41,12 +40,14 @@ export function AccessGroupPageClient({
   group: initialGroup,
   initialGroups,
   initialMembers,
+  initialOverview,
 }: {
   currentUserId: string;
   initialData: WorkspaceData;
   group: AccessGroup;
   initialGroups: AccessGroup[];
   initialMembers: GroupMember[];
+  initialOverview: AccessGroupOverviewModel;
 }) {
   const router = useRouter();
   const [data, setData] = useState(initialData);
@@ -89,6 +90,7 @@ export function AccessGroupPageClient({
     setSaving(false);
     setGroup(updated);
     toast.success(`${updated.name} updated.`);
+    router.refresh();
     const nextSlug = accessGroupSlug(updated.name);
     if (nextSlug !== accessGroupSlug(group.name))
       router.replace(adminAccessGroupPath(nextSlug));
@@ -98,6 +100,23 @@ export function AccessGroupPageClient({
     await access.deleteGroup(group.id);
     router.push(adminAccessPath);
     router.refresh();
+  }
+
+  async function makeDefaultTier() {
+    setSaving(true);
+    try {
+      const updated = await access.setDefaultTier(group.id);
+      setGroup(updated);
+      toast.success(`${updated.name} is now the default for new members.`);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "The default tier could not be changed.",
+      );
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -164,8 +183,12 @@ export function AccessGroupPageClient({
                 disabled={saving}
               />
               <Tooltip
-                content="Remove all members before changing the group type."
-                disabled={members.length === 0}
+                content={
+                  group.is_default
+                    ? "Choose another default tier before changing this group type."
+                    : "Remove all members before changing the group type."
+                }
+                disabled={members.length === 0 && !group.is_default}
                 triggerClassName="w-full [&>*]:flex-1"
               >
                 <DropdownSelect
@@ -178,7 +201,7 @@ export function AccessGroupPageClient({
                     { label: "Team", value: "team" },
                     { label: "Organizational Tier", value: "tier" },
                   ]}
-                  disabled={saving || members.length > 0}
+                  disabled={saving || members.length > 0 || group.is_default}
                 />
               </Tooltip>
               {kind === "tier" && (
@@ -197,6 +220,22 @@ export function AccessGroupPageClient({
                     Higher ranks inherit project and category grants from every
                     lower tier.
                   </p>
+                  {group.is_default ? (
+                    <p className="rounded-lg border border-emerald-500/20 bg-emerald-500/[0.08] p-3 text-sm text-emerald-800 dark:text-emerald-200">
+                      This is the default tier assigned automatically to every
+                      new member.
+                    </p>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="w-full sm:w-auto"
+                      disabled={saving}
+                      onClick={() => void makeDefaultTier()}
+                    >
+                      Make default for new members
+                    </Button>
+                  )}
                   <label className="flex items-start gap-3 text-sm">
                     <input
                       type="checkbox"
@@ -266,6 +305,7 @@ export function AccessGroupPageClient({
             onRemove={(profileId) => access.removeMember(group.id, profileId)}
           />
         </div>
+        <AccessGroupOverview overview={initialOverview} />
         <Card className="flex flex-col items-start gap-4 border-red-500/25 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="font-semibold">Delete access group</h2>
@@ -277,6 +317,12 @@ export function AccessGroupPageClient({
             variant="danger"
             leftIcon={<FiTrash2 />}
             className="w-full sm:w-auto"
+            disabled={group.is_default}
+            title={
+              group.is_default
+                ? "Choose another default tier before deleting this one"
+                : undefined
+            }
             onClick={() => setDeleteOpen(true)}
           >
             Delete group

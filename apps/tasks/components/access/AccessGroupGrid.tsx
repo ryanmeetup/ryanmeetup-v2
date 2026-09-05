@@ -44,6 +44,11 @@ export function AccessGroupGrid({
                     />
                     <span className="truncate">{group.name}</span>
                     <AccessGroupKindBadge kind={group.kind} />
+                    {group.is_default && (
+                      <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+                        New-member default
+                      </span>
+                    )}
                   </h3>
                   <p className="mt-1 pb-4 text-sm text-black/65 dark:text-white/65">
                     {group.description || "No description yet."}

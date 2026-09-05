@@ -15,7 +15,10 @@ export function useAccessManagement({
   const [members, setMembers] = useState(initialMembers);
 
   async function createGroup(
-    input: Omit<AccessGroup, "id" | "created_by" | "created_at" | "updated_at">,
+    input: Omit<
+      AccessGroup,
+      "id" | "created_by" | "created_at" | "updated_at" | "is_default"
+    >,
   ) {
     const { group } = await accessMutation<{ group: AccessGroup }>({
       action: "group.create",
@@ -37,7 +40,10 @@ export function useAccessManagement({
 
   async function updateGroup(
     groupId: string,
-    input: Omit<AccessGroup, "id" | "created_by" | "created_at" | "updated_at">,
+    input: Omit<
+      AccessGroup,
+      "id" | "created_by" | "created_at" | "updated_at" | "is_default"
+    >,
   ) {
     const { group } = await accessMutation<{ group: AccessGroup }>({
       action: "group.update",
@@ -93,6 +99,43 @@ export function useAccessManagement({
     );
   }
 
+  async function replaceProfileAccess(
+    profileId: string,
+    tierId: string,
+    teamIds: string[],
+    appRole: "owner" | "member",
+  ) {
+    const result = await accessMutation<{
+      profile: { app_role: "owner" | "member" };
+      members: GroupMember[];
+    }>({
+      action: "profile.access.replace",
+      profileId,
+      tierId,
+      teamIds,
+      appRole,
+    });
+    setMembers((current) => [
+      ...current.filter((member) => member.profile_id !== profileId),
+      ...result.members,
+    ]);
+    return result;
+  }
+
+  async function setDefaultTier(groupId: string) {
+    const { group } = await accessMutation<{ group: AccessGroup }>({
+      action: "tier.default.set",
+      groupId,
+    });
+    setGroups((current) =>
+      current.map((item) => ({
+        ...item,
+        is_default: item.id === group.id,
+      })),
+    );
+    return group;
+  }
+
   return {
     groups,
     members,
@@ -103,5 +146,7 @@ export function useAccessManagement({
     deleteGroup,
     setMember,
     removeMember,
+    replaceProfileAccess,
+    setDefaultTier,
   };
 }

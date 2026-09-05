@@ -1,5 +1,3 @@
-export type AccessPermission = "viewer" | "editor" | "manager";
-
 export type AccessGroup = {
   id: string;
   name: string;
@@ -12,6 +10,7 @@ export type AccessGroup = {
   hierarchy_rank: number | null;
   grants_global_content: boolean;
   calendar_access: boolean;
+  is_default: boolean;
 };
 
 export type GroupMember = {
@@ -19,13 +18,6 @@ export type GroupMember = {
   profile_id: string;
   added_by: string;
   created_at: string;
-};
-
-export type GroupGrant = {
-  project_id: string;
-  group_id: string;
-  permission: AccessPermission;
-  granted_by: string;
 };
 
 export type UserAccessMetadata = {

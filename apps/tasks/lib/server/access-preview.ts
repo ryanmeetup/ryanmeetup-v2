@@ -4,6 +4,10 @@ import {
   WORKSPACE_AREA_KEYS,
   type WorkspaceAreaKey,
 } from "@/lib/access/workspace-areas";
+import {
+  effectiveMembershipGroupIds,
+  inheritedGroupIds as groupIdsWithInheritance,
+} from "@/lib/access/access-overview";
 import { isMissingRelation } from "./supabase-errors";
 import { requireQueryData, requireQueryResult } from "./workspace-loader";
 
@@ -174,16 +178,7 @@ export async function resolveAccessPreview(
     const group = requireQueryResult("preview access group", groupResult);
     const groups = requireQueryData("preview access groups", groupsResult);
     if (!group) return null;
-    const inheritedGroupIds =
-      group.kind === "tier"
-        ? groups
-            .filter(
-              (candidate) =>
-                candidate.kind === "tier" &&
-                (candidate.hierarchy_rank ?? 0) <= (group.hierarchy_rank ?? 0),
-            )
-            .map((candidate) => candidate.id)
-        : [group.id];
+    const inheritedGroupIds = groupIdsWithInheritance(group, groups);
     const [grants, openProjects] = group.grants_global_content
       ? [[], []]
       : await Promise.all([
@@ -208,11 +203,7 @@ export async function resolveAccessPreview(
         inheritedGroupIds,
         group.grants_global_content,
       ),
-      resolveAreaAccess(
-        supabase,
-        inheritedGroupIds,
-        false,
-      ),
+      resolveAreaAccess(supabase, inheritedGroupIds, false),
     ]);
     return {
       preview: {
@@ -289,16 +280,7 @@ export async function resolveAccessPreview(
   const memberTier = groupRows.find(
     (group) => group.kind === "tier" && directGroupIds.includes(group.id),
   );
-  const groupIds = groupRows
-    .filter(
-      (group) =>
-        directGroupIds.includes(group.id) ||
-        (group.kind === "tier" &&
-          memberTier?.hierarchy_rank !== null &&
-          memberTier?.hierarchy_rank !== undefined &&
-          (group.hierarchy_rank ?? 0) <= memberTier.hierarchy_rank),
-    )
-    .map((group) => group.id);
+  const groupIds = effectiveMembershipGroupIds(directGroupIds, groupRows);
   const calendarAccess = grantsCalendarAccessForPreview(groupRows, groupIds);
   if (memberTier?.grants_global_content) {
     const categoryAccess = await resolveCategoryAccess(

@@ -7,7 +7,6 @@ import {
   Avatar,
   Button,
   Card,
-  ConfirmationDialog,
   IconButton,
   Pagination,
   PendingResults,
@@ -27,10 +26,7 @@ import {
 } from "react-icons/fi";
 import { useSearchFilter } from "@ryanmeetup/hooks";
 import { useAccessManagement } from "@/hooks/useAccessManagement";
-import {
-  indexGroupsByProfile,
-  indexMembersByGroup,
-} from "@/lib/access/access-selectors";
+import { indexGroupsByProfile } from "@/lib/access/access-selectors";
 import { mutate } from "@/lib/mutation-client";
 import { errorMessage } from "@/lib/presentation";
 import { userAccessPreviewHref } from "@/lib/access/access-preview";
@@ -49,7 +45,6 @@ import { ProjectsModal } from "@/components/projects";
 import { InviteTeammateModal, RemoveTeammateDialog } from "./TeamDialogs";
 import { ProfileAccessModal } from "./ProfileAccessModal";
 import { CreateAccessGroupModal } from "./CreateAccessGroupModal";
-import { EditAccessGroupModal } from "./EditAccessGroupModal";
 import {
   TeamAccessGroups,
   TeamAccountStatus,
@@ -101,12 +96,6 @@ export function AccessPageClient({
   const [projectCreateOpen, setProjectCreateOpen] = useState(false);
   const [categoryCreateOpen, setCategoryCreateOpen] = useState(false);
   const [groupCreateOpen, setGroupCreateOpen] = useState(false);
-  const [editingGroup, setEditingGroup] = useState<AccessGroup | null>(null);
-  const [editingName, setEditingName] = useState("");
-  const [editingDescription, setEditingDescription] = useState("");
-  const [memberSelections, setMemberSelections] = useState<
-    Record<string, string>
-  >({});
   const [profiles, setProfiles] = useState(initialProfiles);
   const access = useAccessManagement({
     initialGroups,
@@ -128,9 +117,9 @@ export function AccessPageClient({
   const [teamPending, setTeamPending] = useState(false);
   const [accessProfile, setAccessProfile] = useState<Profile | null>(null);
   const [accessSelections, setAccessSelections] = useState<string[]>([]);
+  const [accessRole, setAccessRole] = useState<"owner" | "member">("member");
   const [accessPending, setAccessPending] = useState(false);
   const [profileToRemove, setProfileToRemove] = useState<Profile | null>(null);
-  const [deleteGroup, setDeleteGroup] = useState<AccessGroup | null>(null);
   const [teamSortField, setTeamSortField] = useState<TeamSortField>("name");
   const [teamSortDirection, setTeamSortDirection] =
     useState<TeamSortDirection>("asc");
@@ -174,10 +163,6 @@ export function AccessPageClient({
     () => indexGroupsByProfile(groups, members),
     [groups, members],
   );
-  const membersByGroup = useMemo(() => indexMembersByGroup(members), [members]);
-  const editingMembers = editingGroup
-    ? (membersByGroup.get(editingGroup.id) ?? [])
-    : [];
 
   useEffect(() => {
     if (page > totalTeamPages) setPage(totalTeamPages);
@@ -208,36 +193,6 @@ export function AccessPageClient({
     toast.success(`${data.name} created.`);
   }
 
-  async function updateGroup(event: FormEvent) {
-    event.preventDefault();
-    if (!editingGroup || !editingName.trim()) return;
-    setSaving(true);
-    await access.updateGroup(editingGroup.id, {
-      name: editingName.trim(),
-      description: editingDescription.trim() || null,
-      color: editingGroup.color,
-      kind: editingGroup.kind,
-      hierarchy_rank: editingGroup.hierarchy_rank,
-      grants_global_content: editingGroup.grants_global_content,
-      calendar_access: editingGroup.calendar_access,
-    });
-    setSaving(false);
-    setEditingGroup(null);
-  }
-  async function addMember(groupId: string, profileId: string) {
-    if (!profileId) return;
-    await access.setMember(groupId, profileId);
-  }
-  async function removeMember(groupId: string, profileId: string) {
-    await access.removeMember(groupId, profileId);
-  }
-  async function confirmDeleteGroup() {
-    if (!deleteGroup) return;
-    await access.deleteGroup(deleteGroup.id);
-    setDeleteGroup(null);
-    setEditingGroup(null);
-  }
-
   async function inviteTeammate(event: FormEvent) {
     event.preventDefault();
     if (!inviteEmail.trim() || teamPending) return;
@@ -256,6 +211,23 @@ export function AccessPageClient({
         ...current,
         profiles: [...current.profiles, result.profile!],
       }));
+      const defaultTier = groups.find(
+        (group) => group.kind === "tier" && group.is_default,
+      );
+      if (defaultTier) {
+        const invitedAt = new Date().toISOString();
+        setMembers((current) => [
+          ...current.filter(
+            (member) => member.profile_id !== result.profile.id,
+          ),
+          {
+            group_id: defaultTier.id,
+            profile_id: result.profile.id,
+            added_by: currentUserId,
+            created_at: invitedAt,
+          },
+        ]);
+      }
       setTeamMetadata((current) => [
         ...current,
         {
@@ -317,6 +289,7 @@ export function AccessPageClient({
 
   function editProfileAccess(profile: Profile) {
     setAccessProfile(profile);
+    setAccessRole(profile.app_role ?? "member");
     setAccessSelections(
       members
         .filter((member) => member.profile_id === profile.id)
@@ -338,44 +311,29 @@ export function AccessPageClient({
       toast.error("Choose one organizational tier.");
       return;
     }
-    const currentTierId = members.find(
-      (member) =>
-        member.profile_id === profileId &&
-        tierGroups.some((group) => group.id === member.group_id),
-    )?.group_id;
-    const currentGroupIds = new Set(
-      members
-        .filter(
-          (member) =>
-            member.profile_id === profileId &&
-            teamGroups.some((group) => group.id === member.group_id),
-        )
-        .map((member) => member.group_id),
-    );
     const selectedTeamIds = accessSelections.filter((groupId) =>
       teamGroups.some((group) => group.id === groupId),
-    );
-    const selectedGroupIds = new Set(selectedTeamIds);
-    const groupIdsToAdd = selectedTeamIds.filter(
-      (groupId) => !currentGroupIds.has(groupId),
-    );
-    const groupIdsToRemove = [...currentGroupIds].filter(
-      (groupId) => !selectedGroupIds.has(groupId),
     );
 
     setAccessPending(true);
     try {
-      if (currentTierId !== selectedTierId) {
-        await access.setMember(selectedTierId, profileId, true);
-      }
-      for (const groupId of groupIdsToAdd) {
-        await addMember(groupId, profileId);
-      }
-      for (const groupId of groupIdsToRemove) {
-        await removeMember(groupId, profileId);
-      }
+      const result = await access.replaceProfileAccess(
+        profileId,
+        selectedTierId,
+        selectedTeamIds,
+        accessRole,
+      );
+      const applyRole = (profile: Profile) =>
+        profile.id === profileId
+          ? { ...profile, app_role: result.profile.app_role }
+          : profile;
+      setProfiles((current) => current.map(applyRole));
+      setData((current) => ({
+        ...current,
+        profiles: current.profiles.map(applyRole),
+      }));
       setAccessProfile(null);
-      toast.success(`Tier and teams updated for ${accessProfile.full_name}.`);
+      toast.success(`Access updated for ${accessProfile.full_name}.`);
     } catch (error) {
       toast.error(
         errorMessage(error, "The access groups could not be updated."),
@@ -406,6 +364,48 @@ export function AccessPageClient({
           }
           description="Manage workspace membership, organizational tiers, and teams."
         />
+
+        <section aria-labelledby="access-model-heading" className="space-y-4">
+          <div>
+            <h2 id="access-model-heading" className="text-xl font-semibold">
+              How access works
+            </h2>
+            <p className="mt-1 text-sm text-black/65 dark:text-white/65">
+              One setting answers each access question, so owners know where to
+              make a change.
+            </p>
+          </div>
+          <Card className="grid gap-5 p-5 md:grid-cols-2 xl:grid-cols-4">
+            <div>
+              <h3 className="font-semibold">App role</h3>
+              <p className="mt-1 text-sm text-black/65 dark:text-white/65">
+                App owners administer people, groups, settings, and all content.
+                Manage this on a person.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold">Organizational tier</h3>
+              <p className="mt-1 text-sm text-black/65 dark:text-white/65">
+                Every person has exactly one. Higher ranks inherit lower-tier
+                grants.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold">Teams</h3>
+              <p className="mt-1 text-sm text-black/65 dark:text-white/65">
+                Optional, additive groups for work that cuts across the tier
+                hierarchy.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold">Resource visibility</h3>
+              <p className="mt-1 text-sm text-black/65 dark:text-white/65">
+                Set on each project or category, and in Page access below. A
+                group page explains the effective result.
+              </p>
+            </div>
+          </Card>
+        </section>
 
         <section aria-labelledby="groups-heading" className="space-y-4">
           <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -514,7 +514,11 @@ export function AccessPageClient({
                             )}
                           </div>
                         </div>
-                        <TeamAccountStatus metadata={metadata} compact />
+                        <TeamAccountStatus
+                          appRole={profile.app_role}
+                          metadata={metadata}
+                          compact
+                        />
                       </div>
 
                       <TeamTaskStats metadata={metadata} compact />
@@ -664,7 +668,10 @@ export function AccessPageClient({
                             </span>
                           </td>
                           <td className="w-28 whitespace-nowrap px-4 py-3 text-xs text-black/65 dark:text-white/65">
-                            <TeamAccountStatus metadata={metadata} />
+                            <TeamAccountStatus
+                              appRole={profile.app_role}
+                              metadata={metadata}
+                            />
                           </td>
                           <td className="hidden w-px whitespace-nowrap px-4 py-3 2xl:table-cell">
                             <TeamTaskStats metadata={metadata} />
@@ -761,12 +768,14 @@ export function AccessPageClient({
         setOpen={setInviteOpen}
       />
       <ProfileAccessModal
+        appRole={accessRole}
         groups={groups}
         onSubmit={saveProfileAccess}
         pending={accessPending}
         profile={accessProfile}
         selections={accessSelections}
         setProfile={setAccessProfile}
+        setAppRole={setAccessRole}
         setSelections={setAccessSelections}
       />
       <CreateAccessGroupModal
@@ -789,61 +798,11 @@ export function AccessPageClient({
         setName={setName}
         setOpen={setGroupCreateOpen}
       />
-      <EditAccessGroupModal
-        calendarAccess={editingGroup?.calendar_access ?? false}
-        currentUserId={currentUserId}
-        description={editingDescription}
-        group={editingGroup}
-        members={editingMembers}
-        name={editingName}
-        onAddMember={(profileId) => {
-          if (!editingGroup) return;
-          setMemberSelections((current) => ({
-            ...current,
-            [editingGroup.id]: "",
-          }));
-          void addMember(editingGroup.id, profileId);
-        }}
-        onDelete={() => {
-          if (editingGroup) setDeleteGroup(editingGroup);
-        }}
-        onRemoveMember={(profileId) => {
-          if (editingGroup) void removeMember(editingGroup.id, profileId);
-        }}
-        onSubmit={updateGroup}
-        profiles={profiles}
-        saving={saving}
-        selectedMemberId={
-          editingGroup ? (memberSelections[editingGroup.id] ?? "") : ""
-        }
-        setDescription={setEditingDescription}
-        setCalendarAccess={(value) =>
-          setEditingGroup((current) =>
-            current ? { ...current, calendar_access: value } : current,
-          )
-        }
-        setGroup={setEditingGroup}
-        setName={setEditingName}
-      />
       <RemoveTeammateDialog
         onConfirm={removeTeammate}
         pending={teamPending}
         profile={profileToRemove}
         setProfile={setProfileToRemove}
-      />
-
-      <ConfirmationDialog
-        open={Boolean(deleteGroup)}
-        setOpen={(open) => !open && setDeleteGroup(null)}
-        title="Delete Access Group?"
-        description={
-          deleteGroup
-            ? `This removes ${deleteGroup.name} and every project grant attached to it. Anyone relying on those grants may immediately lose access.`
-            : ""
-        }
-        confirmLabel="Delete group"
-        destructive
-        onConfirm={confirmDeleteGroup}
       />
     </>
   );

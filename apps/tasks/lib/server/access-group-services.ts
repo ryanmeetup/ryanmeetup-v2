@@ -108,10 +108,48 @@ export async function mutateAccessMember(
   };
 }
 
+async function replaceProfileAccess(
+  context: PrivilegedContext,
+  operation: Extract<
+    AccessGroupOperation,
+    { action: "profile.access.replace" }
+  >,
+): Promise<ServiceResult> {
+  const response = await context.supabase.rpc("replace_profile_access", {
+    requested_profile_id: operation.profileId,
+    requested_tier_id: operation.tierId,
+    requested_team_ids: operation.teamIds,
+    requested_app_role: operation.appRole,
+  });
+  return {
+    result: response.data,
+    targetId: operation.profileId,
+    error: response.error,
+  };
+}
+
+async function setDefaultTier(
+  context: PrivilegedContext,
+  operation: Extract<AccessGroupOperation, { action: "tier.default.set" }>,
+): Promise<ServiceResult> {
+  const response = await context.supabase.rpc("set_default_access_tier", {
+    requested_group_id: operation.groupId,
+  });
+  return {
+    result: { group: response.data },
+    targetId: operation.groupId,
+    error: response.error,
+  };
+}
+
 export function dispatchAccessGroupOperation(
   context: PrivilegedContext,
   operation: AccessGroupOperation,
 ) {
+  if (operation.action === "profile.access.replace")
+    return replaceProfileAccess(context, operation);
+  if (operation.action === "tier.default.set")
+    return setDefaultTier(context, operation);
   if (operation.action.startsWith("group."))
     return mutateAccessGroup(
       context,

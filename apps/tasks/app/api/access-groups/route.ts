@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import {
   apiError,
-  auditPrivilegedAction,
   privilegedContext,
   readJson,
   recordWorkspaceActivity,
@@ -22,22 +21,19 @@ export async function POST(request: Request) {
     operation,
   );
   if (error) {
+    if (error.code === "AO001")
+      return apiError(
+        409,
+        "CONFLICT",
+        "Promote another app owner before demoting the last owner.",
+      );
     return databaseFailure(request, `access.${operation.action}`, error, {
       error: "The access change could not be saved. Refresh and try again.",
       conflictError: "That access setting already exists.",
     });
   }
-  const audited = await auditPrivilegedAction(context.admin, context.user, {
-    action: operation.action,
-    targetType: "access_group",
-    targetId,
-  });
-  if (!audited)
-    return apiError(
-      500,
-      "AUDIT_FAILED",
-      "The access change was saved, but its audit record could not be created.",
-    );
+  // Access tables and profile roles have database audit triggers, so the
+  // compliance record commits or rolls back with the change itself.
   // Who is in which group decides what every teammate can see, so the change
   // belongs in the feed and not only in the owner-only audit trail.
   await recordWorkspaceActivity(context.admin, context.user, {
@@ -46,8 +42,15 @@ export async function POST(request: Request) {
       operation.action === "group.update" ||
       operation.action === "group.delete"
         ? `access_group.${operation.action.slice("group.".length)}`
-        : "access_group.membership",
-    targetType: "access_group",
+        : operation.action === "tier.default.set"
+          ? "access_group.default_tier"
+          : operation.action === "profile.access.replace"
+            ? "profile.access.update"
+            : "access_group.membership",
+    targetType:
+      operation.action === "profile.access.replace"
+        ? "profile"
+        : "access_group",
     targetId,
     metadata: {
       resource_name: "name" in operation ? operation.name : undefined,

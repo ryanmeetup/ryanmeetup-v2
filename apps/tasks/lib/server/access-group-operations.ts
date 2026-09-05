@@ -28,7 +28,15 @@ export type AccessGroupOperation =
       action: "member.set" | "tier.set" | "member.delete";
       groupId: string;
       profileId: string;
-    };
+    }
+  | {
+      action: "profile.access.replace";
+      profileId: string;
+      tierId: string;
+      teamIds: string[];
+      appRole: "owner" | "member";
+    }
+  | { action: "tier.default.set"; groupId: string };
 
 const hexColor = (value: unknown): value is string =>
   typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value);
@@ -85,5 +93,22 @@ export function accessGroupOperationSchema(
       groupId: body.groupId,
       profileId: body.profileId,
     };
+  if (
+    body.action === "profile.access.replace" &&
+    isUuid(body.profileId) &&
+    isUuid(body.tierId) &&
+    Array.isArray(body.teamIds) &&
+    body.teamIds.every(isUuid) &&
+    (body.appRole === "owner" || body.appRole === "member")
+  )
+    return {
+      action: body.action,
+      profileId: body.profileId,
+      tierId: body.tierId,
+      teamIds: [...new Set(body.teamIds)],
+      appRole: body.appRole,
+    };
+  if (body.action === "tier.default.set" && isUuid(body.groupId))
+    return { action: body.action, groupId: body.groupId };
   return null;
 }

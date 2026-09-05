@@ -38,9 +38,13 @@ Deployments configured for it can offer a read-only MCP connection for Claude De
 
 ### Lock a whole page to the people who need it
 
-Notes, Contacts, and the Calendar can each be restricted to selected access groups from **Admin → Access → Page access**. A restricted page disappears from the sidebar for everyone who cannot open it, and its content — notes and their comments, the contact directory, calendar events and the synced Google feed — is refused at the database, not merely hidden. Pages stay open to everyone until an owner restricts them, and app owners and tiers with workspace-wide content access always keep every page.
+Notes, Contacts, and the Calendar can each be restricted to selected access groups from **Admin → Access → Page access**. A restricted page disappears from the sidebar for everyone who cannot open it, and its content — notes and their comments, the contact directory, calendar events and the synced Google feed — is refused at the database, not merely hidden. Pages stay open to everyone until an owner restricts them. App owners keep every page; workspace-wide tiers can be selected explicitly like any other group.
 
 ## Improved
+
+### Access with a reason, not a riddle
+
+App ownership, organizational tiers, teams, and resource visibility now have distinct jobs on **Admin → Access**. An owner can promote a successor and replace one person's role, required tier, and optional teams in a single save; the last owner cannot be demoted. The default tier for new members is labeled and can be changed deliberately, and each group page lists the projects, categories, pages, and Google Calendar feed it opens — including whether access is direct, inherited, workspace-wide, or simply open to everyone.
 
 ### Big editors get room to breathe on phones
 
@@ -120,6 +124,6 @@ Continuous integration runs typechecking, unit tests with a coverage floor, and 
 
 ## Still in beta
 
-Page access covers Notes, Contacts, and the Calendar. The board, projects, and categories still depend on project and category visibility, so there is no single place to answer what one teammate can reach.
+Page access covers Notes, Contacts, and the Calendar. Projects and categories keep their own visibility controls, while group detail and **View as** explain the combined result without becoming another place to configure it.
 
 The editors are split between full pages and dialogs, which means the same form exists as two layouts that have to stay in step; the new preference decides which one you meet, not how many there are. Contacts have only the page, so it is the one editor the preference cannot change. The read-only MCP connection is available only on deployments configured for it, and it stays read-only — an assistant can answer questions about the workspace but cannot act in it.
