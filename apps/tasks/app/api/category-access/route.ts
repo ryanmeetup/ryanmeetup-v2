@@ -20,7 +20,6 @@ export async function GET(request: Request) {
     context.admin
       .from("access_groups")
       .select("id,name,kind,hierarchy_rank,grants_global_content")
-      .eq("grants_global_content", false)
       .order("name"),
     categoryId
       ? context.admin

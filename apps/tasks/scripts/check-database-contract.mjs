@@ -54,6 +54,44 @@ if (!health?.contractOk) {
   process.exit(1);
 }
 
+async function requireRpc(name, body, expectedFailureCodes = []) {
+  const rpcResponse = await fetch(`${url}/rest/v1/rpc/${name}`, {
+    method: "POST",
+    headers: {
+      apikey: secret,
+      authorization: `Bearer ${secret}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (rpcResponse.ok) return;
+  const failure = await rpcResponse.json().catch(() => null);
+  if (expectedFailureCodes.includes(failure?.code)) return;
+  console.error(
+    `Database contract preflight failed: required RPC ${name} is unavailable.`,
+  );
+  process.exit(1);
+}
+
+const zeroId = "00000000-0000-0000-0000-000000000000";
+await requireRpc("can_administer_project_access", {
+  requested_project_id: zeroId,
+});
+await requireRpc(
+  "replace_profile_access",
+  {
+    requested_profile_id: zeroId,
+    requested_tier_id: zeroId,
+    requested_team_ids: [],
+    requested_app_role: "member",
+  },
+  ["42501"],
+);
+await requireRpc("set_default_access_tier", { requested_group_id: zeroId }, [
+  "42501",
+]);
+
 const contactsResponse = await fetch(
   `${url}/rest/v1/contacts?select=image_path&limit=0`,
   {

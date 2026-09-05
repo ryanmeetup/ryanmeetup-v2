@@ -3,7 +3,6 @@ import { isJsonObject, isUuid } from "@/lib/api-schema/shared";
 import { databaseFailure } from "@/lib/server/api-response";
 import {
   apiError,
-  auditPrivilegedAction,
   privilegedContext,
   readJson,
   recordWorkspaceActivity,
@@ -16,8 +15,8 @@ export async function GET(request: Request) {
   if (projectId !== null && !isUuid(projectId))
     return apiError(400, "INVALID_REQUEST", "A valid project is required.");
   const { data: allowed, error: permissionError } = projectId
-    ? await context.supabase.rpc("can_manage_project", {
-        project_id: projectId,
+    ? await context.supabase.rpc("can_administer_project_access", {
+        requested_project_id: projectId,
       })
     : await context.supabase.rpc("is_app_owner");
   if (permissionError || !allowed)
@@ -26,8 +25,7 @@ export async function GET(request: Request) {
   const [groupsResult, grantsResult, projectResult] = await Promise.all([
     context.admin
       .from("access_groups")
-      .select("id,name,kind,hierarchy_rank")
-      .eq("grants_global_content", false)
+      .select("id,name,kind,hierarchy_rank,grants_global_content")
       .order("name"),
     projectId
       ? context.admin
@@ -93,23 +91,8 @@ export async function POST(request: Request) {
     return databaseFailure(request, "project-access.update", error, {
       error: "Project visibility could not be updated.",
     });
-  const audited = await auditPrivilegedAction(context.admin, context.user, {
-    action: "project.access.update",
-    targetType: "project",
-    targetId: parsed.data.projectId,
-    metadata: {
-      accessMode: parsed.data.accessMode,
-      groupIds: parsed.data.groupIds,
-    },
-  });
-  if (!audited)
-    return apiError(
-      500,
-      "AUDIT_FAILED",
-      "Project visibility was saved, but its audit record could not be created.",
-    );
-  // A project going from open to restricted changes what every teammate can
-  // see; the feed is the only place that would explain the change to them.
+  // The RPC records the compliance event in the same transaction. The feed is
+  // the human-readable companion for teammates affected by the change.
   const { data: project } = await context.supabase
     .from("projects")
     .select("name")

@@ -14,11 +14,21 @@ and access previews only explain or simulate them.
   must be selected explicitly to open a restricted page.
 - Every onboarded member belongs to one organizational tier and may also belong
   to lateral teams.
+- Exactly one tier is the new-member default. Owners can change that default;
+  inviting a teammate assigns it automatically. A person's app role, required
+  tier, and optional teams are replaced together in one transaction so a
+  partially saved form cannot leave contradictory access behind.
 - Higher organizational tiers inherit the selected-project and category grants
   of lower tiers. Teams do not inherit from other teams.
 - Group membership and category visibility are app-owner administrative data.
   Project visibility is available to app owners and that project's named
   owners. Every visibility change must be audited.
+- Workspace-wide content managers may manage project content, but that broader
+  role does not let them administer project visibility unless they are also a
+  named owner of that project. The database predicate
+  `can_administer_project_access` is the source of truth for this distinction,
+  and `set_project_visibility` is the only supported update path for a
+  project's access mode and complete group set.
 
 ## Projects
 
@@ -39,6 +49,12 @@ Project creation writes the project, its named owners, visibility mode, and any
 selected groups in one transaction. Changing visibility replaces the complete
 selected-group set atomically. A failed or incomplete write must never broaden
 visibility.
+
+There are no direct per-user project grants. A person reaches a project only as
+an app owner or workspace-wide manager, as a named project owner, through the
+project's visibility mode, or through an access-group grant (including tier
+inheritance). `project_owners`, `projects.access_mode`, and
+`project_group_grants` are the canonical project-access records.
 
 ## Categories
 
@@ -102,6 +118,14 @@ holds a row only for a page an app owner has configured.
   SELECT, so a write policy whose predicate is narrower than the table's read
   policy must be written as explicit `for insert` / `for update` / `for delete`
   policies. Widening a read by way of a write policy is a bug.
+
+## External read authority
+
+The optional MCP bearer token is a separate workspace-wide read authority. It
+uses the server service role and deliberately does not impersonate a person or
+inherit tier, team, resource, or page restrictions. Its enabled state and a
+masked token-hash fingerprint must be visible to app owners on the Admin
+overview. It must never be presented as another access group or project grant.
 
 ## Diagnostics and failure behavior
 
