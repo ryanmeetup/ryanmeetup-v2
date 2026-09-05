@@ -62,23 +62,31 @@ export function TaskChecklistPanel({
         <div className="max-h-[min(11.7rem,22.75svh)] space-y-3 overflow-y-auto overscroll-contain pr-2">
           {items.map((item) => (
             <div key={item.id} className="flex items-center gap-2">
+              {/* The title toggles too, so the whole row is a hit target. */}
               <Tooltip
                 content={`${item.is_completed ? "Reopen" : "Complete"} ${item.title}`}
+                triggerClassName="min-w-0 flex-1"
               >
                 <button
                   type="button"
-                  aria-label={`${item.is_completed ? "Reopen" : "Complete"} ${item.title}`}
+                  role="checkbox"
+                  aria-checked={item.is_completed}
                   onClick={() => onToggle(item)}
-                  className={`grid h-5 w-5 shrink-0 place-items-center rounded border ${item.is_completed ? "border-emerald-500 bg-emerald-500 text-white" : "border-black/20 dark:border-white/25"}`}
+                  className="group flex min-w-0 flex-1 items-center gap-2 text-left"
                 >
-                  {item.is_completed && <FiCheck aria-hidden />}
+                  <span
+                    aria-hidden
+                    className={`grid h-5 w-5 shrink-0 place-items-center rounded border transition ${item.is_completed ? "border-emerald-500 bg-emerald-500 text-white" : "border-black/20 group-hover:border-black/40 dark:border-white/25 dark:group-hover:border-white/50"}`}
+                  >
+                    {item.is_completed && <FiCheck aria-hidden />}
+                  </span>
+                  <span
+                    className={`min-w-0 flex-1 text-sm ${item.is_completed ? "text-black/45 line-through dark:text-white/45" : ""}`}
+                  >
+                    {item.title}
+                  </span>
                 </button>
               </Tooltip>
-              <span
-                className={`min-w-0 flex-1 text-sm ${item.is_completed ? "text-black/45 line-through dark:text-white/45" : ""}`}
-              >
-                {item.title}
-              </span>
               <IconButton
                 label={`Delete “${item.title}”`}
                 variant="danger"
