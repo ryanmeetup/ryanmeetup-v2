@@ -7,6 +7,90 @@ Newest first.
 
 ---
 
+## 2026-09-05 — PRD served a crash page for a token minted a second early
+
+**Status:** Cause identified, fix merged to `main`
+**Impact:** One request on `projects.ryanle.dev` answered "We couldn't load
+your workspace" instead of the board. Reloading worked.
+
+### What happened
+
+Ryan opened the workspace on PRD and got the full-page error with reference
+`3241893484`. The requests either side of it, on the same deployment and the
+same session, were served normally.
+
+### Timeline
+
+| When (UTC)               | What                                                                                                        |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| Sat 2026-09-05, 20:57:39 | `/board` and three project pages render normally.                                                           |
+| Sat 2026-09-05, 20:57:40 | One `GET /board` fails: `Instance settings could not be loaded: JWT issued at future`, digest `3241893484`. |
+| Sat 2026-09-05, 20:57:41 | The following requests succeed. Nothing was redeployed or changed.                                          |
+| Sat 2026-09-05, 21:00    | Reported with a screenshot. Found in `vercel logs https://projects.ryanle.dev --scope ryansles-projects`.   |
+
+### What we ruled out
+
+| Suspected                                | Why it was not that                                                                                                                                                                        |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| PRD's migration drift                    | A missing table or column comes back as `WorkspaceLoadError`, whose reference is a UUID. `3241893484` is a Next.js digest, so the error was a plain one — and the message named it exactly |
+| The deploy that added project home pages | The same build served the same routes a second before and a second after                                                                                                                   |
+| RMT                                      | Unaffected. Only PRD's logs carry the error                                                                                                                                                |
+
+### The cause
+
+PostgREST checks an access token's `iat` against the database's own clock and
+refuses a token minted a moment ahead of it with `401 JWT issued at future`.
+Nothing about the session is wrong; the same token works seconds later. The
+request simply landed inside the skew.
+
+What turned a transient refusal into a crash page is where it landed.
+`readOverrides` in `lib/server/instance-settings.ts` tolerates a missing
+`instance_settings` table and treats every other error as fatal — deliberately,
+so a real database failure is never swallowed. Branding is read on every route,
+so it is usually the first query of a render, and a decorative read took the
+whole page down.
+
+### Why it was not caught sooner
+
+It is rare and it heals itself, so there is nothing to find afterwards. The
+error page is the same one a genuine data failure shows, and only the shape of
+the reference — a number, not a UUID — says which of the two it was. Reading
+that needs the deployment's runtime logs.
+
+### What we changed
+
+`withClockSkewRetry` in `lib/supabase/clock-skew.ts` wraps the fetch behind the
+server client, the browser client, and `proxy.ts`. A `401` whose body says the
+token is not yet valid is replayed after 500ms and again after 1500ms; a
+request refused that way never reached the database, so replaying it is safe
+for reads and writes alike. Anything still refused is returned untouched, and
+every other failure is passed straight through.
+
+Each replay logs `Supabase refused a token as issued in the future`, so the
+skew is visible in the logs even when the retry hides it from the person.
+
+### If a workspace crash page appears again
+
+1. **Look at the reference on the page.** A UUID is a `WorkspaceLoadError` —
+   the operation and the database code are in the logs next to it. A number is
+   any other server error.
+2. **Read the deployment's logs** for the matching digest:
+   ```
+   vercel logs https://projects.ryanle.dev --scope ryansles-projects
+   vercel logs https://tasks.ryanmeetup.com --scope teamryan
+   ```
+3. **A `JWT issued at future` line with no error after it** is this incident,
+   retried successfully. Nothing to do.
+
+### Lesson
+
+A read that decorates every page is a read that can fail every page. Deciding
+that a query must never be swallowed is the right call for correctness and
+still leaves the question of what a transient refusal should do — which is
+usually to try again, not to give up on the render.
+
+---
+
 ## 2026-08-24 — Digest emails silently stopped
 
 **Status:** Cause identified, not yet confirmed fixed
@@ -20,27 +104,27 @@ realised they had not received their morning email.
 
 ### Timeline
 
-| When (UTC) | What |
-| --- | --- |
+| When (UTC)            | What                                                   |
+| --------------------- | ------------------------------------------------------ |
 | Fri 2026-08-21, 13:00 | Last successful run. Seven digests sent and delivered. |
-| Sat 2026-08-22, 22:40 | Production deploy `c0c1850`. |
-| Mon 2026-08-24, 13:00 | Scheduled run. **Nothing happened.** |
-| Tue 2026-08-25, 13:00 | Scheduled run. **Nothing happened.** |
-| Tue 2026-08-25, 15:19 | Noticed and investigated. Digests sent by hand. |
+| Sat 2026-08-22, 22:40 | Production deploy `c0c1850`.                           |
+| Mon 2026-08-24, 13:00 | Scheduled run. **Nothing happened.**                   |
+| Tue 2026-08-25, 13:00 | Scheduled run. **Nothing happened.**                   |
+| Tue 2026-08-25, 15:19 | Noticed and investigated. Digests sent by hand.        |
 
 ### What we checked
 
 Everything on the application side was healthy. None of it was the problem:
 
-| Checked | Result |
-| --- | --- |
-| Task and profile data in Supabase | Fine — 40 active tasks, 4 people had work worth emailing |
-| Resend API key | Valid |
-| Sending domain `ryanmeetup.com` | Verified |
-| Scheduled sending through Resend | Works — tested with a probe message, then cancelled it |
-| Production environment variables | All present |
-| The cron job registration in Vercel | Registered, enabled, pointed at the current deployment |
-| The route itself | **Works.** Run by hand it returned "4 scheduled, 0 failed", and all four arrived |
+| Checked                             | Result                                                                           |
+| ----------------------------------- | -------------------------------------------------------------------------------- |
+| Task and profile data in Supabase   | Fine — 40 active tasks, 4 people had work worth emailing                         |
+| Resend API key                      | Valid                                                                            |
+| Sending domain `ryanmeetup.com`     | Verified                                                                         |
+| Scheduled sending through Resend    | Works — tested with a probe message, then cancelled it                           |
+| Production environment variables    | All present                                                                      |
+| The cron job registration in Vercel | Registered, enabled, pointed at the current deployment                           |
+| The route itself                    | **Works.** Run by hand it returned "4 scheduled, 0 failed", and all four arrived |
 
 Because the route works when called directly, the code was never the problem.
 **The scheduled call was simply never arriving.**

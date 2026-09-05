@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { contentSecurityPolicy } from "@/lib/security-headers";
+import { withClockSkewRetry } from "@/lib/supabase/clock-skew";
 
 function responseWithSecurityPolicy(request: NextRequest, nonce: string) {
   const requestHeaders = new Headers(request.headers);
@@ -32,6 +33,7 @@ export async function proxy(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
     {
+      global: { fetch: withClockSkewRetry() },
       cookies: {
         getAll: () => request.cookies.getAll(),
         setAll: (items) => {
