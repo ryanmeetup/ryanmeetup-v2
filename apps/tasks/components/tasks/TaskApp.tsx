@@ -18,7 +18,7 @@ import { usePagination } from "@/hooks/usePagination";
 import { useCollapsedStatuses } from "@/hooks/useCollapsedStatuses";
 import { useBoardAutoScroll } from "@/hooks/useBoardAutoScroll";
 import { createTaskMutationService } from "@/lib/tasks/task-mutations";
-import { taskKey, parseTaskKey } from "@/lib/tasks/task-key";
+import { taskKey, taskPath, parseTaskKey } from "@/lib/tasks/task-key";
 import { errorMessage } from "@/lib/presentation";
 import {
   deriveVisibleTasks,
@@ -209,8 +209,11 @@ export function TaskApp({
     try {
       await mutations.move(id, statusId, targetId, edge, reason);
       if (!demoMode && view === "list") await loadTaskPage(true);
-      if (movedToNewColumn && destination) {
-        toast.success(`Task moved to ${destination.name}.`);
+      if (movedToNewColumn && destination && task) {
+        toast.successWithLink(`Task moved to ${destination.name}:`, {
+          href: taskPath(task),
+          linkLabel: taskKey(task),
+        });
       }
       return true;
     } catch (error) {

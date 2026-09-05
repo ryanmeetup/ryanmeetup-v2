@@ -1,18 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Avatar, Button, Heading, IconButton, Tooltip } from "@ryanmeetup/ui";
+import { Avatar, Button, Heading, Tooltip } from "@ryanmeetup/ui";
 import {
   FiChevronDown,
   FiEdit2,
   FiFolder,
   FiGrid,
   FiList,
-  FiStar,
   FiTag,
   FiUsers,
 } from "react-icons/fi";
 import { CountBadge } from "@/components/global";
+import { ProjectFavoriteButton } from "@/components/projects/ProjectFavoriteButton";
 import type { Category, Project } from "@/lib/resources/resource-types";
 import type { Profile } from "@/lib/workspace/workspace-types";
 import {
@@ -143,24 +143,12 @@ export function TaskWorkspaceHeader({
             {taskCount}
           </CountBadge>
           {showFavorite && (
-            <IconButton
-              label={`${projectFavorite ? "Remove" : "Add"} \u201c${selectedProject?.name}\u201d ${projectFavorite ? "from" : "to"} favorites`}
-              variant="plain"
-              disabled={projectFavoritePending}
-              onClick={onToggleProjectFavorite}
-              className={`align-middle ${
-                projectFavorite
-                  ? "!text-amber-500 dark:!text-amber-300"
-                  : "!text-black/25 hover:!text-amber-500 dark:!text-white/25 dark:hover:!text-amber-300"
-              }`}
-            >
-              {/* Sized explicitly: the icon would otherwise inherit the
-                  heading's font size and render at title scale. */}
-              <FiStar
-                size={18}
-                fill={projectFavorite ? "currentColor" : "none"}
-              />
-            </IconButton>
+            <ProjectFavoriteButton
+              projectName={selectedProject?.name ?? "project"}
+              favorite={projectFavorite}
+              pending={projectFavoritePending}
+              onToggle={onToggleProjectFavorite}
+            />
           )}
         </Heading>
         {scopeDescription && (

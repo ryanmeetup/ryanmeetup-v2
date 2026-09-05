@@ -20,6 +20,7 @@ export function PageHeader({
   icon: Icon,
   kicker,
   title,
+  titleActions,
 }: {
   actions?: ReactNode;
   badge?: ReactNode;
@@ -28,6 +29,7 @@ export function PageHeader({
   icon?: IconType;
   kicker?: ReactNode;
   title: ReactNode;
+  titleActions?: ReactNode;
 }) {
   return (
     <div
@@ -42,23 +44,28 @@ export function PageHeader({
             {kicker}
           </p>
         )}
-        <Heading
-          size="h1"
+        <div
           className={clsx(
-            "flex flex-wrap items-center gap-2 text-3xl sm:text-4xl",
+            "flex flex-wrap items-center gap-2",
             kicker && "mt-2",
           )}
         >
-          {/* Muted so the icon labels the page without competing with it. */}
-          {Icon && (
-            <Icon
-              aria-hidden
-              className="shrink-0 text-black/40 dark:text-white/40"
-            />
-          )}
-          {title}
-          {badge}
-        </Heading>
+          <Heading
+            size="h1"
+            className="flex flex-wrap items-center gap-2 text-3xl sm:text-4xl"
+          >
+            {/* Muted so the icon labels the page without competing with it. */}
+            {Icon && (
+              <Icon
+                aria-hidden
+                className="shrink-0 text-black/40 dark:text-white/40"
+              />
+            )}
+            {title}
+            {badge}
+          </Heading>
+          {titleActions}
+        </div>
         {description && <Text className="mt-2 text-sm">{description}</Text>}
       </div>
       {actions}

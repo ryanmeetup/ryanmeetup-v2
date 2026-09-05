@@ -38,6 +38,9 @@ type Props = {
   remoteTotalCount: number | null;
   allResultsHref: string;
   filterHref: (name: string, value: string) => string;
+  projectHref: (
+    project: TaskSearchRelatedResults["projects"][number],
+  ) => string;
 };
 
 const headingClass =
@@ -163,6 +166,7 @@ export function TaskSearchResults(props: Props) {
     remoteTotalCount,
     allResultsHref,
     filterHref,
+    projectHref,
   } = props;
   const relatedCount = Object.values(related).reduce(
     (count, items) => count + items.length,
@@ -254,7 +258,7 @@ export function TaskSearchResults(props: Props) {
                 {related.projects.map((item) => (
                   <Link
                     key={item.id}
-                    href={filterHref("project", item.name)}
+                    href={projectHref(item)}
                     className={linkClass}
                   >
                     <span className="block truncate font-semibold">

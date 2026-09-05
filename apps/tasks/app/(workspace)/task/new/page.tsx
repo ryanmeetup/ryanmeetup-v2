@@ -29,10 +29,24 @@ export default async function NewTaskPage({
   const query = await searchParams;
   const backHref = editorBackHref(query.from, "/board");
   redirectAccessPreviewAway(query, backHref);
+  const requestedProject =
+    typeof query.project === "string" ? query.project : undefined;
 
   if (await isWorkspaceDemo()) {
     return (
-      <NewTaskPageClient initialData={demoData} demoMode backHref={backHref} />
+      <NewTaskPageClient
+        initialData={demoData}
+        demoMode
+        backHref={backHref}
+        initialValues={{
+          project_id:
+            demoData.projects.find(
+              (project) =>
+                project.id === requestedProject ||
+                project.name === requestedProject,
+            )?.id ?? null,
+        }}
+      />
     );
   }
 
@@ -42,6 +56,14 @@ export default async function NewTaskPage({
       initialData={data}
       demoMode={false}
       backHref={backHref}
+      initialValues={{
+        project_id:
+          data.projects.find(
+            (project) =>
+              project.id === requestedProject ||
+              project.name === requestedProject,
+          )?.id ?? null,
+      }}
     />
   );
 }

@@ -3,6 +3,7 @@ import type { Profile } from "@/lib/workspace/workspace-types";
 import type { Status, Task } from "@/lib/tasks/task-types";
 import { taskKey, taskPath } from "@/lib/tasks/task-key";
 import { profileDisplayName } from "@/lib/presentation";
+import { projectPath } from "@/lib/resources/project-route";
 
 export const TASK_SEARCH_LIMIT = 25;
 export const TASK_SEARCH_MIN_LENGTH = 3;
@@ -145,12 +146,23 @@ export function taskSearchFilterHref(
   return `/board?${params}`;
 }
 
+export function taskSearchProjectHref(
+  project: Project,
+  projects: Project[],
+  preview: TaskSearchPreview,
+) {
+  const suffix = appendPreview(new URLSearchParams(), preview).toString();
+  const href = projectPath(project, projects);
+  return `${href}${suffix ? `?${suffix}` : ""}`;
+}
+
 export function firstRelatedTaskSearchHref(
   related: TaskSearchRelatedResults,
   preview: TaskSearchPreview,
+  projects: Project[] = related.projects,
 ) {
   if (related.projects[0])
-    return taskSearchFilterHref("project", related.projects[0].name, preview);
+    return taskSearchProjectHref(related.projects[0], projects, preview);
   if (related.categories[0])
     return taskSearchFilterHref(
       "category",

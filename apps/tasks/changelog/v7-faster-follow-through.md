@@ -8,6 +8,7 @@ title: Transactional writes, multiple assignees, and read-only MCP access
 summary: Resource changes and their history now succeed or fail together in one Postgres transaction, tasks can hold a crew instead of one name, whole pages can be locked to access groups, and a trusted assistant can read the workspace without touching it.
 overview:
   - Every resource change and its activity row in one transaction
+  - Project homes for progress, attention, dates, context, and recent work
   - Multiple assignees per task, backed by the join table rather than a column
   - Statuses that require a written reason before work enters them
   - Notes, Contacts, and Calendar lockable to selected access groups
@@ -19,6 +20,20 @@ overview:
 ---
 
 ## New
+
+### Projects get a home of their own
+
+Every project now opens to a readable overview instead of dropping straight
+into a filtered board. The page brings together open, overdue, upcoming, and
+completed work; calls out the tasks that need attention; shows progress across
+the workspace's own statuses; and keeps owners, dates, links, notes, files, and
+recent task activity close. The board remains one click away, and new tasks
+started from the overview already know which project they belong to. Each
+summary measure opens the board with its matching project, status, and due-date
+filters already applied. A board shortcut beside each sidebar project keeps the
+old straight-to-work path just as quick. On wider screens, the project team,
+upcoming dates, and context stay in view while the main overview scrolls; the
+team includes project owners plus everyone assigned work in that project.
 
 ### Duplicate the work, not the setup
 
@@ -52,7 +67,7 @@ Creating or editing a task, project, category, contact, or calendar event uses a
 
 ### Choose where forms open
 
-**Profile → Preferences** now has **Create and edit forms**. Leave it on *Match the screen* and nothing changes: a dialog on a desktop, a full page on a phone. Choose *Always a dialog* to keep the board or list behind every form at any size, or *Always a full page* to give every form the whole screen. The setting follows your account rather than the browser you happen to be using.
+**Profile → Preferences** now has **Create and edit forms**. Leave it on _Match the screen_ and nothing changes: a dialog on a desktop, a full page on a phone. Choose _Always a dialog_ to keep the board or list behind every form at any size, or _Always a full page_ to give every form the whole screen. The setting follows your account rather than the browser you happen to be using.
 
 ### Contact links you can read
 

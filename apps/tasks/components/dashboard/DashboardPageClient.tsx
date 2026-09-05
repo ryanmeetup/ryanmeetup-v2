@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Button,
-  Card,
   ConfirmationDialog,
   EmptyState,
   IconButton,
@@ -23,7 +22,7 @@ import {
 import { CategoriesModal } from "@/components/categories";
 import { categoryController } from "@/components/categories/category-workspace";
 import { LatestChangelogCard } from "@/components/changelog";
-import { WorkspacePageShell } from "@/components/global";
+import { MetricLinkCard, WorkspacePageShell } from "@/components/global";
 import { ProjectsModal } from "@/components/projects";
 import { NewTaskModal, TaskKeyBadge } from "@/components/tasks";
 import { withAccessPreview } from "@/lib/access/access-preview";
@@ -40,6 +39,7 @@ import { taskPath } from "@/lib/tasks/task-key";
 import { profileDisplayName } from "@/lib/presentation";
 import { taskStatusChange } from "@/lib/activity/task-activity";
 import { formatShortTimestamp } from "@/lib/date-format";
+import { projectPath } from "@/lib/resources/project-route";
 import {
   boundedWidgetPage,
   DashboardTaskList,
@@ -255,44 +255,15 @@ export function DashboardPageClient({
                 ),
               },
             ].map((item, index) => (
-              <Link
+              <MetricLinkCard
                 key={item.label}
                 href={item.href}
-                aria-label={`View ${item.label.toLowerCase()}`}
-                className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f1f2ef] dark:focus-visible:ring-white/50 dark:focus-visible:ring-offset-[#101010]"
-              >
-                <Card
-                  size="none"
-                  className={`relative h-full min-h-24 cursor-pointer overflow-hidden p-3 transition duration-200 group-hover:-translate-y-1 group-hover:shadow-lg motion-reduce:transform-none sm:min-h-32 sm:p-4 ${
-                    index === 0
-                      ? "border-blue-400/70! bg-blue-50! dark:border-blue-300/55! dark:bg-blue-400/15!"
-                      : index === 1
-                        ? "border-violet-400/70! bg-violet-50! dark:border-violet-300/55! dark:bg-violet-400/15!"
-                        : index === 2
-                          ? "border-amber-400/75! bg-amber-50! dark:border-amber-300/60! dark:bg-amber-400/15!"
-                          : "bg-emerald-50/90 dark:bg-emerald-400/10"
-                  }`}
-                >
-                  <span className="flex items-center gap-1.5 pr-4 text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-black/50 dark:text-white/50 sm:gap-2 sm:pr-8 sm:text-xs sm:tracking-[0.16em]">
-                    {item.icon}
-                    <span className="sm:hidden">{item.mobileLabel}</span>
-                    <span className="hidden sm:inline">{item.label}</span>
-                  </span>
-                  <p className="mt-4 font-cooper text-3xl leading-none sm:mt-5 sm:text-5xl">
-                    {item.value}
-                  </p>
-                  <span
-                    aria-hidden
-                    className="absolute -bottom-3 -right-2 text-[3.75rem] opacity-[0.045] transition-transform duration-300 group-hover:rotate-6 group-hover:scale-110 dark:opacity-[0.06] sm:-bottom-7 sm:-right-5 sm:text-[6rem]"
-                  >
-                    {item.icon}
-                  </span>
-                  <FiArrowRight
-                    aria-hidden="true"
-                    className="absolute right-2 top-2 z-10 text-sm text-black/35 transition group-hover:translate-x-1 group-hover:text-black/70 motion-reduce:transform-none dark:text-white/35 dark:group-hover:text-white/75 sm:right-4 sm:top-4 sm:text-base"
-                  />
-                </Card>
-              </Link>
+                icon={item.icon}
+                label={item.label}
+                mobileLabel={item.mobileLabel}
+                tone={index === 0 ? "blue" : index === 1 ? "violet" : "amber"}
+                value={item.value}
+              />
             ))}
           </div>
 
@@ -354,7 +325,7 @@ export function DashboardPageClient({
                           <li key={project.id}>
                             <Link
                               href={withAccessPreview(
-                                `/board?project=${encodeURIComponent(project.name)}`,
+                                projectPath(project, data.projects),
                                 data.accessPreview,
                               )}
                               className="group flex items-center gap-3 px-4 py-4 transition hover:bg-black/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-black/30 dark:hover:bg-white/[0.035] dark:focus-visible:ring-white/40"

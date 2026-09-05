@@ -9,6 +9,7 @@ import {
   rankTaskSearchResults,
   taskSearchAllHref,
   taskSearchFilterHref,
+  taskSearchProjectHref,
   taskSearchResultHref,
 } from "@/lib/tasks/task-search";
 
@@ -106,6 +107,10 @@ describe("task search", () => {
     );
     expect(taskSearchFilterHref("project", "Big launch", preview)).toBe(
       "/board?project=Big+launch&accessPreview=group+one",
+    );
+    const project = { id: "p", name: "Big launch" } as Project;
+    expect(taskSearchProjectHref(project, [project], preview)).toBe(
+      "/projects/big-launch?accessPreview=group+one",
     );
     expect(
       firstRelatedTaskSearchHref(

@@ -23,6 +23,10 @@ describe("task filter values", () => {
       "high",
       "urgent",
     ]);
-    expect(resolveDueFilterValues("7,90,30")).toEqual(["7", "30"]);
+    expect(resolveDueFilterValues("overdue,7,90,30")).toEqual([
+      "overdue",
+      "7",
+      "30",
+    ]);
   });
 });

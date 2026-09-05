@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Avatar,
@@ -50,6 +51,7 @@ import { taskDraftValidationMessage } from "@/lib/tasks/task-draft-validation";
 import type { Task } from "@/lib/tasks/task-types";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import { taskEditorView } from "@/lib/tasks/task-editor-view";
+import { projectPath } from "@/lib/resources/project-route";
 import { TaskDetails } from "./TaskDetails";
 import { TaskDueDate } from "./TaskDueDate";
 import { TaskEditor } from "./TaskEditor";
@@ -444,7 +446,19 @@ export function TaskPageClient({
                     <FiFolder aria-hidden /> Project
                   </dt>
                   <dd className="mt-1 break-words font-semibold">
-                    {project?.name ?? "No project"}
+                    {project ? (
+                      <Link
+                        href={withAccessPreview(
+                          projectPath(project, data.projects),
+                          data.accessPreview,
+                        )}
+                        className="underline-offset-4 hover:underline focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 dark:focus-visible:ring-white/40"
+                      >
+                        {project.name}
+                      </Link>
+                    ) : (
+                      "No project"
+                    )}
                   </dd>
                 </div>
               </dl>

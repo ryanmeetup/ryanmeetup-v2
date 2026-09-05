@@ -46,9 +46,7 @@ export function NoteLinks({
       {note.converted_project_id && (
         <Link
           href={
-            convertedProject
-              ? `/board?project=${encodeURIComponent(convertedProject.name)}`
-              : "/projects"
+            convertedProject ? `/projects/${convertedProject.id}` : "/projects"
           }
           className={chipClassName}
         >

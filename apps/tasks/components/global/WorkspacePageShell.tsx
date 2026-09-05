@@ -84,7 +84,7 @@ function WorkspaceChrome({
         onCreateCategory={onCreateCategory ?? (() => undefined)}
         onCreateProject={onCreateProject ?? (() => undefined)}
       />
-      <main className="flex min-h-dvh min-w-0 flex-col overflow-x-clip lg:pl-64">
+      <main className="flex min-h-dvh min-w-0 flex-col overflow-x-clip lg:pl-[17.5rem]">
         <header className="tasks-app-header">
           <IconButton
             label="Open navigation"
@@ -150,7 +150,7 @@ export function WorkspaceShellSkeleton() {
     >
       <aside
         aria-hidden="true"
-        className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-black/10 bg-white px-4 pt-4 dark:border-white/10 dark:bg-black lg:flex"
+        className="fixed inset-y-0 left-0 z-40 hidden w-[17.5rem] flex-col border-r border-black/10 bg-white px-4 pt-4 dark:border-white/10 dark:bg-black lg:flex"
       >
         <div className="relative flex h-12 items-center px-2">
           <p className="whitespace-nowrap px-2 py-1 font-cooper text-2xl uppercase">
@@ -158,7 +158,7 @@ export function WorkspaceShellSkeleton() {
           </p>
         </div>
       </aside>
-      <main className="min-w-0 overflow-x-clip lg:pl-64">
+      <main className="min-w-0 overflow-x-clip lg:pl-[17.5rem]">
         <header className="tasks-app-header">
           <TaskHeaderBrand />
         </header>

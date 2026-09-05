@@ -1,18 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import {
   Card,
   DropdownSelect,
-  EmptyState,
   FilterPanel,
   Pagination,
-  Spinner,
   toast,
 } from "@ryanmeetup/ui";
-import { FiArrowRight, FiClock } from "react-icons/fi";
-import { CategoriesModal, CategoryLabel } from "@/components/categories";
+import { FiClock } from "react-icons/fi";
+import { CategoriesModal } from "@/components/categories";
 import { categoryController } from "@/components/categories/category-workspace";
 import {
   CountBadge,
@@ -26,90 +23,22 @@ import {
   ProjectsModal,
 } from "@/components/projects";
 import { sortFavoriteProjectsFirst } from "@/lib/resources/project-sort";
-import { withAccessPreview } from "@/lib/access/access-preview";
 import { useQueryParamState } from "@ryanmeetup/hooks";
 import { usePagination } from "@/hooks/usePagination";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
-import { taskPath } from "@/lib/tasks/task-key";
-import { TaskKeyBadge } from "@/components/tasks";
 import { ActivityFilterMenu } from "./ActivityFilterMenu";
-import { ActivityActorAvatar } from "./ActivityActorAvatar";
-import { formatTimestamp } from "@/lib/date-format";
-import {
-  ActivityChangeList,
-  activityChangeSummary,
-  StatusLabel,
-} from "./ActivityChangeList";
+import { ActivityRows } from "./ActivityRows";
 import {
   errorMessage,
   profileDisplayName,
   splitCommaSeparated,
 } from "@/lib/presentation";
-import {
-  resolveActivityRows,
-  type ActivityPresentationRow,
-} from "@/lib/activity/activity-presentation";
+import { resolveActivityRows } from "@/lib/activity/activity-presentation";
 import {
   activityFilterCount,
   buildActivityQuery,
 } from "@/lib/activity/activity-query";
 import { ACTIVITY_EVENT_OPTIONS } from "@/lib/activity/activity-events";
-
-function activityDescription(
-  row: ActivityPresentationRow,
-  { compact = false }: { compact?: boolean } = {},
-) {
-  const { description } = row;
-  if (description.kind === "changes") {
-    // The sentences already say what happened, so the generic "Task updated"
-    // label would only eat width in the truncated table cell.
-    return compact ? (
-      activityChangeSummary(description.changes)
-    ) : (
-      <div className="space-y-1">
-        <p>{description.label}</p>
-        <ActivityChangeList changes={description.changes} />
-      </div>
-    );
-  }
-  if (description.kind === "status") {
-    const { from: fromStatus, to: toStatus } = description;
-
-    if (fromStatus && toStatus) {
-      return (
-        <span className="flex items-center gap-2">
-          <StatusLabel status={fromStatus} />
-          <FiArrowRight
-            aria-label="moved to"
-            className="shrink-0 text-black/40 dark:text-white/40"
-          />
-          <StatusLabel status={toStatus} />
-        </span>
-      );
-    }
-    if (toStatus) {
-      return (
-        <span className="flex items-center gap-2">
-          <span className="text-black/55 dark:text-white/55">Moved to</span>
-          <StatusLabel status={toStatus} />
-        </span>
-      );
-    }
-    return "Task moved";
-  }
-
-  return description.detail ? (
-    <span>
-      {description.label}
-      <span className="text-black/55 dark:text-white/55">
-        {" \u2014 "}
-        {description.detail}
-      </span>
-    </span>
-  ) : (
-    description.label
-  );
-}
 
 export function ActivityPageClient({
   initialData,
@@ -154,10 +83,6 @@ export function ActivityPageClient({
         statuses: data.statuses,
       }),
     [data],
-  );
-  const rowsById = useMemo(
-    () => new Map(activityRows.map((row) => [row.item.id, row])),
-    [activityRows],
   );
   const includedProjectValues = splitCommaSeparated(projectFilter);
   const excludedProjectValues = splitCommaSeparated(excludedProjects);
@@ -435,224 +360,16 @@ export function ActivityPageClient({
             size="none"
             className={`overflow-hidden transition-opacity ${loading ? "opacity-60" : ""}`}
           >
-            <div className="md:hidden" aria-busy={loading}>
-              <div className="border-b border-black/10 bg-black/[0.025] px-4 py-3 dark:border-white/10 dark:bg-white/[0.025]">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-black/50 dark:text-white/50">
-                  Activity
-                </p>
-              </div>
-              <div className="divide-y divide-black/10 dark:divide-white/10">
-                {data.activity.map((item) => {
-                  const row = rowsById.get(item.id)!;
-                  const {
-                    task,
-                    actor: profile,
-                    project,
-                    category,
-                    resourceName,
-                    resourceHref,
-                  } = row;
-
-                  const content = (
-                    <article className="space-y-3 p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <span className="flex min-w-0 items-center gap-2 font-semibold">
-                          <ActivityActorAvatar profile={profile} />
-                          <span className="truncate">{row.actorName}</span>
-                        </span>
-                        <time
-                          dateTime={item.created_at}
-                          className="shrink-0 text-right text-xs text-black/55 dark:text-white/55"
-                        >
-                          {formatTimestamp(item.created_at)}
-                        </time>
-                      </div>
-                      <div className="text-sm">{activityDescription(row)}</div>
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
-                        {task ? (
-                          <span className="min-w-0 font-semibold">
-                            <TaskKeyBadge
-                              task={task}
-                              className="mr-2 align-middle"
-                            />
-                            <span>{task.title}</span>
-                          </span>
-                        ) : resourceName ? (
-                          category ? (
-                            <CategoryLabel
-                              category={category}
-                              className="font-semibold"
-                            />
-                          ) : (
-                            <span className="min-w-0 font-semibold">
-                              {resourceName}
-                            </span>
-                          )
-                        ) : (
-                          <span className="text-black/45 dark:text-white/45">
-                            Item unavailable
-                          </span>
-                        )}
-                        {project && (
-                          <span className="text-black/60 dark:text-white/60">
-                            {project.name}
-                          </span>
-                        )}
-                      </div>
-                    </article>
-                  );
-
-                  const href = task
-                    ? withAccessPreview(taskPath(task), data.accessPreview)
-                    : resourceHref;
-                  return href ? (
-                    <Link
-                      key={item.id}
-                      href={href}
-                      className="block transition hover:bg-black/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-black/30 dark:hover:bg-white/[0.025] dark:focus-visible:ring-white/40"
-                      aria-label={`Open ${task?.title ?? resourceName ?? "item"}`}
-                    >
-                      {content}
-                    </Link>
-                  ) : (
-                    <div key={item.id}>{content}</div>
-                  );
-                })}
-                {loading && data.activity.length === 0 && (
-                  <div className="flex items-center justify-center gap-2 px-4 py-12 text-sm text-black/60 dark:text-white/60">
-                    <Spinner size={18} label="Loading activity" />
-                    <span>Loading activity…</span>
-                  </div>
-                )}
-                {!loading && data.activity.length === 0 && (
-                  <EmptyState
-                    variant="plain"
-                    message={
-                      filterCount === 0
-                        ? "No activity yet. The next workspace update will show up here."
-                        : "No activity matches these filters. Try widening your selection."
-                    }
-                  />
-                )}
-              </div>
-            </div>
-            <div
-              className="hidden overflow-x-auto md:block"
-              aria-busy={loading}
-            >
-              <table className="w-full min-w-[760px] table-fixed text-left text-sm">
-                <colgroup>
-                  <col className="w-[20%] xl:w-[18%]" />
-                  <col className="w-[22%] xl:w-[18%]" />
-                  <col className="w-[21%] xl:w-[19%]" />
-                  <col className="w-[23%] xl:w-[30%]" />
-                  <col className="w-[14%] xl:w-[15%]" />
-                </colgroup>
-                <thead className="border-b border-black/10 bg-black/[0.025] text-[10px] uppercase tracking-[0.16em] text-black/50 dark:border-white/10 dark:bg-white/[0.025] dark:text-white/50">
-                  <tr>
-                    <th className="px-4 py-3 font-semibold">When</th>
-                    <th className="px-4 py-3 font-semibold">Who</th>
-                    <th className="px-4 py-3 font-semibold">What happened</th>
-                    <th className="px-4 py-3 font-semibold">Item</th>
-                    <th className="px-4 py-3 font-semibold">Project</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-black/10 dark:divide-white/10">
-                  {data.activity.map((item) => {
-                    const row = rowsById.get(item.id)!;
-                    const {
-                      task,
-                      actor: profile,
-                      project,
-                      category,
-                      resourceName,
-                      resourceHref,
-                    } = row;
-                    const href = task
-                      ? withAccessPreview(taskPath(task), data.accessPreview)
-                      : resourceHref;
-                    return (
-                      <tr
-                        key={item.id}
-                        className="group relative align-middle transition hover:bg-black/[0.025] focus-within:bg-black/[0.025] dark:hover:bg-white/[0.025] dark:focus-within:bg-white/[0.025]"
-                      >
-                        <td className="whitespace-nowrap px-4 py-3 text-black/55 dark:text-white/55">
-                          {href && (
-                            <Link
-                              href={href}
-                              aria-label={`Open ${task?.title ?? resourceName ?? "item"}`}
-                              className="absolute inset-0 z-10 focus-visible:outline-none group-focus-within:ring-2 group-focus-within:ring-inset group-focus-within:ring-black/30 dark:group-focus-within:ring-white/40"
-                            />
-                          )}
-                          <time dateTime={item.created_at}>
-                            {formatTimestamp(item.created_at)}
-                          </time>
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-3">
-                          <span className="flex items-center gap-2 font-semibold">
-                            <ActivityActorAvatar profile={profile} />
-                            {row.actorName}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="truncate">
-                            {activityDescription(row, { compact: true })}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 font-semibold">
-                          {task ? (
-                            <span className="min-w-0">
-                              <TaskKeyBadge
-                                task={task}
-                                className="mr-2 align-middle"
-                              />
-                              <span>{task.title}</span>
-                            </span>
-                          ) : resourceName ? (
-                            category ? (
-                              <CategoryLabel category={category} />
-                            ) : (
-                              <span className="min-w-0">{resourceName}</span>
-                            )
-                          ) : (
-                            <span className="text-black/45 dark:text-white/45">
-                              Item unavailable
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-black/65 dark:text-white/65">
-                          {project?.name ?? "—"}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {loading && data.activity.length === 0 && (
-                    <tr>
-                      <td colSpan={5}>
-                        <div className="flex items-center justify-center gap-2 px-4 py-12 text-sm text-black/60 dark:text-white/60">
-                          <Spinner size={18} label="Loading activity" />
-                          <span>Loading activity…</span>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                  {!loading && data.activity.length === 0 && (
-                    <tr>
-                      <td colSpan={5}>
-                        <EmptyState
-                          variant="plain"
-                          message={
-                            filterCount === 0
-                              ? "No activity yet. The next workspace update will show up here."
-                              : "No activity matches these filters. Try widening your selection."
-                          }
-                        />
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <ActivityRows
+              rows={activityRows}
+              loading={loading}
+              preview={data.accessPreview}
+              emptyMessage={
+                filterCount === 0
+                  ? "No activity yet. The next workspace update will show up here."
+                  : "No activity matches these filters. Try widening your selection."
+              }
+            />
             <Pagination
               page={data.activityPage?.page ?? page}
               pageSize={data.activityPage?.pageSize ?? pageSize}

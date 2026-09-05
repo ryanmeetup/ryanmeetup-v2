@@ -34,6 +34,7 @@ import { useSidebarSections } from "@/hooks/useSidebarSections";
 import { withAccessPreview } from "@/lib/access/access-preview";
 import { canViewWorkspaceArea } from "@/lib/access/workspace-areas";
 import { projectStatusDetails } from "@/lib/resources/project-status";
+import { projectPath } from "@/lib/resources/project-route";
 import { editorTriggers, InstanceWordmark } from "@/components/global";
 
 /**
@@ -167,7 +168,8 @@ export function TasksSidebar({
   const isCategorySelected = (id: string, name: string) =>
     isBoard && (selectedCategory === id || selectedCategory === name);
   const isProjectSelected = (id: string, name: string) =>
-    isBoard && (selectedProject === id || selectedProject === name);
+    (isBoard && (selectedProject === id || selectedProject === name)) ||
+    pathname === projectPath({ id, name }, data.projects);
   const boardHref = (filter?: { category?: string; project?: string }) => {
     const params = new URLSearchParams();
     if (filter?.category) params.set("category", filter.category);
@@ -180,6 +182,43 @@ export function TasksSidebar({
   };
   const linkClass = (active: boolean) =>
     `sidebar-link ${active ? "sidebar-link-active" : ""}`;
+  const projectSidebarRow = (
+    project: (typeof activeProjects)[number],
+    favorite = false,
+  ) => {
+    const selected = isProjectSelected(project.id, project.name);
+    return (
+      <div key={project.id} className="relative">
+        <Link
+          href={withAccessPreview(
+            projectPath(project, data.projects),
+            data.accessPreview,
+          )}
+          onClick={closeSidebar}
+          className={`${linkClass(selected)} pr-11`}
+        >
+          <ProjectLifecycleIcon status={project.status} favorite={favorite} />
+          <SidebarItemLabel>{project.name}</SidebarItemLabel>
+        </Link>
+        <span className="absolute right-1 top-1/2 -translate-y-1/2">
+          <Tooltip content={`Open ${project.name} board`} placement="right">
+            <Link
+              href={boardHref({ project: project.name })}
+              aria-label={`Open ${project.name} board`}
+              onClick={closeSidebar}
+              className={`inline-flex h-8 w-8 items-center justify-center rounded-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset ${
+                selected
+                  ? "text-black hover:bg-black/10 focus-visible:ring-black/30"
+                  : "text-black/45 hover:bg-black/10 hover:text-black focus-visible:ring-black/30 dark:text-white/45 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:ring-white/40"
+              }`}
+            >
+              <FiGrid aria-hidden />
+            </Link>
+          </Tooltip>
+        </span>
+      </div>
+    );
+  };
 
   // The shell that owns `open` outlives the page, so the drawer would otherwise
   // stay up over whatever route a link just reached. Closing on the pathname
@@ -390,23 +429,9 @@ export function TasksSidebar({
               className={favoritesExpanded ? "mt-2" : ""}
               contentClassName="space-y-1"
             >
-              {favoriteProjects.map((project) => (
-                <Link
-                  key={project.id}
-                  href={boardHref(
-                    isProjectSelected(project.id, project.name)
-                      ? undefined
-                      : { project: project.name },
-                  )}
-                  onClick={closeSidebar}
-                  className={linkClass(
-                    isProjectSelected(project.id, project.name),
-                  )}
-                >
-                  <ProjectLifecycleIcon status={project.status} favorite />
-                  <SidebarItemLabel>{project.name}</SidebarItemLabel>
-                </Link>
-              ))}
+              {favoriteProjects.map((project) =>
+                projectSidebarRow(project, true),
+              )}
             </AnimatedCollapse>
           </section>
         )}
@@ -531,23 +556,7 @@ export function TasksSidebar({
                   : "No projects yet."}
               </p>
             )}
-            {otherProjects.map((project) => (
-              <Link
-                key={project.id}
-                href={boardHref(
-                  isProjectSelected(project.id, project.name)
-                    ? undefined
-                    : { project: project.name },
-                )}
-                onClick={closeSidebar}
-                className={linkClass(
-                  isProjectSelected(project.id, project.name),
-                )}
-              >
-                <ProjectLifecycleIcon status={project.status} />
-                <SidebarItemLabel>{project.name}</SidebarItemLabel>
-              </Link>
-            ))}
+            {otherProjects.map((project) => projectSidebarRow(project))}
           </AnimatedCollapse>
         </section>
       </div>
@@ -558,7 +567,7 @@ export function TasksSidebar({
     <>
       <aside
         data-workspace-sidebar
-        className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-black/10 bg-white px-4 pt-4 dark:border-white/10 dark:bg-black lg:flex"
+        className="fixed inset-y-0 left-0 z-40 hidden w-[17.5rem] flex-col border-r border-black/10 bg-white px-4 pt-4 dark:border-white/10 dark:bg-black lg:flex"
       >
         {sidebarContent()}
       </aside>
@@ -567,7 +576,7 @@ export function TasksSidebar({
         <div className="fixed inset-0 overflow-hidden">
           <DialogPanel
             transition
-            className="flex h-full w-64 flex-col border-r border-black/10 bg-white px-4 pt-4 shadow-xl transition duration-200 ease-out data-closed:-translate-x-full dark:border-white/10 dark:bg-black"
+            className="flex h-full w-[17.5rem] flex-col border-r border-black/10 bg-white px-4 pt-4 shadow-xl transition duration-200 ease-out data-closed:-translate-x-full dark:border-white/10 dark:bg-black"
           >
             {sidebarContent(true)}
           </DialogPanel>

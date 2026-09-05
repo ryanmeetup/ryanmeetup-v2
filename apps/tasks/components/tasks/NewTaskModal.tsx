@@ -42,6 +42,8 @@ type NewTaskModalProps = {
   setData: Dispatch<SetStateAction<WorkspaceData>>;
   setOpen: (open: boolean) => void;
   initialDraft?: StoredTaskDraft | null;
+  /** Defaults applied only when opening a fresh task. */
+  initialValues?: Partial<TaskDraft>;
   /** Seeds the form from an existing task; mount this modal fresh to apply it. */
   duplicateOf?: { task: Task; draft: TaskDraft } | null;
   onCreated?: (task: Task) => void | Promise<void>;
@@ -58,6 +60,7 @@ export function NewTaskModal(props: NewTaskModalProps) {
     setData,
     setOpen,
     initialDraft,
+    initialValues,
     duplicateOf,
     onCreated,
   } = props;
@@ -71,7 +74,9 @@ export function NewTaskModal(props: NewTaskModalProps) {
       : ({} as const);
   const [draft, setDraft] = useState(
     () =>
-      duplicateOf?.draft ?? initialDraft?.draft ?? newWorkspaceTaskDraft(data),
+      duplicateOf?.draft ??
+      initialDraft?.draft ??
+      newWorkspaceTaskDraft(data, initialValues),
   );
   const draftId = useRef<string | null>(initialDraft?.id ?? null);
   const opened = useRef(false);
@@ -82,10 +87,9 @@ export function NewTaskModal(props: NewTaskModalProps) {
   const [message, setMessage] = useState("");
   const detailsOpenByDefault = data.currentProfile.task_details_open_by_default;
   const [detailsOpen, setDetailsOpen] = useState(detailsOpenByDefault);
-  const [newTaskDetails, setNewTaskDetails] =
-    useState<NewTaskDetailsDraft>(
-      () => initialDraft?.details ?? emptyNewTaskDetails(),
-    );
+  const [newTaskDetails, setNewTaskDetails] = useState<NewTaskDetailsDraft>(
+    () => initialDraft?.details ?? emptyNewTaskDetails(),
+  );
 
   useEffect(() => {
     if (open && !opened.current && initialDraft) {
@@ -154,7 +158,7 @@ export function NewTaskModal(props: NewTaskModalProps) {
     setOpen(nextOpen);
     if (!nextOpen && !saving) {
       if (!hasDraftContent(draft, newTaskDetails)) {
-        setDraft(newWorkspaceTaskDraft(data));
+        setDraft(newWorkspaceTaskDraft(data, initialValues));
         setNewTaskDetails(emptyNewTaskDetails());
       }
       setCreateAnother(false);

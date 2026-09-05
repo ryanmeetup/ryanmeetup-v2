@@ -55,6 +55,7 @@ import {
   groupProjectsByStatus,
   shouldOfferProjectArchive,
 } from "@/lib/resources/project-status";
+import { projectPath } from "@/lib/resources/project-route";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
 import {
   ExpandableResourceEditor,
@@ -165,7 +166,7 @@ export function ProjectsModal({
    */
   const pageSurface = (crumb: string) =>
     presentation === "page"
-      ? ({
+      ? {
           presentation: "page" as const,
           parents: [
             {
@@ -175,7 +176,7 @@ export function ProjectsModal({
             },
           ],
           crumb: { title: crumb },
-        })
+        }
       : ({ presentation: "modal" } as const);
   const { onCreate, onProjectUpdated, onCreated } = events ?? {};
   const resourceMutations = useResourceMutations("project");
@@ -714,7 +715,7 @@ export function ProjectsModal({
             {embedded && (
               <Button.Link
                 href={withAccessPreview(
-                  `/board?project=${encodeURIComponent(project.name)}`,
+                  projectPath(project, data.projects),
                   data.accessPreview,
                 )}
                 variant="secondary"
@@ -722,7 +723,7 @@ export function ProjectsModal({
                 className="w-full justify-center sm:ml-auto sm:w-auto"
                 rightIcon={<FiArrowRight aria-hidden />}
               >
-                Open board
+                Open project
               </Button.Link>
             )}
           </>
@@ -758,61 +759,65 @@ export function ProjectsModal({
             Archived
           </Pill>
         )}
-        {!data.accessPreview && !project.archived_at && (
-          <IconButton
-            label={`${isFavorite ? "Remove" : "Add"} “${project.name}” ${isFavorite ? "from" : "to"} favorites`}
-            disabled={favorites.isPending(project.id)}
-            onClick={() => void favorites.toggle(project)}
-            className={
-              isFavorite
-                ? "!border-amber-500/35 !bg-amber-400/15 !text-amber-700 hover:!bg-amber-400/25 dark:!border-amber-300/30 dark:!bg-amber-300/10 dark:!text-amber-200 dark:hover:!bg-amber-300/20"
-                : undefined
-            }
-          >
-            <FiStar fill={isFavorite ? "currentColor" : "none"} />
-          </IconButton>
-        )}
-        {!readOnly && (
-          <>
-            {/* Route or dialog, per the profile — see editor-routes.ts. */}
-            {triggers.route && (
-              <IconButton.Link
-                href={`/projects/${project.id}/edit?from=${encodeURIComponent(listPath)}`}
-                label={`Edit “${project.name}”`}
-                variant="edit"
-                className={triggers.routeClassName}
-              >
-                <FiEdit2 />
-              </IconButton.Link>
-            )}
-            {triggers.dialog && (
+        {((!data.accessPreview && !project.archived_at) || !readOnly) && (
+          <div className="flex shrink-0 items-center gap-3">
+            {!data.accessPreview && !project.archived_at && (
               <IconButton
-                label={`Edit “${project.name}”`}
-                variant="edit"
-                className={triggers.dialogClassName}
-                onClick={() => beginRename(project)}
+                label={`${isFavorite ? "Remove" : "Add"} “${project.name}” ${isFavorite ? "from" : "to"} favorites`}
+                disabled={favorites.isPending(project.id)}
+                onClick={() => void favorites.toggle(project)}
+                className={
+                  isFavorite
+                    ? "!border-amber-500/35 !bg-amber-400/15 !text-amber-700 hover:!bg-amber-400/25 dark:!border-amber-300/30 dark:!bg-amber-300/10 dark:!text-amber-200 dark:hover:!bg-amber-300/20"
+                    : undefined
+                }
               >
-                <FiEdit2 />
+                <FiStar fill={isFavorite ? "currentColor" : "none"} />
               </IconButton>
             )}
-            {taskCount > 0 ? (
-              <IconButton
-                label={`${project.archived_at ? "Restore" : "Archive"} “${project.name}”`}
-                variant="archive"
-                onClick={() => void toggleArchived(project)}
-              >
-                {project.archived_at ? <FiRotateCcw /> : <FiArchive />}
-              </IconButton>
-            ) : (
-              <IconButton
-                label={`Delete “${project.name}”`}
-                variant="danger"
-                onClick={() => setDeleteTarget(project)}
-              >
-                <FiTrash2 />
-              </IconButton>
+            {!readOnly && (
+              <>
+                {/* Route or dialog, per the profile — see editor-routes.ts. */}
+                {triggers.route && (
+                  <IconButton.Link
+                    href={`/projects/${project.id}/edit?from=${encodeURIComponent(listPath)}`}
+                    label={`Edit “${project.name}”`}
+                    variant="edit"
+                    className={triggers.routeClassName}
+                  >
+                    <FiEdit2 />
+                  </IconButton.Link>
+                )}
+                {triggers.dialog && (
+                  <IconButton
+                    label={`Edit “${project.name}”`}
+                    variant="edit"
+                    className={triggers.dialogClassName}
+                    onClick={() => beginRename(project)}
+                  >
+                    <FiEdit2 />
+                  </IconButton>
+                )}
+                {taskCount > 0 ? (
+                  <IconButton
+                    label={`${project.archived_at ? "Restore" : "Archive"} “${project.name}”`}
+                    variant="archive"
+                    onClick={() => void toggleArchived(project)}
+                  >
+                    {project.archived_at ? <FiRotateCcw /> : <FiArchive />}
+                  </IconButton>
+                ) : (
+                  <IconButton
+                    label={`Delete “${project.name}”`}
+                    variant="danger"
+                    onClick={() => setDeleteTarget(project)}
+                  >
+                    <FiTrash2 />
+                  </IconButton>
+                )}
+              </>
             )}
-          </>
+          </div>
         )}
       </ManagementCard>
     );

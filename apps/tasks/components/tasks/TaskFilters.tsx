@@ -224,9 +224,10 @@ export function TaskFilters({
         stackLabelOnMobile
       />
       <InclusionFilterMenu
-        label="Due within"
+        label="Due date"
         anyLabel="Any time"
         options={[
+          { label: "Overdue", value: "overdue" },
           { label: "Next 7 days", value: "7" },
           { label: "Next 14 days", value: "14" },
           { label: "Next 30 days", value: "30" },

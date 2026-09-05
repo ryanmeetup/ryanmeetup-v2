@@ -29,12 +29,15 @@ export function emptyNewTaskDetails(): NewTaskDetailsDraft {
   };
 }
 
-export function newWorkspaceTaskDraft(data: WorkspaceData) {
+export function newWorkspaceTaskDraft(
+  data: WorkspaceData,
+  initialValues: Partial<TaskDraft> = {},
+) {
   const statusId =
     data.statuses.find((status) => status.is_default)?.id ??
     data.statuses[0]?.id ??
     "";
-  return emptyTaskDraft(statusId, data.currentProfile);
+  return { ...emptyTaskDraft(statusId, data.currentProfile), ...initialValues };
 }
 
 export function taskDraftFromTask(

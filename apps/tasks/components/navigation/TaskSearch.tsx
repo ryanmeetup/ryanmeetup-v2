@@ -20,6 +20,7 @@ import {
   rankTaskSearchResults,
   taskSearchAllHref,
   taskSearchFilterHref,
+  taskSearchProjectHref,
   taskSearchResultHref,
   TASK_SEARCH_MIN_LENGTH,
   type TaskSearchPreview,
@@ -174,7 +175,7 @@ export function TaskSearch({
     const selected = results[activeIndex] ?? results[0];
     const href = selected
       ? taskSearchResultHref(selected, preview)
-      : firstRelatedTaskSearchHref(related, preview);
+      : firstRelatedTaskSearchHref(related, preview, projects);
     if (href) navigate(href);
   }
 
@@ -260,6 +261,9 @@ export function TaskSearch({
           allResultsHref={taskSearchAllHref(deferredQuery, preview)}
           filterHref={(name, value) =>
             taskSearchFilterHref(name, value, preview)
+          }
+          projectHref={(project) =>
+            taskSearchProjectHref(project, projects, preview)
           }
         />
       )}

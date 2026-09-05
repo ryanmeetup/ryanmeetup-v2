@@ -48,7 +48,7 @@ export function resolvePriorityFilterValues(value: string) {
 
 export function resolveDueFilterValues(value: string) {
   return splitTaskFilterValues(value).filter((entry) =>
-    ["7", "14", "30"].includes(entry),
+    ["overdue", "7", "14", "30"].includes(entry),
   );
 }
 

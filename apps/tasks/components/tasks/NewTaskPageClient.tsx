@@ -10,6 +10,7 @@ import { useWorkspaceData } from "@/hooks/useWorkspaceData";
 import { taskPath } from "@/lib/tasks/task-key";
 import type { Task } from "@/lib/tasks/task-types";
 import type { WorkspaceData } from "@/lib/workspace/workspace-types";
+import type { TaskDraft } from "@/lib/tasks/task-mutations";
 import { NewTaskModal } from "./NewTaskModal";
 import { BOARD_CRUMB } from "./task-crumbs";
 
@@ -23,10 +24,12 @@ export function NewTaskPageClient({
   initialData,
   demoMode,
   backHref,
+  initialValues,
 }: {
   initialData: WorkspaceData;
   demoMode: boolean;
   backHref: string;
+  initialValues?: Partial<TaskDraft>;
 }) {
   const { data, setData } = useWorkspaceData(initialData, demoMode);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -61,6 +64,7 @@ export function NewTaskPageClient({
         onCreated={(task) => {
           created.current = task;
         }}
+        initialValues={initialValues}
       />
     </WorkspacePageShell>
   );

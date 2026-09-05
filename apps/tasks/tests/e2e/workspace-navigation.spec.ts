@@ -56,6 +56,94 @@ test("workspace chrome persists across page navigation", async ({
   await expect(page.locator("[data-workspace-content-loading]")).toHaveCount(0);
 });
 
+test("opens a project overview from the sidebar", async ({ page, baseURL }) => {
+  await enterDemoWorkspace(page, baseURL);
+
+  const sidebar = page.locator("[data-workspace-sidebar]");
+  await sidebar.locator('a[href="/projects/website-refresh"]').click();
+
+  await expect(page).toHaveURL(/\/projects\/website-refresh$/);
+  await expect(
+    page.getByRole("heading", { level: 1, name: /Website Refresh/ }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { level: 2, name: "Needs attention" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { level: 2, name: "Progress by status" }),
+  ).toBeVisible();
+  const backlogSegment = page.getByLabel(/^Backlog:/);
+  await backlogSegment.hover();
+  await expect(page.getByRole("tooltip")).toContainText("Backlog");
+  await expect(page.getByRole("tooltip")).toContainText("of project");
+  await expect(
+    page.getByRole("link", { name: "Open task board", exact: true }),
+  ).toHaveAttribute("href", "/board?project=Website%20Refresh");
+  await expect(
+    page.getByRole("link", { name: "View open tasks", exact: true }),
+  ).toHaveAttribute(
+    "href",
+    "/board?project=Website+Refresh&excludeStatuses=Done",
+  );
+  await expect(
+    page.getByRole("link", { name: "View overdue", exact: true }),
+  ).toHaveAttribute(
+    "href",
+    "/board?project=Website+Refresh&excludeStatuses=Done&dueWithin=overdue",
+  );
+  await expect(
+    page.getByRole("link", { name: "View due in 14 days", exact: true }),
+  ).toHaveAttribute(
+    "href",
+    "/board?project=Website+Refresh&excludeStatuses=Done&dueWithin=14",
+  );
+  const metrics = page.getByRole("region", { name: "Project at a glance" });
+  await expect(metrics.getByText("Complete", { exact: true })).toHaveCount(2);
+  await expect(
+    metrics.getByRole("link", { name: "View complete", exact: true }),
+  ).toHaveCount(0);
+});
+
+test("opens a project's board directly from the sidebar", async ({
+  page,
+  baseURL,
+}) => {
+  await enterDemoWorkspace(page, baseURL);
+
+  const sidebar = page.locator("[data-workspace-sidebar]");
+  const boardLink = sidebar.getByRole("link", {
+    name: "Open Website Refresh board",
+  });
+  await expect(boardLink).toHaveAttribute(
+    "href",
+    "/board?project=Website+Refresh",
+  );
+  await boardLink.click();
+
+  await expect(page).toHaveURL(/\/board\?project=Website\+Refresh$/);
+  await expect(
+    page.getByRole("heading", { level: 1, name: /Website Refresh/ }),
+  ).toBeVisible();
+});
+
+test("keeps project details in view while the overview scrolls", async ({
+  page,
+  baseURL,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1200 });
+  await enterDemoWorkspace(page, baseURL);
+  await page.goto("/projects/website-refresh");
+
+  const sidebar = page.getByTestId("project-overview-sidebar");
+  const initialBox = await sidebar.boundingBox();
+  expect(initialBox?.y).toBeGreaterThan(96);
+
+  await page.evaluate(() => window.scrollTo(0, 700));
+  await expect
+    .poll(async () => Math.round((await sidebar.boundingBox())?.y ?? -1))
+    .toBe(96);
+});
+
 test("aligns board column searches across description lengths", async ({
   page,
   baseURL,
@@ -102,8 +190,8 @@ test("keeps the board scroller next to the footer", async ({
   const gap = footerBox!.y - (boardBox!.y + boardBox!.height);
   expect(gap).toBeGreaterThanOrEqual(0);
   expect(gap).toBeLessThanOrEqual(1);
-  const columnInset = boardBox!.y + boardBox!.height -
-    (columnBox!.y + columnBox!.height);
+  const columnInset =
+    boardBox!.y + boardBox!.height - (columnBox!.y + columnBox!.height);
   expect(columnInset).toBeGreaterThanOrEqual(24);
 
   const columnBackground = await doneColumn.evaluate(
@@ -126,9 +214,9 @@ test("shrinks collapsed board columns to their header", async ({
     has: page.getByRole("heading", { level: 2, name: "In Progress" }),
   });
 
-  await doneColumn.getByRole("button", { name: 'Collapse “Done”' }).click();
+  await doneColumn.getByRole("button", { name: "Collapse “Done”" }).click();
   await expect(
-    doneColumn.getByRole("button", { name: 'Expand “Done”' }),
+    doneColumn.getByRole("button", { name: "Expand “Done”" }),
   ).toBeVisible();
 
   await expect
@@ -177,5 +265,38 @@ test.describe("mobile workspace navigation", () => {
     await expect(
       page.getByRole("tooltip", { name: "Open navigation" }),
     ).not.toBeVisible();
+  });
+
+  test("keeps the project overview scannable from the drawer", async ({
+    page,
+    baseURL,
+  }) => {
+    await enterDemoWorkspace(page, baseURL);
+    await page.getByRole("button", { name: "Open navigation" }).click();
+    const drawer = page.getByRole("dialog");
+    await expect(
+      drawer.getByRole("button", { name: "Close navigation" }),
+    ).toBeVisible();
+    await drawer.locator('a[href="/projects/website-refresh"]').click();
+
+    await expect(page).toHaveURL(/\/projects\/website-refresh$/);
+    await expect(
+      page.getByRole("heading", { level: 1, name: /Website Refresh/ }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 2, name: "Project team" }),
+    ).toBeVisible();
+    const projectTeam = page
+      .getByRole("heading", { level: 2, name: "Project team" })
+      .locator("..")
+      .locator("..");
+    await expect(projectTeam.getByText("Taylor Brooks")).toBeVisible();
+    await expect(projectTeam.getByText("Project owners")).toBeVisible();
+    await expect(projectTeam.getByText("Alex Morgan")).toBeVisible();
+    await expect(projectTeam.getByText("Jordan Lee")).toBeVisible();
+    await expect(projectTeam.getByText("Team members")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 2, name: "Upcoming dates" }),
+    ).toBeVisible();
   });
 });

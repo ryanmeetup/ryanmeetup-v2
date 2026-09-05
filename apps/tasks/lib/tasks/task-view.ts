@@ -39,6 +39,21 @@ export function taskHasAssignee(
     : Boolean(assigneeIds?.has(assigneeId));
 }
 
+export function taskMatchesDueFilter(
+  task: Pick<Task, "due_date">,
+  value: string,
+  clock: number,
+) {
+  if (!task.due_date) return false;
+  const today = localDateValue(new Date(clock));
+  if (value === "overdue") return task.due_date < today;
+  return (
+    task.due_date >= today &&
+    task.due_date <=
+      localDateValue(new Date(clock + Number.parseInt(value, 10) * 86_400_000))
+  );
+}
+
 type TaskViewFilters = {
   assignees: string[];
   excludedAssignees: string[];
@@ -77,11 +92,6 @@ export function deriveVisibleTasks({
   view: "board" | "list";
   visibility: "active" | "archived";
 }) {
-  const dueWithin = (task: Task, days: string) =>
-    Boolean(task.due_date) &&
-    task.due_date! >= localDateValue(new Date(clock)) &&
-    task.due_date! <=
-      localDateValue(new Date(clock + Number.parseInt(days, 10) * 86_400_000));
   return tasks
     .filter(
       (task) =>
@@ -116,8 +126,12 @@ export function deriveVisibleTasks({
           filters.priorities.includes(task.priority)) &&
         !filters.excludedPriorities.includes(task.priority) &&
         (filters.dueWithin.length === 0 ||
-          filters.dueWithin.some((days) => dueWithin(task, days))) &&
-        !filters.excludedDueWithin.some((days) => dueWithin(task, days)) &&
+          filters.dueWithin.some((value) =>
+            taskMatchesDueFilter(task, value, clock),
+          )) &&
+        !filters.excludedDueWithin.some((value) =>
+          taskMatchesDueFilter(task, value, clock),
+        ) &&
         (filters.tags.length === 0 ||
           filters.tags.some(({ categoryId, tag }) =>
             task.category_tags?.[categoryId]?.includes(tag),

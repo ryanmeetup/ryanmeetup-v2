@@ -149,6 +149,7 @@ test("keeps stale board results inert while a search is pending", async ({
   await search.fill("nothing matches this task");
   expect(await search.getAttribute("aria-busy")).toBe("true");
   await expect(page.getByLabel("Filtering In Progress tasks")).toBeVisible();
+  await expect(page.getByLabel("Clear In Progress search")).toBeHidden();
   await expect(column).toHaveAttribute("aria-busy", "true");
   await expect(column.getByText("Confirm launch venue")).toBeVisible();
   await expect(
@@ -159,6 +160,10 @@ test("keeps stale board results inert while a search is pending", async ({
   await expect(
     column.getByText("No In Progress tasks match this search."),
   ).toBeVisible();
+  const clearSearch = page.getByLabel("Clear In Progress search");
+  await expect(clearSearch).toBeVisible();
+  await clearSearch.click();
+  await expect(search).toHaveValue("");
 });
 
 test("keeps category tags subordinate across task surfaces", async ({

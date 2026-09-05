@@ -383,7 +383,7 @@ export function ProfileForm({
               Choose how views and forms behave when you open them.
             </p>
           </div>
-          <div className="space-y-3">
+          <div className="grid gap-3 lg:grid-cols-2">
             <label className="flex cursor-pointer items-center justify-between gap-5 rounded-xl border border-black/10 bg-black/[0.02] p-4 transition hover:border-black/20 dark:border-white/10 dark:bg-white/[0.025] dark:hover:border-white/20">
               <span className="min-w-0">
                 <span className="block text-sm font-semibold">
@@ -459,7 +459,7 @@ export function ProfileForm({
                 <span className="pointer-events-none absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5 dark:bg-black" />
               </span>
             </label>
-            <div className="flex flex-col gap-3 rounded-xl border border-black/10 bg-black/[0.02] p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-5 dark:border-white/10 dark:bg-white/[0.025]">
+            <div className="flex flex-col gap-3 rounded-xl border border-black/10 bg-black/[0.02] p-4 dark:border-white/10 dark:bg-white/[0.025]">
               <span className="min-w-0">
                 <span className="block text-sm font-semibold">
                   Create and edit forms
@@ -472,7 +472,6 @@ export function ProfileForm({
                 label="Open in"
                 value={editorSurface}
                 disabled={saving || savingPreferences}
-                className="sm:w-56 sm:shrink-0"
                 onChange={(value) => {
                   if (isEditorSurface(value))
                     void changeEditorSurfacePreference(value);
@@ -483,7 +482,7 @@ export function ProfileForm({
                 }))}
               />
             </div>
-            <div className="flex items-center justify-between gap-5 rounded-xl border border-black/10 bg-black/[0.02] p-4 dark:border-white/10 dark:bg-white/[0.025]">
+            <div className="flex flex-col gap-3 rounded-xl border border-black/10 bg-black/[0.02] p-4 dark:border-white/10 dark:bg-white/[0.025]">
               <span className="min-w-0">
                 <span className="block text-sm font-semibold">
                   Default rows per page
@@ -508,10 +507,10 @@ export function ProfileForm({
                 }))}
               />
             </div>
-            <p className="text-sm text-black/65 dark:text-white/65">
-              Preferences sync automatically when changed.
-            </p>
           </div>
+          <p className="text-sm text-black/65 dark:text-white/65">
+            Preferences sync automatically when changed.
+          </p>
         </section>
       )}
       {hasError ? (

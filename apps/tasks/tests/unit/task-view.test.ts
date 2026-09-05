@@ -3,6 +3,7 @@ import {
   indexTaskAssignees,
   indexTaskCategories,
   taskHasAssignee,
+  taskMatchesDueFilter,
 } from "@/lib/tasks/task-view";
 import type { TaskAssignee, TaskCategory } from "@/lib/tasks/task-types";
 
@@ -36,5 +37,18 @@ describe("task board relation selectors", () => {
     expect(taskHasAssignee(assignees, "shared", "secondary")).toBe(true);
     expect(taskHasAssignee(assignees, "shared", "unassigned")).toBe(false);
     expect(taskHasAssignee(assignees, "empty", "unassigned")).toBe(true);
+  });
+
+  it("distinguishes overdue dates from upcoming date windows", () => {
+    const clock = new Date("2026-09-05T12:00:00Z").getTime();
+    expect(
+      taskMatchesDueFilter({ due_date: "2026-09-04" }, "overdue", clock),
+    ).toBe(true);
+    expect(
+      taskMatchesDueFilter({ due_date: "2026-09-05" }, "overdue", clock),
+    ).toBe(false);
+    expect(taskMatchesDueFilter({ due_date: "2026-09-10" }, "14", clock)).toBe(
+      true,
+    );
   });
 });
