@@ -28,3 +28,12 @@
 @utility brightness-25 { filter: brightness(0.25); }
 @utility brightness-30 { filter: brightness(0.3); }
 @utility scale-102 { scale: 1.02; }
+
+/* Tailwind v4 preflight no longer sets cursor: pointer on buttons. */
+@layer base {
+  button:not(:disabled):not([aria-disabled="true"]),
+  [role="button"]:not(:disabled):not([aria-disabled="true"]),
+  summary {
+    cursor: pointer;
+  }
+}
