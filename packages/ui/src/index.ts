@@ -40,6 +40,7 @@ export * from "./ModalActions";
 export * from "./MultiSelect";
 export * from "./NavControls";
 export * from "./Pill";
+export * from "./RotatingGallery";
 export * from "./Pagination";
 export * from "./PendingResults";
 export * from "./RichTextarea";

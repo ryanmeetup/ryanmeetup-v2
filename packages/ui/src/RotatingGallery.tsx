@@ -3,7 +3,8 @@
 import NextImage from "next/image";
 import { useEffect, useState } from "react";
 import { Transition } from "@headlessui/react";
-import { IconButton, Pill } from "@ryanmeetup/ui";
+import { IconButton } from "./IconButton";
+import { Pill } from "./Pill";
 import {
   FaChevronLeft as ChevronLeft,
   FaChevronRight as ChevronRight,
@@ -141,30 +142,32 @@ const RotatingGallery = (props: RotatingGalleryProps) => {
           )}
         </div>
       )}
-      <IconButton
-        onClick={() =>
-          setActiveSlide(
-            (current) => (current - 1 + items.length) % items.length,
-          )
-        }
-        label="Show previous photo"
-        size="md"
-        variant="overlay"
-        tooltipTriggerClassName="absolute left-3 top-1/2 z-30 -translate-y-1/2"
-      >
-        <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-      </IconButton>
-      <IconButton
-        onClick={() =>
-          setActiveSlide((current) => (current + 1) % items.length)
-        }
-        label="Show next photo"
-        size="md"
-        variant="overlay"
-        tooltipTriggerClassName="absolute right-3 top-1/2 z-30 -translate-y-1/2"
-      >
-        <ChevronRight className="h-4 w-4" aria-hidden="true" />
-      </IconButton>
+      <div className="absolute left-3 top-1/2 z-30 -translate-y-1/2">
+        <IconButton
+          onClick={() =>
+            setActiveSlide(
+              (current) => (current - 1 + items.length) % items.length,
+            )
+          }
+          label="Show previous photo"
+          size="md"
+          variant="overlay"
+        >
+          <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+        </IconButton>
+      </div>
+      <div className="absolute right-3 top-1/2 z-30 -translate-y-1/2">
+        <IconButton
+          onClick={() =>
+            setActiveSlide((current) => (current + 1) % items.length)
+          }
+          label="Show next photo"
+          size="md"
+          variant="overlay"
+        >
+          <ChevronRight className="h-4 w-4" aria-hidden="true" />
+        </IconButton>
+      </div>
       <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center justify-center gap-2 rounded-full border border-white/20 bg-black/50 px-3 py-2 backdrop-blur">
         {items.map((slide, index) => (
           <button

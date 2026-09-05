@@ -1,11 +1,41 @@
 import Link from "next/link";
-import { Button, Card, Heading, Kicker, SectionHeader, Text } from "@ryanmeetup/ui";
+import {
+  Button,
+  Card,
+  Heading,
+  Kicker,
+  RotatingGallery,
+  SectionHeader,
+  Text,
+} from "@ryanmeetup/ui";
 import { FiArrowRight, FiPackage, FiShield, FiTruck } from "react-icons/fi";
 import { CollectionGrid } from "@/components/collection-grid";
-import { HeroGallery } from "@/components/hero-gallery";
 import { getCollections, getFeaturedProducts } from "@/lib/shopify";
 
 export const revalidate = 300;
+
+const heroPhotos = [
+  {
+    src: "/hero/ryan-merch-table.jpg",
+    alt: "Ryans browsing official Ryan Meetup shirts and hats at a merch table",
+    title: "The Ryan merch table",
+  },
+  {
+    src: "/hero/ryans-game-show.jpg",
+    alt: "A crowd of Ryans wearing Ryan name-tag shirts at Ryan’s Game Show",
+    title: "Ryan’s Game Show",
+  },
+  {
+    src: "/hero/ryan-baseball-classic.jpg",
+    alt: "Ryans in event shirts cheering together at the Ryan Baseball Classic",
+    title: "Ryan Baseball Classic",
+  },
+  {
+    src: "/hero/rytoberfest.jpg",
+    alt: "A large group of Ryans wearing Ryan shirts at Rytoberfest",
+    title: "Rytoberfest",
+  },
+];
 
 export default async function HomePage() {
   const [collections, products] = await Promise.all([getCollections(), getFeaturedProducts()]);
@@ -51,7 +81,7 @@ export default async function HomePage() {
                 </Button.Link>
               </div>
             </div>
-            <HeroGallery />
+            <RotatingGallery items={heroPhotos} />
           </div>
         </div>
       </section>

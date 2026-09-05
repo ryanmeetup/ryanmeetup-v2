@@ -4,8 +4,14 @@ import { useState, useEffect } from "react";
 
 // Components
 import NextLink from "next/link";
-import { Button, Card, Divider, Heading, Text } from "@ryanmeetup/ui";
-import { RotatingGallery } from "@/components/home/RotatingGallery";
+import {
+  Button,
+  Card,
+  Divider,
+  Heading,
+  RotatingGallery,
+  Text,
+} from "@ryanmeetup/ui";
 import { landingGallery } from "@/lib/constants";
 import { Transition } from "@headlessui/react";
 import {

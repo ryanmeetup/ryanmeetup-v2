@@ -63,7 +63,7 @@ test("customer can switch between the Ryan Meetup light and dark themes", async 
 test("customer can browse the merch hero gallery", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByText("The Ryan merch table")).toBeVisible();
-  await page.getByRole("button", { name: "Show next merch photo" }).click();
+  await page.getByRole("button", { name: "Show next photo" }).click();
   await expect(page.getByText("Ryan’s Game Show")).toBeVisible();
 });
 
