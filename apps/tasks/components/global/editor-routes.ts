@@ -1,16 +1,19 @@
+import {
+  editorSurface,
+  type EditorSurfacePreference,
+} from "@/lib/workspace/editor-surface";
+
 /**
- * The dedicated mobile editor routes, and the CSS that decides when they are
- * used. See `docs/MOBILE_EDITOR_SURFACES.md`.
+ * The dedicated editor routes, and what decides when they are used. See
+ * `docs/MOBILE_EDITOR_SURFACES.md`.
  *
  * The five heaviest editors — task, project, category, contact, and calendar
- * event — are dialogs on desktop and pages on a phone. The choice is made in
- * CSS, never in JavaScript: a trigger renders both an anchor to the route and a
- * button that opens the dialog, and the breakpoint hides one of them. Both are
- * always mounted, so there is no hydration branch, no `matchMedia`, and no
- * flash of the wrong surface before the client decides.
+ * event — exist as both a dialog and a route. A trigger is therefore a pair:
+ * an anchor to the route and a control that opens the dialog. Which of the two
+ * a person gets is `editorTriggers`, below.
  *
- * Pair these two on the same trigger, always. A control that is only ever
- * `mobileEditorTrigger` leaves desktop with no way in.
+ * Pair these two on the same trigger, always. A control that renders only the
+ * route half leaves a dialog reader with no way in.
  *
  * The desktop half hides with `max-sm:hidden` rather than a plain `hidden`.
  * Tailwind v4 emits the display utilities in alphabetical order, so `.hidden`
@@ -19,10 +22,57 @@
  * base classes, so a plain `hidden` on one of those never took effect and a
  * phone showed the route trigger and the dialog trigger side by side. A
  * media-query variant is emitted after the unprefixed utilities and wins
- * whatever display the component asks for.
+ * whatever display the component asks for. This is also why the pinned
+ * preferences drop a trigger from the tree instead of hiding it: there is no
+ * breakpoint to hang a variant off, and a plain `hidden` would not stick.
  */
-export const mobileEditorTrigger = "sm:hidden";
-export const desktopEditorTrigger = "max-sm:hidden sm:inline-flex";
+const mobileEditorTrigger = "sm:hidden";
+const desktopEditorTrigger = "max-sm:hidden sm:inline-flex";
+
+export type EditorTriggers = {
+  /** Render the anchor to the dedicated editor route. */
+  route: boolean;
+  /** Render the control that opens the dialog. */
+  dialog: boolean;
+  /** Goes on the route trigger. Empty unless the breakpoint is deciding. */
+  routeClassName: string;
+  /** Goes on the dialog trigger. Empty unless the breakpoint is deciding. */
+  dialogClassName: string;
+};
+
+/**
+ * Which halves of a trigger pair to render, for this profile's preference.
+ *
+ * On `auto` both halves are mounted and a media query hides one, so the choice
+ * never depends on JavaScript measuring the viewport: no `matchMedia`, no
+ * hydration branch, no flash of the wrong surface. On a pinned preference
+ * there is no viewport question left to ask — the answer came from the profile
+ * the server rendered — so the losing half is simply not rendered, which is
+ * both cheaper and immune to the class-ordering trap described above.
+ */
+export function editorTriggers(preference: unknown): EditorTriggers {
+  const surface: EditorSurfacePreference = editorSurface(preference);
+  if (surface === "page")
+    return {
+      route: true,
+      dialog: false,
+      routeClassName: "",
+      dialogClassName: "",
+    };
+  if (surface === "modal")
+    return {
+      route: false,
+      dialog: true,
+      routeClassName: "",
+      dialogClassName: "",
+    };
+  return {
+    route: true,
+    dialog: true,
+    routeClassName: mobileEditorTrigger,
+    dialogClassName: desktopEditorTrigger,
+  };
+}
 
 /**
  * The workspace shell padding an editor route passes as `contentClassName`.

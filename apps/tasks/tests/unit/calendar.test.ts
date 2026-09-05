@@ -119,6 +119,7 @@ describe("calendar view models", () => {
           onboarding_completed: true,
           task_details_open_by_default: false,
           assign_new_tasks_to_self: false,
+          editor_surface: "auto",
         },
       ],
       [],

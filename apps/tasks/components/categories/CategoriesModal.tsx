@@ -41,9 +41,8 @@ import {
 import { withAccessPreview } from "@/lib/access/access-preview";
 import {
   CountBadge,
-  desktopEditorTrigger,
   EditorSurface,
-  mobileEditorTrigger,
+  editorTriggers,
   ManagementCard,
   ManagementCardTitle,
   ResourceOwnerSelect,
@@ -138,6 +137,7 @@ export function CategoriesModal({
    * answer rather than a hardcoded default.
    */
   const listPath = useEditorReturnPath();
+  const triggers = editorTriggers(data.currentProfile.editor_surface);
   const {
     embedded = false,
     createOnly: createOnlyOption,
@@ -703,23 +703,27 @@ export function CategoriesModal({
           actions={
             onCreate && !readOnly ? (
               <>
-                <Button.Link
-                  href={`/categories/new?from=${encodeURIComponent(listPath)}`}
-                  size="sm"
-                  className={`w-full ${mobileEditorTrigger}`}
-                  leftIcon={<FiPlus aria-hidden />}
-                >
-                  New Category
-                </Button.Link>
-                <Button
-                  type="button"
-                  size="sm"
-                  className={desktopEditorTrigger}
-                  leftIcon={<FiPlus aria-hidden />}
-                  onClick={onCreate}
-                >
-                  New Category
-                </Button>
+                {triggers.route && (
+                  <Button.Link
+                    href={`/categories/new?from=${encodeURIComponent(listPath)}`}
+                    size="sm"
+                    className={`w-full ${triggers.routeClassName}`}
+                    leftIcon={<FiPlus aria-hidden />}
+                  >
+                    New Category
+                  </Button.Link>
+                )}
+                {triggers.dialog && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    className={triggers.dialogClassName}
+                    leftIcon={<FiPlus aria-hidden />}
+                    onClick={onCreate}
+                  >
+                    New Category
+                  </Button>
+                )}
               </>
             ) : undefined
           }
@@ -1034,23 +1038,27 @@ export function CategoriesModal({
                         )}
                         {!readOnly && (
                           <>
-                            {/* Route on a phone, dialog from `sm` up. */}
-                            <IconButton.Link
-                              href={`/categories/${category.id}/edit?from=${encodeURIComponent(listPath)}`}
-                              label={`Edit “${category.name}”`}
-                              variant="edit"
-                              className={mobileEditorTrigger}
-                            >
-                              <FiEdit2 />
-                            </IconButton.Link>
-                            <IconButton
-                              label={`Edit “${category.name}”`}
-                              variant="edit"
-                              className={desktopEditorTrigger}
-                              onClick={() => beginEdit(category)}
-                            >
-                              <FiEdit2 />
-                            </IconButton>
+                            {/* Route or dialog, per the profile. */}
+                            {triggers.route && (
+                              <IconButton.Link
+                                href={`/categories/${category.id}/edit?from=${encodeURIComponent(listPath)}`}
+                                label={`Edit “${category.name}”`}
+                                variant="edit"
+                                className={triggers.routeClassName}
+                              >
+                                <FiEdit2 />
+                              </IconButton.Link>
+                            )}
+                            {triggers.dialog && (
+                              <IconButton
+                                label={`Edit “${category.name}”`}
+                                variant="edit"
+                                className={triggers.dialogClassName}
+                                onClick={() => beginEdit(category)}
+                              >
+                                <FiEdit2 />
+                              </IconButton>
+                            )}
                             <IconButton
                               label={`${category.archived_at ? "Restore" : "Archive"} “${category.name}”`}
                               variant="archive"

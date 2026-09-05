@@ -20,8 +20,8 @@ import {
 } from "react-icons/fi";
 import {
   CountBadge,
-  desktopEditorTrigger,
-  mobileEditorTrigger,
+  editorTriggers,
+  type EditorTriggers,
   useEditorReturnPath,
   WorkspacePageShell,
 } from "@/components/global";
@@ -81,14 +81,17 @@ function Item({
   item,
   onOpen,
   editHref,
+  triggers,
 }: {
   item: CalendarItem;
   onOpen: () => void;
   /**
-   * The dedicated mobile edit route for this item, when there is one. Google
-   * tiles have none: they are read-only in Tasks on every screen size.
+   * The dedicated edit route for this item, when there is one. Google tiles
+   * have none: they are read-only in Tasks on every screen size, so their tile
+   * keeps the button whatever the reader's editor surface is.
    */
   editHref?: string;
+  triggers: EditorTriggers;
 }) {
   const sourceClassName =
     item.source === "google"
@@ -134,29 +137,32 @@ function Item({
     );
   return (
     <>
-      {/* Route on a phone, dialog from `sm` up — see editor-routes.ts. */}
-      {editHref && (
+      {/* Route or dialog, per the profile — see editor-routes.ts. */}
+      {editHref && triggers.route && (
         <Link
           href={editHref}
-          className={`${className} w-full ${mobileEditorTrigger}`}
+          className={`${className} w-full ${triggers.routeClassName}`}
           style={{ borderColor: item.color }}
         >
           {content}
         </Link>
       )}
-      <button
-        type="button"
-        className={`${className} w-full ${editHref ? desktopEditorTrigger : ""}`}
-        style={{ borderColor: item.color }}
-        // A Google tile opens a read-only dialog rather than the editor, which
-        // is worth saying where the tile itself only shows a title and a time.
-        aria-label={
-          item.google ? `${item.title} — view event details` : undefined
-        }
-        onClick={onOpen}
-      >
-        {content}
-      </button>
+      {(!editHref || triggers.dialog) && (
+        <button
+          type="button"
+          className={`${className} w-full ${editHref ? triggers.dialogClassName : ""}`}
+          style={{ borderColor: item.color }}
+          // A Google tile opens a read-only dialog rather than the editor,
+          // which is worth saying where the tile itself only shows a title and
+          // a time.
+          aria-label={
+            item.google ? `${item.title} — view event details` : undefined
+          }
+          onClick={onOpen}
+        >
+          {content}
+        </button>
+      )}
     </>
   );
 }
@@ -226,6 +232,7 @@ export function CalendarPageClient({
   } | null>(null);
   const [source, setSource] = useState("all");
   const previewing = Boolean(data.accessPreview);
+  const triggers = editorTriggers(data.currentProfile.editor_surface);
   const google = useCalendarGoogle({
     accessPreview: data.accessPreview,
     canView: googleCanView,
@@ -335,6 +342,7 @@ export function CalendarPageClient({
             editHref={
               previewing ? undefined : calendarEventEditHref(item, returnPath)
             }
+            triggers={triggers}
           />
         ))}
         {layout.taskItems.length > 0 && (
@@ -354,6 +362,7 @@ export function CalendarPageClient({
             editHref={
               previewing ? undefined : calendarEventEditHref(item, returnPath)
             }
+            triggers={triggers}
           />
         ))}
         {layout.hiddenCount > 0 && (
@@ -410,23 +419,27 @@ export function CalendarPageClient({
               </Tooltip>
             ) : (
               <>
-                {/* Route on a phone, dialog from `sm` up — see editor-routes.ts. */}
-                <Button.Link
-                  href={`/calendar/event/new?date=${today || `${month}-01`}&from=${encodeURIComponent(returnPath)}`}
-                  size="sm"
-                  className={`w-full ${mobileEditorTrigger}`}
-                  leftIcon={<FiPlus />}
-                >
-                  Add to calendar
-                </Button.Link>
-                <Button
-                  size="sm"
-                  className={desktopEditorTrigger}
-                  leftIcon={<FiPlus />}
-                  onClick={() => openNew("important")}
-                >
-                  Add to calendar
-                </Button>
+                {/* Route or dialog, per the profile — see editor-routes.ts. */}
+                {triggers.route && (
+                  <Button.Link
+                    href={`/calendar/event/new?date=${today || `${month}-01`}&from=${encodeURIComponent(returnPath)}`}
+                    size="sm"
+                    className={`w-full ${triggers.routeClassName}`}
+                    leftIcon={<FiPlus />}
+                  >
+                    Add to calendar
+                  </Button.Link>
+                )}
+                {triggers.dialog && (
+                  <Button
+                    size="sm"
+                    className={triggers.dialogClassName}
+                    leftIcon={<FiPlus />}
+                    onClick={() => openNew("important")}
+                  >
+                    Add to calendar
+                  </Button>
+                )}
               </>
             )
           }
@@ -509,6 +522,7 @@ export function CalendarPageClient({
                 setDayAgenda(null);
                 openItem(item);
               }}
+              triggers={triggers}
             />
           ))}
         </div>

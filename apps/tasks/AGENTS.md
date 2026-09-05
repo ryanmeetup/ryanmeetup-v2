@@ -113,6 +113,12 @@ directly rather than expanding a barrel solely for internal use.
   through `EditorSurface`, whose `presentation: "page"` branch is the only
   place that shape is written. See `docs/MOBILE_EDITOR_SURFACES.md` and
   `components/contacts/ContactEditor.tsx`.
+- Which surface a person gets is their own choice, not the viewport's alone.
+  `profiles.editor_surface` is `auto`, `modal`, or `page`, and every create or
+  edit affordance asks `editorTriggers` from `components/global` which halves
+  of its trigger pair to render rather than reaching for a class name. A
+  trigger that renders only one half leaves the other preference with no way
+  in.
 
 `useWorkspaceData` owns the live client workspace. Demo persistence,
 realtime subscription setup, pure event reconciliation, and mutation behavior

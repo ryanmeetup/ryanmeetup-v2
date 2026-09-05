@@ -22,8 +22,7 @@ import {
 } from "react-icons/fi";
 import type { Profile } from "@/lib/workspace/workspace-types";
 import {
-  desktopEditorTrigger,
-  mobileEditorTrigger,
+  editorTriggers,
   ThemeToggle,
   useEditorReturnPath,
   useTheme,
@@ -32,6 +31,14 @@ import { ADMIN_ROOT } from "@/lib/admin/admin-routes";
 import { HeaderProfileControls } from "./HeaderProfileControls";
 import { createClient } from "@/lib/supabase/client";
 import { profileDisplayName } from "@/lib/presentation";
+
+/**
+ * Icon only where the header is tight, icon and label from `sm` up. Both halves
+ * of the trigger pair wear it, because either one can now be the half that
+ * renders at every width.
+ */
+const newTaskClassName =
+  "max-sm:gap-0 max-sm:px-3 [&>span:last-child]:hidden sm:gap-2 sm:px-4 sm:[&>span:last-child]:inline";
 
 export function TaskHeaderActions({
   profile,
@@ -50,6 +57,7 @@ export function TaskHeaderActions({
   // Demo builds hide /admin entirely, so the entry points go with it.
   const isOwner = !previewing && !demoMode && profile.app_role === "owner";
   const profileName = profileDisplayName(profile);
+  const triggers = editorTriggers(profile.editor_surface);
   return (
     <>
       <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-3">
@@ -165,7 +173,7 @@ export function TaskHeaderActions({
               leftIcon={<FiPlus />}
               disabled
               aria-label="New task"
-              className="max-sm:gap-0 max-sm:px-3 [&>span:last-child]:hidden sm:[&>span:last-child]:inline"
+              className={newTaskClassName}
             >
               New task
             </Button>
@@ -173,30 +181,34 @@ export function TaskHeaderActions({
         ) : (
           <>
             {/*
-              One control, two surfaces. A phone follows the link to the
-              dedicated create page; from `sm` up the button opens the dialog
-              over whatever the author was looking at. Both are always rendered
-              and the breakpoint hides one, so the choice never depends on
-              JavaScript measuring the viewport.
+              One control, two surfaces. The link goes to the dedicated create
+              page; the button opens the dialog over whatever the author was
+              looking at. On the default preference both are rendered and the
+              breakpoint hides one, so the choice never depends on JavaScript
+              measuring the viewport. See components/global/editor-routes.ts.
             */}
-            <Button.Link
-              href={`/task/new?from=${encodeURIComponent(returnPath)}`}
-              size="sm"
-              leftIcon={<FiPlus />}
-              aria-label="New task"
-              className={`max-sm:gap-0 max-sm:px-3 [&>span:last-child]:hidden ${mobileEditorTrigger}`}
-            >
-              New task
-            </Button.Link>
-            <Button
-              size="sm"
-              leftIcon={<FiPlus />}
-              onClick={onNewTask}
-              aria-label="New task"
-              className={`gap-2 px-4 ${desktopEditorTrigger}`}
-            >
-              New task
-            </Button>
+            {triggers.route && (
+              <Button.Link
+                href={`/task/new?from=${encodeURIComponent(returnPath)}`}
+                size="sm"
+                leftIcon={<FiPlus />}
+                aria-label="New task"
+                className={`${newTaskClassName} ${triggers.routeClassName}`}
+              >
+                New task
+              </Button.Link>
+            )}
+            {triggers.dialog && (
+              <Button
+                size="sm"
+                leftIcon={<FiPlus />}
+                onClick={onNewTask}
+                aria-label="New task"
+                className={`${newTaskClassName} ${triggers.dialogClassName}`}
+              >
+                New task
+              </Button>
+            )}
           </>
         )}
         <span className="hidden sm:inline-flex">

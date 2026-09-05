@@ -32,8 +32,7 @@ import {
   FiUserCheck,
 } from "react-icons/fi";
 import {
-  desktopEditorTrigger,
-  mobileEditorTrigger,
+  editorTriggers,
   useInstancePageTitle,
   WorkspacePageShell,
 } from "@/components/global";
@@ -94,6 +93,7 @@ export function TaskPageClient({
     document.title = pageTitle(`${taskKey(task)}: ${task.title}`);
   }, [pageTitle, task]);
 
+  const triggers = editorTriggers(data.currentProfile.editor_surface);
   const status = data.statuses.find((item) => item.id === task.status_id);
   const project = data.projects.find((item) => item.id === task.project_id);
   const assigneeIds = new Set(
@@ -219,23 +219,27 @@ export function TaskPageClient({
             <div className="flex shrink-0 items-center gap-2 sm:justify-self-end xl:w-full xl:self-end xl:justify-end">
               {!data.accessPreview && (
                 <>
-                  {/* Route on a phone, dialog from `sm` up — see editor-routes.ts. */}
-                  <Button.Link
-                    href={taskEditPath(task)}
-                    size="sm"
-                    leftIcon={<FiEdit3 />}
-                    className={mobileEditorTrigger}
-                  >
-                    Edit task
-                  </Button.Link>
-                  <Button
-                    size="sm"
-                    leftIcon={<FiEdit3 />}
-                    onClick={openEditor}
-                    className={desktopEditorTrigger}
-                  >
-                    Edit task
-                  </Button>
+                  {/* Route or dialog, per the profile — see editor-routes.ts. */}
+                  {triggers.route && (
+                    <Button.Link
+                      href={taskEditPath(task)}
+                      size="sm"
+                      leftIcon={<FiEdit3 />}
+                      className={triggers.routeClassName}
+                    >
+                      Edit task
+                    </Button.Link>
+                  )}
+                  {triggers.dialog && (
+                    <Button
+                      size="sm"
+                      leftIcon={<FiEdit3 />}
+                      onClick={openEditor}
+                      className={triggers.dialogClassName}
+                    >
+                      Edit task
+                    </Button>
+                  )}
                 </>
               )}
               <DropdownMenu>

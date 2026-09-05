@@ -1937,7 +1937,9 @@ CREATE TABLE IF NOT EXISTS "public"."profiles" (
     "app_role" "public"."app_role" DEFAULT 'member'::"public"."app_role" NOT NULL,
     "task_details_open_by_default" boolean DEFAULT false NOT NULL,
     "favorite_project_ids" "uuid"[] DEFAULT '{}'::"uuid"[] NOT NULL,
-    "assign_new_tasks_to_self" boolean DEFAULT false NOT NULL
+    "assign_new_tasks_to_self" boolean DEFAULT false NOT NULL,
+    "editor_surface" "text" DEFAULT 'auto'::"text" NOT NULL,
+    CONSTRAINT "profiles_editor_surface_check" CHECK (("editor_surface" = ANY (ARRAY['auto'::"text", 'modal'::"text", 'page'::"text"])))
 );
 
 
@@ -1949,6 +1951,10 @@ COMMENT ON COLUMN "public"."profiles"."favorite_project_ids" IS 'Project IDs fav
 
 
 COMMENT ON COLUMN "public"."profiles"."assign_new_tasks_to_self" IS 'When true, a new task drafted by this profile starts assigned to them.';
+
+
+
+COMMENT ON COLUMN "public"."profiles"."editor_surface" IS 'Where create and edit forms open for this profile: auto (dialog from the sm breakpoint up, page below it), modal, or page.';
 
 
 

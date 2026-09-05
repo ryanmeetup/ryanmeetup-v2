@@ -1,7 +1,9 @@
 # Mobile editor surfaces
 
 Audit date: 2026-09-03
-Revised: 2026-09-04 — the Tier 1 routes are real pages, not dialogs on a route.
+Revised: 2026-09-04 — the Tier 1 routes are real pages, not dialogs on a route,
+and which surface you get is now a profile preference rather than the viewport
+alone.
 Status: Tier 1 shipped. Tier 2 and the open questions below are not started.
 
 Every create/edit flow in the Tasks app was a `Modal`. On a phone the shared
@@ -22,15 +24,33 @@ the scroll length inside a fixed-height box.
 ## What shipped: the Tier 1 editors
 
 The five heaviest editors now have dedicated routes. Contacts use those routes
-at every viewport; desktop still opens a dialog for the other four editors.
+at every viewport; the other four default to a dialog on a desktop.
 
-| Editor | Route | Desktop behavior |
+| Editor | Route | Dialog |
 | --- | --- | --- |
 | Task | `/task/new`, `/task/[key]/edit` | `TaskEditor` |
 | Project | `/projects/new`, `/projects/[id]/edit` | `ProjectsModal` |
 | Category | `/categories/new`, `/categories/[id]/edit` | `CategoriesModal` |
-| Contact | `/contacts/new`, `/contacts/[contact]/edit` | Uses the route |
+| Contact | `/contacts/new`, `/contacts/[contact]/edit` | None — the route is the only surface |
 | Calendar event | `/calendar/event/new`, `/calendar/event/[id]/edit` | `CalendarEventEditorModal` |
+
+### Who chooses: `profiles.editor_surface`
+
+The viewport is a good default and a bad rule. Someone on a large screen may
+still want the whole page for a form they are going to sit inside for a while,
+and someone else would rather never lose the board behind the dialog. So the
+choice is a profile column, `editor_surface`, set on `/profile` under
+Preferences and owned by `lib/workspace/editor-surface.ts`:
+
+| Value | What a trigger does |
+| --- | --- |
+| `auto` (default) | Dialog from the `sm` breakpoint up, route below it — what shipped first |
+| `modal` | Dialog at every width |
+| `page` | The dedicated route at every width |
+
+Contacts are unaffected: they have no dialog to prefer. `auto` stays the default
+because it is right for anyone who has not thought about it — a dialog has the
+room on a desktop and does not on a phone.
 
 ### How it works
 
@@ -39,6 +59,12 @@ file that knows there are two. `presentation: "modal"` renders the shared
 `Modal`; `presentation: "page"` renders `EditorPageSurface`. Both take the same
 `formId`/`onSubmit` contract, so an editor's form body is written once and does
 not know which surface it landed in.
+
+Which of the two a person reaches is decided one step earlier, at the trigger.
+`editorTriggers` in `components/global/editor-routes.ts` reads the profile's
+`editor_surface` and answers which halves of the trigger pair to render; every
+create and edit affordance asks it rather than reaching for a class name
+directly.
 
 The two surfaces are genuinely different screens. The first version of this work
 made the page branch render `Modal`'s own chrome — a bordered card with a close
@@ -72,16 +98,20 @@ long; on a new contact everything is new, so they go last. Keep the two in step
 by eye: same trail, same header, same cards.
 
 Contacts use their route at every viewport. The other four editors keep the
-mobile-page/desktop-dialog split.
+mobile-page/desktop-dialog split unless the reader's profile pins a surface.
 
 Three rules keep the dual-surface editors from diverging:
 
 - **The form body never knows which surface it is in.** If a field needs to
   know, that is a layout concern and belongs in the surface, not the field.
-- **The breakpoint is CSS, never JavaScript.** Triggers render an anchor that
-  is visible below `sm` and a button that is visible from `sm` up, both always
-  mounted. There is no `matchMedia` in the routing decision, so there is no
-  hydration mismatch and no flash of the wrong surface.
+- **The breakpoint is CSS, never JavaScript.** On `auto` a trigger renders an
+  anchor that is visible below `sm` and a button that is visible from `sm` up,
+  both always mounted. There is no `matchMedia` in the routing decision, so
+  there is no hydration mismatch and no flash of the wrong surface. A pinned
+  preference has no breakpoint left to honour — the answer came from the profile
+  the server rendered — so `editorTriggers` drops the losing half from the tree
+  instead of hiding it. That is not just cheaper: a plain `hidden` would not
+  even work, for the reason `editor-routes.ts` documents at length.
 - **The trail is canonical; the return is not.** `parents` names the screens the
   editor sits under — always the list itself, plus the record's own page where
   there is one. Where cancelling *returns* to is a separate question answered by

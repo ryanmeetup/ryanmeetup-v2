@@ -34,11 +34,7 @@ import { useSidebarSections } from "@/hooks/useSidebarSections";
 import { withAccessPreview } from "@/lib/access/access-preview";
 import { canViewWorkspaceArea } from "@/lib/access/workspace-areas";
 import { projectStatusDetails } from "@/lib/resources/project-status";
-import {
-  desktopEditorTrigger,
-  InstanceWordmark,
-  mobileEditorTrigger,
-} from "@/components/global";
+import { editorTriggers, InstanceWordmark } from "@/components/global";
 
 /**
  * A filled dot in this sidebar already means "category identity", so project
@@ -122,6 +118,7 @@ export function TasksSidebar({
     (demoMode || data.currentProfile.app_role === "owner");
   const canManageCategories =
     !data.accessPreview && (demoMode || data.canManageCategories);
+  const triggers = editorTriggers(data.currentProfile.editor_surface);
   const activeProjects = data.projects.filter(
     (project) => !project.archived_at,
   );
@@ -298,48 +295,57 @@ export function TasksSidebar({
             </DropdownMenuButton>
             <DropdownMenuItems align="start" className="w-56">
               {/*
-                Each entry is a pair: a phone follows the link to the dedicated
-                editor route, and from `sm` up the button opens the dialog over
-                the current page. See components/global/editor-routes.ts.
+                Each entry is a pair: the link opens the dedicated editor route,
+                the item opens the dialog over the current page. Which of the
+                two a reader gets is their profile's editor surface — see
+                components/global/editor-routes.ts.
               */}
               {isOwner && (
                 <>
-                  <DropdownMenuItem.Link
-                    href={`/projects/new?from=${encodeURIComponent(pathname)}`}
-                    className={mobileEditorTrigger}
-                    onClick={closeSidebar}
-                  >
-                    <FiFolder aria-hidden /> New project
-                  </DropdownMenuItem.Link>
-                  <DropdownMenuItem
-                    className={desktopEditorTrigger}
-                    onClick={() => {
-                      closeSidebar();
-                      onCreateProject();
-                    }}
-                  >
-                    <FiFolder aria-hidden /> New project
-                  </DropdownMenuItem>
+                  {triggers.route && (
+                    <DropdownMenuItem.Link
+                      href={`/projects/new?from=${encodeURIComponent(pathname)}`}
+                      className={triggers.routeClassName}
+                      onClick={closeSidebar}
+                    >
+                      <FiFolder aria-hidden /> New project
+                    </DropdownMenuItem.Link>
+                  )}
+                  {triggers.dialog && (
+                    <DropdownMenuItem
+                      className={triggers.dialogClassName}
+                      onClick={() => {
+                        closeSidebar();
+                        onCreateProject();
+                      }}
+                    >
+                      <FiFolder aria-hidden /> New project
+                    </DropdownMenuItem>
+                  )}
                 </>
               )}
               {canManageCategories && (
                 <>
-                  <DropdownMenuItem.Link
-                    href={`/categories/new?from=${encodeURIComponent(pathname)}`}
-                    className={mobileEditorTrigger}
-                    onClick={closeSidebar}
-                  >
-                    <FiTag aria-hidden /> New category
-                  </DropdownMenuItem.Link>
-                  <DropdownMenuItem
-                    className={desktopEditorTrigger}
-                    onClick={() => {
-                      closeSidebar();
-                      onCreateCategory();
-                    }}
-                  >
-                    <FiTag aria-hidden /> New category
-                  </DropdownMenuItem>
+                  {triggers.route && (
+                    <DropdownMenuItem.Link
+                      href={`/categories/new?from=${encodeURIComponent(pathname)}`}
+                      className={triggers.routeClassName}
+                      onClick={closeSidebar}
+                    >
+                      <FiTag aria-hidden /> New category
+                    </DropdownMenuItem.Link>
+                  )}
+                  {triggers.dialog && (
+                    <DropdownMenuItem
+                      className={triggers.dialogClassName}
+                      onClick={() => {
+                        closeSidebar();
+                        onCreateCategory();
+                      }}
+                    >
+                      <FiTag aria-hidden /> New category
+                    </DropdownMenuItem>
+                  )}
                 </>
               )}
             </DropdownMenuItems>

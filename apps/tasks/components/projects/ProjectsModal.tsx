@@ -41,9 +41,8 @@ import { withAccessPreview } from "@/lib/access/access-preview";
 import { mutate } from "@/lib/mutation-client";
 import {
   CountBadge,
-  desktopEditorTrigger,
   EditorSurface,
-  mobileEditorTrigger,
+  editorTriggers,
   ManagementCard,
   ManagementCardTitle,
   ResourceOwnerSelect,
@@ -148,6 +147,7 @@ export function ProjectsModal({
    * answer rather than a hardcoded default.
    */
   const listPath = useEditorReturnPath();
+  const triggers = editorTriggers(data.currentProfile.editor_surface);
   const {
     embedded = false,
     createOnly = false,
@@ -774,23 +774,27 @@ export function ProjectsModal({
         )}
         {!readOnly && (
           <>
-            {/* Route on a phone, dialog from `sm` up — see editor-routes.ts. */}
-            <IconButton.Link
-              href={`/projects/${project.id}/edit?from=${encodeURIComponent(listPath)}`}
-              label={`Edit “${project.name}”`}
-              variant="edit"
-              className={mobileEditorTrigger}
-            >
-              <FiEdit2 />
-            </IconButton.Link>
-            <IconButton
-              label={`Edit “${project.name}”`}
-              variant="edit"
-              className={desktopEditorTrigger}
-              onClick={() => beginRename(project)}
-            >
-              <FiEdit2 />
-            </IconButton>
+            {/* Route or dialog, per the profile — see editor-routes.ts. */}
+            {triggers.route && (
+              <IconButton.Link
+                href={`/projects/${project.id}/edit?from=${encodeURIComponent(listPath)}`}
+                label={`Edit “${project.name}”`}
+                variant="edit"
+                className={triggers.routeClassName}
+              >
+                <FiEdit2 />
+              </IconButton.Link>
+            )}
+            {triggers.dialog && (
+              <IconButton
+                label={`Edit “${project.name}”`}
+                variant="edit"
+                className={triggers.dialogClassName}
+                onClick={() => beginRename(project)}
+              >
+                <FiEdit2 />
+              </IconButton>
+            )}
             {taskCount > 0 ? (
               <IconButton
                 label={`${project.archived_at ? "Restore" : "Archive"} “${project.name}”`}
@@ -915,23 +919,27 @@ export function ProjectsModal({
           actions={
             onCreate && !readOnly ? (
               <>
-                <Button.Link
-                  href={`/projects/new?from=${encodeURIComponent(listPath)}`}
-                  size="sm"
-                  className={`w-full ${mobileEditorTrigger}`}
-                  leftIcon={<FiPlus aria-hidden />}
-                >
-                  New project
-                </Button.Link>
-                <Button
-                  type="button"
-                  size="sm"
-                  className={desktopEditorTrigger}
-                  leftIcon={<FiPlus aria-hidden />}
-                  onClick={onCreate}
-                >
-                  New project
-                </Button>
+                {triggers.route && (
+                  <Button.Link
+                    href={`/projects/new?from=${encodeURIComponent(listPath)}`}
+                    size="sm"
+                    className={`w-full ${triggers.routeClassName}`}
+                    leftIcon={<FiPlus aria-hidden />}
+                  >
+                    New project
+                  </Button.Link>
+                )}
+                {triggers.dialog && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    className={triggers.dialogClassName}
+                    leftIcon={<FiPlus aria-hidden />}
+                    onClick={onCreate}
+                  >
+                    New project
+                  </Button>
+                )}
               </>
             ) : undefined
           }

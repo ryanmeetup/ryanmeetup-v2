@@ -25,6 +25,7 @@ const lookups: TaskChangeLookups = {
       onboarding_completed: true,
       task_details_open_by_default: true,
       assign_new_tasks_to_self: false,
+      editor_surface: "auto",
     },
     {
       id: "alex",
@@ -33,6 +34,7 @@ const lookups: TaskChangeLookups = {
       onboarding_completed: true,
       task_details_open_by_default: true,
       assign_new_tasks_to_self: false,
+      editor_surface: "auto",
     },
   ],
   categories: [

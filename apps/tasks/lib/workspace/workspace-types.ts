@@ -1,5 +1,6 @@
 import type { TaskActivity } from "@/lib/activity/activity-types";
 import type { WorkspaceAreaKey } from "@/lib/access/workspace-areas";
+import type { EditorSurfacePreference } from "@/lib/workspace/editor-surface";
 import type { PaginationState } from "@/lib/pagination";
 import type {
   Category,
@@ -27,6 +28,7 @@ export type Profile = {
   onboarding_completed: boolean;
   task_details_open_by_default: boolean;
   assign_new_tasks_to_self: boolean;
+  editor_surface: EditorSurfacePreference;
   favorite_project_ids?: string[];
   app_role?: "owner" | "member";
 };

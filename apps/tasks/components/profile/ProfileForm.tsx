@@ -18,6 +18,11 @@ import { errorMessage as getErrorMessage } from "@/lib/presentation";
 import { displayNameError, normalizeDisplayName } from "@/lib/display-name";
 import { createClient } from "@/lib/supabase/client";
 import {
+  editorSurfaceOptions,
+  isEditorSurface,
+  type EditorSurfacePreference,
+} from "@/lib/workspace/editor-surface";
+import {
   filterPanelsExpandedPreferenceKey,
   paginationPageSizePreferenceKey,
 } from "@/lib/user-preferences";
@@ -58,6 +63,7 @@ export function ProfileForm({
   const [assignNewTasksToSelf, setAssignNewTasksToSelf] = useState(
     profile.assign_new_tasks_to_self,
   );
+  const [editorSurface, setEditorSurface] = useState(profile.editor_surface);
   const [paginationPageSize, setPaginationPageSize] = useState(
     10 as 10 | 25 | 50 | 100,
   );
@@ -168,6 +174,7 @@ export function ProfileForm({
           avatarPath,
           taskDetailsOpenByDefault,
           assignNewTasksToSelf,
+          editorSurface,
         }),
       });
       setDisplayName(result.profile.full_name || "");
@@ -209,10 +216,25 @@ export function ProfileForm({
     );
   }
 
+  async function changeEditorSurfacePreference(
+    nextValue: EditorSurfacePreference,
+  ) {
+    const previousValue = editorSurface;
+    setEditorSurface(nextValue);
+    await savePreferences({ editorSurface: nextValue }, () =>
+      setEditorSurface(previousValue),
+    );
+    // Every create and edit trigger reads this off the profile its page was
+    // server-rendered with, so the router cache would keep handing back the old
+    // surface on the way out of here.
+    router.refresh();
+  }
+
   async function savePreferences(
     changed: {
       taskDetailsOpenByDefault?: boolean;
       assignNewTasksToSelf?: boolean;
+      editorSurface?: EditorSurfacePreference;
     },
     revert: () => void,
   ) {
@@ -226,6 +248,7 @@ export function ProfileForm({
           displayName: savedDisplayName,
           taskDetailsOpenByDefault,
           assignNewTasksToSelf,
+          editorSurface,
           ...changed,
         }),
       });
@@ -252,6 +275,13 @@ export function ProfileForm({
     setPaginationPageSize(nextValue);
     localStorage.setItem(paginationPageSizePreferenceKey, String(nextValue));
   }
+
+  // The labels are short enough to fit the control; what each one actually does
+  // is the part worth spelling out, so the row's description follows the
+  // selection rather than describing the setting in the abstract.
+  const editorSurfaceDescription =
+    editorSurfaceOptions.find((option) => option.value === editorSurface)
+      ?.description ?? "";
 
   return (
     <form className="space-y-5" onSubmit={save}>
@@ -350,7 +380,7 @@ export function ProfileForm({
               Preferences
             </Heading>
             <p className="mt-2 text-sm text-black/65 dark:text-white/65">
-              Choose how task views behave when you open them.
+              Choose how views and forms behave when you open them.
             </p>
           </div>
           <div className="space-y-3">
@@ -429,6 +459,30 @@ export function ProfileForm({
                 <span className="pointer-events-none absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5 dark:bg-black" />
               </span>
             </label>
+            <div className="flex flex-col gap-3 rounded-xl border border-black/10 bg-black/[0.02] p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-5 dark:border-white/10 dark:bg-white/[0.025]">
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold">
+                  Create and edit forms
+                </span>
+                <span className="mt-1 block text-xs leading-relaxed text-black/55 dark:text-white/55">
+                  {editorSurfaceDescription}
+                </span>
+              </span>
+              <DropdownSelect
+                label="Open in"
+                value={editorSurface}
+                disabled={saving || savingPreferences}
+                className="sm:w-56 sm:shrink-0"
+                onChange={(value) => {
+                  if (isEditorSurface(value))
+                    void changeEditorSurfacePreference(value);
+                }}
+                options={editorSurfaceOptions.map((option) => ({
+                  label: option.label,
+                  value: option.value,
+                }))}
+              />
+            </div>
             <div className="flex items-center justify-between gap-5 rounded-xl border border-black/10 bg-black/[0.02] p-4 dark:border-white/10 dark:bg-white/[0.025]">
               <span className="min-w-0">
                 <span className="block text-sm font-semibold">

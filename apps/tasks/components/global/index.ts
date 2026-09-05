@@ -2,9 +2,9 @@ export { AccessPreviewBanner } from "./AccessPreviewBanner";
 export { DemoBanner } from "./DemoBanner";
 export { CountBadge } from "./CountBadge";
 export {
-  desktopEditorTrigger,
   editorPageContentClassName,
-  mobileEditorTrigger,
+  editorTriggers,
+  type EditorTriggers,
 } from "./editor-routes";
 export {
   EditorPageSurface,

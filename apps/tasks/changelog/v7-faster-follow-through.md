@@ -13,7 +13,8 @@ overview:
   - Notes, Contacts, and Calendar lockable to selected access groups
   - Read-only MCP access for Claude Desktop
   - Server-written comments, attachments, and activity without a refresh
-  - Full-page editors on phones, and multiple contact methods per person
+  - Full-page editors on phones, or on every screen if you prefer them
+  - Multiple contact methods per person
   - CI gated on types, unit coverage, and end-to-end tests
 ---
 
@@ -44,6 +45,10 @@ Notes, Contacts, and the Calendar can each be restricted to selected access grou
 ### Big editors get room to breathe on phones
 
 Creating or editing a task, project, category, contact, or calendar event uses a full mobile page with reachable actions and returns you to the exact filtered view you came from. Contacts use their dedicated pages on desktop too, while the other editors keep their familiar desktop dialogs.
+
+### Choose where forms open
+
+**Profile → Preferences** now has **Create and edit forms**. Leave it on *Match the screen* and nothing changes: a dialog on a desktop, a full page on a phone. Choose *Always a dialog* to keep the board or list behind every form at any size, or *Always a full page* to give every form the whole screen. The setting follows your account rather than the browser you happen to be using.
 
 ### Contact links you can read
 
@@ -117,4 +122,4 @@ Continuous integration runs typechecking, unit tests with a coverage floor, and 
 
 Page access covers Notes, Contacts, and the Calendar. The board, projects, and categories still depend on project and category visibility, so there is no single place to answer what one teammate can reach.
 
-The editors are split between full mobile pages and desktop dialogs, which means the same form exists as two layouts that have to stay in step. The read-only MCP connection is available only on deployments configured for it, and it stays read-only — an assistant can answer questions about the workspace but cannot act in it.
+The editors are split between full pages and dialogs, which means the same form exists as two layouts that have to stay in step; the new preference decides which one you meet, not how many there are. Contacts have only the page, so it is the one editor the preference cannot change. The read-only MCP connection is available only on deployments configured for it, and it stays read-only — an assistant can answer questions about the workspace but cannot act in it.

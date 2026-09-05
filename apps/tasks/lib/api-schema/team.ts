@@ -1,3 +1,4 @@
+import { isEditorSurface } from "@/lib/workspace/editor-surface";
 import {
   objectWithKeys,
   optionalTrimmedText,
@@ -27,6 +28,7 @@ export function profileSchema(value: unknown) {
     "avatarPath",
     "taskDetailsOpenByDefault",
     "assignNewTasksToSelf",
+    "editorSurface",
   ]);
   if (
     !body ||
@@ -41,10 +43,12 @@ export function profileSchema(value: unknown) {
     return null;
   if (typeof body.taskDetailsOpenByDefault !== "boolean") return null;
   if (typeof body.assignNewTasksToSelf !== "boolean") return null;
+  if (!isEditorSurface(body.editorSurface)) return null;
   return {
     displayName: body.displayName,
     avatarPath: body.avatarPath as string | undefined,
     taskDetailsOpenByDefault: body.taskDetailsOpenByDefault,
     assignNewTasksToSelf: body.assignNewTasksToSelf,
+    editorSurface: body.editorSurface,
   };
 }
