@@ -32,6 +32,8 @@ export default async function AccessPage() {
     assigneesResult,
     areasResult,
     areaGrantsResult,
+    projectGrantsResult,
+    categoryGrantsResult,
   ] = await Promise.all([
     supabase.from("access_groups").select("*").order("name"),
     supabase.from("access_group_members").select("*"),
@@ -39,11 +41,30 @@ export default async function AccessPage() {
     supabase.from("task_assignees").select("task_id, profile_id"),
     supabase.from("workspace_area_access").select("area, access_mode"),
     supabase.from("workspace_area_group_grants").select("area, group_id"),
+    supabase.from("project_group_grants").select("project_id, group_id"),
+    supabase.from("category_group_grants").select("category_id, group_id"),
   ]);
   const groups = requireQueryData("access groups", groupsResult);
   const members = requireQueryData("access group members", membersResult);
   const tasks = requireQueryData("task metadata", tasksResult);
   const taskAssignees = requireQueryData("task assignments", assigneesResult);
+  // Each group card summarises what that group reaches, and the grants that
+  // decide it live on the resource, not the group. Loading them here keeps the
+  // cards a render of data the page already holds rather than a query per card.
+  const projectGrants = requireQueryData(
+    "project access grants",
+    projectGrantsResult,
+  ).map((grant) => ({
+    resourceId: grant.project_id,
+    groupId: grant.group_id,
+  }));
+  const categoryGrants = requireQueryData(
+    "category access grants",
+    categoryGrantsResult,
+  ).map((grant) => ({
+    resourceId: grant.category_id,
+    groupId: grant.group_id,
+  }));
 
   // Page access is enforced only once its migration has run. Until then the
   // panel renders read-only rather than offering a control that would fail.
@@ -118,6 +139,8 @@ export default async function AccessPage() {
       initialMembers={members}
       initialAreaAccess={workspaceAreaAccess}
       areaAccessEnforced={areaAccessEnforced}
+      projectGrants={projectGrants}
+      categoryGrants={categoryGrants}
       userMetadata={userMetadata}
     />
   );

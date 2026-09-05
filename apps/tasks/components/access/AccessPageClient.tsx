@@ -27,6 +27,11 @@ import {
 import { useSearchFilter } from "@ryanmeetup/hooks";
 import { useAccessManagement } from "@/hooks/useAccessManagement";
 import { indexGroupsByProfile } from "@/lib/access/access-selectors";
+import {
+  buildAccessGroupOverviews,
+  type ResourceGrant,
+} from "@/lib/access/access-overview";
+import { WORKSPACE_AREAS } from "@/lib/access/workspace-areas";
 import { mutate } from "@/lib/mutation-client";
 import { errorMessage } from "@/lib/presentation";
 import { userAccessPreviewHref } from "@/lib/access/access-preview";
@@ -80,6 +85,8 @@ export function AccessPageClient({
   initialMembers,
   initialAreaAccess,
   areaAccessEnforced,
+  projectGrants,
+  categoryGrants,
   userMetadata,
 }: {
   currentUserId: string;
@@ -89,6 +96,10 @@ export function AccessPageClient({
   initialMembers: GroupMember[];
   initialAreaAccess: WorkspaceAreaAccess[];
   areaAccessEnforced: boolean;
+  /** Which groups each project is shared with, from `project_group_grants`. */
+  projectGrants: ResourceGrant[];
+  /** Which groups each category is shared with, from `category_group_grants`. */
+  categoryGrants: ResourceGrant[];
   userMetadata: UserAccessMetadata[];
 }) {
   const [data, setData] = useState(initialData);
@@ -102,6 +113,44 @@ export function AccessPageClient({
     initialMembers,
   });
   const { groups, members, setMembers } = access;
+  // Page access is edited further down this same screen, so the cards read
+  // from state here rather than the server snapshot; the panel reports each
+  // save and the summaries restate themselves without a reload.
+  const [areaAccess, setAreaAccess] = useState<WorkspaceAreaAccess[]>(() =>
+    WORKSPACE_AREAS.map(
+      (area) =>
+        initialAreaAccess.find((entry) => entry.area === area.key) ?? {
+          area: area.key,
+          accessMode: "open" as const,
+          groupIds: [],
+        },
+    ),
+  );
+  const groupOverviews = useMemo(
+    () =>
+      buildAccessGroupOverviews({
+        groups,
+        projects: data.projects,
+        categories: data.categories,
+        projectGrants,
+        categoryGrants,
+        areaAccess: areaAccess.map((entry) => ({
+          area: entry.area,
+          accessMode: entry.accessMode,
+        })),
+        areaGrants: areaAccess.flatMap((entry) =>
+          entry.groupIds.map((groupId) => ({ area: entry.area, groupId })),
+        ),
+      }),
+    [
+      groups,
+      data.projects,
+      data.categories,
+      projectGrants,
+      categoryGrants,
+      areaAccess,
+    ],
+  );
   const [teamMetadata, setTeamMetadata] = useState(userMetadata);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -424,6 +473,7 @@ export function AccessPageClient({
           <AccessGroupGrid
             groups={groups}
             members={members}
+            overviews={groupOverviews}
             profiles={profiles}
           />
         </section>
@@ -443,8 +493,15 @@ export function AccessPageClient({
           </div>
           <WorkspaceAreaAccessPanel
             groups={groups}
-            initialAccess={initialAreaAccess}
+            initialAccess={areaAccess}
             enforced={areaAccessEnforced}
+            onSaved={(entry) =>
+              setAreaAccess((current) =>
+                current.map((item) =>
+                  item.area === entry.area ? entry : item,
+                ),
+              )
+            }
           />
         </section>
 

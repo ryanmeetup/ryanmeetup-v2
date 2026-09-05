@@ -4,23 +4,23 @@ import {
 } from "@/lib/access/workspace-areas";
 import type { AccessGroup } from "@/lib/access/access-types";
 
-type Resource = {
+export type Resource = {
   id: string;
   name: string;
   access_mode: "owners" | "open" | "restricted";
 };
 
-type ResourceGrant = {
+export type ResourceGrant = {
   resourceId: string;
   groupId: string;
 };
 
-type AreaAccess = {
+export type AreaAccess = {
   area: string;
   accessMode: "open" | "restricted";
 };
 
-type AreaGrant = {
+export type AreaGrant = {
   area: string;
   groupId: string;
 };
@@ -222,4 +222,28 @@ export function buildAccessGroupOverview({
           : `Inherited from ${calendarSource.name}`
         : null,
   };
+}
+
+/**
+ * The same explanation for every group at once.
+ *
+ * The access page renders a card per group and each one summarises what that
+ * group reaches, so the counts come from a single set of grants passed through
+ * once rather than a query per card.
+ */
+export function buildAccessGroupOverviews(input: {
+  groups: AccessGroup[];
+  projects: Resource[];
+  categories: Resource[];
+  projectGrants: ResourceGrant[];
+  categoryGrants: ResourceGrant[];
+  areaAccess: AreaAccess[];
+  areaGrants: AreaGrant[];
+}): Map<string, AccessGroupOverview> {
+  return new Map(
+    input.groups.map((group) => [
+      group.id,
+      buildAccessGroupOverview({ ...input, group }),
+    ]),
+  );
 }

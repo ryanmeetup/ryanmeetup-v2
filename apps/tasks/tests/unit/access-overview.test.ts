@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildAccessGroupOverview,
+  buildAccessGroupOverviews,
   effectiveMembershipGroupIds,
   inheritedGroupIds,
 } from "@/lib/access/access-overview";
@@ -80,5 +81,32 @@ describe("access group explanations", () => {
       areaGrants: [],
     });
     expect(global.projects[0].reason).toBe("Workspace-wide manager access");
+  });
+
+  it("explains every group from one set of grants", () => {
+    const base = group("base", 0, { name: "Members" });
+    const lead = group("lead", 10, { name: "Leads" });
+    const overviews = buildAccessGroupOverviews({
+      groups: [base, lead],
+      projects: [
+        { id: "open", name: "Open", access_mode: "open" },
+        { id: "leads", name: "Leads only", access_mode: "restricted" },
+      ],
+      categories: [],
+      projectGrants: [{ resourceId: "leads", groupId: "lead" }],
+      categoryGrants: [],
+      areaAccess: [],
+      areaGrants: [],
+    });
+
+    expect([...overviews.keys()]).toEqual(["base", "lead"]);
+    expect(overviews.get("base")?.projects.map(({ id }) => id)).toEqual([
+      "open",
+    ]);
+    expect(overviews.get("lead")?.projects.map(({ id }) => id)).toEqual([
+      "open",
+      "leads",
+    ]);
+    expect(overviews.get("base")?.projectCount).toBe(2);
   });
 });

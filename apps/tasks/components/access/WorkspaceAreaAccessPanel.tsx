@@ -8,7 +8,7 @@ import {
   MultiSelect,
   toast,
 } from "@ryanmeetup/ui";
-import { FiLock, FiUnlock } from "react-icons/fi";
+import { FiGlobe, FiLock } from "react-icons/fi";
 import {
   WORKSPACE_AREAS,
   type WorkspaceAreaKey,
@@ -16,6 +16,29 @@ import {
 import type { AccessGroup } from "@/lib/access/access-types";
 import { mutate } from "@/lib/mutation-client";
 import { errorMessage } from "@/lib/presentation";
+
+/**
+ * The badge that says whether a page is locked, at a glance.
+ *
+ * A padlock next to an open padlock is the same silhouette twice at 10px, so
+ * the two states carry different shapes — a globe for "everyone", a padlock for
+ * "some groups" — and only the locked one is tinted. Three neutral cards with
+ * one amber badge answers "what did I lock?" without reading a word.
+ */
+const badgeState = {
+  open: {
+    icon: FiGlobe,
+    label: "Open",
+    className:
+      "border-black/10 bg-black/5 text-black/60 dark:border-white/10 dark:bg-white/5 dark:text-white/60",
+  },
+  restricted: {
+    icon: FiLock,
+    label: "Restricted",
+    className:
+      "border-amber-500/35 bg-amber-500/15 text-amber-900 dark:border-amber-400/35 dark:bg-amber-500/15 dark:text-amber-100",
+  },
+} as const;
 
 export type WorkspaceAreaAccess = {
   area: WorkspaceAreaKey;
@@ -35,11 +58,18 @@ export function WorkspaceAreaAccessPanel({
   groups,
   initialAccess,
   enforced,
+  onSaved,
 }: {
   groups: AccessGroup[];
   initialAccess: WorkspaceAreaAccess[];
   /** False until the migration that creates the page-access tables is applied. */
   enforced: boolean;
+  /**
+   * Reports the persisted entry after a successful save, so the group cards
+   * above can restate what each group reaches. Editing in place stays local:
+   * an unsaved dropdown must not change what those cards claim is in force.
+   */
+  onSaved?: (entry: WorkspaceAreaAccess) => void;
 }) {
   const [access, setAccess] = useState<WorkspaceAreaAccess[]>(() =>
     WORKSPACE_AREAS.map(
@@ -64,6 +94,10 @@ export function WorkspaceAreaAccessPanel({
 
   async function save(key: WorkspaceAreaKey) {
     const entry = entryFor(key);
+    const saved: WorkspaceAreaAccess = {
+      ...entry,
+      groupIds: entry.accessMode === "restricted" ? entry.groupIds : [],
+    };
     const label =
       WORKSPACE_AREAS.find((area) => area.key === key)?.label ?? key;
     setSavingArea(key);
@@ -71,11 +105,12 @@ export function WorkspaceAreaAccessPanel({
       await mutate("/api/workspace-area-access", {
         method: "POST",
         body: JSON.stringify({
-          area: entry.area,
-          accessMode: entry.accessMode,
-          groupIds: entry.accessMode === "restricted" ? entry.groupIds : [],
+          area: saved.area,
+          accessMode: saved.accessMode,
+          groupIds: saved.groupIds,
         }),
       });
+      onSaved?.(saved);
       toast.success(`${label} access saved.`);
     } catch (error) {
       toast.error(errorMessage(error, `${label} access could not be saved.`));
@@ -90,6 +125,8 @@ export function WorkspaceAreaAccessPanel({
         const entry = entryFor(area.key);
         const restricted = entry.accessMode === "restricted";
         const Icon = area.icon;
+        const badge = badgeState[entry.accessMode];
+        const BadgeIcon = badge.icon;
         return (
           <Card key={area.key} className="flex h-full flex-col gap-4 p-5">
             <div>
@@ -97,19 +134,15 @@ export function WorkspaceAreaAccessPanel({
                 <Icon aria-hidden className="shrink-0" />
                 {area.label}
                 <span
-                  className="ml-auto inline-flex items-center gap-1 rounded-full border border-black/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-black/55 dark:border-white/10 dark:text-white/55"
+                  className={`ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${badge.className}`}
                   aria-label={
                     restricted
                       ? `${area.label} is restricted`
                       : `${area.label} is open to everyone`
                   }
                 >
-                  {restricted ? (
-                    <FiLock aria-hidden />
-                  ) : (
-                    <FiUnlock aria-hidden />
-                  )}
-                  {restricted ? "Restricted" : "Open"}
+                  <BadgeIcon aria-hidden size={12} className="shrink-0" />
+                  {badge.label}
                 </span>
               </h3>
               <p className="mt-1 text-sm text-black/65 dark:text-white/65">
@@ -151,7 +184,8 @@ export function WorkspaceAreaAccessPanel({
                 />
                 {entry.groupIds.length === 0 && (
                   <p className="text-sm text-black/65 dark:text-white/65">
-                    With no group selected, only app owners can open {area.label}.
+                    With no group selected, only app owners can open{" "}
+                    {area.label}.
                   </p>
                 )}
               </>
