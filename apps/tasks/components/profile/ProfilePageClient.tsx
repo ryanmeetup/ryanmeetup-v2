@@ -131,7 +131,7 @@ export function ProfilePageClient({
               <code>{workspaceLoadReference}</code> if the problem continues.
             </ErrorCallout>
           ) : null}
-          <div className="mt-10 border-t border-black/10 pt-8 dark:border-white/10">
+          <div className="mt-10">
             <ProfileForm
               profile={data.currentProfile}
               email={email}

@@ -47,7 +47,7 @@ export function CountBadge({
 
   return (
     <span
-      className={`inline-flex items-center justify-center whitespace-nowrap rounded-full bg-black/10 font-sans font-semibold normal-case leading-none tabular-nums tracking-normal text-black/60 dark:bg-white/10 dark:text-white/60 ${styles.base} ${showNoun ? styles.labelled : styles.bare} ${className ?? ""}`}
+      className={`relative inline-flex items-center justify-center whitespace-nowrap rounded-full bg-black/10 font-sans font-semibold normal-case leading-none tabular-nums tracking-normal text-black/60 dark:bg-white/10 dark:text-white/60 ${styles.base} ${showNoun ? styles.labelled : styles.bare} ${className ?? ""}`}
     >
       {children}
       {noun !== null && (
