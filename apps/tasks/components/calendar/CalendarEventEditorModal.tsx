@@ -145,6 +145,7 @@ export function CalendarEventEditorModal(props: CalendarEventEditorProps) {
           {!draft.id && canEdit && (
             <DropdownSelect
               variant="field"
+              required
               label="What are you adding?"
               value={draft.kind}
               onChange={(value) => changeKind(value as CalendarEventKind)}
@@ -288,6 +289,7 @@ export function CalendarEventEditorModal(props: CalendarEventEditorProps) {
           {draft.kind === "important" && (
             <DropdownSelect
               variant="field"
+              required
               label="Visibility"
               value={
                 draft.projectId

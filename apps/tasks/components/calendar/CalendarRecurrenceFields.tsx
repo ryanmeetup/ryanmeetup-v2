@@ -134,6 +134,7 @@ export function CalendarRecurrenceFields({
     <div className="space-y-3">
       <DropdownSelect
         variant="field"
+        required
         label="Repeats"
         value={showCustom ? "custom" : preset}
         disabled={disabled}
