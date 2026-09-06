@@ -69,6 +69,14 @@ every other failure is passed straight through.
 Each replay logs `Supabase refused a token as issued in the future`, so the
 skew is visible in the logs even when the retry hides it from the person.
 
+The crash page also stopped being the first answer to a failed render. The
+honest response to it was always to press its own button, so `app/error.tsx`
+presses it: a failure reloads the route once, showing a spinner rather than
+the "we couldn't load your workspace" heading, and only announces itself if
+the reload fails too. `lib/page-recovery.ts` holds the budget that decides
+when to stop — one reload per thirty seconds, so a page that is genuinely
+broken is shown to the person instead of reloading forever.
+
 ### If a workspace crash page appears again
 
 1. **Look at the reference on the page.** A UUID is a `WorkspaceLoadError` —
