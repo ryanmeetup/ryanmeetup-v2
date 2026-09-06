@@ -63,9 +63,9 @@ const FilterPanel = ({
         />
       </button>
       <AnimatedCollapse open={expanded}>
-        <div className="px-4 pb-4">
+        <div className="pb-4">
           <div
-            className={`flex items-center gap-2 overflow-x-auto pb-1 ${controlsClassName ?? ""}`}
+            className={`flex items-center gap-2 overflow-x-auto px-4 pb-1 ${controlsClassName ?? ""}`}
           >
             {children}
             {count > 0 && onClear && <ClearFiltersButton onClick={onClear} />}
