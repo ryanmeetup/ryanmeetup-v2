@@ -277,11 +277,16 @@ workspace that is set up wrong, like
 
 ## Outstanding
 
-- **PRD is twenty migrations behind: `20260913000000` through
-  `20261002000000`.** Read from PRD's own history on 2026-09-01 — its latest
-  applied version is `20260912000000`, and everything committed since has gone
-  to RMT alone. `20260907000000` did reach it; the entry that said otherwise
-  outlived the fact, which is the failure mode this section has.
+- **PRD is four migrations behind: `20260929000000` through
+  `20261002000000`.** Read from PRD's own history on 2026-09-06 — its latest
+  applied version is `20260928000000`.
+
+  This entry said eleven behind, then twenty, and both were wrong by the time
+  they were read: PRD had quietly caught up to `20260928000000` in between.
+  That is the third time a number written here outlived the fact. Run the
+  query below before believing this bullet, and read the whole list rather
+  than the five most recent — an instance can be behind in the middle as
+  easily as at the end.
 
   PRD does not get CLI commands: hand over the SQL as one paste-ready block
   for its dashboard SQL Editor, with a verification query, stated explicitly
@@ -289,7 +294,7 @@ workspace that is set up wrong, like
   that block — every migration after that version in one transaction, guarded
   so it refuses a database it does not fit, ending with the rows that record
   it. Verify the block before handing it over, the same way the one on
-  2026-09-05 was:
+  2026-09-06 was:
 
   ```sh
   supabase db reset --local --no-seed                        # every migration
@@ -307,8 +312,8 @@ workspace that is set up wrong, like
   `supabase/migrations`:
 
   ```sql
-  select version from supabase_migrations.schema_migrations
-  order by version desc limit 5;
+  select string_agg(version, ', ' order by version)
+  from supabase_migrations.schema_migrations;
   ```
 
   A handover block should end by inserting its versions into that table, or

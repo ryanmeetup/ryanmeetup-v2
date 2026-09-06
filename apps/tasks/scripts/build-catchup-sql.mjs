@@ -8,10 +8,12 @@
  * ending with the rows that record them in `supabase_migrations`, so the next
  * reading of that table is right.
  *
- * The block refuses to run anywhere it does not belong: it checks that the
- * version it continues from is applied and that none of its own are, and a
- * failed check rolls the whole transaction back rather than leaving a
- * database half a schema ahead.
+ * The block refuses to run anywhere it does not belong: it checks that every
+ * migration up to the one it continues from is applied and that none of its
+ * own are, and a failed check rolls the whole transaction back rather than
+ * leaving a database half a schema ahead. Naming what is missing is the point
+ * — an instance can be behind in the middle as easily as at the end, and the
+ * five most recent versions do not show it.
  *
  *   node scripts/build-catchup-sql.mjs 20260912000000 [out.sql]
  *
@@ -33,9 +35,14 @@ if (!/^\d{14}$/.test(after ?? "")) {
   process.exit(1);
 }
 
-const pending = readdirSync(migrationsDir)
-  .filter((file) => file.endsWith(".sql") && file.slice(0, 14) > after)
-  .sort()
+const migrations = readdirSync(migrationsDir)
+  .filter((file) => file.endsWith(".sql"))
+  .sort();
+const expected = migrations
+  .map((file) => file.slice(0, 14))
+  .filter((version) => version <= after);
+const pending = migrations
+  .filter((file) => file.slice(0, 14) > after)
   .map((file) => ({
     file,
     version: file.slice(0, 14),
@@ -67,13 +74,20 @@ begin;
 -- rather than applying half a schema to it.
 do $catchup_guard$
 declare
+  missing text;
   already text;
 begin
-  if not exists (
-    select 1 from supabase_migrations.schema_migrations where version = '${after}'
-  ) then
+  select string_agg(expected, ', ' order by expected) into missing
+  from unnest(array[
+${expected.map((version) => `    '${version}'`).join(",\n")}
+  ]) as expected
+  where not exists (
+    select 1 from supabase_migrations.schema_migrations applied
+    where applied.version = expected
+  );
+  if missing is not null then
     raise exception
-      'This block continues from ${after}, which is not applied here. Send back the version query and ask for a block that starts where this database actually is.';
+      'This block continues from ${after}, but these are not applied here: %. Send those back and ask for a block that starts where this database actually is.', missing;
   end if;
 
   select string_agg(version, ', ' order by version) into already
