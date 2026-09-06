@@ -277,13 +277,29 @@ workspace that is set up wrong, like
 
 ## Outstanding
 
-- **PRD is eleven migrations behind: `20260913000000` through `20260923000000`.**
-  Read from PRD's own history on 2026-09-01 — its latest applied version is
-  `20260912000000`. `20260907000000` did reach it; the entry that said
-  otherwise outlived the fact, which is the failure mode this section has.
+- **PRD is twenty migrations behind: `20260913000000` through
+  `20261002000000`.** Read from PRD's own history on 2026-09-01 — its latest
+  applied version is `20260912000000`, and everything committed since has gone
+  to RMT alone. `20260907000000` did reach it; the entry that said otherwise
+  outlived the fact, which is the failure mode this section has.
+
   PRD does not get CLI commands: hand over the SQL as one paste-ready block
   for its dashboard SQL Editor, with a verification query, stated explicitly
-  as running on PRD.
+  as running on PRD. `scripts/build-catchup-sql.mjs <version it is on>` writes
+  that block — every migration after that version in one transaction, guarded
+  so it refuses a database it does not fit, ending with the rows that record
+  it. Verify the block before handing it over, the same way the one on
+  2026-09-05 was:
+
+  ```sh
+  supabase db reset --local --no-seed                        # every migration
+  pg_dump --schema-only --schema=public --schema=storage     # keep this dump
+  supabase db reset --local --no-seed --version <version it is on>
+  psql -v ON_ERROR_STOP=1 -f catchup.sql                     # the block itself
+  pg_dump --schema-only --schema=public --schema=storage     # must match
+  ```
+
+  Never `--linked`: that resets RMT.
 
 - **Ask PRD what it has rather than trusting this section.** Nothing in the
   repository records what PRD holds, and a note here is only true until the
